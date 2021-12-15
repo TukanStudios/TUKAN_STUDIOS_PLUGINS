@@ -508,8 +508,8 @@ right = (left+right)/2; left = right;
 
 slider16 == 1 ? (dry=0):(dry=1);
 
-spl0 = spl0*smoother_value(dry) + 2*left*smoother_value(wet);
-spl1 = spl1*smoother_value(dry) + 2*right*smoother_value(wet);
+spl0 = spl0*dry + 2*left*smoother_value(wet);
+spl1 = spl1*dry + 2*right*smoother_value(wet);
 
 writepos += 1;
 writepos >= buffersize ? writepos = 0;
