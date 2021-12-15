@@ -38,7 +38,16 @@ out_pin:right output
   /*
   ##################### MEINE INIT ###################################
   */
-  
+  function emptybuffer ()
+  (
+  nix = delaylen*2;
+  loop(264600-delaylen*2,
+  dpint = nix;
+  dpint[0] = 0;
+  dpint[1] = 0;
+  nix+=1;
+  );
+  );
   
     lastCap=1;
     mouse_wheel=1;
@@ -317,7 +326,7 @@ slider9 == 0 ? (
   );
   
   
-  
+  delaylen > 132300 ? (delaylen=132300);
   
   
   
@@ -329,6 +338,7 @@ slider9 == 0 ? (
   
   
 @slider
+    delaylen > 132300 ? (delaylen=132300);
     odelay=delaylen;
     beat = 240 * slider7;
     wetmix = 2 ^(slider2/6);
@@ -589,12 +599,14 @@ slider9 == 0 ? (
           Slider1=gdelay;
           pot.potVal(gdelay.val); 
           gdelay.collision() ? (slider10 = 0; slider11 = 0;);
+          //emptybuffer();
           ):
      gdelay!=slider1?
          (
            gdelay=slider1;
             gdelay.val=gdelay;
            gdelay.potVal(gdelay.val);
+          // emptybuffer();
          );
      gfb!=gfb.val?
          (
@@ -666,6 +678,7 @@ slider9 == 0 ? (
      
 sliderchange(slider4);
     
+    delaylen > 132300 ? (delaylen=132300);
     odelay=delaylen;
     beat = 240 * slider7;
     wetmix = 2 ^(slider2/6);
@@ -686,6 +699,7 @@ sliderchange(slider4);
     
 
 @block
+    delaylen > 132300 ? (delaylen=132300);
   slider1==0 ? (
     delaylen=min((beat / tempo)*srate,500000);
   ):(
@@ -778,9 +792,13 @@ os2 = distspl1;
   spl1=spl1*drymix2 + os2*wetmix2 ;
   );
   
-  
-  
-  
+  play_state != 0 ? (PlSt =1);
+  PlSt == 1 ? (
+  play_state == 0 ? (
+  emptybuffer();
+  PlSt = 0;
+  );
+  );
   
   
   
