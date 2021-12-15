@@ -1,0 +1,649 @@
+desc:Limiter 2 (Tukan)
+slider1:0<-32,0,0.1>-Threshold (dB)
+slider2:0<0,100,1>-Knee (%)
+slider3:30<0,800,1>-Release (ms)
+slider4:-0.1<-16 ,0,0.1>-Ceiling (dB)
+slider5:1<0,1,1>-MeterInOut
+
+filename:0,TKLimgui/Lim2Back.png
+filename:1,TKLimgui/VUMeter.png
+filename:2,TKLimgui/APIBig.png
+filename:3,TKLimgui/APISmall.png
+filename:4,TKLimgui/switch.png
+
+in_pin:L in
+in_pin:R in
+out_pin:L out
+out_pin:R out
+
+options:no_meter
+
+@init
+grminx = 1;
+
+dbc = 20/log(10);
+function db2ratio(d) ( 10^(d/20); );
+function ratio2db(r) ( log(abs(r))*dbc; );
+
+threshold = slider1;
+knee_width = abs(slider1*2*slider2*0.01);
+ceiling = 1/(db2ratio(threshold));
+slope = -1;
+
+release = slider3/1000;
+alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+
+Tlo = (threshold - knee_width / 2);
+Thi = (threshold + knee_width / 2);
+knee_factor = (slope / (knee_width * 2));
+
+yR = 0;
+
+function computeGain(x)
+(
+(x < Tlo) ? x = 0 :
+(x > Thi) ? x = slope * (x - threshold) :
+(delta = x - Tlo;
+x = delta * delta * knee_factor;);
+);
+
+function smoothAverage(x, alphaR)
+(
+eps = 0.0000000001;
+yR = min(x, alphaR * yR + (1 - alphaR) * x + eps - eps);
+x = yR;
+);
+
+gr_meter = 1;
+gr_meter_decay = 1.0001;//exp(1/(1*srate));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==============================================================================
+  gfx_clear=1;
+  ext_noinit=1;
+  lastCap=1;
+  mouse_wheel=1;
+player = 0;
+ initial = 0;
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       val = valOld + (mouse_wheel/12)*step;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+  /*
+  slider10:100<0,100,1>-Input Att
+  slider11:0<0,100,1>-Service Old
+  slider12:0<0,100,1>-Denoiser
+  slider13:0<-100,100,2>-Output
+  */
+gThresh.potcfg  (0,-32,0,.1);
+gRel.potcfg (30,0,800,2);
+gOut.potcfg   (-0.1,-16,0,.1);
+gMeter.potcfg (1,0,1,1);
+
+meterx = 70;
+metery = 50;
+meterw = 395;
+meter_h=10;
+
+knobsx = meterx + 30;
+knobsy = metery + 3*meter_h+60;
+gThresh.rectIn(knobsx, knobsy, 75, 75);
+gThresh.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+
+knobsx += 130;
+gRel.rectIn(knobsx+7, knobsy+7, 60, 60);
+gRel.rectOut(knobsx+7, knobsy+7, 60, 60, 61, 3);
+
+gMeter.rectIn(knobsx+110, knobsy+7, 48, 60); 
+gMeter.rectOut(knobsx+110, knobsy+7, 48, 60, 2, 4);
+
+knobsx += 200;
+gOut.rectIn(knobsx, knobsy, 75, 75); 
+gOut.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+
+//knobsx = meterx+meterw+77; knobsy = metery-7;
+//gMeter.rectIn(knobsx, knobsy, 48, 60); 
+//gMeter.rectOut(knobsx, knobsy, 48, 60, 2, 4);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+threshold = slider1;
+knee_width = abs(slider1*2*slider2*0.01);
+ceiling = 1/(db2ratio(threshold));
+slope = -1;
+
+release = slider3/1000;
+alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+
+Tlo = (threshold - knee_width / 2);
+Thi = (threshold + knee_width / 2);
+knee_factor = (slope / (knee_width * 2));
+
+output = 10^(slider4/20);
+
+@sample
+inL = spl0;
+inR = spl1;
+
+xL = max(abs(inL),abs(inR));
+
+xG = ratio2db(xL);
+yG = computeGain(xG);
+cG = smoothAverage(yG, alphaR);
+cL = db2ratio(cG);
+
+spl0 = inL * cL * ceiling * output;
+spl1 = inR * cL * ceiling * output;
+
+gr = db2ratio(cL);
+grv = ratio2db(gr);
+grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
+grmin = min( min(cG,cG) , grmin);
+
+slider5 == 0 ?(
+ginL < abs(inL) ? (ginL = abs(inL));
+ginR < abs(inR) ? (ginR = abs(inR));
+):(
+ginL < abs(spl0) ? (ginL = abs(spl0));
+ginR < abs(spl1) ? (ginR = abs(spl1));
+);
+
+ginL = min(1,ginL);
+ginR = min(1,ginR);
+
+ginLm < ginL ? (ginLm = ginL);
+ginRm < ginR ? (ginRm = ginR);
+
+
+
+
+
+
+
+
+
+
+@gfx 595 250
+
+
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+                 
+      initial == 0 ? (
+      gThresh=slider1;
+      gThresh.val=gThresh;
+      gThresh.potVal(gThresh.val);
+      gRel=slider3;
+      gRel.val=gRel;
+      gRel.potVal(gRel.val);
+      gOut=slider4;
+      gOut.val=gOut;
+      gOut.potVal(gOut.val);
+      gMeter=slider5;
+      gMeter.val=gMeter;
+      gMeter.potVal(gMeter.val);
+      initial = 1;
+      );
+              
+              
+gfx_r=0.7; gfx_g=0.7; gfx_b=0.7; gfx_a=0.3;
+gfx_rect(0,0,meterw+200,250);
+gfx_r=0; gfx_g=0; gfx_b=0; gfx_a=1;
+gfx_rect(meterx,metery,meterw+70,3*meter_h+6);
+
+meter_bot=21;
+//smin(gfx_h,gfx_h-4);
+xscale=meterw*20/meter_bot;
+
+gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=0.1;
+  gfx_rect(meterx,metery+3+meter_h,meterw,meter_h);
+gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=0.6;
+gfx_y=metery+meter_h+3;
+gfx_x=meterx + meterw + log10(gr_meter)*xscale;
+gfx_x < meterx ? (gfx_x = meterx);
+gfx_rectto(meterx+meterw,metery+meter_h+meter_h+3);
+grminx = min(grminx,gr_meter);
+ ginRzielx=meterx + meterw + log10(grminx)*xscale;
+ grminx >= 0.9999 ? (
+ grminx = 1;
+ ):(
+  gfx_rect(ginRzielx-4,metery+3+meter_h,4,meter_h);
+ );
+
+
+
+gfx_x = meterx; gfx_y = metery;//meterh/;
+gfx_r=0; gfx_g=0.8; gfx_b=0; gfx_a=0.1;
+  gfx_rect(meterx,metery,meterw,meter_h);
+  gfx_rect(meterx,metery+2*meter_h+6,meterw,meter_h);
+gfx_r=0; gfx_g=0.8; gfx_b=0; gfx_a=0.9;
+  
+ ginLzielx=log10(ginL*1.12201845430*10)*xscale;
+ ginLzielx < 0 ? (ginLZielx = 0);
+gfx_rect(meterx,metery,ginLzielx,meter_h);
+ ginRzielx=log10(ginLm*1.12201845430*10)*xscale;
+ ginRzielx < 0 ? (
+ ginRZielx = 0;
+ ):(
+  gfx_rect(meterx+ginRzielx-4,metery,4,meter_h);
+ );
+ ginL*=0.95;
+ginl <0.01 ? (ginl = 0); 
+
+ ginRzielx=log10(ginR*1.12201845430*10)*xscale;
+ ginRzielx <= 0 ? (ginRZielx = 0);
+gfx_rect(meterx,metery+meter_h+meter_h+6,ginRzielx,meter_h);
+
+ ginRzielx=log10(ginRm*1.12201845430*10)*xscale;
+ ginRzielx < 0 ? (
+ ginRZielx = 0;
+ ):(
+  gfx_rect(meterx+ginRzielx-4,metery+meter_h+meter_h+6,4,meter_h);
+ );
+ ginR*=0.95;
+ ginR <0.01 ? (ginR = 0); 
+ 
+
+gfx_x=meterx+meterw+10;
+gfx_y=metery + meter_h/2 - gfx_texth/2;
+log10(ginLm*1.12201845430*10)*20-21 > -100 ? (
+gfx_drawnumber(log10(ginLm*1.12201845430*10)*20-21,1);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+
+);
+
+log10(ginRm*1.12201845430*10)*20-21+.4 > -100 ? (
+gfx_x=meterx+meterw+10;
+gfx_y=metery + meter_h+ meter_h+6+meter_h/2 - gfx_texth/2;
+gfx_drawnumber(log10(ginRm*1.12201845430*10)*20-21,1);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+
+);
+
+
+
+
+
+
+gfx_r=0; gfx_g=gfx_b=0; gfx_a=1;
+
+curser = 0;
+loop(meterw/5,
+gfx_line(meterx+curser*5, metery, meterx+curser*5, metery+meter_h+meter_h+meter_h+6);
+curser += 1;
+);
+
+
+
+
+
+
+
+
+gfx_r=1; gfx_g=gfx_b=1; gfx_a=0.2;
+
+s2=sqrt(2)/2;
+g = s2;
+while(
+
+gfx_x=meterx + meterw + log10(g)*xscale;
+gfx_x >= meterx ? (
+gfx_y=metery;
+gfx_lineto(gfx_x,metery+meter_h+meter_h+meter_h+6,0);
+
+//gfx_y=meter_h-gfx_texth;
+//gfx_x+=2;
+//gfx_drawnumber(log10(g)*20,0);
+//gfx_drawchar($'d');
+//gfx_drawchar($'B');
+);
+
+g*=s2;
+gfx_x >=0;
+);
+
+/*
+(mouse_cap) ? (
+grmin=0;
+ginLm = 0;
+ginRm = 0;
+);
+*/
+
+gfx_x=meterx+meterw+10;
+gfx_y=metery + meter_h+ meter_h/2 + 3 - gfx_texth/2;
+gfx_drawnumber(grmin,1);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+
+gfx_x=0;gfx_y=0;gfx_a=1;
+gfx_blit(0,1,0);
+
+
+       
+gThresh.knob();
+gRel.knob();
+gOut.knob();
+gMeter.knob();
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+      gThresh.collision()   ? gThresh.dragStart();   
+      gRel.collision()  ? gRel.dragStart();  
+      gOut.collision()    ? gOut.dragStart(); 
+      gMeter.collision()    ? gMeter.pottoggle();
+      //gfx_rect(meterx+meterw,metery+3,50,30);
+      mouse_x > meterx+meterw ? (
+      mouse_x < meterx+meterw+50 ? (
+      mouse_y > metery +3 ? (
+      mouse_y < metery + 30 ? (
+      grmin=0;
+      ginLm = 0;
+      ginRm = 0;
+      grminx = 1;
+       );
+      );
+      );
+      );
+    ):
+mouseClick == -1  ? 
+    (
+      gThresh.dragStop();
+      gRel.dragStop();
+      gOut.dragStop();
+      //gMeter.dragStop();
+    );
+
+mouse_wheel ? 
+    (
+      gThresh.collision()   ? gThresh.potWheel():
+      gRel.collision()  ? gRel.potWheel():
+      gOut.collision()    ? gOut.potWheel():
+      mouse_wheel=0;
+    );
+
+
+gThresh.dragging  ? gThresh.potDrag();
+gRel.dragging ? gRel.potDrag();
+gOut.dragging   ? gOut.potDrag();
+gMeter.dragging   ? gMeter.potDrag();
+/******************************* Slider Knob Control **************************/
+  gThresh!=gThresh.val?
+    (
+      gThresh=gThresh.val;
+      slider1=gThresh;
+      pot.potVal(gThresh.val);
+     ):
+gThresh!=slider1?
+    (
+      gThresh=slider1;
+      gThresh.val=gThresh;
+      gThresh.potVal(gThresh.val);
+      gThresh.valOld=gThresh;
+    );
+  
+gRel!=gRel.val?
+    (
+      gRel=gRel.val;
+      slider3=gRel;
+      pot.potVal(gRel.val);
+     ):
+gRel!=slider3?
+    (
+      gRel=slider3;
+      gRel.val=gRel;
+      gRel.potVal(gRel.val);
+      gRel.valOld=gRel;
+    );  
+  
+gOut!=gOut.val?
+    (
+      gOut=gOut.val;
+      slider4=gOut;
+      pot.potVal(gOut.val);
+     ): 
+gOut!=slider4?
+    (
+      gOut=slider4;
+      gOut.val=gOut;
+      gOut.potVal(gOut.val);
+      gOut.valOld=gOut;
+    );
+gMeter!=gMeter.val?
+    (
+      gMeter=gMeter.val;
+      slider5=gMeter;
+      pot.potVal(gMeter.val);
+     ):
+gMeter!=slider5?
+    (
+      gMeter=slider5;
+      gMeter.val=gMeter;
+      gMeter.potVal(gMeter.val);
+      gMeter.valOld=gMeter;
+    );
+    
+    
+    
+    threshold = slider1;
+    knee_width = abs(slider1*2*slider2*0.01);
+    ceiling = 1/(db2ratio(threshold));
+    slope = -1;
+    
+    release = slider3/1000;
+    alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+    
+    Tlo = (threshold - knee_width / 2);
+    Thi = (threshold + knee_width / 2);
+    knee_factor = (slope / (knee_width * 2));
+    
+    output = 10^(slider4/20); 

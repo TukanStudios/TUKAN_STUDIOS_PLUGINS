@@ -1,0 +1,812 @@
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+desc: Delay Machine (Tukan)
+
+slider1:100<0,3000,1>-Delay (ms) (0=tempo sync)
+slider2:-5<-40,0,1>-Feedback (dB)
+slider3:0<-120,6,1>-Mix In (dB)
+slider4:0.5<0,1,0.01>-Mix dry/ Wet (dB)
+slider5:0<-120,6,1>-none (dB)
+slider6:0<0,100,1>-Ping-Pong Width (%)
+slider7:0.25<0.0625,4,0.0625>-Tempo Sync (fraction of whole note)
+slider8:0<0,100,.1>-Distortion (%)
+slider9:0<0,1,1>-Tape
+slider10:0<0,5>-TimeSig
+slider11:0<0,2>-TimeSpec
+
+filename:0,DELAYgui/switch.png
+filename:1,DELAYgui/APIBig.png
+filename:2,DELAYgui/APIRED.png
+filename:3,DELAYgui/APISmall.png
+filename:4,DELAYgui/chickenb.png
+filename:5,DELAYgui/tapedelgr.png
+filename:6,DELAYgui/tapeback.png
+filename:7,DELAYgui/digback.png
+filename:8,DELAYgui/LED.png
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+  delaypos=0;
+  pongloc=0;
+
+
+
+  /*
+  ##################### MEINE INIT ###################################
+  */
+  
+  
+    lastCap=1;
+    mouse_wheel=1;
+    coords=srate+1;
+    ext_noinit=1;
+  initial = 0;
+  
+  
+  lizer = 0;
+  
+  
+      function limitgui(s low up)
+                    ( min(max(s, low), up) );
+      function deg(r)
+                    ( r / $pi * 180 );
+      function rad(d)
+                    ( d * $pi / 180 );
+  /******************************* GUI Function ***********************************/
+
+  
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       val = valOld + (mouse_wheel/12)*step;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+
+
+
+  gdelay.potcfg(100,0,3000,1); //Delay ms
+  gfb.potcfg(-3,-40,0,1);
+  gmix.potcfg(0.5,0,1,0.01);
+  gst.potcfg(0,0,100,1);
+  gdist.potcfg(0,0,100,1);
+  gtape.potcfg(0,0,1,1);  
+
+function potsupdate() (
+slider9 == 0 ? (
+  
+  knobsx = 120;
+  knobsy = 100;
+  
+  gdelay.rectIn(knobsx, knobsy, 75, 75);
+  gdelay.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+  gdelay.step = 9;
+  gdelayx = knobsx;
+  gdelayy = knobsy;
+  
+  knobsx += 130;
+  gfb.rectIn(knobsx, knobsy, 75, 75);
+  gfb.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+  gfb.step = .1;
+  gfbx = knobsx;
+  gfby = knobsy;
+  
+  
+  knobsx += 130;
+  gdist.rectIn(knobsx, knobsy, 75, 75);
+  gdist.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+  gdist.step = 1;
+  gdistx = knobsx;
+  gdisty = knobsy;
+  
+  knobsx += 130;
+  gst.rectIn(knobsx, knobsy+7, 60, 60);
+  gat.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
+  gst.step = 1;
+  gstx = knobsx;
+  gsty = knobsy+7;
+    
+  
+  knobsx += 130;
+  gmix.rectIn(knobsx, knobsy, 75, 75);
+  gmix.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+  gmix.step = 0.01;
+  gmixx = knobsx;
+  gmixy = knobsy;
+  
+  
+  knobsx += 130;
+  knobsy += 30;
+  gtape.rectIn(knobsx, knobsy+7, 48, 60);
+  gtape.rectOut(knobsx, knobsy+7, 48, 60, 1, 1);
+  gtape.step = 1;
+  gtapex = knobsx;
+  gtapey = knobsy;
+  ):(
+  
+ 
+  knobsx = 120;
+  knobsy = 130;
+  
+  gdelay.rectIn(knobsx, knobsy, 75, 75);
+  gdelay.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+  gdelay.step = 3;
+  gdelayx = knobsx;
+  gdelayy = knobsy;
+  
+  knobsx += 130;
+  gfb.rectIn(knobsx, knobsy, 75, 75);
+  gfb.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+  gfb.step = .1;
+  gfbx = knobsx;
+  gfby = knobsy;
+  
+  
+  knobsx += 130;
+  gdist.rectIn(knobsx, knobsy, 75, 75);
+  gdist.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+  gdist.step = 1;
+  gdistx = knobsx;
+  gdisty = knobsy;
+  
+  knobsx += 130;
+  gst.rectIn(knobsx, knobsy, 75, 75);
+  gat.rectOut(knobsx, knobsy, 75, 75, 61, 3);
+  gst.step = 1;
+  gstx = knobsx;
+  gsty = knobsy;
+    
+  
+  knobsx += 130;
+  gmix.rectIn(knobsx, knobsy, 75, 75);
+  gmix.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+  gmix.step = 0.01;
+  gmixx = knobsx;
+  gmixy = knobsy;
+  
+  
+  knobsx += 130;
+  gtape.rectIn(knobsx, knobsy+7, 48, 60);
+  gtape.rectOut(knobsx, knobsy+7, 48, 60, 1, 1);
+  gtape.step = 1;
+  gtapex = knobsx;
+  gtapey = knobsy;
+  
+  
+  );
+  );
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+@slider
+    odelay=delaylen;
+    beat = 240 * slider7;
+    wetmix = 2 ^(slider2/6);
+    drymix = 2 ^(slider3/6);
+    
+    wetmix2 = 1;
+    slider4 <= 0.5 ? (wetmix2 = slider4*2);//2 ^(slider4/6);
+    drymix2 = 1;
+    slider4 >= 0.5 ? (drymix2 = 1 - ((slider4-0.5)*2));
+    pongwidth = slider6/100;
+    pongpan=(1-pongwidth)/2;
+    
+    hdistr = min(slider8/100,.999);
+    foo = 2*hdistr/(1-hdistr);
+    volcompdist = 1-(slider8/110);
+    tape=slider9;
+  
+@gfx 838 255
+
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+  
+  
+  initial == 0 ?(
+   gdelay=slider1;
+    gdelay.val=gdelay;
+   gdelay.potVal(gdelay.val);
+  gfb=slider2;
+    gfb.val=gfb;
+   gfb.potVal(gfb.val);
+   gmix=slider4;
+    gmix.val=gmix;
+   gmix.potVal(gmix.val);
+  gst=slider6;
+    gst.val=gst;
+   gst.potVal(gst.val);
+     gdist=slider8;
+      gdist.val=gdist;
+     gdist.potVal(gdist.val);
+         gtape=slider9;
+          gtape.val=gtape;
+         gtape.potVal(gtape.val);
+  initial = 1;
+  );
+  
+  
+  gfx_w = 838;
+  gfx_h=255;
+  gfx_x=0; gfx_y=0;
+  slider9 == 1 ? (
+  gfx_blit(6,1,0);
+  ):(
+  gfx_y = gdelayy - 55;
+  gfx_r = 1; gfx_g = 0.2; gfx_b = 0.2;
+  gfx_x = gdelayx+20;
+  gfx_drawnumber(slider1,0);
+  gfx_drawchar($'m');
+  gfx_drawchar($'s');
+  gfx_x = gfbx+15;
+  gfx_drawnumber(slider2,0);
+  gfx_drawchar($'d');
+  gfx_drawchar($'B');
+  gfx_x = gstx+15;
+  gfx_drawnumber(slider6,0);
+  gfx_drawchar($'%');
+  gfx_drawchar($' ');
+  gfx_x = gmixx-30;
+  gfx_drawnumber(100*drymix2,0);
+  gfx_drawstr("%Dry / ");
+  gfx_drawnumber(100*wetmix2,0);
+  gfx_drawstr("%Wet");
+  gfx_x=0; gfx_y=0;
+  gfx_blit(7,1,0);
+  );
+  
+  function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
+  (
+  gfx_x=kx; gfx_y=ky;
+  weg = abs(kmax - kmin);
+  //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+   kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+   scry = kbitmap * floor(kframe);
+   gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+  );
+  potsupdate();
+  
+  slider9 == 0 ? (
+  knopf(1,gdelayx,gdelayy,61,75,0,3000,slider1);
+  knopf(1,gfbx,gfby,61,75,-40,0,slider2);
+  knopf(2,gmixx,gmixy,61,75,0,1,slider4);
+  knopf(3,gstx,gsty,61,60,0,100,slider6);
+  //knopf(2,gdistx,gdisty,61,75,0,100,slider8);
+  knopf(0,gtapex,gtapey,2,60,0,1,slider9);
+  ) : (
+  knopf(4,gdelayx,gdelayy,61,75,0,3000,slider1);
+  knopf(4,gfbx,gfby,61,75,-40,0,slider2);
+  knopf(4,gmixx,gmixy,61,75,0,1,slider4);
+  knopf(4,gstx,gsty,61,75,0,100,slider6);
+  knopf(4,gdistx,gdisty,61,75,0,100,slider8);
+  knopf(0,gtapex,gtapey,2,60,0,1,slider9);
+  );
+  
+  k16 = 120; kny = 210;
+  gfx_x=k16;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider10 == 5 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  k8 = 120+50; 
+  gfx_x=k8;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider10 == 4 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  k4 = 120+100;
+  gfx_x=k4;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider10 == 3 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  k2 = 120+150;
+  gfx_x=k2;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider10 == 2 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  k1 = 120+200; 
+  gfx_x=k1;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider10 == 1 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  kT = 120+350; 
+  gfx_x=kT;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider11 == 1 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+  kD = 120+400; 
+  gfx_x=kD;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider11 == 2 ? (
+  gfx_blit(8,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(8,0.7,0,0,31,30,30); 
+  );
+
+  
+  /********************************* Mouse Control ******************************/
+  mouseClick == 1 ? 
+      (
+        gdelay.collision()   ? gdelay.dragStart();
+        gfb.collision()   ? gfb.dragStart();
+        gmix.collision()   ? gmix.dragStart();
+        gst.collision()   ? gst.dragStart();  
+        gdist.collision()   ? gdist.dragStart();
+        gtape.collision()   ? gtape.potToggle();
+        mouse_y > kny ? (
+        mouse_y < kny+32 ? (
+        mouse_x > k16 ? (
+        mouse_x < k16+38 ? (
+        slider10 = 5;
+        );
+        );
+        mouse_x > k8 ? (
+        mouse_x < k8+38 ? (
+        slider10 = 4;
+        );
+        );
+        mouse_x > k4 ? (
+        mouse_x < k4+38 ? (
+        slider10 = 3;
+        );
+        );
+        mouse_x > k2 ? (
+        mouse_x < k2+38 ? (
+        slider10 = 2;
+        );
+        );
+        mouse_x > k1 ? (
+        mouse_x < k1+38 ? (
+        slider10 = 1;
+        );
+        );
+        mouse_x > kT ? (
+        mouse_x < kT+38 ? (
+        slider11 == 1 ? (
+        slider11 = 0;
+        ):(
+        slider10 > 0 ? (slider11 = 1);
+        );
+        );
+        );
+        mouse_x > kD ? (
+        mouse_x < kD+38 ? (
+        slider11 == 2 ? (
+        slider11 = 0;
+        ):(
+        slider10 > 0 ? (slider11 = 2);
+        );
+        );
+        );
+        );
+        );
+        );
+  mouseClick == -1  ? 
+      (
+        gdelay.dragStop(); 
+        gfb.dragStop();
+        gmix.dragStop();
+        gst.dragStop();
+        gdist.dragStop();
+        //gtape.potToggle();
+ );
+  mouse_wheel ? 
+     (
+       gdelay.collision()   ? gdelay.potWheel():
+       gfb.collision()   ? gfb.potWheel():
+       gmix.collision()   ? gmix.potWheel():
+       gst.collision()   ? gst.potWheel():
+       gdist.collision()   ? gdist.potWheel():
+       //gtape.collision()   ? gtape.potToggle():
+       mouse_wheel=0;
+     );
+     
+     
+        slider10 == 5 ? slider1 = 1000*((60/4)/tempo);
+        slider10 == 4 ? slider1 = 1000*((60/2)/tempo);
+        slider10 == 3 ? slider1 = 1000*((60)/tempo);
+        slider10 == 2 ? slider1 = 1000*((120)/tempo);
+        slider10 == 1 ? slider1 = 1000*((240)/tempo);
+
+        slider11 == 1 ? slider1 = slider1 * (2/3);
+        slider11 == 2 ? slider1 = slider1 * 1.5;     
+     
+     
+     
+     
+     gdelay!=gdelay.val?
+         (
+          gdelay=gdelay.val;
+          Slider1=gdelay;
+          pot.potVal(gdelay.val); 
+          gdelay.collision() ? (slider10 = 0; slider11 = 0;);
+          ):
+     gdelay!=slider1?
+         (
+           gdelay=slider1;
+            gdelay.val=gdelay;
+           gdelay.potVal(gdelay.val);
+         );
+     gfb!=gfb.val?
+         (
+          gfb=gfb.val;
+          Slider2=gfb;
+          pot.potVal(gfb.val); 
+          ):
+     gfb!=slider2?
+         (
+           gfb=slider2;
+            gfb.val=gfb;
+           gfb.potVal(gfb.val);
+         );    
+     gmix!=gmix.val?
+         (
+          gmix=gmix.val;
+          slider4=gmix;
+          pot.potVal(gmix.val); 
+          ):
+     gmix!=slider4?
+         (
+           gmix=slider4;
+            gmix.val=gmix;
+           gmix.potVal(gmix.val);
+         );    
+     gst!=gst.val?
+         (
+          gst=gst.val;
+          slider6=gst;
+          pot.potVal(gst.val); 
+          ):
+     gst!=slider6?
+         (
+           gst=slider6;
+            gst.val=gst;
+           gst.potVal(gst.val);
+         );          
+       gdist!=gdist.val?
+           (
+            gdist=gdist.val;
+            slider8=gdist;
+            pot.potVal(gdist.val); 
+            ):
+       gdist!=slider8?
+           (
+             gdist=slider8;
+              gdist.val=gdist;
+             gdist.potVal(gdist.val);
+           );
+           gtape!=gtape.val?
+               (
+                gtape=gtape.val;
+                slider9=gtape;
+                pot.potVal(gtape.val); 
+                ):
+           gtape!=slider9?
+               (
+                 gtape=slider9;
+                  gtape.val=gtape;
+                 gtape.potVal(gtape.val);
+               );  
+               
+     gdelay.dragging  ? gdelay.potDrag();
+     gfb.dragging  ? gfb.potDrag();
+     gmix.dragging  ? gmix.potDrag();
+     gst.dragging  ? gst.potDrag();
+     gdist.dragging  ? gdist.potDrag();
+     //gtape.dragging  ? gtape.potToggle();
+     
+sliderchange(slider4);
+    
+    odelay=delaylen;
+    beat = 240 * slider7;
+    wetmix = 2 ^(slider2/6);
+    drymix = 2 ^(slider3/6);
+    
+    wetmix2 = 1;
+    slider4 <= 0.5 ? (wetmix2 = slider4*2);//2 ^(slider4/6);
+    drymix2 = 1;
+    slider4 >= 0.5 ? (drymix2 = 1 - ((slider4-0.5)*2));
+    pongwidth = slider6/100;
+    pongpan=(1-pongwidth)/2;
+    
+    hdistr = min(slider8/100,.999);
+    foo = 2*hdistr/(1-hdistr);
+    volcompdist = 1-(slider8/110);
+    tape=slider9;
+    
+    
+
+@block
+  slider1==0 ? (
+    delaylen=min((beat / tempo)*srate,500000);
+  ):(
+    delaylen=min(slider1 * srate / 1000,500000);
+  );
+
+
+/*
+odelay != delaylen ? (
+  odelay > delaylen ? (
+      // resample down delay buffer, heh
+      rspos=0; rspos2=0;
+      drspos=odelay/delaylen;
+      loop(delaylen,
+         
+         tpos = ((rspos)|0)*2;
+         rspos2[0]=tpos[0];
+         rspos2[1]=tpos[1];
+         rspos2+=2;
+         rspos+=drspos;
+      );
+      delaypos /= drspos;
+      delaypos|=0;
+  ) : (
+    odelay < delaylen ? (
+        // resample up delay buffer, heh
+        drspos=odelay/delaylen;
+        rspos=odelay; 
+        rspos2=delaylen*2;
+        loop(delaylen,
+           rspos-=drspos;
+           rspos2-=2;
+         
+           tpos = ((rspos)|0)*2;
+           rspos2[0]=tpos[0];
+           rspos2[1]=tpos[1];
+        );
+        delaypos /= drspos;
+        delaypos|=0;
+    ) : (delaypos >= delaylen ? delaypos = 0);
+  );
+  delaypos<0?delaypos=0;
+  freembuf(delaylen*2);
+);
+*/
+
+@sample
+  dpint = delaypos*2;
+  os1=dpint[0];
+  os2=dpint[1];
+
+  dpint[0]=min(max(spl0*drymix + os1*wetmix,-4),4);
+  dpint[1]=min(max(spl1*drymix + os2*wetmix,-4),4);
+
+  switching=0;
+
+  abs(delaypos)<400 ? (
+    switch = pongloc ? abs(delaypos)/400 : ((400 - abs(delaypos))/400);
+  );
+
+  (delaypos+=1) >= delaylen ? (
+    delaypos=0;
+    pongloc = (pongloc * -1) + 1;
+  );
+
+distspl0 = os1;
+distspl1 = os2;
+distspl0 = min(max(distspl0,-1),1);
+distspl1 = min(max(distspl1,-1),1);
+
+distspl0 = volcompdist*(1+foo)*distspl0/(1+foo*abs(distspl0));
+distspl1 = Volcompdist*(1+foo)*distspl1/(1+foo*abs(distspl1));
+
+
+
+tape == 1 ?(
+os1 = distspl0;
+os2 = distspl1;
+);
+
+
+  os = (os1 + os2) / 2;
+  panloc = pongpan + pongwidth * switch;
+
+  slider6 > 0 ? (
+  spl0=spl0*drymix2 + os*wetmix2*(panloc);
+  spl1=spl1*drymix2 + os*wetmix2*(1-panloc);
+  ) : (
+  spl0=spl0*drymix2 + os1*wetmix2;
+  spl1=spl1*drymix2 + os2*wetmix2 ;
+  );
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
