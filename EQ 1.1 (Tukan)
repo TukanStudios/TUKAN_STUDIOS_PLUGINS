@@ -48,7 +48,7 @@ slider4:MLGain=0<-136,30,0.01>-Mid/Left Gain
 slider5:SRGain=0<-136,30,0.01>-Side/Right Gain
 slider6:Scale=100<0,200,0.01>-Scale
 
-slider7:Spectrum_Mode=5<0,5,1{Full,Mid,Side,Mid / Side,Left,Right,Left / Right}>-Spectrum
+slider7:Spectrum_Mode=6<0,6,1{Full,Mid,Side,Mid / Side,Left,Right,Left / Right}>-Spectrum
 slider8:Display_Mode=0<0,2,1{Fill,Line,None}>-Display
 slider9:Ceiling_Value=0<0,2,1{0dB,20dB,40dB}>-Ceiling
 slider10:Floor_Value=0<0,2,1{-90dB,-140dB,-200dB}>-Floor
@@ -177,7 +177,7 @@ ovrlgain = 1;
   lastCap=1;
   mouse_wheel=1;
   coords=srate+1;
-
+Spectrum_Mode = 6; 
 
 
       function limitgui(s low up)
@@ -1286,7 +1286,7 @@ init_rate != srate ? (
 @slider
 
 set_oversample(Quality);
-
+slider7 = 6;
 button_oversample.select = Quality;
 button_stereo_mode.select = Stereo_Mode;
 
@@ -6366,7 +6366,7 @@ outg!=outg.val?
     
     
     
-    
+    slider7 = 6;
     update_state();
     
     
