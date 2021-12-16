@@ -557,8 +557,8 @@ spl0 *= outvol;
 spl1 *= outvol;
 
 
-spl0 = min(max( sin(max(min(spl0,1),-1)*foo)/bar ,-1) ,1);
-spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
+spl0 =sin(max(min(spl0,1),-1)*foo)/bar;
+spl1 =sin(max(min(spl1,1),-1)*foo)/bar;
 
 
 
@@ -729,12 +729,13 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
   filename:3,EQTgui/PHF.png
   filename:4,EQTgui/pulchick.png
   */
-  
+  change = 0;
   Lboost!=Lboost.val?
       (
         Lboost=Lboost.val;
         slider2=Lboost;
         pot.potVal(Lboost.val);
+        change = 1;
        ):
   Lboost!=slider2?
       (
@@ -748,6 +749,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Lcut=Lcut.val;
         slider3=Lcut;
         pot.potVal(Lcut.val);
+        change = 1;
        ):
   Lcut!=slider3?
       (
@@ -761,6 +763,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Hboost=Hboost.val;
         slider7=Hboost;
         pot.potVal(Hboost.val);
+        change = 1;
        ):
   Hboost!=slider7?
       (
@@ -774,6 +777,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Hcut=Hcut.val;
         slider10=Hcut;
         pot.potVal(Hcut.val);
+        change = 1;
        ):
   Hcut!=slider10?
       (
@@ -788,6 +792,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
           Q=Q.val;
           slider6=Q;
           pot.potVal(Q.val);
+          change = 1;
          ):
     Q!=slider6?
         (
@@ -802,6 +807,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Lfreq=Lfreq.val;
         slider14=Lfreq;
         pot.potVal(Lfreq.val);
+        change = 1;
        ):
   Lfreq!=slider14?
       (
@@ -815,6 +821,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Pfreq=Pfreq.val;
         slider13=Pfreq;
         pot.potVal(Pfreq.val);
+        change = 1;
        ):
   Pfreq!=slider13?
       (
@@ -828,6 +835,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
         Hfreq=Hfreq.val;
         slider15=Hfreq;
         pot.potVal(Hfreq.val);
+        change = 1;
        ):
   Hfreq!=slider15?
       (
@@ -842,6 +850,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
           Outp=Outp.val;
           slider12=Outp;
           pot.potVal(Outp.val);
+          change = 1;
          ):
     Outp!=slider12?
         (
@@ -853,11 +862,11 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
           
           
           
-          
+        
           
           //slider14:2<0,3,1>Freq L
           //slider15:1<0,2,1>freq H
-           
+          change == 1 ? ( 
           vslider13 = floor(slider13+0.5);
           vslider6 = 2.2 - slider6;
           
@@ -988,7 +997,7 @@ spl1 = min(max( sin(max(min(spl1,1),-1)*foo)/bar ,-1) ,1);
           //Output
           outvol = 10^(slider12/20);
           
-
+        );
   
   
   
