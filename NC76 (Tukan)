@@ -32,7 +32,7 @@ slider3:-10<-60,17,0.1>-Gain (dB)
 slider4:100<20,800,10>-Attack (uS)
 slider5:250<10,1100,1>-Release (mS)
 slider6:100<0,100,0.1>-Mix (%)
-slider7:0.37<0,4,0.01>-IN GAIN
+slider7:0.77<0,4,0.01>-IN GAIN
 slider8:0<0,1,1>-Punch
 slider9:0<0,1,1>-SC
 slider10:0<0,1>-Trick
@@ -44,7 +44,7 @@ filename:2,76gui/MY1176.png
 filename:3,76gui/MY1176small.png
 filename:4,76gui/1176button.png
 
-options:no_meter
+//options:no_meter
 
 
 in_pin:left input
@@ -234,7 +234,7 @@ ovrlgain = 1;
     slider12:0<0,100,1>-Denoiser
     slider13:0<-100,100,2>-Output
     */
-  gInGain.potcfg  (0.37,0,4,.01);
+  gInGain.potcfg  (0.77,0,4,.01);
   gOutGain.potcfg (-10,-60,17,0.1);
   gAtt.potcfg (100,20,800,2);
   gRel.potcfg (250,10,1100,2); 
@@ -275,25 +275,28 @@ ovrlgain = 1;
   
 
 @slider
-  thresh = slider1;
-  threshv = exp(thresh * db2log);
 
-  capsc = log2db;
-  (rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
-  ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
-  rpos == 4 ? (allin=1; cratio=20;) : (allin=0; cratio = ratio;);
-  cthresh = (softknee ? (thresh -3) : thresh);
-  cthreshv = exp(cthresh * db2log);
-  makeup = slider3;
-  makeupv = exp((makeup+autogain) * db2log);
-  attime = slider4 / 1000000;
-  reltime = slider5 / 1000;
-  atcoef=exp(-1/(attime * srate));
-  relcoef=exp(-1/(reltime * srate));
-  mix=slider6/100;
-  ingain=exp(db2log*24)*slider7;
 
+            thresh = slider1;
+            threshv = exp(thresh * db2log);
+            
+            capsc = log2db;
+            (rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
+            ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
+            rpos == 4 ? (allin=1; cratio=20;) : (allin=0; cratio = ratio;);
+            cthresh = (softknee ? (thresh -3) : thresh);
+            cthreshv = exp(cthresh * db2log);
+            makeup = slider3;
+            makeupv = exp((makeup+autogain) * db2log);
+            attime = slider4 / 1000000;
+            slider8==1?(attime+=0.008);
+             reltime = slider5 / 1000;
+            atcoef=exp(-1/(attime * srate));
+            relcoef=exp(-1/(reltime * srate));
+            mix=slider6/100;
+            ingain=exp(db2log*12)*slider7;
 @sample
+
 spl0*=ingain;
 spl1*=ingain;
 spl2*=ingain;
@@ -308,6 +311,7 @@ spl3*=ingain;
  aspl0 = abs(spl2);
  aspl1 = abs(spl3); 
   );
+  
   maxspl = max(aspl0, aspl1);
   maxspl = maxspl * maxspl;
   runave = maxspl + rmscoef * (runave - maxspl);
@@ -507,7 +511,7 @@ ovrlgain = ovrlg;
         tksy=40;
         
         
-        
+        changer = 0;
       gInGain.knob();
      gOutGain.knob();      
       gAtt.knob();
@@ -524,6 +528,7 @@ ovrlgain = ovrlg;
             mouse_y > ksy ?(
             mouse_y < ksy + 35 ?(
             slider2 = 8;
+            changer =1;
             );
             );
             );
@@ -534,6 +539,7 @@ ovrlgain = ovrlg;
             mouse_y > ksy ?(
             mouse_y < ksy + 35 ?(
             slider2 = 7;
+            changer =1;
             );
             );
             );
@@ -543,6 +549,7 @@ ovrlgain = ovrlg;
             mouse_y > ksy ?(
             mouse_y < ksy + 35 ?(
             slider2 = 6;
+            changer =1;
             );
             );
             );
@@ -552,6 +559,7 @@ ovrlgain = ovrlg;
             mouse_y > ksy ?(
             mouse_y < ksy + 35 ?(
             slider2 = 5;
+            changer =1;
             );
             );
             );
@@ -561,6 +569,7 @@ ovrlgain = ovrlg;
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider8 = toggles(slider8);
+                   changer =1;
                    );
                    );
                    );
@@ -571,6 +580,7 @@ ovrlgain = ovrlg;
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider9 = toggles(slider9);
+                   changer =1;
                    );
                    );
                    );
@@ -580,6 +590,7 @@ ovrlgain = ovrlg;
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider10 = toggles(slider10);
+                   changer =1;
                    );
                    );
                    );
@@ -589,6 +600,7 @@ ovrlgain = ovrlg;
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    //slider11 = 1;//toggles(slider11);
+                   changer =1;
                    slider2 = 9;
                    );
                    );
@@ -625,6 +637,7 @@ ovrlgain = ovrlg;
             gInGain=gInGain.val;
             slider7=gInGain;
             pot.potVal(gInGain.val);
+            changer =1;
            ):
       gInGain!=slider7?
           (
@@ -632,6 +645,7 @@ ovrlgain = ovrlg;
             gInGain.val=gInGain;
             gInGain.potVal(gInGain.val);
             gInGain.valOld=gInGain;
+            changer =1;
           );
           
           gOutGain!=gOutGain.val?
@@ -639,6 +653,7 @@ ovrlgain = ovrlg;
                 gOutGain=gOutGain.val;
                 slider3=gOutGain;
                 pot.potVal(gOutGain.val);
+                changer =1;
                ):
           gOutGain!=slider3?
               (
@@ -646,6 +661,7 @@ ovrlgain = ovrlg;
                 gOutGain.val=gOutGain;
                 gOutGain.potVal(gOutGain.val);
                 gOutGain.valOld=gOutGain;
+                changer =1;
               );
               
               
@@ -654,6 +670,7 @@ ovrlgain = ovrlg;
                gAtt=gAtt.val;
                slider4=820-gAtt;
                pot.potVal(gAtt.val);
+               changer =1;
               ):
          gAtt!=820-slider4?
              (
@@ -661,6 +678,7 @@ ovrlgain = ovrlg;
                gAtt.val=gAtt;
                gAtt.potVal(gAtt.val);
                gAtt.valOld=gAtt;
+               changer =1;
              );
              
         gRel!=gRel.val?
@@ -668,6 +686,7 @@ ovrlgain = ovrlg;
               gRel=gRel.val;
               Slider5=1150-gRel;
               pot.potVal(gRel.val);
+              changer =1;
              ):
         gRel!=1150-slider5?
             (
@@ -675,6 +694,7 @@ ovrlgain = ovrlg;
               gRel.val=gRel;
               gRel.potVal(gRel.val);
               gRel.valOld=gRel;
+              changer =1;
             );
             
             
@@ -683,7 +703,7 @@ ovrlgain = ovrlg;
             
             
             
-            
+            changer == 1 ? (
             thresh = slider1;
             threshv = exp(thresh * db2log);
             
@@ -702,7 +722,7 @@ ovrlgain = ovrlg;
             relcoef=exp(-1/(reltime * srate));
             mix=slider6/100;
             ingain=exp(db2log*12)*slider7;
-            
+            );
             
             
             
