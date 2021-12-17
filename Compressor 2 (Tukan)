@@ -10,12 +10,15 @@ slider8:1<0,1,1>-Feedback
 slider9:0<0,1,1>-Sidechain
 slider10:0<0,1,1>-Metermode
 
+slider11:4.9<0,5,0.01>-Meterspeed
+
 filename:0,TKCC2gui/TKCC2Back.png
 filename:1,TKCC2gui/APIBig.png
 filename:2,TKCC2gui/APIRED.png
 filename:3,TKCC2gui/APISmall.png
 filename:4,TKCC2gui/switch.png
 filename:5,TKCC2gui/VUMeter.png
+filename:6,TKCC2gui/screw.png
 
 in_pin:L in
 in_pin:R in
@@ -25,6 +28,8 @@ out_pin:L out
 out_pin:R out
 
 @init
+ext_noinit = 1;
+
 ovrlgain = 1;
 
 threshold = slider1;
@@ -83,9 +88,60 @@ gr_meter_decay = exp(1/(1*srate));
 
 
 
+meter_speed = 0.000005;
+meter_dif = 0.0005;
+
+function meterspeed()
+(
+mspd = slider11;
+meter_speed = mspd/srate;
+
+mspd == 5 ? (
+gr_meter2 < gr_meter ? (
+  meter_speed /= 5;
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
 
 
+    gr_meter2 = gr_meter;
 
+  );
+);
+;
+
+mspd == 0 ? (
+  gr_meter2 > gr_meter ? (
+    gr_meter2 = gr_meter;
+  );
+);
+
+mspd > 0 ? (
+mspd < 5 ? (
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed*8;
+   gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
+);
+);
+
+gr_meter2 > 1 ? gr_meter2 =1;
+);
 
 
 
@@ -263,6 +319,8 @@ gr_meter_decay = exp(1/(1*srate));
  gfeedback.potcfg   (1,0,1,1);
  Trick.potcfg   (0,0,1,1);
  SC.potcfg   (0,0,1,1);
+ screw.potcfg   (5,0,5,.1);
+ 
  
  knobsx = 50; 
  knobsy = 50;
@@ -281,6 +339,10 @@ grel.rectOut(knobsx+127,knobsy+140, 60, 60, 61, 3);
 knobsx+=260; knobsy+=133;
 goutgain.rectIn(knobsx,knobsy, 75, 75); 
 goutgain.rectOut(knobsx,knobsy, 75, 75, 61, 2);
+
+screw.rectIn(knobsx+324,knobsy-175, 10, 10); 
+screw.rectOut(knobsx+324,knobsy-175, 10, 10, 61, 6);
+
 
 knobsx+=120;
 gfeedback.rectIn(knobsx,knobsy, 48, 60); 
@@ -363,9 +425,13 @@ spl1 = ((spl1 * cL) - spl1)  * output;
 
 gr = db2ratio(cL);
 grv = ratio2db(gr);
-gr_meter_decay = 1.111111;
-grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
+//abs(gr_meter - meter_old) > 0.01 ? (gr_meter_decay = 1.01;//.111111;
+gr_meter_decay = 1.1;
+grv < gr_meter ? gr_meter=grv : ( gr_meter = grv; gr_meter>1?gr_meter=1; );// gr_meter*=gr_meter_decay
 grmin = min( min(cG,cG) , grmin);
+
+meterspeed();
+meter_old = gr_meter;
 
 // inMeter = db2
 inMeter > ginMeter ? ginMeter=inMeter : (ginMeter*=0.99997;  ginMeter<0.1?ginMeter=0; );
@@ -482,6 +548,10 @@ grmin = 0;
           SC.val=SC;
           SC.potVal(SC.val);
           initial = 1;
+          screw=slider11;
+          screw.val=screw;
+          screw.potVal(screw.val);
+          screw.valOld=screw;
 );
   
 
@@ -566,12 +636,13 @@ gfx_x = meterx + 148; gfx_y=metery+105;
 gfx_drawstr(" (max)");
 ):(
 gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
+slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
+slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
 gfx_x = meterx+110;
 gfx_y = metery+125;
 // -71 = 0; -130 = -oo;
-winkel = (-135*0.017453)+(1.08*60*gr_meter*0.017453);
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
 gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
-
 );
 
 gfx_a=1; 
@@ -586,6 +657,7 @@ gfx_x=0;gfx_y=0;gfx_blit(0,1,0);
   gfeedback.knob();
   Trick.knob();
   SC.knob();
+  screw.knob();
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
@@ -597,7 +669,8 @@ mouseClick == 1 ?
       gfeedback.collision()    ? gfeedback.potToggle();
       Trick.collision()    ? Trick.potToggle();
       SC.collision()    ? SC.potToggle();
-      
+      screw.collision()    ? screw.dragstart();
+ 
       mouse_x > meterx ? (
       mouse_x < meterx + 110 ? (
       mouse_y > metery ? (
@@ -625,6 +698,7 @@ mouseClick == -1  ?
       gratio.dragStop();
       gatt.dragStop();
       grel.dragStop();goutgain.dragStop();
+      screw.dragstop();
      );
 
 mouse_wheel ? 
@@ -634,16 +708,17 @@ mouse_wheel ?
       gatt.collision()    ? gatt.potWheel():
       grel.collision()    ? grel.potWheel(): 
       goutgain.collision()    ? goutgain.potWheel():
+      screw.collision()    ? screw.potWheel():
      mouse_wheel=0;
     );
 
 
-gthresh.dragging  ? gthresh.potDrag();
-gratio.dragging ? gratio.potDrag();
-gatt.dragging   ? gatt.potDrag();
-grel.dragging   ? grel.potDrag();
-goutgain.dragging   ? goutgain.potDrag();
-
+gthresh.dragging  ? (gthresh.potDrag();Changer = 1);
+gratio.dragging ? (gratio.potDrag();Changer = 1);
+gatt.dragging   ? (gatt.potDrag();Changer = 1);
+grel.dragging   ? (grel.potDrag();Changer = 1);
+goutgain.dragging   ? (goutgain.potDrag();Changer = 1);
+screw.dragging   ? screw.potDrag();
 /******************************* Slider Knob Control **************************/
   
 gthresh!=gthresh.val?
@@ -756,6 +831,19 @@ gfeedback!=slider8?
           SC.potVal(SC.val);
           SC.valOld=SC;
         );
+    screw!=screw.val?
+        (
+          screw=screw.val;
+          slider11=screw;
+          pot.potVal(screw.val);
+         ):
+    screw!=slider11?
+        (
+          screw=slider11;
+          screw.val=screw;
+          screw.potVal(screw.val);
+          screw.valOld=screw;
+        );
 
 
 
@@ -802,7 +890,7 @@ gfx_x >=0;
 );
 */
 
-
+changer == 1 ?(
 threshold = slider1;
 knee_width = abs(slider1*2*slider2*0.01);
 
@@ -821,3 +909,5 @@ knee_factor = (slope / (knee_width * 2));
 output = 10^(slider6/20);
 
 listen = slider7;
+
+);
