@@ -605,6 +605,11 @@ gout1 < prespl1 ? gout1 = prespl1;
 
 spl0 = prespl0;
 spl1 = prespl1;
+
+//remove DC
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
 //overload(prespl0,prespl1);
 
 
