@@ -36,13 +36,14 @@ slider7:0.77<0,4,0.01>-IN GAIN
 slider8:0<0,1,1>-Punch
 slider9:0<0,1,1>-SC
 slider10:0<0,1>-Trick
-
+slider11:4.9<0,5,0.01>-Meterspeed
 
 filename:0,76gui/VUMeter.png
 filename:1,76gui/76Back.png
 filename:2,76gui/MY1176.png
 filename:3,76gui/MY1176small.png
 filename:4,76gui/1176button.png
+filename:5,76gui/screw.png
 
 //options:no_meter
 
@@ -74,7 +75,59 @@ ovrlgain = 1;
   gr_meter_decay = exp(1/(1*srate));
   grk = 0;
   
+  meter_dif = 0.0005;
+  gr_meter2 = 1;
+  function meterspeed()
+  (
+  mspd = slider11;
+  meter_speed = mspd/srate;
   
+  mspd == 5 ? (
+  gr_meter2 < gr_meter ? (
+    meter_speed /= 5;
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+  
+      gr_meter2 = gr_meter;
+  
+    );
+  );
+  ;
+  
+  mspd == 0 ? (
+    gr_meter2 > gr_meter ? (
+      gr_meter2 = gr_meter;
+    );
+  );
+  
+  mspd > 0 ? (
+  mspd < 5 ? (
+  gr_meter2 < gr_meter ? (
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 - meter_speed*8;
+     gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+    );
+  );
+  );
+  );
+  
+  gr_meter2 > 1 ? gr_meter2 =1;
+  );
   
   //==============================================================================
     gfx_clear=1;
@@ -240,11 +293,14 @@ ovrlgain = 1;
   gRel.potcfg (250,10,1100,2); 
  // gRatio.potcfg   (4,4,8,4);
  // gSidechain.potcfg (0,0,1,1);
-  
+  screw.potcfg   (4.9,0,5,.1);
   knobsx = 80;
   knobsy = 60;
   gInGain.rectIn(knobsx, knobsy, 100, 100);
   gInGain.rectOut(knobsx, knobsy, 100, 100, 61, 2);
+  
+  screw.rectIn(knobsx+140,knobsy+45, 10, 10); 
+  screw.rectOut(knobsx+140,knobsy+45, 10, 10, 61, 5);
   
   knobsx +=190;
 //knobsy = 60;
@@ -259,6 +315,7 @@ ovrlgain = 1;
    gRel.rectIn(knobsx, knobsy+60, 40, 40);
    gRel.rectOut(knobsx, knobsy+60, 40, 40, 61, 3);
   
+
   
   
   
@@ -343,7 +400,12 @@ spl3*=ingain;
   runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
   maxover = runmax;
 grgr = (1/gr_meter)/20;
-  grv < gr_meter ? (gr_meter=grv; grk = 1) : (grk = 0; gr_meter+=grgr; gr_meter>1?gr_meter=1;); //(gr_meter*=gr_meter_decay ; gr_meter>1?gr_meter=1; ); //gr_meter*=gr_meter_decay
+
+gr_meter_decay = 1.1;
+grv < gr_meter ? gr_meter=grv : ( gr_meter = grv; gr_meter>1?gr_meter=1; );// gr_meter*=gr_meter_decay
+grmin = min( min(cG,cG) , grmin);
+
+meterspeed();
 
 
   slider10 == 1 ? (
@@ -445,12 +507,16 @@ ovrlgain = ovrlg;
       gfx_x = meterx+110;
       gfx_y = metery+125;
       // -71 = 0; -130 = -oo;
-      gfx_r=0; gfx_g=0;gfx_b=0;gfx_a=1;
-      winkel = (-137*0.017453)+(1.08*60*gr_meter*0.017453);
+gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
+slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
+slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
+      
+ 
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
       winkel > -0.91 ? (
       winkel = -0.91;
       );
-      gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
+gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
       gr_meter_old = gr_meter;
       
         gfx_x = 0; gfx_y = 0;
@@ -472,6 +538,10 @@ ovrlgain = ovrlg;
               gRel=1150-slider5;
               gRel.val=gRel;
               gRel.potVal(gRel.val);
+              screw=slider11;
+              screw.val=screw;
+              screw.potVal(screw.val);
+              screw.valOld=screw;
       initial = 1;
 
       );
@@ -516,6 +586,7 @@ ovrlgain = ovrlg;
      gOutGain.knob();      
       gAtt.knob();
       gRel.knob();
+      screw.knob();
       /********************************* Mouse Control ******************************/
       mouseClick == 1 ? 
           (
@@ -523,6 +594,7 @@ ovrlgain = ovrlg;
             gOutGain.collision()  ? gOutGain.dragStart();  
             gAtt.collision()    ? gAtt.dragStart(); 
             gRel.collision()    ? gRel.dragStart(); 
+            screw.collision()    ? screw.dragstart();
             mouse_x > ksx+7 ?(
             mouse_x < ksx-7 + 33?(
             mouse_y > ksy ?(
@@ -613,7 +685,7 @@ ovrlgain = ovrlg;
             gOutGain.dragStop();
             gAtt.dragStop();
             gRel.dragStop();
-      
+            screw.dragstop();
           );
       
       mouse_wheel ? 
@@ -622,6 +694,7 @@ ovrlgain = ovrlg;
             gOutGain.collision()  ? gOutGain.potWheel():
             gAtt.collision()    ? gAtt.potWheel():
             gRel.collision()    ? gRel.potWheel():
+            screw.collision()    ? screw.potWheel():
             mouse_wheel=0;
           );
       
@@ -630,7 +703,7 @@ ovrlgain = ovrlg;
       gOutGain.dragging ? gOutGain.potDrag();
       gAtt.dragging   ? gAtt.potDrag();
       gRel.dragging   ? gRel.potDrag();
-      
+      screw.dragging   ? screw.potDrag();
       /******************************* Slider Knob Control **************************/
       gInGain!=gInGain.val?
           (
@@ -696,6 +769,21 @@ ovrlgain = ovrlg;
               gRel.valOld=gRel;
               changer =1;
             );
+        screw!=screw.val?
+            (
+              screw=screw.val;
+              slider11=screw;
+              pot.potVal(screw.val);
+             ):
+        screw!=slider11?
+            (
+              screw=slider11;
+              screw.val=screw;
+              screw.potVal(screw.val);
+              screw.valOld=screw;
+            );
+        
+        
             
             
             

@@ -32,7 +32,7 @@ filename:0,LAgui/VUMeter.png
 filename:1,LAgui/LABack.png
 filename:2,LAgui/machick.png
 filename:3,LAgui/switch.png
-
+filename:4,LAgui/screw.png
 
 slider1:-40<-60,0,0.1>-Threshold (dB)
 slider2:4<1,20,0.1>-Ratio
@@ -43,6 +43,8 @@ slider6:0<0,1,1{No,Yes}>-Automatic Make-Up
 slider7:0<0,1,1{Peak,RMS}>-Detection
 slider8:1<0,1,1{Feedforward,Feedback}>-Detection Source
 slider9:20<0,60,0.5>-Gain Reduct
+slider10:0<0,0,0>-EMPTY
+slider11:4.9<0,5,0.01>-Meterspeed
 
 options:no_meter
 
@@ -87,6 +89,59 @@ out_pin:right output
   gr_meter_decay = exp(1/(1*srate)); 
   
   
+  meter_dif = 0.0005;
+  
+  function meterspeed()
+  (
+  mspd = slider11;
+  meter_speed = mspd/srate;
+  
+  mspd == 5 ? (
+  gr_meter2 < gr_meter ? (
+    meter_speed /= 5;
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+  
+      gr_meter2 = gr_meter;
+  
+    );
+  );
+  ;
+  
+  mspd == 0 ? (
+    gr_meter2 > gr_meter ? (
+      gr_meter2 = gr_meter;
+    );
+  );
+  
+  mspd > 0 ? (
+  mspd < 5 ? (
+  gr_meter2 < gr_meter ? (
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 - meter_speed*8;
+     gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+    );
+  );
+  );
+  );
+  
+  gr_meter2 > 1 ? gr_meter2 =1;
+  );
   
   
   
@@ -268,7 +323,8 @@ out_pin:right output
   gReduct.potcfg (20,0,60,0.5);
   gRatio.potcfg   (4,4,8,4);
   gSidechain.potcfg (0,0,1,1);
-
+ screw.potcfg   (5,0,5,.1);
+ 
   knobsx = 165;
   knobsy = 130;
   gGain.rectIn(knobsx, knobsy, 70, 80);
@@ -284,7 +340,11 @@ out_pin:right output
   gSidechain.rectIn(knobsx+100, knobsy-40, 48, 60);
   gSidechain.rectOut(knobsx+100, knobsy-40, 48, 60, 2, 3);
   
+  meterx = (800/2)-(220/2);
+  metery = 70;
   
+  screw.rectIn(meterx+105,metery+130, 10, 10); 
+  screw.rectOut(meterx+105,metery+130, 10, 10, 61, 4);
   slider1 = -1*slider9;
   
   
@@ -430,7 +490,11 @@ osplini == 0 ? (
   maxover = runmax;
 
 
-  grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
+gr_meter_decay = 1.1;
+grv < gr_meter ? gr_meter=grv : ( gr_meter = grv; gr_meter>1?gr_meter=1; );// gr_meter*=gr_meter_decay
+grmin = min( min(cG,cG) , grmin);
+
+meterspeed();
 
 
   Sidechain ? (
@@ -483,8 +547,10 @@ osplini == 0 ? (
     gfx_x = meterx+110;
     gfx_y = metery+125;
     // -71 = 0; -130 = -oo;
-    gfx_r=0; gfx_g=0;gfx_b=0;gfx_a=1;
-    winkel = (-137*0.017453)+(1.08*60*gr_meter*0.017453);
+gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
+slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
+slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
     winkel > -0.91 ? (
     winkel = -0.91;
     );
@@ -513,6 +579,10 @@ osplini == 0 ? (
     gSidechain.potVal(gSidechain.val);
     initial = 1;
     slider1 = -1*slider9;
+    screw=slider11;
+    screw.val=screw;
+    screw.potVal(screw.val);
+    screw.valOld=screw;
     );
               
                    
@@ -520,6 +590,7 @@ osplini == 0 ? (
     gReduct.knob();
    gRatio.knob();
    gSidechain.knob();
+   screw.knob();
     /********************************* Mouse Control ******************************/
     mouseClick == 1 ? 
         (
@@ -527,7 +598,7 @@ osplini == 0 ? (
           gReduct.collision()  ? gReduct.dragStart();  
           gRatio.collision()    ? gRatio.potToggleR(); 
           gSidechain.collision()    ? gSidechain.potToggle(); 
-    
+          screw.collision()    ? screw.dragstart();
         ):
     mouseClick == -1  ? 
         (
@@ -535,7 +606,7 @@ osplini == 0 ? (
           gReduct.dragStop();
           //gRatio.dragStop();
           //gSidechain.dragStop();
-    
+           screw.dragstop();
         );
     
     mouse_wheel ? 
@@ -544,6 +615,7 @@ osplini == 0 ? (
           gReduct.collision()  ? gReduct.potWheel():
           //gRatio.collision()    ? gRatio.potWheel():
           //gSidechain.collision()    ? gSidechain.potWheel():
+          screw.collision()    ? screw.potWheel():
           mouse_wheel=0;
         );
     
@@ -552,7 +624,7 @@ osplini == 0 ? (
     gReduct.dragging ? gReduct.potDrag();
     gRatio.dragging   ? gRatio.potDrag();
     gSidechain.dragging   ? gSidechain.potDrag();
-    
+    screw.dragging   ? screw.potDrag();
     /******************************* Slider Knob Control **************************/
     gGain!=gGain.val?
         (
@@ -609,6 +681,19 @@ osplini == 0 ? (
             gSidechain.val=gSidechain;
             gSidechain.potVal(gSidechain.val);
             gSidechain.valOld=gSidechain;
+          );
+      screw!=screw.val?
+          (
+            screw=screw.val;
+            slider11=screw;
+            pot.potVal(screw.val);
+           ):
+      screw!=slider11?
+          (
+            screw=slider11;
+            screw.val=screw;
+            screw.potVal(screw.val);
+            screw.valOld=screw;
           );
             
             

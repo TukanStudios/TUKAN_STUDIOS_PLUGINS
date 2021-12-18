@@ -64,6 +64,10 @@ out_pin:right output
   mouse_wheel=1;
 player = 0;
  initial = 0;
+ 
+ meter_speed = 4.9/srate;
+ gr_meter2 = 0;
+ meter_dif = 0.0005;
 
       function limitgui(s low up)
                   ( min(max(s, low), up) );
@@ -417,7 +421,25 @@ s1=s1+noise*0.00125;
 );
 
 gain = max(abs(wsoutl),abs(wsoutr));
+
+
 gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed*8);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed;
+  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
+
 
 //lp
 fs2l = fs1l;
@@ -500,7 +522,7 @@ gfx_blit(7,1,0);
 gfx_x = meterx+110;
 gfx_y = metery+125;
 // -71 = 0; -130 = -oo;
-winkel = (-137*0.017453)+(1.08*60*gr_meter*0.017453);
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
 winkel > -0.91 ? (
 winkel = -0.91;
 );
