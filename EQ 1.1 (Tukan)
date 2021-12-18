@@ -5823,8 +5823,8 @@ gfx_printf("ai = %f %f %f", band1.filter.cas1.i_a1.b, band1.filter.cas1.i_a2.b, 
 
 
 
-
-
+gra = 1;
+gra < 1.8 ? (
 
 gfx_w = 880;
 gfx_h=600;
@@ -5963,40 +5963,40 @@ mouseClick == -1  ?
 mouse_wheel ? 
     (
      // front.collision()   ? front.potWheel():
-      center.collision()  ? center.potWheel():
-      back.collision()    ? back.potWheel():
-      four.collision()    ? four.potWheel():
-      five.collision()    ? five.potWheel():
-      six.collision()     ? six.potWheel():
-      lmfg.collision()    ? lmfg.potWheel():
-      lmff.collision()    ? lmff.potWheel():
-      lmfq.collision()    ? lmfq.potWheel():
-      hmfg.collision()    ? hmfg.potWheel():
-      hmff.collision()    ? hmff.potWheel():
-      hmfq.collision()    ? hmfq.potWheel():
-      hshlvg.collision()    ? hshlvg.potWheel():
-      hshlvf.collision()    ? hshlvf.potWheel():
-      outg.collision()    ? outg.potWheel():
+      center.collision()  ? (center.potWheel();changer = 1):
+      back.collision()    ? (back.potWheel();changer = 1):
+      four.collision()    ? (four.potWheel();changer = 1):
+      five.collision()    ? (five.potWheel();changer = 1):
+      six.collision()     ? (six.potWheel();changer = 1):
+      lmfg.collision()    ? (lmfg.potWheel();changer = 1):
+      lmff.collision()    ? (lmff.potWheel();changer = 1):
+      lmfq.collision()    ? (lmfq.potWheel();changer = 1):
+      hmfg.collision()    ? (hmfg.potWheel();changer = 1):
+      hmff.collision()    ? (hmff.potWheel();changer = 1):
+      hmfq.collision()    ? (hmfq.potWheel();changer = 1):
+      hshlvg.collision()    ? (hshlvg.potWheel();changer = 1):
+      hshlvf.collision()    ? (hshlvf.potWheel();changer = 1):
+      outg.collision()    ? (outg.potWheel();changer = 1):
       mouse_wheel=0;
     );
 
 
 //front.dragging  ? front.potDrag();
-center.dragging ? center.potDrag();
-back.dragging   ? back.potDrag();
-four.dragging   ? four.potDrag();
-five.dragging   ? five.potDrag();
-six.dragging    ? six.potDrag();
-lmfg.dragging   ? lmfg.potDrag();
-lmff.dragging   ? lmff.potDrag();
-lmfq.dragging   ? lmfq.potDrag();
-hmfg.dragging   ? hmfg.potDrag();
-hmff.dragging   ? hmff.potDrag();
-hmfq.dragging   ? hmfq.potDrag();
-hshlvg.dragging   ? hshlvg.potDrag();
-hshlvf.dragging   ? hshlvf.potDrag();
-outg.dragging   ? outg.potDrag();
-bell.dragging   ? bell.potDrag();
+center.dragging ? (center.potDrag(); changer = 1);
+back.dragging   ? (back.potDrag();changer = 1);
+four.dragging   ? (four.potDrag();changer = 1);
+five.dragging   ? (five.potDrag();changer = 1);
+six.dragging    ? (six.potDrag();changer = 1);
+lmfg.dragging   ? (lmfg.potDrag();changer = 1);
+lmff.dragging   ? (lmff.potDrag();changer = 1);
+lmfq.dragging   ? (lmfq.potDrag();changer = 1);
+hmfg.dragging   ? (hmfg.potDrag();changer = 1);
+hmff.dragging   ? (hmff.potDrag();changer = 1);
+hmfq.dragging   ? (hmfq.potDrag();changer = 1);
+hshlvg.dragging   ? (hshlvg.potDrag();changer = 1);
+hshlvf.dragging   ? (hshlvf.potDrag();changer = 1);
+outg.dragging   ? (outg.potDrag();changer = 1);
+bell.dragging   ? (bell.potDrag();changer = 1);
 //******************************* Slider Knob Control *************************
   /*
 front!=front.val?
@@ -6294,6 +6294,7 @@ outg!=outg.val?
              mouse_x < lmfon+54 ? (
              mouse_y > 355 ? (
              mouse_y < 389 ? (
+             changer = 1;
              Node3_Enabled ==2? (
              slider32=1;
              Node3_Enabled=1;
@@ -6311,6 +6312,7 @@ outg!=outg.val?
              mouse_x < hmfon+54 ? (
              mouse_y > 355 ? (
              mouse_y < 389 ? (
+             changer = 1;
              Node4_Enabled==2? (
              slider39=1;
              Node4_Enabled=1;
@@ -6327,6 +6329,7 @@ outg!=outg.val?
                 mouse_x < hshlvon+54 ? (
                 mouse_y > 355 ? (
                 mouse_y < 389 ? (
+                changer = 1;
                 Node5_Enabled ==2? (
                 slider46=1;
                 Node5_Enabled=1;
@@ -6343,6 +6346,7 @@ outg!=outg.val?
                    mouse_x < hpfon+54 ? (
                    mouse_y > 355 ? (
                    mouse_y < 389 ? (
+                   changer = 1;
                    Node1_Enabled ==2? (
                    slider18=1;
                    Node1_Enabled=1;
@@ -6358,16 +6362,19 @@ outg!=outg.val?
         
         
     
+    changer > 0 ? (
+    changer = 0;
     flag_filter_update_all(); 
     
     sliders_to_filters();
-     
+    
+    update_state();
+     );
     //sliderchange(2^21);
     
     
     
     slider7 = 6;
-    update_state();
     
     
     
@@ -6410,3 +6417,5 @@ outg!=outg.val?
      gfx_blit(6,1,0);
      );   
 
+
+); // ENDE AUSKLAMMERN (Slider8)
