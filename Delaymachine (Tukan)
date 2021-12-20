@@ -1442,11 +1442,11 @@ slider1 != 0 ?(
   //spl1=spl1*drymix2 + os*wetmix2*(1-panloc);
   aab = (100-slider6)/100;
   slider16 == 1  ? (
- spl0=spl0*drymix2 + os1*wetmix2 +os2*((100-slider6)/100)+pongcomp*((100-slider6)/100);
-  spl1=spl1*drymix2 + os2*wetmix2 + pongcomp*(wetmix2) + os1*((100-slider6)/100) ;
+ spl0=spl0*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
+  spl1=spl1*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
   ):(
-  spl0=spl0*drymix2 + os2*wetmix2 + (pongcomp*wetmix2) + os1*((100-slider6)/100) ;
-   spl1=spl1*drymix2 + os1*wetmix2 +os2*((100-slider6)/100)+pongcomp*((100-slider6)/100);
+  spl0=spl0*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
+   spl1=spl1*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
   );
    //spl0 = (spl0+spl1)/2;
    //spl1 = spl0;
