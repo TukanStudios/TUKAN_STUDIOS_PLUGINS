@@ -17,7 +17,7 @@ slider12:0<0,1000,10>-HPF
 slider13:22000<1000,22000,100>-LPF (DON'T automate, use slider14!)
 slider14:14.2877123<9.96,14.2877123,0.01>-LPF Log
 slider15:0<0,1,1>-Crush on
-slider16:0<0,1,1>-Start Pong Left
+slider16:2<0,2,1>-Start Pong Left
 
 filename:0,DELAYgui/switch.png
 filename:1,DELAYgui/APIBig.png
@@ -47,6 +47,8 @@ out_pin:right output
   */
   delaylen_max=min(3000 * srate / 1000,500000);
   freemem = pong.delay_init(freemem, delaylen_max*2);
+  freemem = pongLeft.delay_init(freemem, delaylen_max*2);
+  freemem = pongRight.delay_init(freemem, delaylen_max*2);
   freemem = Left.delay_init(freemem, delaylen_max*2);
   freemem = Right.delay_init(freemem, delaylen_max*2);
   
@@ -56,7 +58,8 @@ out_pin:right output
   freemem = pong.delay_init(freemem, delaylen_max*2);
   freemem = Left.delay_init(freemem, delaylen_max*2);
   freemem = Right.delay_init(freemem, delaylen_max*2);
-   
+   freemem = pongLeft.delay_init(freemem, delaylen_max*2);
+   freemem = pongRight.delay_init(freemem, delaylen_max*2);
   nix = 0;//delaylen_new;
   nix2=1; 
   loop(delaylen_max*2, // -delaylen_new ,
@@ -762,7 +765,7 @@ slider13 < 1000 ? (slider13=1000);
   gfx_x=kPong;gfx_y=kny;  slider9 == 1 ? (gfx_x += 6);
   gfx_x+=29;gfx_y+=7;
   gfx_blit(8,0.7,0,0,31,30,30);
-  ):(
+  ): slider16 == 1 ? (
   gfx_x=kPong;gfx_y=kny;
   gfx_x-=20;gfx_y+=7;
   gfx_blit(8,0.7,0,0,31,30,30);
@@ -770,6 +773,13 @@ slider13 < 1000 ? (slider13=1000);
   gfx_x=kPong;gfx_y=kny;  slider9 == 1 ? (gfx_x += 6);
   gfx_x+=29;gfx_y+=7;
   gfx_blit(8,0.7,0,0,0,30,30);
+  ): slider16 == 2 ? (
+  gfx_x=kPong;gfx_y=kny;
+  gfx_x-=20;gfx_y+=7;
+  gfx_blit(8,0.7,0,0,31,30,30);
+  gfx_x=kPong;gfx_y=kny;  slider9 == 1 ? (gfx_x += 6);
+  gfx_x+=29;gfx_y+=7;
+  gfx_blit(8,0.7,0,0,31,30,30);
   );
 
   /********************************* Mouse Control ******************************/
@@ -804,7 +814,9 @@ slider13 < 1000 ? (slider13=1000);
         mouse_y < kny+32 ? (
         mouse_x > kpong ? (
         mouse_x < kpong+38 ? (
-        slider16 == 0 ? (slider16 = 1):(slider16=0);
+        slider16 == 0 ? (slider16 = 1):
+        slider16 == 1 ? (slider16 = 2):
+        slider16 == 2 ? (slider16 = 0);
         );
         );
         mouse_x > k16 ? (
@@ -1165,29 +1177,32 @@ slider13 < 1000 ? (slider13=1000);
  d = delaylen;
  pongcomp = pong.delay_output_linear(d);
  
-  slider6 > 0 ? (
+ // slider6 > 0 ? (
   d = delaylen;
   //os2 *= -1;
 // *10^(-3/20.0);;
-  os1 = left.delay_output_linear(d*2);
-  right.delay_input(min(max(os1*0.9,-4),4));
-  pos2 = right.delay_output_linear(d);
+  pongyos1 = pongleft.delay_output_linear(d*2);
+  pongright.delay_input(min(max(os1*0.9,-4),4));
+  pos2 = pongright.delay_output_linear(d);
   
   //os1 *= 2^(-3/6);
-  os2 = pos2;// pong.delay_output_linear(d);
+  pongyos2 = pos2;// pong.delay_output_linear(d);
   //os1 *= 0.5/wetmix;//(2^(12/6))
   
   os1fb = left.delay_output_linear(d);
  // dpint = pdelaypos*2;
  // os2=dpint[1];
  // dpint = delaypos * 2;
-  ):(
-  d = delaylen;
+//  ):(
+//  d = delaylen;
   os1 = left.delay_output_linear(d);
   os2 = right.delay_output_linear(d);
  // os2=dpint[1];
-  );
+//  );
   
+  slider16 < 1.9 ? (
+  os1 = pongyos1; os2 = pongyos2;
+  );
   
   volcompdist = 1-(slider8/110);
   distspl0 = os1;
@@ -1394,37 +1409,39 @@ abs(crushos2) < 2^(-90/6) ? (crushos2 = 0.3*os2*wetmix);
     pongloc = (pongloc * -1) + 1;
   );
 */  
+    
+     
+  
+wetmixFB = wetmix;
+//  slider6 > 0 ? (
   pongos = (spl0 + spl1) / 2;
   pong.delay_input(pongos);
-
-wetmixFB = wetmix;
-  slider6 > 0 ? (
   wetmix == 1 ? (
-  left.delay_input(min(max(os + os1,-4),4));
-
-  ):(
-  left.delay_input(min(max(os*wetmixFB/2 + os1*wetmixFB,-4),4));
-   );
-  ):(
+    pongleft.delay_input(min(max(os + os1,-4),4));
+    ):(
+    pongleft.delay_input(min(max(os*wetmixFB/2 + os1*wetmixFB,-4),4));
+    );
+//  ):(
   wetmix == 1 ? (
   left.delay_input(min(max(spl0*drymix + os1,-4),4));
    right.delay_input(min(max(spl1*drymix + os2,-4),4));
    ):(
    left.delay_input(min(max(spl0*drymix + os1*wetmixFB,-4),4));
     right.delay_input(min(max(spl1*drymix + os2*wetmixFB,-4),4));
-    );
-  );
+    );   
+//  );
   
   
   
  // panloc = pongpan + pongwidth * switch;
 
 slider1 != 0 ?(
-  slider6 > 0 ? (
+
+  slider16 != 2 ? (
   //spl0=spl0*drymix2 + os*wetmix2*(panloc);
   //spl1=spl1*drymix2 + os*wetmix2*(1-panloc);
   aab = (100-slider6)/100;
-  slider16 == 1 ? (
+  slider16 == 1  ? (
  spl0=spl0*drymix2 + os1*wetmix2 +os2*((100-slider6)/100)+pongcomp*((100-slider6)/100);
   spl1=spl1*drymix2 + os2*wetmix2 + pongcomp*(wetmix2) + os1*((100-slider6)/100) ;
   ):(
