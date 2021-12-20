@@ -38,11 +38,11 @@ filename:4,EQgui/APIRED.png
 filename:5,EQgui/on.png
 filename:6,EQgui/off.png
 filename:7,EQgui/switch.png
-
+filename:8,EQgui/EQBACK2eco.png
 
 
 slider1:Stereo_Mode=<0,1,1{Mid/Side,Left/Right}>-Stereo Mode
-slider2:Quality=1<0,1,1{Eco,HQ}>-Quality
+slider2:Quality=1<0,1,1{Eco,HQ}>Quality
 slider3:Gain=0<-16,16,0.01>-Gain
 slider4:MLGain=0<-136,30,0.01>-Mid/Left Gain
 slider5:SRGain=0<-136,30,0.01>-Side/Right Gain
@@ -5831,7 +5831,12 @@ gfx_h=600;
 //gfx_line(0,400,800,400);
 //gfx_line(0,600,880,600);
 gfx_x=1; gfx_y=1;
+
+Quality == 1 ? (
 gfx_blit(0,1,0);
+):(
+gfx_blit(8,1,0);
+);
 
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
@@ -5936,7 +5941,7 @@ mouseClick == 1 ?
       hshlvf.collision()    ? hshlvf.dragStart();
 outg.collision()    ? outg.dragStart();     
 
-bell.collision()    ? bell.potToggle();    
+bell.collision()    ? (bell.potToggle();  changer=1);  
   
 
     ):
@@ -6278,6 +6283,7 @@ outg!=outg.val?
           mouse_x < lffon+54 ? (
           mouse_y > 355 ? (
           mouse_y < 389 ? (
+          changer = 1;
           Node2_enabled == 2? (
           slider25=1;
           Node2_Enabled=1;
@@ -6358,12 +6364,32 @@ outg!=outg.val?
                    );
                    );
                    );
+                   
+                   
+                   //gfx_rect(870,355,60,80);
+                   mouse_x > 870 ? (
+                   mouse_x < 960 ? (
+                   mouse_y > 355 ? (
+                   mouse_y < 435 ? (
+                   Quality == 0 ? (Quality=1):(Quality=0);
+                   changer = 1;
+                   //slider2 = Quality;
+                   //set_oversample(Quality);
+                   //button_oversample.select = Quality;
+                   );
+                   );
+                   );
+                   );
         );
         
         
-    
     changer > 0 ? (
     changer = 0;
+    set_oversample(Quality);
+    slider7 = 6;
+    button_oversample.select = Quality;
+    button_stereo_mode.select = Stereo_Mode;
+    
     flag_filter_update_all(); 
     
     sliders_to_filters();
