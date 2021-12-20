@@ -46,27 +46,41 @@ out_pin:right output
   ##################### MEINE INIT ###################################
   */
   delaylen_max=min(3000 * srate / 1000,500000);
-  freemem = pong.delay_init(freemem, delaylen_max);
-  freemem = Left.delay_init(freemem, delaylen_max);
-  freemem = Right.delay_init(freemem, delaylen_max);
+  freemem = pong.delay_init(freemem, delaylen_max*2);
+  freemem = Left.delay_init(freemem, delaylen_max*2);
+  freemem = Right.delay_init(freemem, delaylen_max*2);
   
   function emptybuffer ()
   (
   delaylen_new=min(slider1 * srate / 1000,500000);
+  freemem = pong.delay_init(freemem, delaylen_max*2);
+  freemem = Left.delay_init(freemem, delaylen_max*2);
+  freemem = Right.delay_init(freemem, delaylen_max*2);
+   
   nix = 0;//delaylen_new;
   nix2=1; 
   loop(delaylen_max*2, // -delaylen_new ,
+  //pong.delay_buffer_input(nix,0);
+  //Left.delay_buffer_input(nix,0);
+  //right.delay_buffer_input(nix,0);
+  //os1 = left.delay_output_linear(nix);
+  //os2 = right.delay_output_linear(nix);
+  //pongosx = pong.delay_output_linear(nix);
+
+  
   //dpint = nix;
   //dpint[0] = 0;
   //dpint[1] = 0;
   nix+=1;
   );
   );
+
+  emptybuffer();
   
     lastCap=1;
     mouse_wheel=1;
     coords=srate+1;
-    ext_noinit=1;
+    //ext_noinit=1;
   initial = 0;
   
   glpfx = 0;
@@ -1140,7 +1154,7 @@ slider13 < 1000 ? (slider13=1000);
     delaylen_old = delaylen;
   ):(
     delaylen=min(slider1 * srate / 1000,500000);
-    delaylen != delaylen_old ? (  emptybuffer(););
+    delaylen != delaylen_old ? (emptybuffer(););
     delaylen_old = delaylen;
  );
 
@@ -1149,6 +1163,7 @@ slider13 < 1000 ? (slider13=1000);
  // dpint = delaypos*2;
  // os1=dpint[0];
  d = delaylen;
+ pongcomp = pong.delay_output_linear(d);
  
   slider6 > 0 ? (
   d = delaylen;
@@ -1161,7 +1176,6 @@ slider13 < 1000 ? (slider13=1000);
   //os1 *= 2^(-3/6);
   os2 = pos2;// pong.delay_output_linear(d);
   //os1 *= 0.5/wetmix;//(2^(12/6))
-  pongcomp = pong.delay_output_linear(d);
   
   os1fb = left.delay_output_linear(d);
  // dpint = pdelaypos*2;
@@ -1380,16 +1394,16 @@ abs(crushos2) < 2^(-90/6) ? (crushos2 = 0.3*os2*wetmix);
     pongloc = (pongloc * -1) + 1;
   );
 */  
+  pongos = (spl0 + spl1) / 2;
+  pong.delay_input(pongos);
+
 wetmixFB = wetmix;
   slider6 > 0 ? (
   wetmix == 1 ? (
   left.delay_input(min(max(os + os1,-4),4));
-  pongos = (spl0 + spl1) / 2;
-  pong.delay_input(pongos);
+
   ):(
   left.delay_input(min(max(os*wetmixFB/2 + os1*wetmixFB,-4),4));
-  pongos = (spl0 + spl1) / 2;
-  pong.delay_input(pongos);
    );
   ):(
   wetmix == 1 ? (
