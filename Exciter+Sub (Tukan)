@@ -601,13 +601,17 @@ slider9 == 0 ? (
 wet0 = 0;
 wet1 = 0;
 );
+
+solobot == 0 ? (
   spl0 = xoutgain *  (subspl0 + (mix) * wet0);
   spl1 = xoutgain *  (subspl1 + (mix) * wet1);
-  
-  
-  
-  
-  
+): solobot == 1 ? (
+  spl0 = lpspl0;
+  spl1 = lpspl0;
+):(  
+  spl0 = spl0-dry0;
+  spl1 = spl1-dry1;
+);  
   
   
   
@@ -684,6 +688,7 @@ wet1 = 0;
   
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
+      alt = mouse_cap & 16;
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
@@ -736,14 +741,15 @@ wet1 = 0;
     //gfx_circle(10,10,5,1);
     gfx_y=150; gfx_x = 190;
     gfx_blit(5,0.8,0,0,64*floor(ggreenled+0.5)*29,64,64);
+    // solobot = 0;
      
   /********************************* Mouse Control ******************************/
   mouseClick == 1 ? 
       (
-        glfreq.collision()   ? glfreq.dragStart();   
+        glfreq.collision()   ? (glfreq.dragStart();  alt==16 ? solobot == 1 ? (solobot = 0):(solobot=1));
     //    glthresh.collision()  ? glthresh.dragStart();  
         gllevel.collision()    ? gllevel.dragStart(); 
-        ghfreq.collision()    ? ghfreq.dragStart();
+        ghfreq.collision()    ? (ghfreq.dragStart(); alt==16 ? solobot == 2 ? (solobot = 0):(solobot=2));
         ghlevel.collision()    ? ghlevel.dragStart();
         goutgain.collision()    ? goutgain.dragStart();
         LowOn.collision()    ? LowOn.potToggle();
