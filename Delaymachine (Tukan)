@@ -55,17 +55,20 @@ out_pin:right output
   function emptybuffer ()
   (
   delaylen_new=min(slider1 * srate / 1000,500000);
-  freemem = pong.delay_init(freemem, delaylen_max*2);
-  freemem = Left.delay_init(freemem, delaylen_max*2);
-  freemem = Right.delay_init(freemem, delaylen_max*2);
-   freemem = pongLeft.delay_init(freemem, delaylen_max*2);
-   freemem = pongRight.delay_init(freemem, delaylen_max*2);
+  //freemem = pong.delay_init(freemem, delaylen_max*2);
+  //freemem = Left.delay_init(freemem, delaylen_max*2);
+  //freemem = Right.delay_init(freemem, delaylen_max*2);
+  // freemem = pongLeft.delay_init(freemem, delaylen_max*2);
+  //  freemem = pongRight.delay_init(freemem, delaylen_max*2);
   nix = 0;//delaylen_new;
   nix2=1; 
   loop(delaylen_max*2, // -delaylen_new ,
-  //pong.delay_buffer_input(nix,0);
-  //Left.delay_buffer_input(nix,0);
-  //right.delay_buffer_input(nix,0);
+  pong.delay_input(0);
+  Left.delay_input(0);
+  right.delay_input(0);
+  pongLeft.delay_input(0);
+  pongright.delay_input(0);
+  
   //os1 = left.delay_output_linear(nix);
   //os2 = right.delay_output_linear(nix);
   //pongosx = pong.delay_output_linear(nix);
@@ -78,7 +81,7 @@ out_pin:right output
   );
   );
 
-  emptybuffer();
+  //emptybuffer();
   
     lastCap=1;
     mouse_wheel=1;
@@ -520,12 +523,14 @@ slider9 == 0 ? (
 slider13 = 2^slider14;
 slider13 < 1000 ? (slider13=1000);
 
-
+            //   slider1 == 0 ? (Dryonly = 1):(Dryonly = 0);
     delaylen > 132300 ? (delaylen=132300);
-    odelay=delaylen;
+    //odelay=delaylen;
     beat = 240 * slider7;
     wetmix = 2 ^(slider2/6);
     drymix = 2 ^(slider3/6);
+    
+    
     
     wetmix2 = 1;
     slider4 <= 0.5 ? (wetmix2 = slider4*2);//2 ^(slider4/6);
@@ -675,6 +680,8 @@ slider13 < 1000 ? (slider13=1000);
   );
   potsupdate();
   
+
+
   slider9 == 0 ? (
   knopf(1,gdelayx,gdelayy,61,75,0,3000,slider1);
   knopf(1,gfbx,gfby,61,75,-40,0,slider2);
@@ -693,6 +700,7 @@ slider13 < 1000 ? (slider13=1000);
   knopf(4,gdistx,gdisty,61,75,0,100,slider8);
   knopf(0,gtapex,gtapey,2,60,0,1,slider9);
   );
+
   
   k16 = 120; kny = 210;
   gfx_x=k16;gfx_y=kny;
@@ -1031,7 +1039,7 @@ slider13 < 1000 ? (slider13=1000);
         //  );
       
                
-               
+               slider1 == 0 ? (Dryonly = 1):(Dryonly = 0);
 
      //gtape.dragging  ? gtape.potToggle();
      
@@ -1040,11 +1048,12 @@ sliderchange(slider4);
     slider13 < 1000 ? (slider13=1000);
     
     delaylen > 132300 ? (delaylen=132300);
-    odelay=delaylen;
+    //odelay=delaylen;
     beat = 240 * slider7;
     wetmix = 2 ^(slider2/6);
     drymix = 2 ^(slider3/6);
     
+
     wetmix2 = 1;
     slider4 <= 0.5 ? (wetmix2 = slider4*2);//2 ^(slider4/6);
     drymix2 = 1;
@@ -1104,18 +1113,6 @@ sliderchange(slider4);
      a13 /= a03;
      a23 /= a03;
 
-@block
-/*
-delaylen != delaylen_old ? (  emptybuffer(););
-
-
-  slider1==0 ? (
-    delaylen=min((beat / tempo)*srate,500000);
-  ):(
-    delaylen=min(slider1 * srate / 1000,500000);
-    delaylen_old = delaylen;
-  );
-*/
 
 /*
 odelay != delaylen ? (
@@ -1155,20 +1152,67 @@ odelay != delaylen ? (
   freembuf(delaylen*2);
 );
 */
+@block
+/*
+odelay=delaylen;
+    delaylen=min(slider1 * srate / 1000,500000);
 
+    delaylen_old = delaylen;
+
+
+odelay != delaylen ? (
+  odelay > delaylen ? (
+      // resample down delay buffer, heh
+      rspos=0; rspos2=0;
+      drspos=odelay/delaylen;
+      loop(delaylen,
+         
+         tpos = ((rspos)|0)*2;
+         rspos2[0]=tpos[0];
+         rspos2[1]=tpos[1];
+         rspos2+=2;
+         rspos+=drspos;
+      );
+      delaypos /= drspos;
+      delaypos|=0;
+  ) : (
+    odelay < delaylen ? (
+        // resample up delay buffer, heh
+        drspos=odelay/delaylen;
+        rspos=odelay; 
+        rspos2=delaylen*2;
+        loop(delaylen,
+           rspos-=drspos;
+           rspos2-=2;
+         
+           tpos = ((rspos)|0)*2;
+           rspos2[0]=tpos[0];
+           rspos2[1]=tpos[1];
+        );
+        delaypos /= drspos;
+        delaypos|=0;
+    ) : (delaypos >= delaylen ? delaypos = 0);
+  );
+  delaypos<0?delaypos=0;
+  freembuf(delaylen*2);
+);
+*/
+    delaylen != delaylen_old ? (emptybuffer(););
+    delaylen_old = delaylen;
+    
 @sample
 slider13 < 1000 ? (slider13=1000);
 
   
   os = (spl0 + spl1) / 2;
-  slider1==0 ? (
-    delaylen=min((beat / tempo)*srate,500000);
-    delaylen_old = delaylen;
-  ):(
+ // slider1==0 ? (
+ //   delaylen=min((beat / tempo)*srate,500000);
+ //   delaylen_old = delaylen;
+ //   dryer = 0;
+ // ):(
     delaylen=min(slider1 * srate / 1000,500000);
-    delaylen != delaylen_old ? (emptybuffer(););
-    delaylen_old = delaylen;
- );
+
+ //);
 
 
 
@@ -1435,37 +1479,35 @@ wetmixFB = wetmix;
   
  // panloc = pongpan + pongwidth * switch;
 
-slider1 != 0 ?(
-
+d > 0 ?(
+  //remove DC
+ // otm1=0.999*otm1 + os1 - itm1; itm1=os1; os1=otm1;
+ // otm2=0.999*otm2 + os2 - itm2; itm2=os2; os2=otm2;
+  
   slider16 != 2 ? (
-  //spl0=spl0*drymix2 + os*wetmix2*(panloc);
-  //spl1=spl1*drymix2 + os*wetmix2*(1-panloc);
-  aab = (100-slider6)/100;
-  slider16 == 1  ? (
- spl0=spl0*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
-  spl1=spl1*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
-  ):(
-  spl0=spl0*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
-   spl1=spl1*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
-  );
+    //spl0=spl0*drymix2 + os*wetmix2*(panloc);
+    //spl1=spl1*drymix2 + os*wetmix2*(1-panloc);
+    aab = (100-slider6)/100;
+    slider16 == 1  ? (
+      spl0=spl0*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
+      spl1=spl1*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
+    ):(
+      spl0=spl0*drymix2 + os2*wetmix2 + (pongcomp + os1*((100-slider6)/100))*wetmix2 ;
+      spl1=spl1*drymix2 + os1*wetmix2 + (os2*((100-slider6)/100) +pongcomp*((100-slider6)/100))*wetmix2;
+    );
    //spl0 = (spl0+spl1)/2;
    //spl1 = spl0;
    
   ) : (
-  //remove DC
-  otm1=0.999*otm1 + os1 - itm1; itm1=os1; os1=otm1;
-  otm2=0.999*otm2 + os2 - itm2; itm2=os2; os2=otm2;
   
   spl0=spl0*drymix2 + os1*wetmix2;
   spl1=spl1*drymix2 + os2*wetmix2;
-  
-  
   );
   
-  ):(
-  spl0*=1;
-  spl1*=1;
-  );
+):(
+   spl0*=1;//drymix2;
+   spl1*=1;//drymix2;
+);
   
   /*
   play_state != 0 ? (PlSt =1);
