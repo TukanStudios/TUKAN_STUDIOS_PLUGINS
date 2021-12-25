@@ -115,6 +115,7 @@ version = "0.7.0";
  slider46 = ceil(slider46);
  slider49 = ceil(slider49);
  slider50 = ceil(slider50);
+ slider51 = ceil(slider51);
  
   hdistrL = min(slider40/100,.999);
   fooL = 2*hdistrL/(1-hdistrL);
@@ -188,6 +189,17 @@ version = "0.7.0";
   timeDL1 = stimeDL1; timeDL2 = stimeDL2;
   timeITGL = stimeITGL; timeITGR = stimeITGR;
   DL1_Feedback = sDL1_Feedback; DL2_Feedback = sDL2_Feedback;
+  
+  //wetmix2 = slider27; drymix2 = 1-slider27;
+  
+  slider27 <= 0.5 ? (
+  drymix2 = 1;
+  wetmix2 = slider27*2;
+  ):(
+  wetmix2 = 1;
+  drymix2 = 1-((slider27-0.5)*2);
+  );
+  
  );
 
   aaa=0;
@@ -906,8 +918,9 @@ statt_slider();
  // need to insert emptybuffer ++++++++++++++++++++++++++++++
 mtdb = 2^(3/6);
 // need to insert -3db Rule ////// ++++++++++++++++++++++++++++++++
-CleanL = spl0;
-CleanR = spl1;
+//CleanL = spl0;
+//CleanR = spl1;
+aax = slider51;
 slider51 == 0 ? (
  DL1_Direct = spl0 * (1-slider21) + spl1 * slider21;
  DL2_Direct = spl0 * (1-slider22) + spl1 * slider22;
@@ -1052,16 +1065,21 @@ filtering(slider9, 2^slider7, slider10, 2^slider8);
   //DC
   otm1=0.999*otm1 + os1 - itm1; itm1=os1; machineout1=otm1;
   otm2=0.999*otm2 + os2 - itm2; itm2=os2; machineout2=otm2;
-  wetmix2 = slider27; drymix2 = 1-slider27;
-  spl0=spl0*drymix2 + machineout1*wetmix2;
-  spl1=spl1*drymix2 + machineout2*wetmix2;
   
+  slider51 == 0 ? (
+  spl0=CleanL*drymix2 + machineout1*wetmix2;
+  spl1=CleanR*drymix2 + machineout2*wetmix2;
+  ):(
+  spl0=spl0+CleanL*drymix2 + machineout1*wetmix2;
+  spl1=spl1+CleanR*drymix2 + machineout2*wetmix2;
+  );
   mcpdecay = 1-(1 /(50*srate/1000));
 
   mcpL > spl0 ? (mcpl *= mcpdecay):(mcpL = spl0);
   mcpR > spl1 ? (mcpr *= mcpdecay):(mcpR = spl1);
   
   spl2 = CleanL; spl3 = CleanR;
+  
   
   
   
@@ -1281,8 +1299,8 @@ filtering(slider9, 2^slider7, slider10, 2^slider8);
       knobsx = 50;
       slider51 == 0 ? (knopf(2,knobsx,knobsy,61,75,0,1,slider21)):(knopf(9,knobsx,knobsy,61,75,0,1,slider21)); // In balance
       black(); gfx_rect(knobsx, knobsy - blackydist, 75,15);
-      color(); xy(knobsx+10, knobsy + 4 - blackydist); gfx_drawnumber(100*slider21,0);
-      gfx_drawstr("L/R");gfx_drawnumber(100*(1-slider21),0);
+      color(); xy(knobsx+10, knobsy + 4 - blackydist); gfx_drawnumber(100*(1-slider21),0);
+      gfx_drawstr("L/R");gfx_drawnumber(100*(slider21),0);
       ginit == 1 ? (gDL1_inbal.rectIn(knobsx, knobsy, 75, 75); gDL1_inbal.rectOut(knobsx, knobsy, 75, 75, 61, 1));
       //gDL1_inbal=slider21;
       // gDL1_inbal.val=gDL1_inbal;
@@ -1291,8 +1309,8 @@ filtering(slider9, 2^slider7, slider10, 2^slider8);
       
       slider51 == 0 ? (knopf(2,knobsx,knobsy+ydist,61,75,0,1,slider22)):(knopf(9,knobsx,knobsy+ydist,61,75,0,1,slider22)); // In balance
       black(); gfx_rect(knobsx, knobsy + ydist - blackydist, 75,15);
-      color(); xy(knobsx+10, knobsy +ydist+ 4 - blackydist); gfx_drawnumber(100*slider22,0);
-      gfx_drawstr("L/R");gfx_drawnumber(100*(1-slider22),0);
+      color(); xy(knobsx+10, knobsy +ydist+ 4 - blackydist); gfx_drawnumber(100*(1-slider22),0);
+      gfx_drawstr("L/R");gfx_drawnumber(100*(slider22),0);
       ginit == 1 ? (gDL2_inbal.rectIn(knobsx, knobsy+ydist, 75, 75); gDL2_inbal.rectOut(knobsx, knobsy+ydist, 75, 75, 61, 1));
       //gDL2_inbal=slider22;
       // gDL2_inbal.val=gDL2_inbal;
@@ -1535,8 +1553,8 @@ filtering(slider9, 2^slider7, slider10, 2^slider8);
       knopf(2,knobsx,knobsy+ydist * 2,61,75,0,1,slider27); // out Mix
       ginit == 1 ? (gdrywet.rectIn(knobsx, knobsy+ydist * 2, 75, 75); gdrywet.rectOut(knobsx, knobsy+ydist * 2, 75, 75, 61, 1));
       black(); gfx_rect(knobsx, knobsy - blackydist+ydist * 2, 75,15);
-      color(); xy(knobsx+18, knobsy + 4 - blackydist+ydist * 2); gfx_drawnumber(floor((100*(1-slider27))+0.5),0);
-      gfx_drawstr("/");gfx_drawnumber(floor((100*(slider27))+0.5),0);
+      color(); xy(knobsx+10, knobsy + 4 - blackydist+ydist * 2); gfx_drawnumber(floor((100*(drymix2))+0.5),0);
+      gfx_drawstr("/");gfx_drawnumber(floor((100*(wetmix2))+0.5),0);
       
       
       
@@ -2668,9 +2686,9 @@ filtering(slider9, 2^slider7, slider10, 2^slider8);
 ):( // gfx_w > 100 ganz oben
 gfx_clear;
       gfx_r=0;gfx_b=0;gfx_g=1; gfx_a = .8;
-      gfx_rect(0,0,log10(100*mcpl)*gfx_w/2,15);
+      gfx_rect(0,0,log10(100*mcpl)*gfx_w/2,10);
       gfx_r=1;gfx_b=0;gfx_g=0; gfx_a = 1; gfx_mode = .8;
-      gfx_rect(gfx_w-log10(100*mcpR)*gfx_w/2,0,gfx_w,15);
+      gfx_rect(gfx_w-log10(100*mcpR)*gfx_w/2,10,gfx_w,10);
       gfx_mode=0;
       
 
