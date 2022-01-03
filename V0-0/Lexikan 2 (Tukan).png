@@ -1,0 +1,2076 @@
+desc:Lexikan 2 (Tukan)
+//This plugin contains code by Geraint Luff. THANK YOU!
+
+in_pin:Ch1
+in_pin:Ch2
+out_pin:Ch1
+out_pin:Ch2
+//out_pin:AuxL
+//out_pin:AuxR
+
+slider1:66<1,1000,1>-density (ms)
+slider2:74<0,99,1>-feedback
+slider3:95<0,95,1>-late-bias (%)
+slider4:25<0,100,1>-wet (%)
+slider5:100<0,100,1>-dry (%)
+slider6:0<0,1,1{even,long}>-room shape
+slider7:8000<100,20000,1>-filter (lowpass Hz)
+slider8:23<0,100,1>-detuning (cents)
+slider9:1.5<0.1,10,0.1>-chorus speed (Hz)
+slider10:chorus_alignment=0<0,1,1{independent,linked}>-chorus phase
+
+slider11:67<1,1000,1>-density (ms)
+slider12:6<0,99,1>-ERfeedback
+slider13:0<0,95,1>-late-bias (%)
+slider14:25<0,100,1>-ERwet (%)
+slider15:86<0,100,1>-ER vs. Tail
+slider16:-0.4<-6,6,.01>-Tilt
+slider17:22<0,300,1>-PreDelay
+slider18:0<0,300,1>-GapDelay
+slider19:1<0,1,0.01>-StereoSpread
+slider20:0.22<0,1,0.01>-DryWet
+
+slider21:0.35<-0.95,0.95,0.01>-FDL1
+slider22:0.17<-0.95,0.95,0.01>-FDL2
+slider23:-0.13<-0.95,0.95,0.01>-FDL3
+slider24:-0.45<-0.95,0.95,0.01>-FDL4
+
+slider25:0.66<-0.95,0.95,0.01>-FDL1
+slider26:-0.1<-0.95,0.95,0.01>-FDL2
+slider27:0.1<-0.95,0.95,0.01>-FDL3
+slider28:0.66<-0.95,0.95,0.01>-FDL4
+
+slider29:3<0,4,1>-ALGO 29
+slider30:0<0,1,1>-WETSOLO 30
+slider31:0<0,1,1>-Displaymode 31
+slider32:0<0,1,1>-Bypass
+slider33:0<0,1,1>-FDL 33
+slider34:1<0,1,1>-Dry to Aux 34
+slider35:0<0,1,.01>-as35
+
+
+slider36:0<0,4,1{Off,35,60,110,220}>-Low Shelf (Hz)
+slider37:0.5<0,1,0.01>-Low Boost/Cut (dB)
+slider38:0.5<0,1,0.01>-EQ GAIN
+slider39:0.5<0,1,0.01>-Mid Boost/Cut (dB)
+slider40:0.5<0,1,0.01>-High Shelf (12k) Boost/Cut (dB)
+
+filename:0,Lexikan2gui/Lexi2.png
+filename:1,Lexikan2gui/PCM.png
+filename:2,Lexikan2gui/PCMRev.png
+filename:3,Lexikan2gui/PCMBi.png
+filename:4,Lexikan2gui/PCMStereo.png
+filename:5,Lexikan2gui/PCMTime.png
+filename:6,Lexikan2gui/PCMButton.png
+filename:7,Lexikan2gui/PCMFDL.png
+filename:8,Lexikan2gui/Lexi2t.png
+filename:9,Lexikan2gui/Display.png
+filename:10,Lexikan2gui/Displayl.png
+
+import ui-lib.jsfx-inc
+import delay-utils.jsfx-inc
+import smoother.jsfx-inc
+
+
+
+@init
+///////////////////////////// PRE EQ ////////////////////////////////
+FPREEQB1 = PREEQB2 = PREEQFB3 = 0;
+/////////////////////////////////// ENDE PRE EQ ////////////////////////////
+freemem = ui_setup(0);
+//gfx_ext_retina = 1;
+
+b1Env1 = -exp(-30 / srate );
+a0Env1 = 1.0 + b1Env1;
+b1Env2 = -exp(-1250 / srate );
+a0Env2 = 1.0 + b1Env2;
+b1Env3 = -exp(-3 / srate );
+a0Env3 = 1.0 + b1Env3;
+
+maxdetunefactor = pow(2, 110/1200)*exp(0.15); // 110 cents plus variation
+mindetunefreq = 0.1;
+max_delay_samples = ceil(srate*exp(0.3) + maxdetunefactor/mindetunefreq/(2*$pi)*srate + 1); // Longest possible delay, plus 100 samples
+
+freemem = delay1a.delay_init(freemem, max_delay_samples);
+freemem = delay1b.delay_init(freemem, max_delay_samples);
+freemem = delay2a.delay_init(freemem, max_delay_samples);
+freemem = delay2b.delay_init(freemem, max_delay_samples);
+freemem = delay3a.delay_init(freemem, max_delay_samples);
+freemem = delay3b.delay_init(freemem, max_delay_samples);
+freemem = delay4a.delay_init(freemem, max_delay_samples);
+freemem = delay4b.delay_init(freemem, max_delay_samples);
+
+//freemem = diffusL.delay_init(freemem, srate/40);
+//freemem = diffusR.delay_init(freemem, srate/40);
+freemem = myfeedL.delay_init(freemem, max_delay_samples);
+freemem = myfeedR.delay_init(freemem, max_delay_samples);
+
+max_ERdelay_samples = ceil(srate*exp(0.3) + maxdetunefactor/mindetunefreq/(2*$pi)*srate + 1); // Longest possible ERdelay, plus 100 samples
+
+freemem = ERdelay1a.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay1b.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay2a.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay2b.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay3a.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay3b.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay4a.delay_init(freemem, max_ERdelay_samples);
+freemem = ERdelay4b.delay_init(freemem, max_ERdelay_samples);
+
+freemem = PREdelayL.delay_init(freemem, srate*4.0);
+freemem = PREdelayR.delay_init(freemem, srate*4.0);
+
+freemem = GAPdelayL.delay_init(freemem, srate*4.0);
+freemem = GAPdelayR.delay_init(freemem, srate*4.0);
+
+filterLx1 = filterLx2 = 0;
+filterRx1 = filterRx2 = 0;
+filterLy1 = filterLy2 = 0;
+filterRy1 = filterRy2 = 0;
+
+writepos = 0;
+delaysamples1 = delaysamples2 = delaysamples3 = delaysamples4 = 0;
+ERdelaysamples1 = ERdelaysamples2 = ERdelaysamples3 = ERdelaysamples4 = 0;
+
+chorusphase1 = rand()*2*$pi;
+chorusphase2 = rand()*2*$pi;
+chorusphase3 = rand()*2*$pi;
+chorusphase4 = rand()*2*$pi;
+  function potVal(v)
+    instance      (frame val minVal maxVal count heightOut)
+			   (
+			    val = v;
+			    frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+			    frame |= 0;
+			   );
+  function potCfg  (default_ minVal_ maxVal_ step_)
+    instance        (default minVal maxVal step)
+				(
+				 default = default_;
+				 minVal = minVal_;
+				 maxVal = maxVal_;
+				 step    = step_;
+				 this.potVal(default);
+				);
+				
+function ALGOCALL () (
+slider33 = 0;
+	slider29 == 0 ? (
+	slider21 = 0.3; // HALL PLATE
+	  slider22 = 0.13;
+	  slider23 = -0.1;
+	  slider24 = -0.3;
+	  
+	  slider25 = 0.3;
+	  slider26 = 0.1;
+	  slider27 = -0.1;
+	  slider28 = -0.3;
+	  
+	  slider1 = 41;
+	  slider2 = 50;
+	  slider3 = 95;
+	  
+		 slider8 = 23; slider9 = 1.5; //Chorus
+	  
+	  slider11 = 44;
+	  slider12 = 30;
+	  slider13 = 0;
+	  
+	  slider15 = 64; //ER/TAIL
+	  slider16 = 1.6; // TIlt
+	  slider17 = 2; slider18 = 0; //Predly, gap
+	  slider19 = 0.74; //Stereo
+	  slider20 = 0.32; //Outmix
+	  slider34 = 1; //EQ
+	  gKnob1.potcfg(70,30,80,0.3);  
+	  );
+	slider29 == 1 ? (
+	slider33 = 0;
+	slider21 = 0.27; // HALL PLATE
+	  slider22 = 0.13;
+	  slider23 = -0.13;
+	  slider24 = -0.27;
+	  
+	  slider25 = 0.3;
+	  slider26 = 0.13;
+	  slider27 = -0.13;
+	  slider28 = -0.3;
+	  
+	  slider1 = 56;
+	  slider2 = 40;
+	  slider3 = 90;
+	  
+		 slider8 = 23; slider9 = 1.5; //Chorus
+	  
+	  slider11 = 42;
+	  slider12 = 0;
+	  slider13 = 0;
+	  
+	  slider15 = 70; //ER/TAIL
+	  slider16 = 0.9; // TIlt
+	  slider17 = 0; slider18 = 0; //Predly, gap
+	  slider19 = 1; //Stereo
+	  slider20 = 0.42; //Outmix
+	  slider34 = 1; //EQ
+	  gKnob1.potcfg(70,20,60,0.4);  
+	  );
+	  slider29 == 2 ? (
+	  slider33 = 0;
+	  slider21 = 0.38; // HALL PLATE
+	    slider22 = 0.05;
+	    slider23 = -0.05;
+	    slider24 = -0.38;
+	    
+	    slider25 = 0.51;
+	    slider26 = 0.34;
+	    slider27 = -0.34;
+	    slider28 = -0.51;
+	    
+	    slider1 = 58;
+	    slider2 = 55;
+	    slider3 = 94;
+	    
+		 slider8 = 23; slider9 = 1.5; //Chorus
+	    
+	    slider11 = 67;
+	    slider12 = 0;
+	    slider13 = 53;
+	    
+	    slider15 = 73; //ER/TAIL
+	    slider7 = 12000; // LPF
+	    slider17 = 35; slider18 = 0; //Predly, gap
+	    slider19 = 0.68; //Stereo
+	    slider20 = 0.33; //Outmix
+	    slider34 = 0; //EQ
+	    gKnob1.potcfg(70,17,61,0.4);  
+	    );
+	    slider29 == 3 ? (
+	    slider33 = 1;
+	    slider21 = 0.35; // HALL PLATE
+		 slider22 = 0.17;
+		 slider23 = -0.13;
+		 slider24 = -0.45;
+		 
+		 slider25 = 0.66;
+		 slider26 = 0.1;
+		 slider27 = -0.1;
+		 slider28 = -0.66;
+		 
+		 slider1 = 66;
+		 slider2 = 74;
+		 slider3 = 95;
+		 
+		 slider8 = 23; slider9 = 1.5; //Chorus
+		 
+		 slider11 = 67;
+		 slider12 = 6;
+		 slider13 = 0;
+		 
+		 slider15 = 86; //ER/TAIL
+		 slider16 = -0.4; // LPF
+		 slider17 = 22; slider18 = 0; //Predly, gap
+		 slider19 = 1; //Stereo
+		 slider20 = 0.22; //Outmix
+		 slider34 = 1; //EQ
+  gKnob1.potcfg(70,35,85,0.5);         
+		 );
+		 slider29 == 4 ? (
+		 slider33 = 1; 
+			    slider21 = 0.35; // HALL PLATE
+				 slider22 = 0.17;
+				 slider23 = -0.13;
+				 slider24 = -0.45;
+				 
+				 slider25 = 0.66;
+				 slider26 = 0.1;
+				 slider27 = -0.1;
+				 slider28 = -0.66;
+				 
+				 slider1 = 65;
+				 slider2 = 70;
+				 slider3 = 95;
+				 
+				 slider8 = 12; slider9 = 1.2; //Chorus
+				 
+				 slider11 = 67;
+				 slider12 = 6;
+				 slider13 = 0;
+				 
+				 slider15 = 100; //ER/TAIL
+				 slider16 = 1.8 ; // LPF
+				 slider17 = 0; slider18 = 0; //Predly, gap
+				 slider19 = 1; //Stereo
+				 slider20 = 0.3; //Outmix
+				 slider34 = 1; //EQ
+				 
+				 gKnob1.potcfg(70,25,85,0.5);
+				 );
+);
+  
+function update() local(delay, chorus, chorusfactor) (
+	slider4 = slider15; slider14 = 100-slider15;
+
+
+	/*
+
+	ERdelayfactor1 = exp(0.3); // HALL PLATE
+	ERdelayfactor2 = exp(0.1);
+	ERdelayfactor3 = exp(-0.1);
+	ERdelayfactor4 = exp(-0.3);
+	*/     
+	delayfactor1 = exp(slider21); // HALL PLATE
+	delayfactor2 = exp(slider22);
+	delayfactor3 = exp(slider23);
+	delayfactor4 = exp(slider24);
+	
+	ERdelayfactor1 = exp(slider25); // HALL PLATE
+	ERdelayfactor2 = exp(slider26);
+	ERdelayfactor3 = exp(slider27);
+	ERdelayfactor4 = exp(slider28);
+	slider6 == 1 ? (
+	// 0 - 0.04 - -0.09 - 0.13
+		delayfactor1 = exp(0.3); // ROOM
+		delayfactor2 = exp(0.1);
+		delayfactor3 = exp(-0.1);
+		delayfactor4 = exp(-0.3);
+		
+		ERdelayfactor1 = exp(0.1); // ROOM
+		ERdelayfactor2 = exp(0.2);
+		ERdelayfactor3 = exp(-0.3);
+		ERdelayfactor4 = exp(-0.15);
+	);
+
+	delay = slider1*srate/1000;
+	delaysamples1 = min(max_delay_samples - 1, delay*delayfactor1);
+	delaysamples2 = min(max_delay_samples - 1, delay*delayfactor2);
+	delaysamples3 = min(max_delay_samples - 1, delay*delayfactor3);
+	delaysamples4 = min(max_delay_samples - 1, delay*delayfactor4);
+	delaysamples1i = ceil(delaysamples1);
+	delaysamples2i = ceil(delaysamples2);
+	delaysamples3i = ceil(delaysamples3);
+	delaysamples4i = ceil(delaysamples4);
+
+	chorus = slider9*2*$pi/srate;
+	chorus_alignment ? (
+		chorusphasespeed1 = chorusphasespeed2 = chorusphasespeed3 = chorusphasespeed4 = chorus;
+	) : (
+		chorusphasespeed1 = chorus*exp(-0.15);
+		chorusphasespeed2 = chorus*exp(-0.05);
+		chorusphasespeed3 = chorus*exp(0.05);
+		chorusphasespeed4 = chorus*exp(0.15);
+	);
+
+	chorusfactor = pow(2, slider8/1200) - 1;
+	chorussamples = chorusfactor*srate/(slider9*2*$pi);
+
+//slider33 == 1 //;? (chorusfactor = pow(2, 0/1200) - 1;);
+	feedbackA = slider2/100;
+	feedbackRatio = slider3/100;
+	feedbackB = feedbackA*feedbackRatio;
+	dry = slider5/100;
+	wet = slider4/100;
+	// Feedback-racing compensation
+	amp = (1 - feedbackA*feedbackRatio)/(1 - feedbackRatio);
+
+	ampB = amp*min(1, feedbackRatio*1.1);
+	
+	
+	ERdelay = slider11*srate/1000;
+	ERdelaysamples1 = min(max_ERdelay_samples - 1, ERdelay*ERdelayfactor1);
+	ERdelaysamples2 = min(max_ERdelay_samples - 1, ERdelay*ERdelayfactor2);
+	ERdelaysamples3 = min(max_ERdelay_samples - 1, ERdelay*ERdelayfactor3);
+	ERdelaysamples4 = min(max_ERdelay_samples - 1, ERdelay*ERdelayfactor4);
+	ERdelaysamples1i = ceil(ERdelaysamples1);
+	ERdelaysamples2i = ceil(ERdelaysamples2);
+	ERdelaysamples3i = ceil(ERdelaysamples3);
+	ERdelaysamples4i = ceil(ERdelaysamples4);
+	
+	ERfeedbackA = slider12/100;
+	ERfeedbackRatio = slider13/100;
+	ERfeedbackB = ERfeedbackA*ERfeedbackRatio;
+	ERdry = slider15/100;
+	ERwet = slider14/100;
+	// ERfeedback-racing compensation
+	ERamp = (1 - ERfeedbackA*ERfeedbackRatio)/(1 - ERfeedbackRatio);
+	
+	ERampB = ERamp*min(1, ERfeedbackRatio*1.1);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+///////////////// UPDATE PRE EQ /////////////////////////
+PREEQFPARAM1=0; // listen
+PREEQFPARAM2=0.725; // lo<>mid
+PREEQFPARAM3=0.703; // mid<>hi
+PREEQFPARAM4=0.8; // lo out
+PREEQFPARAM5=0.54;//slider39; // mid out
+PREEQFPARAM6=0.67;//slider40; // hi out
+PREEQFPARAM7=0; // width
+PREEQFPARAM8=0; // ms swap
+PREEQFPARAM9=0.6;//slider38; // PREEQGAIN out
+
+PREEQTRIM1 = (0.5*pow(10, 2 * PREEQFPARAM4 - 1));
+PREEQTRIM2 = (0.5*pow(10, 2 * PREEQFPARAM5 - 1));
+PREEQTRIM3 = (0.5*pow(10, 2 * PREEQFPARAM6 - 1));
+
+PREEQSWItCH = PREEQFPARAM1|0;
+
+(PREEQSWItCH==0) ? (
+slev=PREEQFPARAM7; // width (side-level)
+);
+(PREEQSWItCH==1) ? (
+PREEQTRIM2=0; PREEQTRIM3=0; slev=0;
+);
+(PREEQSWItCH==2) ? (
+PREEQTRIM1=0; PREEQTRIM3=0; slev=0;
+);
+(PREEQSWItCH==3) ? (
+PREEQTRIM1=0; PREEQTRIM2=0; slev=0;
+);
+
+PREEQfi1 = pow(10,PREEQFPARAM2 - 1.70); PREEQfo1=(1 - PREEQfi1);
+PREEQfi2 = pow(10,PREEQFPARAM3 - 1.05); PREEQfo2=(1 - PREEQfi2);
+
+(PREEQFPARAM8>0.5) ? mswap=1 : mswap=0;
+
+PREEQGAIN = pow(10, 2 * PREEQFPARAM9 - 1);
+
+);
+
+update();
+smoother_init(wet);
+smoother_init(dry);
+smoother_init(ERwet);
+smoother_init(ERdry);
+
+
+
+
+
+bpos=0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+
+tiltamp = 6/log(2);
+tiltpi = 22/7;
+tiltsr3 = 3*srate;
+
+
+    function limit(s low up)
+			   ( min(max(s, low), up) );
+    function deg(r)
+			   ( r / $pi * 180 );
+    function rad(d)
+			   ( d * $pi / 180 );
+	function diff (difleft) (
+	//Diffus/smooth/env
+	
+	right = 0;
+	attack = -100/100; sustain = 0/100;
+	maxSpls = max(abs(difleft),abs(right));
+	env1 = sqrt(tmpEnv1 = a0Env1*maxSpls - b1Env1*tmpEnv1);
+	env2 = sqrt(tmpEnv2 = a0Env2*maxSpls - b1Env2*tmpEnv2);
+	env3 = sqrt(tmpEnv3 = a0Env3*maxSpls - b1Env3*tmpEnv3);
+	
+	gain = exp(log(max(env2/env1,1))*attack) * exp( log( max(env3/env1,1))*sustain);
+	//gain = 1;
+	difleft *= gain;
+	);
+/******************************* GUI Function ***********************************/
+
+  function xy(x y)
+		   ( gfx_x = x; gfx_y = y; );
+  
+  function rgb(r g b)
+		    ( gfx_r = r; gfx_g = g; gfx_b = b; );
+  
+  function rectIn  (xIn_ yIn_ wIn hIn)
+    instance       (xIn yIn widthIn heightIn)
+			    (
+				xIn = xIn_;
+				yIn = yIn_;
+				widthIn = wIn;
+				heightIn = hIn;
+				);
+			   
+  function rectOut  (xOut_ yOut_ wOut hOut c i)
+    instance        (xOut yOut widthOut heightOut count index)
+				(
+				 xOut = xOut_;
+				 yOut = yOut_;
+				 widthOut = wOut;
+				 heightOut = hOut;
+				 count = c;
+				 index = i;
+				 );                
+  
+  function potVal(v)
+    instance      (frame val minVal maxVal count heightOut)
+			   (
+			    val = v;
+			    frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+			    frame |= 0;
+			   );
+  
+
+  function bkg(wImg hImg indImg)
+			(
+			  gfx_a=1;
+			  coords[0] = coords[4] = 0;
+			  coords[1] = coords[5] = 0;;
+			  coords[2] = coords[6] = wImg;
+			  coords[3] = coords[7] = hImg;
+			  gfx_blitext(indImg, coords, 0);
+			 ); 
+  
+  function potDrawIn ()
+    instance        (xIn yIn widthIn heightIn val)
+				(
+				   gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+				   
+				   gfx_line(xIn,yIn,xIn,heightIn+yIn);
+				   gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+				   gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+				   gfx_line(xIn,yIn,xIn+widthIn,yIn);
+	   
+				   gfx_r = gfx_g = gfx_b = 0.75;
+				   gfx_x = xIn + widthIn/2-12;
+				   gfx_y = yIn+heightIn/2-5;
+				   gfx_drawnumber(val, 1);                   
+				);
+  
+  function knob()
+    instance   (xOut yOut widthOut heightOut index frame val)
+			(
+			 
+			  gfx_a=1;
+			  coords[0] = 0;
+			  coords[1] = frame * heightOut;
+			  coords[2] = coords[6] = widthOut;
+			  coords[3] = coords[7] = heightOut;
+			  coords[4] = xOut;
+			  coords[5] = yOut;
+			  gfx_blitext(index, coords, 0);
+			 );                                     
+  
+  function collision  ()
+    instance          (xIn yIn widthIn heightIn)
+				  (
+				   mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+				  );
+  
+  function dragStart ()
+    instance          (dragging yOld default)
+				  (
+				   !ctrl ? (
+				   yOld = mouse_y;
+				   dragging = 1;
+				  ) : 
+				   this.potVal(default);
+				  );
+  
+  function dragStop()
+    instance        (dragging val valOld)
+				(
+				 dragging = 0;
+				 valOld = val;
+				);
+  
+function potDrag()
+	   local      (val)
+		instance   (valOld minVal maxVal yOld step)
+			    (
+				val = valOld + (yOld - mouse_y) * step;
+				val = limit(val, minVal, maxVal);
+				this.potVal(val);
+			    );
+  
+  
+  function potWheel()
+	 local         (val)
+	 instance      (valOld minVal maxVal step)
+				(
+				 val = valOld + (mouse_wheel/120)*step;
+				 val = limit(val, minVal, maxVal);
+				 this.potVal(val);
+				 valOld=val;
+				 mouse_wheel=0;
+				);
+  function init_gfx () (
+
+		gPreDelay=slider17;
+		gPreDelay.val=gPreDelay;
+		gPreDelay.potVal(gPreDelay.val);
+		gertail=slider15;
+		gertail.val=gertail;
+		gertail.potVal(gertail.val);
+  gGap=slider18;
+  gGap.val=gGap;
+  gGap.potVal(gGap.val);
+  gLPF=slider7;
+  gLPF.val=gLPF;
+  gLPF.potVal(gLPF.val);
+  gDryWet=slider20;
+  gDryWet.val=gDryWet;
+  gDryWet.potVal(gDryWet.val);
+   gStereo=slider19;
+   gStereo.val=gStereo;
+   gStereo.potVal(gStereo.val);
+   gKnob1=slider2;
+   gKnob1.val=gKnob1;
+   gKnob1.potVal(gKnob1.val);
+   gtilt=slider16;
+   gtilt.val=gtilt;
+   gtilt.potVal(gtilt.val);
+  gfdl1=slider21;
+  gfdl1.val=gfdl1;
+  gfdl1.potVal(gfdl1.val);
+  gfdl2=slider22;
+  gfdl2.val=gfdl2;
+  gfdl2.potVal(gfdl2.val);
+  gfdl3=slider23;
+  gfdl3.val=gfdl3;
+  gfdl3.potVal(gfdl3.val);
+  gfdl4=slider24;
+  gfdl4.val=gfdl4;
+  gfdl4.potVal(gfdl4.val);
+  gfdl5=slider25;
+  gfdl5.val=gfdl5;
+  gfdl5.potVal(gfdl5.val);
+   gfdl6=slider26;
+   gfdl6.val=gfdl6;
+   gfdl6.potVal(gfdl6.val);
+  gfdl7=slider27;
+  gfdl7.val=gfdl7;
+  gfdl7.potVal(gfdl7.val);
+  gfdl8=slider28;
+  gfdl8.val=gfdl8;
+  gfdl8.potVal(gfdl8.val);
+  
+  );
+
+gPreDelay.potcfg  (20,0,300,1);
+gERTail.potcfg (50,0,100,1);
+gGap.potcfg   (10,0,300,1);
+gLPF.potcfg (8000,500,20000,200); //10Hz-1khz
+gDryWet.potcfg (0.5,0,1,0.01);
+gStereo.potcfg (1,0,1,.01);
+gTilt.potcfg (0,-6,6,.1);
+
+gKnob1.potcfg(70,0,100,0.3);
+
+gfdl1.potcfg (0,-0.95,0.95,.01);
+gfdl2.potcfg (0,-0.95,0.95,.01);
+gfdl3.potcfg (0,-0.95,0.95,.01);
+gfdl4.potcfg (0,-0.95,0.95,.01);
+gfdl5.potcfg (0,-0.95,0.95,.01);
+gfdl6.potcfg (0,-0.95,0.95,.01);
+gfdl7.potcfg (0,-0.95,0.95,.01);
+gfdl8.potcfg (0,-0.95,0.95,.01);
+
+/*
+gKnob2.potcfg (0,-16,16,0.2);
+gKnob3.potcfg (40,9,94.84,.2);//20HZ - 15kHz
+gKnob4.potcfg (32.647,0,80,.2);
+
+
+gKnob5.potcfg (0,-16,16,0.2);
+gKnob6.potcfg (70,9,94.84,.2);
+gKnob7.potcfg (32.647,0,80,.2);
+
+gKnob8.potcfg (0,-16,16,0.2);
+gKnob9.potcfg (70,60,100,.2); //1khz
+
+
+
+gKnob10.potcfg (0,-16,16,.1);
+
+*/
+
+knobsx = 350;
+knobsy = 100;
+sknobsx = knobsx;
+sknobsy = knobsy;
+kndistance = 85;
+gKnob1.rectIn(knobsx-10, knobsy-7, 80, 80);
+gKnob1.rectOut(knobsx-10, knobsy-7, 80, 80, 61, 5);
+knobsx+=kndistance;
+gPreDelay.rectIn(knobsx, knobsy, 65, 65);
+gPreDelay.rectOut(knobsx, knobsy, 65, 65, 61, 1);
+knobsx+=kndistance;
+gERTail.rectIn(knobsx, knobsy, 65, 65);
+gERTail.rectOut(knobsx, knobsy, 65, 65, 61, 3);
+knobsx+=kndistance;
+gGap.rectIn(knobsx, knobsy, 65, 65);
+gGap.rectOut(knobsx, knobsy, 65, 65, 61, 1);
+knobsx+=kndistance;
+gLPF.rectIn(knobsx, knobsy, 65, 65);
+gLPF.rectOut(knobsx, knobsy, 65, 65, 61, 2);
+gTilt.rectIn(knobsx, knobsy, 65, 65);
+gTilt.rectOut(knobsx, knobsy, 65, 65, 61, 2);
+knobsx+=kndistance;
+gDryWet.rectIn(knobsx, knobsy, 65, 65);
+gDryWet.rectOut(knobsx, knobsy, 65, 65, 61, 3);
+knobsx+=kndistance;
+gStereo.rectIn(knobsx, knobsy, 65, 65);
+gStereo.rectOut(knobsx, knobsy, 65, 65, 61, 4);
+
+fdlx = 125; fdly = 64; fdlstep = 45; sfdlx = fdlx; sfdly=fdly;
+gfdl1.rectIn(fdlx, fdly, 30, 30);
+gfdl1.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl2.rectIn(fdlx, fdly, 30, 30);
+gfdl2.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl3.rectIn(fdlx, fdly, 30, 30);
+gfdl3.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl4.rectIn(fdlx, fdly, 30, 30);
+gfdl4.rectOut(fdlx, fdly, 30, 30, 61, 7); fdly += fdlstep;
+
+fdlx = sfdlx;
+gfdl5.rectIn(fdlx, fdly, 30, 30);
+gfdl5.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl6.rectIn(fdlx, fdly, 30, 30);
+gfdl6.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl7.rectIn(fdlx, fdly, 30, 30);
+gfdl7.rectOut(fdlx, fdly, 30, 30, 61, 7); fdlx += fdlstep;
+gfdl8.rectIn(fdlx, fdly, 30, 30);
+gfdl8.rectOut(fdlx, fdly, 30, 30, 61, 7); 
+
+/*
+
+gKnob1.rectIn(knobsx-50, knobsy-50, 48, 60); 
+gKnob1.rectOut(knobsx-50, knobsy-50, 48, 60, 2, 7);
+
+knobsx += 190;
+gKnob3.rectIn(knobsx-40, knobsy+105, 60, 60); 
+gKnob3.rectOut(knobsx-40, knobsy+105, 60, 60, 61, 3);
+gKnob2.rectIn(knobsx, knobsy, 75, 75); 
+gKnob2.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+gKnob4.rectIn(knobsx+7+55, knobsy+105, 60, 60); 
+gKnob4.rectOut(knobsx+7+55, knobsy+105, 60, 60, 61, 3);
+lmfon = knobsx;
+
+knobsx += 210;
+gKnob6.rectIn(knobsx-40, knobsy+105, 60, 60); 
+gKnob6.rectOut(knobsx-40, knobsy+105, 60, 60, 61, 3);
+gKnob5.rectIn(knobsx, knobsy, 75, 75); 
+gKnob5.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+gKnob7.rectIn(knobsx+7+55, knobsy+105, 60, 60); 
+gKnob7.rectOut(knobsx+7+55, knobsy+105, 60, 60, 61, 3);
+hmfon = knobsx;
+
+knobsx += 150;
+gKnob9.rectIn(knobsx+7, knobsy+105, 60, 60); 
+gKnob9.rectOut(knobsx+7, knobsy+105, 60, 60, 61, 3);
+gKnob8.rectIn(knobsx, knobsy, 75, 75); 
+gKnob8.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+hshlvon = knobsx;
+
+knobsx += 118;
+knobsy += 60;
+gKnob10.rectIn(knobsx, knobsy, 75, 75); 
+gKnob10.rectOut(knobsx, knobsy, 75, 75, 61, 4);
+outon = knobsx;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+
+update();
+PREdelaylen = (slider17*srate*0.001)|0;
+GAPdelaylen = (slider18*srate*0.001)|0;
+
+//tilt
+Tgain = slider16;
+
+
+//conditition
+TGFactor = 4;
+Tgain > 0 ? (
+    g1 = -TGFactor*Tgain;
+    g2 = Tgain;
+) : (
+    g1 = -Tgain;
+    g2 = TGFactor*Tgain;
+);
+
+//two separate Tgains
+lTgain = exp(g1/tiltamp)-1;
+hTgain = exp(g2/tiltamp)-1;
+
+//f0
+sx = 16+40*1.20103;
+f0 = floor(exp(sx*log(1.059))*8.17742);
+
+//filter
+omega = 2*tiltpi*f0;
+n = 1/(tiltsr3 + omega);
+a0 = 2*omega*n;
+b1 = (tiltsr3 - omega)*n;
+
+//PREdelaylen+=pdc_delay;
+
+//bufsize=srate*4.0;
+@block
+
+filter_Q = 0.5;
+filter_freq = slider7;
+filter_w0 = 2*$pi*min(0.49, filter_freq/srate);
+filter_cosW0 = cos(filter_w0);
+filter_alpha = sin(filter_w0)/(2*filter_Q);
+
+filter_a0 = 1 + filter_alpha;
+filter_a1 = (-2*filter_cosW0)/filter_a0;
+filter_a2 = (1 - filter_alpha)/filter_a0;
+filter_b1 = (1 - filter_cosW0)/filter_a0;
+filter_b0 = filter_b1/2;
+filter_b2 = filter_b0;
+
+smoothing = smoother_block(wet) + smoother_block(dry)
+	+ smoother_block(filter_a1) + smoother_block(filter_a2)
+	+ smoother_block(filter_b0) + smoother_block(filter_b1) + smoother_block(filter_b2);
+	+ smoother_block(ERwet) + smoother_block(ERdry)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+@sample
+
+DRYspl0 = spl0;
+DRYspl1 = spl1;
+
+EQspl0 = spl0; EQspl1 = spl1;
+//////////////////////////////// PRE EQ ////////////////////////////////////////
+PREEQB1=PREEQB1;
+PREEQB2=PREEQB2;
+PREEQl=PREEQFB3;
+
+PREEQa = EQspl0;
+PREEQb = EQspl1;
+
+PREEQB2 = (PREEQfi2 * PREEQa) + (PREEQfo2 * PREEQB2); // crossovers
+PREEQB1 = (PREEQfi1 * PREEQB2) + (PREEQfo1 * PREEQB1);
+PREEQl = (PREEQfi1 * PREEQB1) + (PREEQfo1 * PREEQl);
+PREEQm = PREEQB2 - l;
+PREEQh = PREEQa - PREEQB2;
+PREEQa = (PREEQl*PREEQTRIM1) + (PREEQm*PREEQTRIM2) + (PREEQh*PREEQTRIM3);
+
+PREEQB2 = (PREEQfi2 * PREEQb) + (PREEQfo2 * PREEQB2); // crossovers
+PREEQB1 = (PREEQfi1 * PREEQB2) + (PREEQfo1 * PREEQB1);
+PREEQl = (PREEQfi1 * PREEQB1) + (PREEQfo1 * l);
+PREEQm = PREEQB2 - l;
+PREEQh = PREEQb - PREEQB2;
+PREEQb = (PREEQl*PREEQTRIM1) + (PREEQm*PREEQTRIM2) + (PREEQh*PREEQTRIM3);
+
+
+EQspl0 = PREEQa * PREEQGAIN;
+EQspl1 = PREEQb * PREEQGAIN;
+
+(abs(PREEQB1)<0.0000000001) ? ( PREEQFPREEQB1=0; PREEQFPREEQB2=0; PREEQFB3=0; ):( PREEQFPREEQB1=PREEQB1; PREEQFPREEQB2=PREEQB2; PREEQFB3=l; );
+
+slider33 == 1 ? (spl0 = EQspl0; spl1 = EQspl1;);
+
+///////////////////////////// PRE EQ ENDE //////////////////////////////7
+
+smoothing ? (
+	smoother_sample(wet);
+	smoother_sample(dry);
+	smoother_sample(filter_a1);
+	smoother_sample(filter_a2);
+	smoother_sample(filter_b0);
+	smoother_sample(filter_b1);
+	smoother_sample(filter_b2);
+	smoother_sample(ERwet);
+	smoother_sample(ERdry);
+);
+
+chorus_alignment ? (
+	chorusphase1 += chorusphasespeed1;
+	chorusphase1 > 2*$pi ? chorusphase1 -= 2*$pi;
+
+	//chorusphase2 = chorusphase1 + 0.5*$pi;
+	//chorusphase3 = chorusphase1 + $pi;
+	//chorusphase4 = chorusphase1 + 1.5*$pi;
+
+	sine1 = sin(chorusphase1);
+	sine2 = cos(chorusphase2);
+	sine3 = -sine1;
+	sine4 = -sine2;
+) : (
+	chorusphase1 += chorusphasespeed1;
+	chorusphase1 > 2*$pi ? chorusphase1 -= 2*$pi;
+	chorusphase2 += chorusphasespeed2;
+	chorusphase2 > 2*$pi ? chorusphase2 -= 2*$pi;
+	chorusphase3 += chorusphasespeed3;
+	chorusphase3 > 2*$pi ? chorusphase3 -= 2*$pi;
+	chorusphase4 += chorusphasespeed4;
+	chorusphase4 > 2*$pi ? chorusphase4 -= 2*$pi;
+
+	sine1 = sin(chorusphase1);
+	sine2 = sin(chorusphase2);
+	sine3 = sin(chorusphase3);
+	sine4 = sin(chorusphase4);
+);
+leftloop = 0; rightloop = 0;
+dloop = 1;feddloop = 0;
+dloopfac = 1;
+//loop(3,
+//dloop == 2 ? (dlooopfac = 4/5);
+//dloop == 3 ? (dlooopfac = 3/5);
+
+d = delaysamples1 * dloopfac + (1 + sine1)*0.5*chorussamples - 1;
+echo1a = delay1a.delay_output_allpass(d);
+echo1b = delay1b.delay_output_allpass(d);
+
+d = delaysamples2 * dloopfac + (1 + sine2)*0.5*chorussamples - 1;
+echo2a = delay2a.delay_output_allpass(d);
+echo2b = delay2b.delay_output_allpass(d);
+
+d = delaysamples3 * dloopfac + (1 + sine3)*0.5*chorussamples - 1;
+echo3a = delay3a.delay_output_allpass(d);
+echo3b = delay3b.delay_output_allpass(d);
+
+d = delaysamples4 * dloopfac + (1 + sine4)*0.5*chorussamples - 1;
+echo4a = delay4a.delay_output_allpass(d);
+echo4b = delay4b.delay_output_allpass(d);
+
+y1a = 0.5*(echo1a + echo2a - echo3a + echo4a);
+y1b = 0.5*(echo1b + echo2b - echo3b + echo4b);
+y2a = -0.5*(echo1a + echo2a + echo3a - echo4a);
+y2b = -0.5*(echo1b + echo2b + echo3b - echo4b);
+y3a = 0.5*(echo1a - echo2a - echo3a - echo4a);
+y3b = 0.5*(echo1b - echo2b - echo3b - echo4b);
+y4a = 0.5*(echo1a - echo2a + echo3a + echo4a);
+y4b = 0.5*(echo1b - echo2b + echo3b + echo4b);
+
+/*
+dloop == 0 ? (
+left = diff(spl0/4);
+right = diff(spl1/4);
+delay1a.delay_input(y1a*feedbackA + left*amp);
+delay1b.delay_input(y1b*feedbackB + left*ampB);
+delay2a.delay_input(y2a*feedbackA + right*amp);
+delay2b.delay_input(y2b*feedbackB + right*ampB);
+delay3a.delay_input(y3a*feedbackA + left*amp);
+delay3b.delay_input(y3b*feedbackB + left*ampB);
+delay4a.delay_input(y4a*feedbackA + right*amp);
+delay4b.delay_input(y4b*feedbackB + right*ampB);
+feddloop = 1;
+);
+*/
+d = delaysamples1 *dloopfac + (1 + sine1)*0.5*chorussamples - 1;
+lecho1a = delay1a.delay_output_linear(d);
+lecho1b = delay1b.delay_output_linear(d);
+
+d = delaysamples2*dloopfac+ (1 + sine2)*0.5*chorussamples - 1;
+d0 = d;
+lecho2a = delay2a.delay_output_linear(d);
+lecho2b = delay2b.delay_output_linear(d);
+
+d = delaysamples3*dloopfac + (1 + sine3)*0.5*chorussamples - 1;
+lecho3a = delay3a.delay_output_linear(d);
+lecho3b = delay3b.delay_output_linear(d);
+
+d = delaysamples4*dloopfac + (1 + sine4)*0.5*chorussamples - 1;
+lecho4a = delay4a.delay_output_linear(d);
+lecho4b = delay4b.delay_output_linear(d);
+
+
+y1a = ((y1a + (0.5*(lecho1a + lecho2a - lecho3a + lecho4a)))/2);
+y1b = ((y1b + (0.5*(lecho1b + lecho2b - lecho3b + lecho4b)))/2);
+y2a = ((y2a + (-0.5*(lecho1a + lecho2a + lecho3a - lecho4a)))/2);
+y2b = ((y2b + (-0.5*(lecho1b + lecho2b + lecho3b - lecho4b)))/2);
+y3a = ((y3a + (0.5*(lecho1a - lecho2a - lecho3a - lecho4a)))/2);
+y3b = ((y3b + (0.5*(lecho1b - lecho2b - lecho3b - lecho4b)))/2);
+y4a = ((y4a + (0.5*(lecho1a - lecho2a + lecho3a + lecho4a)))/2);
+y4b = ((y4b + (0.5*(lecho1b - lecho2b + lecho3b + lecho4b)))/2);
+
+
+leftloop = ((y1a - y1b + y3a - y3b)*0.71);
+rightloop = ((y2a - y2b + y4a - y4b)*0.71);
+
+/*
+dloop == 2 ? (
+leftloop1 = ((y1a - y1b + y3a - y3b)*0.71);
+rightloop1 = ((y2a - y2b + y4a - y4b)*0.71);
+);
+dloop == 3 ? (
+leftloop2 = ((y1a - y1b + y3a - y3b)*0.71);
+rightloop2 = ((y2a - y2b + y4a - y4b)*0.71);
+);
+dloop += 1;
+//);
+*/
+
+d0 = slider1*slider2/2;
+feedL = myfeedL.delay_output_linear(d0);
+feedR = myfeedR.delay_output_linear(d0);
+//left = leftloop;
+//right = rightloop;
+left = leftloop + feedL*0.71;
+right = rightloop + feedR*0.71;
+
+ampd = 1;
+ampc=1/20;
+
+
+delay1a.delay_input(amp*spl0/ampd + y1a*feedbackA);
+delay1b.delay_input(ampB*spl0/ampd + y1b*feedbackB);
+delay2a.delay_input(amp*spl1/ampd + y2a*feedbackA);
+delay2b.delay_input(ampB*spl1/ampd + y2b*feedbackB);
+delay3a.delay_input(amp*spl0/ampd + y3a*feedbackA);
+delay3b.delay_input(ampB*spl0/ampd + y3b*feedbackB);
+delay4a.delay_input(amp*spl1/ampd + y4a*feedbackA);
+delay4b.delay_input(ampB*spl1/ampd + y4b*feedbackB);
+//myfeedL.delay_input(left*amp*ampc);
+//myfeedR.delay_input(right*amp*ampc);
+aaay=amp*ampc;
+
+
+
+
+
+
+///////////// ISN VERSUCH
+
+
+dloopfac  =0.31;// floor((15+rand(38)))/100;d*=d1;
+d = delaysamples1 *dloopfac + (1 + sine1)*0.5*chorussamples - 1;
+lecho1a = delay1a.delay_output_linear(d);
+lecho1b = delay1b.delay_output_linear(d);
+
+d = delaysamples2*dloopfac+ (1 + sine2)*0.5*chorussamples - 1;
+lecho2a = delay2a.delay_output_linear(d);
+lecho2b = delay2b.delay_output_linear(d);
+
+d = delaysamples3*dloopfac + (1 + sine3)*0.5*chorussamples - 1;
+lecho3a = delay3a.delay_output_linear(d);
+lecho3b = delay3b.delay_output_linear(d);
+
+d = delaysamples4*dloopfac + (1 + sine4)*0.5*chorussamples - 1;
+lecho4a = delay4a.delay_output_linear(d);
+lecho4b = delay4b.delay_output_linear(d);
+
+
+y1a = (((0.5*(lecho1a + lecho2a - lecho3a + lecho4a)))/2);
+y1b = (((0.5*(lecho1b + lecho2b - lecho3b + lecho4b)))/2);
+y2a = (((-0.5*(lecho1a + lecho2a + lecho3a - lecho4a)))/2);
+y2b = (((-0.5*(lecho1b + lecho2b + lecho3b - lecho4b)))/2);
+y3a = (((0.5*(lecho1a - lecho2a - lecho3a - lecho4a)))/2);
+y3b = (((0.5*(lecho1b - lecho2b - lecho3b - lecho4b)))/2);
+y4a = (((0.5*(lecho1a - lecho2a + lecho3a + lecho4a)))/2);
+y4b = (((0.5*(lecho1b - lecho2b + lecho3b + lecho4b)))/2);
+
+
+leftloop = ((y1a - y1b + y3a - y3b)*0.71);
+rightloop = ((y2a - y2b + y4a - y4b)*0.71);
+
+
+
+
+
+left = leftloop+feedL*0.7;
+right = rightloop+feedR*0.7;
+
+ampd = 1;
+ampc=1/20;
+
+myfeedL.delay_input(left*amp*ampc);
+myfeedR.delay_input(right*amp*ampc);
+
+/////////////////////////7
+/* Filter
+
+x = left;
+left = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterLx1 + smoother_value(filter_b2)*filterLx2 - smoother_value(filter_a1)*filterLy1 - smoother_value(filter_a2)*filterLy2;
+filterLx2 = filterLx1;
+filterLx1 = x;
+filterLy2 = filterLy1;
+filterLy1 = left;
+
+x = right;
+right = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterRx1 + smoother_value(filter_b2)*filterRx2 - smoother_value(filter_a1)*filterRy1 - smoother_value(filter_a2)*filterRy2;
+filterRx2 = filterRx1;
+filterRx1 = x;
+filterRy2 = filterRy1;
+filterRy1 = right;
+*/
+
+tailspl0 = left*smoother_value(wet);
+tailspl1 = right*smoother_value(wet);
+
+writepos += 1;
+writepos >= buffersize ? writepos = 0;
+
+
+
+
+
+
+
+
+
+d = ERdelaysamples1 + (1 + sine1)*0.5*chorussamples - 1;
+ERecho1a = ERdelay1a.delay_output_linear(d);
+ERecho1b = ERdelay1b.delay_output_linear(d);
+
+d = ERdelaysamples2 + (1 + sine2)*0.5*chorussamples - 1;
+ERecho2a = ERdelay2a.delay_output_linear(d);
+ERecho2b = ERdelay2b.delay_output_linear(d);
+
+d = ERdelaysamples3 + (1 + sine3)*0.5*chorussamples - 1;
+ERecho3a = ERdelay3a.delay_output_linear(d);
+ERecho3b = ERdelay3b.delay_output_linear(d);
+
+d = ERdelaysamples4 + (1 + sine4)*0.5*chorussamples - 1;
+ERecho4a = ERdelay4a.delay_output_linear(d);
+ERecho4b = ERdelay4b.delay_output_linear(d);
+
+ERy1a = 0.5*(ERecho1a + ERecho2a - ERecho3a + ERecho4a);
+ERy1b = 0.5*(ERecho1b + ERecho2b - ERecho3b + ERecho4b);
+ERy2a = -0.5*(ERecho1a + ERecho2a + ERecho3a - ERecho4a);
+ERy2b = -0.5*(ERecho1b + ERecho2b + ERecho3b - ERecho4b);
+ERy3a = 0.5*(ERecho1a - ERecho2a - ERecho3a - ERecho4a);
+ERy3b = 0.5*(ERecho1b - ERecho2b - ERecho3b - ERecho4b);
+ERy4a = 0.5*(ERecho1a - ERecho2a + ERecho3a + ERecho4a);
+ERy4b = 0.5*(ERecho1b - ERecho2b + ERecho3b + ERecho4b);
+
+left = spl0;
+right = spl1;
+
+ERdelay1a.delay_input(ERy1a*ERfeedbackA + left*ERamp);
+ERdelay1b.delay_input(ERy1b*ERfeedbackB + left*ERampB);
+ERdelay2a.delay_input(ERy2a*ERfeedbackA + right*ERamp);
+ERdelay2b.delay_input(ERy2b*ERfeedbackB + right*ERampB);
+ERdelay3a.delay_input(ERy3a*ERfeedbackA + left*ERamp);
+ERdelay3b.delay_input(ERy3b*ERfeedbackB + left*ERampB);
+ERdelay4a.delay_input(ERy4a*ERfeedbackA + right*ERamp);
+ERdelay4b.delay_input(ERy4b*ERfeedbackB + right*ERampB);
+
+left = (ERy1a - ERy1b + ERy3a -ERy3b)*0.71;
+right = (ERy2a - ERy2b + ERy4a - ERy4b)*0.71;
+
+
+GAPdelayL.delay_input(tailspl0);
+GAPdelayR.delay_input(tailspl1);
+
+left = left*ERwet + GAPdelayL.delay_output_linear(GAPdelaylen);
+right = right*ERwet + GAPdelayR.delay_output_linear(GAPdelaylen);
+
+// Filter
+slider34 == 0 ? (
+x = left;
+left = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterLx1 + smoother_value(filter_b2)*filterLx2 - smoother_value(filter_a1)*filterLy1 - smoother_value(filter_a2)*filterLy2;
+filterLx2 = filterLx1;
+filterLx1 = x;
+filterLy2 = filterLy1;
+filterLy1 = left;
+
+x = right;
+right = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterRx1 + smoother_value(filter_b2)*filterRx2 - smoother_value(filter_a1)*filterRy1 - smoother_value(filter_a2)*filterRy2;
+filterRx2 = filterRx1;
+filterRx1 = x;
+filterRy2 = filterRy1;
+filterRy1 = right;
+):(
+//Tilt
+TIN = left;
+TLP_out = a0*TIN + b1*TLP_out;
+left= TIN + lTgain*TLP_out + hTgain*(TIN - TLP_out);
+
+TIN_r = right;
+TLP_out_r = a0*TIN_r + b1*TLP_out_r;
+right = TIN_r + lTgain*TLP_out_r + hTgain*(TIN_r - TLP_out_r);
+);
+allspl0 = left;
+allspl1 = right;
+
+PREdelayL.delay_input(allspl0);
+PREdelayR.delay_input(allspl1);
+//PREDELAY 8 x max_delay_samples
+//bpos[0]=allspl0;
+//bpos[1]=allspl1;
+
+//rdpos=bpos-PREdelaylen*2;
+//rdpos<0 ? rdpos+=bufsize*2;
+//slider19
+FXL = PREdelayL.delay_output_linear(PREdelaylen)+PREdelayR.delay_output_linear(PREdelaylen)*(1-slider19);
+FXR = PREdelayR.delay_output_linear(PREdelaylen)+PREdelayL.delay_output_linear(PREdelaylen)*(1-slider19);
+
+mix = slider20;
+slider30 == 1 ? (mix = 1);
+slider32 == 1 ? (mix = 0);
+  mix >= 0.5 ? (
+  drymixn = 1- ((mix-0.5)*2)
+  ) : (drymixn = 1);
+  
+  mix < 0.5 ? (
+  drymixo= (mix*2)
+  ) : (drymixo =1); 
+  
+  //spl2 = spl0;
+  //spl3 = spl1;
+  
+  inmeter < max(spl0,spl1) ? (inmeter = max(spl0,spl1)):(inmeter*=0.9999 );
+  
+spl0=DRYspl0*drymixn+FXL*drymixo;//+rdpos[0];
+spl1=DRYspl1*drymixn+FXR*drymixo;//+rdpos[1];
+
+
+
+aaa= __memtop();
+//bpos+=2;
+//bpos>=33*max_delay_samples+1+buffsize*2 ? bpos=33*max_delay_samples+1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 1020 180
+
+		
+		
+		
+	function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
+	(
+	gfx_x=kx; gfx_y=ky;
+	weg = abs(kmax - kmin);
+	//scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+	 kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+	 scry = kbitmap * floor(kframe);
+	 gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+	);
+
+mouseHold = mouse_cap & 1;
+ctrl = mouse_cap & 4;
+mouseClick = mouseHold - lastCap;
+lastCap = mouseHold;
+
+gfx_r=0.3;gfx_g=0.3;gfx_b=0.4;gfx_a=0.3;
+gfx_rect(0,0,sknobsx+kndistance*6+70+90,sknobsy+80);
+aax = sknobsx+kndistance*6+70+90;
+aay = sknobsy+80; 
+
+gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8;
+gfx_rect(sknobsx-270,sknobsy +30,kndistance*6+360,50);
+
+
+gfx_x = 0; gfx_y = 0; gfx_a=1;
+slider34 == 0 ? (gfx_blit(0,1,0)):(gfx_blit(8,1,0));
+//initial == 0 ? (
+	 gPreDelay=0;
+init_gfx();
+
+	  initial = 1;
+//);
+gfx_a = 1;
+  slider29 == 0 ? (lengin = 30; lengout = 80); //gKnob1.potcfg(70,30,80,0.3));
+  slider29 == 1 ? (lengin = 20; lengout = 60); //gKnob1.potcfg(70,20,60,0.4));
+  slider29 == 2 ? (lengin = 17; lengout = 61); //gKnob1.potcfg(70,17,61,0.4));
+  slider29 == 3 ? (lengin = 35; lengout = 85); //gKnob1.potcfg(70,35,85,0.5));
+  slider29 == 4 ? (lengin = 25; lengout = 85); //gKnob1.potcfg(70,25,85,0.5));
+
+  knopf(5,sknobsx-10,sknobsy-7,61,80,lengin,lengout,slider2); //bild, posx, posy, frames, hoehe, von, bis, wert
+  slider29 < 3.6 ? (
+  knopf(1,sknobsx+kndistance,sknobsy,61,65,0,300,slider17); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  knopf(3,sknobsx+kndistance*2,sknobsy,61,65,0,100,slider15); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  ):(
+  faac = 0.83;
+  gfx_r=faac*0.72/18;gfx_g=faac*13.5/18;gfx_b=faac*1;gfx_a=1;
+  gfx_rect(sknobsx+80,sknobsy +30,150,50);
+  );
+  knopf(1,sknobsx+kndistance*3,sknobsy,61,65,0,300,slider18); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  knopf(2,sknobsx+kndistance*4,sknobsy,61,65,500,20000,slider7); //bild, posx, posy, frames, hoehe, von, bis, wert 
+slider34 == 1 ? (
+  knopf(3,sknobsx+kndistance*4,sknobsy,61,65,-6,6,slider16); //bild, posx, posy, frames, hoehe, von, bis, wert
+);
+  
+  knopf(3,sknobsx+kndistance*5,sknobsy,61,65,0,1,slider20); //bild, posx, posy, frames, hoehe, von, bis, wert
+  knopf(4,sknobsx+kndistance*6,sknobsy,61,65,0,1,slider19); //bild, posx, posy, frames, hoehe, von, bis, wert 
+
+//slider6:-.1<-6,0,.01
+knx = 630; kny = 10; knxs = knx;knys = kny;knxspace = 60; 
+
+slider29 == 0 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,30,80,0.3);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 1 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,20,60,0.4);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 2 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,17,61,0.4);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 3 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,35,85,0.5);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 4 ? (knopf(6,knx,kny,2,50,0,1,1); gKnob1.potcfg(slider2,25,85,0.5);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+
+kny += 30;knx = knxs;
+slider30 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider32 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider31 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider33 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider34 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));
+
+displayx = 85; displayy=40; displayw = 230; displayh=120;
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLACK
+//gfx_rect(displayx,displayy,displayw,displayh);
+gfx_x=displayx; gfx_y=displayy;
+gfx_blit(9,1,0);gfx_blit(10,1,0);
+
+gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=1;
+textstep = 25;
+slider31 == 1 ? (
+aaa=0;
+gfx_setfont(1, "Arial", 15);; gfx_y = displayy;
+gfx_x = displayx + 10; gfx_y += 10;
+gfx_drawstr("Time: "); gfx_drawnumber(slider2,0);gfx_drawstr("%");
+gfx_x = displayx + 10; gfx_y += textstep;
+gfx_drawstr("Predelay: ");gfx_drawnumber(slider17,0);gfx_drawstr(" ms");
+gfx_x = displayx + 10; gfx_y += textstep;
+gfx_drawstr("ER/Tail: ");
+gfx_drawnumber(100-(slider15),0);gfx_drawstr(" / ");
+gfx_drawnumber(slider15,0);gfx_drawstr("");
+gfx_x = displayx + 10; gfx_y += textstep;
+gfx_drawstr("Tail Delay: ");gfx_drawnumber(slider18,0);gfx_drawstr(" ms");
+gfx_x = displayx + 125; gfx_y=  displayy+10;
+slider34 == 0 ? (
+gfx_drawstr("LPF: ");gfx_drawnumber(slider7,0);gfx_drawstr(" Hz");
+):(
+gfx_drawstr("Tilt: ");gfx_drawnumber(slider16,1);gfx_drawstr(" dB");
+);
+gfx_x = displayx + 125; gfx_y += textstep;
+slider30 == 1 ? (mix = 1;gfx_a=0.5;);
+slider32 == 1 ? (mix = 0;gfx_a=0.5;);
+  mix >= 0.5 ? (
+  drymixn = 1- ((mix-0.5)*2)
+  ) : (drymixn = 1);
+  
+  mix < 0.5 ? (
+  drymixo= (mix*2)
+  ) : (drymixo =1);
+gfx_drawstr("Dry: ");gfx_drawnumber(100*drymixn,0);gfx_drawstr("%");
+gfx_x = displayx + 125; gfx_y += textstep;
+gfx_drawstr("Wet: ");gfx_drawnumber(100*drymixo,0);gfx_drawstr("%");
+gfx_a = 1;
+
+gfx_x = displayx + 125; gfx_y += textstep;
+gfx_drawstr("Stereo: ");gfx_drawnumber(100*slider19,0);gfx_drawstr("%");
+
+
+
+):(
+slider30 == 1 ? (mix = 1;gfx_a=0.5;);
+slider32 == 1 ? (mix = 0;gfx_a=0.5;);
+  mix >= 0.5 ? (
+  drymixn = 1- ((mix-0.5)*2)
+  ) : (drymixn = 1);
+  
+  mix < 0.5 ? (
+  drymixo= (mix*2)
+  ) : (drymixo =1);
+  gfx_x = displayx + 80; gfx_y = displayy+8;
+slider30 == 1 ? (gfx_r=0;gfx_g=1;gfx_b=0;gfx_drawstr("Wet solo "));
+slider32 == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0;gfx_drawstr("Bypassed..."));
+dERtime = slider17 / 4;
+dERvol = ((100 - slider15)/100);
+dREVvol = ((slider15)/100);
+dGaptime = (slider17 / 4)+(slider18 / 4);
+dRevtime = slider2*2;
+ddirectvol = 75*(1-slider20);
+dERvol = max(log10(dervol*10)*(displayh - 50),0);
+dRevvol = max(log10(dRevvol*10)*(displayh - 50),0);
+gfx_line(displayx + 10, (displayy +displayh-10)-(75*drymixn), displayx + 10, displayy + displayh-10);
+
+gfx_line(displayx+10+dERtime, displayy + displayh-10,displayx+10+dERtime, displayy + displayh-10 - (dERvol*drymixo));
+gfx_line(displayx+12+dERtime, displayy + displayh-10,displayx+12+dERtime, displayy + displayh-10 - (dERvol*drymixo)+5);
+gfx_line(displayx+15+dERtime, displayy + displayh-10,displayx+15+dERtime, displayy + displayh-10 - (dERvol*drymixo)+7);
+
+//gfx_line(displayx+10+dGaptime, displayy + displayh-10,displayx+10+dGaptime, displayy + displayh-80 + dREVvol);
+//gfx_line(displayx+10+dGaptime+dREVtime, displayy + displayh-10,displayx+10+dGaptime, displayy + displayh-80 + dREVvol);
+//gfx_line(displayx+10+dGaptime+dREVtime, displayy + displayh-10,displayx+10+dGaptime, displayy + displayh-10);
+
+gfx_triangle(displayx+10+dGaptime+7, displayy + displayh-10,displayx+10+dGaptime+7, displayy + displayh - drymixo*dREVvol,displayx+10+dGaptime+dREVtime, displayy + displayh-10);
+
+loopi = 1;
+loops = dREVtime;
+astep = 1/drevtime;
+gfx_a = 0;gfx_r=0;gfx_g=0;gfx_b=0;
+loop(loops,
+gfx_line(displayx+10+dGaptime+loopi, displayy + displayh-10,displayx+10+dGaptime+loopi, displayy + displayh - dRevvol);
+//dings = loopi*(slider15/500)*(displayh-50);
+//gfx_line(displayx+10+dGaptime+dREVtime, displayy + displayh-10,displayx+10+dGaptime, displayy + displayh-10 - dings);
+gfx_a += astep;
+loopi += 1;
+);
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLACK
+gfx_rect(displayx,displayy+displayh-9,displayw,9);
+);
+//gfx_rect(knxs, knys+17,45, 13);
+
+
+FDLDISP == 1 ?(
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLAC
+//gfx_rect(displayx,displayy,displayw,displayh);
+gfx_x = displayx; gfx_y = displayy;
+gfx_blit(9,1,0);gfx_blit(10,1,0);
+
+gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8; //LEXIBLUE
+
+  gfx_y = sfdly-20; gfx_x = sfdlx-30; gfx_drawstr("Tail");
+  knopf(7,sfdlx,sfdly,61,30,-0.95,0.95,slider21);
+  gfx_y = sfdly-20; gfx_x = sfdlx; gfx_drawnumber(slider21,2);
+  knopf(7,sfdlx+fdlstep,sfdly,61,30,-0.95,0.95,slider22);
+  gfx_y = sfdly-20; gfx_x = sfdlx+fdlstep; gfx_drawnumber(slider22,2);
+  knopf(7,sfdlx+fdlstep*2,sfdly,61,30,-0.95,0.95,slider23);
+  gfx_y = sfdly-20; gfx_x = sfdlx+fdlstep*2; gfx_drawnumber(slider23,2);
+  knopf(7,sfdlx+fdlstep*3,sfdly,61,30,-0.95,0.95,slider24);
+  gfx_y = sfdly-20; gfx_x = sfdlx+fdlstep*3; gfx_drawnumber(slider24,2);
+  
+  gfx_y = sfdly+fdlstep+30; gfx_x = sfdlx-30; gfx_drawstr("ER");
+  knopf(7,sfdlx,sfdly+fdlstep,61,30,-0.95,0.95,slider25);
+  gfx_y = sfdly+fdlstep+30;gfx_x = sfdlx; gfx_drawnumber(slider25,2);
+  knopf(7,sfdlx+fdlstep,sfdly+fdlstep,61,30,-0.95,0.95,slider26);
+  gfx_y = sfdly+fdlstep+30;gfx_x = sfdlx+fdlstep; gfx_drawnumber(slider26,2);
+  knopf(7,sfdlx+fdlstep*2,sfdly+fdlstep,61,30,-0.95,0.95,slider27);
+  gfx_y = sfdly+fdlstep+30;gfx_x = sfdlx+fdlstep*2; gfx_drawnumber(slider27,2);
+  knopf(7,sfdlx+fdlstep*3,sfdly+fdlstep,61,30,-0.95,0.95,slider28);
+  gfx_y = sfdly+fdlstep+30;gfx_x = sfdlx+fdlstep*3; gfx_drawnumber(slider28,2);
+);
+
+play_state = 0 ? (inmeter*0.999);
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLACK
+gfx_rect(35,120,35,7);
+gfx_rect(35,105,35,7);
+gfx_rect(35,90,35,7);
+gfx_rect(35,75,35,7);
+gfx_rect(35,60,35,7);
+
+gfx_r=0;gfx_g=1;gfx_b=0;gfx_a=0.8;
+inmeter > 0.061 ? (gfx_rect(35,120,35,7));
+inmeter > 0.156 ? (gfx_rect(35,105,35,7));
+inmeter > 0.247 ? (gfx_rect(35,90,35,7));
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=0.8;
+inmeter > 0.495 ? (gfx_rect(35,75,35,7));
+gfx_r=1;gfx_g=0;gfx_b=0;gfx_a=0.8;
+inmeter > 0.9 ? (gfx_rect(35,60,35,7));
+/*
+
+knobsx = 300;
+knobsy = 50;
+sknobsx = knobsx;
+sknobsy = knobsy;
+kndistance = 85;
+gPreDelay.rectIn(knobsx, knobsy, 65, 65);
+gPreDelay.rectOut(knobsx, knobsy, 65, 65, 61, 1);
+knobsx+=kndistance;
+gERTail.rectIn(knobsx, knobsy, 65, 65);
+gERTail.rectOut(knobsx, knobsy, 65, 65, 61, 3);
+knobsx+=kndistance;
+gGap.rectIn(knobsx, knobsy, 65, 65);
+gGap.rectOut(knobsx, knobsy, 65, 65, 61, 1);
+knobsx+=kndistance;
+gLPF.rectIn(knobsx, knobsy, 65, 65);
+gLPF.rectOut(knobsx, knobsy, 65, 65, 61, 2);
+knobsx+=kndistance;
+gDryWet.rectIn(knobsx, knobsy, 65, 65);
+gDryWet.rectOut(knobsx, knobsy, 65, 65, 61, 3);
+knobsx+=kndistance;
+gStereo.rectIn(knobsx, knobsy, 65, 65);
+gStereo.rectOut(knobsx, knobsy, 65, 65, 61, 4);
+
+slidexr1:50<1,1000,1>density (ms)
+slidexr2:60<0,99,1>feedback
+slidexr3:80<0,95,1>late-bias (%)
+slidexr4:25<0,100,1>wet (%)
+slidexr5:100<0,100,1>dry (%)
+slidexr6:0<0,1,1{even,long}>room shape
+slidexr7:8000<100,20000,1>filter (lowpass Hz)
+slidexr8:10<0,100,1>detuning (cents)
+slidexr9:2.5<0.1,10,0.1>chorus speed (Hz)
+sliderx10:chorus_alignment=0<0,1,1{independent,linked}>chorus phase
+
+sliderx11:50<1,1000,1>density (ms)
+sliderx12:60<0,99,1>ERfeedback
+sliderx13:80<0,95,1>late-bias (%)
+sliderx14:25<0,100,1>ERwet (%)
+sliderx15:100<0,100,1>ER vs. Tail
+sliderx16:0<0,1,1{even,long}>room shape
+sliderx17:20<0,300,1>PreDelay
+sliderx18:10<0,300,1>GapDelay
+sliderx19:1<0,1,0.01>StereoSpread
+sliderx20:0.5<0,1,0.01>DryWet
+
+gPreDelay.knob();
+gERTail.knob();
+gGap.knob();
+gLPF.knob();
+gDryWet.knob();
+gStereo.knob()
+gKnob3.knob();
+gKnob2.knob();
+gKnob4.knob();
+gKnob6.knob();
+gKnob5.knob();
+gKnob7.knob();
+gKnob9.knob();
+gKnob8.knob();
+gKnob10.knob();
+gKnob1.knob();
+*/
+
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+
+	 gPreDelay.collision()   ? gPreDelay.dragStart();
+	 gERTail.collision()  ?  gERTail.dragStart();  
+	 gGap.collision()    ? gGap.dragStart(); 
+	 gLPF.collision()    ? gLPF.dragStart(); 
+	 gDryWet.collision()    ? gDryWet.dragStart();
+	 gStereo.collision()     ? gStereo.dragStart();
+	 gfdl1.collision()    ? gfdl1.dragStart();
+	 gfdl2.collision()    ? gfdl2.dragStart();
+	 gfdl3.collision()    ? gfdl3.dragStart();
+	 gfdl4.collision()    ? gfdl4.dragStart();
+	 gfdl5.collision()    ? gfdl5.dragStart();
+	 gfdl6.collision()    ? gfdl6.dragStart();
+	 gfdl7.collision()    ? gfdl7.dragStart();
+	 gfdl8.collision()    ? gfdl8.dragStart();
+	 gtilt.collision()    ? gtilt.dragStart();
+gKnob10.collision()    ? gKnob10.dragStart();     
+
+gKnob1.collision()    ? gKnob1.dragStart();    
+  
+ // gfx_r=1;gfx_a=1;
+ // gfx_rect(knxs,knys+30+17,45,30-17);
+ //gfx_rect(370,25,20,17);
+ mouse_y > 25 ? (
+ mouse_y < 42 ? (
+ mouse_x > 370 ? (
+ mouse_x < 390 ? (
+ //slider30 == 0 ? (slider30 = 1):(slider30=0);
+ FDLDISP == 0 ? (FDLDISP = 1):(FDLDISP=0);
+ );
+ );
+ );
+ );
+ 
+mouse_y > knys +30+ 17 ? (
+mouse_y < knys +30+ 30 ? (
+mouse_x > knxs ? (
+mouse_x < knxs + 45 ? (
+slider30 == 0 ? (slider30 = 1):(slider30=0);
+);
+);
+mouse_x > knxs+knxspace ? (
+mouse_x < knxs+knxspace + 45 ? (
+slider32 == 0 ? (slider32 = 1):(slider32=0);
+);
+);
+mouse_x > knxs+knxspace*2 ? (
+mouse_x < knxs+knxspace*2 + 45 ? (
+slider31 == 0 ? (slider31 = 1):(slider31=0);
+);
+);
+mouse_x > knxs+knxspace*3 ? (
+mouse_x < knxs+knxspace*3 + 45 ? (
+slider33 == 0 ? (slider33 = 1):(slider33=0);
+);
+);
+mouse_x > knxs+knxspace*4 ? (
+mouse_x < knxs+knxspace*4 + 45 ? (
+slider34 == 0 ? (slider34 = 1):(slider34=0);
+);
+);
+);
+);
+
+mouse_y > knys + 17 ? (
+mouse_y < knys + 30 ? (
+mouse_x > knxs ? (
+mouse_x < knxs + 45 ? (
+slider29 = 0;
+ALGOCAL = 1;
+);
+);
+mouse_x > knxs+knxspace ? (
+mouse_x < knxs+knxspace + 45 ? (
+slider29 = 1;
+ALGOCAL = 1;
+);
+);
+mouse_x > knxs+knxspace*2 ? (
+mouse_x < knxs+knxspace*2 + 45 ? (
+slider29 = 2;
+ALGOCAL = 1;
+);
+);
+mouse_x > knxs+knxspace*3 ? (
+mouse_x < knxs+knxspace*3 + 45 ? (
+slider29 = 3;
+ALGOCAL = 1;
+);
+);
+mouse_x > knxs+knxspace*4 ? (
+mouse_x < knxs+knxspace*4 + 45 ? (
+slider29 = 4;
+ALGOCAL = 1;
+);
+);
+);
+);
+    ):
+mouseClick == -1  ? 
+    (
+	 gPreDelay.dragStop();
+	 gERTail.dragStop();
+	 gGap.dragStop();
+	 gLPF.dragStop();
+	 gDryWet.dragStop();
+	 gStereo.dragStop();
+	 gfdl1.dragStop();
+	 gfdl2.dragStop();
+	 gfdl3.dragStop();
+	 gfdl4.dragStop();
+	 gfdl5.dragStop();
+	 gfdl6.dragStop();
+	 gfdl7.dragStop();
+	 gfdl8.dragStop();
+	 gKnob10.dragStop();
+	 gKnob1.dragStop();
+	 gtilt.dragstop();
+    );
+
+mouse_wheel ? 
+    (
+	 gPreDelay.collision()   ? gPreDelay.potWheel():
+	 gERTail.collision()  ? gERTail.potWheel():
+	 gGap.collision()    ? gGap.potWheel():
+	 gLPF.collision()    ? gLPF.potWheel():
+	 gDryWet.collision()    ? gDryWet.potWheel():
+	 gStereo.collision()     ? gStereo.potWheel():
+	 gfdl1.collision()    ? gfdl1.potWheel():
+	 gfdl2.collision()    ? gfdl2.potWheel():
+	 gfdl3.collision()    ? gfdl3.potWheel():
+	 gfdl4.collision()    ? gfdl4.potWheel():
+	 gfdl5.collision()    ? gfdl5.potWheel():
+	 gfdl6.collision()    ? gfdl6.potWheel():
+	 gfdl7.collision()    ? gfdl7.potWheel():
+	 gfdl8.collision()    ? gfdl8.potWheel():
+	 gKnob10.collision()    ? gKnob10.potWheel():
+	 gtilt.collision()    ? gtilt.potWheel():
+	 mouse_wheel=0;
+    );
+
+//Slider34 = tilt
+  slider29 < 3.6 ? (
+gPreDelay.dragging  ? gPreDelay.potDrag();
+gERTail.dragging ? gERTail.potDrag();
+);
+gGap.dragging   ? gGap.potDrag();
+slider34 == 0 ? (
+gLPF.dragging   ? gLPF.potDrag();
+):(
+gtilt.dragging   ? gtilt.potDrag();
+);
+gDryWet.dragging   ? gDryWet.potDrag();
+gStereo.dragging    ? gStereo.potDrag();
+FDLDISP == 1 ?(
+gfdl1.dragging   ? gfdl1.potDrag();
+gfdl2.dragging   ? gfdl2.potDrag();
+gfdl3.dragging   ? gfdl3.potDrag();
+gfdl4.dragging   ? gfdl4.potDrag();
+gfdl5.dragging   ? gfdl5.potDrag();
+gfdl6.dragging   ? gfdl6.potDrag();
+gfdl7.dragging   ? gfdl7.potDrag();
+gfdl8.dragging   ? gfdl8.potDrag();
+);
+gKnob10.dragging   ? gKnob10.potDrag();
+gKnob1.dragging   ? gKnob1.potDrag();
+//******************************* Slider Knob Control *************************
+  
+    gPreDelay!=gPreDelay.val?
+	   (
+		gPreDelay=gPreDelay.val;
+		slider17=gPreDelay;
+		pot.potVal(gPreDelay.val);
+	    ):
+    gPreDelay!=slider17?
+	   (
+		gPreDelay=slider17;
+		gPreDelay.val=gPreDelay;
+		gPreDelay.potVal(gPreDelay.val);
+		gPreDelay.valOld=gPreDelay;
+	   );
+	 
+    gERTail!=gERTail.val?
+	   (
+		gERTail=gERTail.val;
+		slider15=gERTail;
+		pot.potVal(gERTail.val);
+	    ):
+    gERTail!=slider15?
+	   (
+		gertail=slider15;
+		gertail.val=gertail;
+		gertail.potVal(gertail.val);
+		gERTail.valOld=gERTail;
+	   );  
+	 
+    gGap!=gGap.val?
+	   (
+		gGap=gGap.val;
+		slider18=gGap;
+		pot.potVal(gGap.val);
+	    ):
+    gGap!=slider18?
+	   (
+		gGap=slider18;
+		gGap.val=gGap;
+		gGap.potVal(gGap.val);
+		gGap.valOld=gGap;
+	   );
+    
+    gLPF!=gLPF.val?
+	   (
+		gLPF=gLPF.val;
+		slider7=gLPF;
+		pot.potVal(gLPF.val);
+	    ):
+    gLPF!=slider7?
+	   (
+		gLPF=slider7;
+		gLPF.val=gLPF;
+		gLPF.potVal(gLPF.val);
+		gLPF.valOld=gLPF;
+	   );
+	   
+    gDryWet!=gDryWet.val?
+	   (
+		gDryWet=gDryWet.val;
+		slider20=gDryWet;
+		pot.potVal(gDryWet.val);
+	    ):
+    gDryWet!=slider20?
+	   (
+		gDryWet=slider20;
+		gDryWet.val=gDryWet;
+		gDryWet.potVal(gDryWet.val);
+		gDryWet.valOld=gDryWet;
+	   );
+    
+	    gStereo!=gStereo.val?
+	    (
+		 gStereo=gStereo.val;
+		 slider19=gStereo;
+		 pot.potVal(gStereo.val);
+		):
+	gStereo!=slider19?
+	    (
+		 gStereo=slider19;
+		 gStereo.val=gStereo;
+		 gStereo.potVal(gStereo.val);
+		 gStereo.valOld=gStereo;
+	    ); 
+	gKnob1!=gKnob1.val?
+	    (
+		 gKnob1=gKnob1.val;
+		 slider36=gKnob1;
+		 slider2=gKnob1;
+		 pot.potVal(gKnob1.val);
+		):
+	gKnob1!=slider2?
+	    (
+		 gKnob1=slider2;
+		 gKnob1.val=gKnob1;
+		 gKnob1.potVal(gKnob1.val);
+		 gKnob1.valOld=gKnob1;
+	    );   
+	gtilt!=gtilt.val?
+	    (
+		 gtilt=gtilt.val;
+		 slider16=gtilt;
+		 pot.potVal(gtilt.val);
+		):
+	gtilt!=slider16?
+	    (
+		 gtilt=slider16;
+		 gtilt.val=gtilt;
+		 gtilt.potVal(gtilt.val);
+		 gtilt.valOld=gtilt;
+	    ); 
+
+
+
+FDLDISP == 1 ?(
+    gfdl1!=gfdl1.val?
+	   (
+		gfdl1=gfdl1.val;
+		slider21=gfdl1;
+		pot.potVal(gfdl1.val);
+	    ):
+    gfdl1!=slider21?
+	   (
+		gfdl1=slider21;
+		gfdl1.val=gfdl1;
+		gfdl1.potVal(gfdl1.val);
+		gfdl1.valOld=gfdl1;
+	   );
+	 
+    gfdl2!=gfdl2.val?
+	   (
+		gfdl2=gfdl2.val;
+		slider22=gfdl2;
+		pot.potVal(gfdl2.val);
+	    ):
+    gfdl2!=slider22?
+	   (
+		gfdl2=slider22;
+		gfdl2.val=gfdl2;
+		gfdl2.potVal(gfdl2.val);
+		gfdl2.valOld=gfdl2;
+	   );  
+	 
+    gfdl3!=gfdl3.val?
+	   (
+		gfdl3=gfdl3.val;
+		slider23=gfdl3;
+		pot.potVal(gfdl3.val);
+	    ):
+    gfdl3!=slider23?
+	   (
+		gfdl3=slider23;
+		gfdl3.val=gfdl3;
+		gfdl3.potVal(gfdl3.val);
+		gfdl3.valOld=gfdl3;
+	   );
+    
+    gfdl4!=gfdl4.val?
+	   (
+		gfdl4=gfdl4.val;
+		slider24=gfdl4;
+		pot.potVal(gfdl4.val);
+	    ):
+    gfdl4!=slider24?
+	   (
+		gfdl4=slider24;
+		gfdl4.val=gfdl4;
+		gfdl4.potVal(gfdl4.val);
+		gfdl4.valOld=gfdl4;
+	   );
+	   
+    gfdl5!=gfdl5.val?
+	   (
+		gfdl5=gfdl5.val;
+		slider25=gfdl5;
+		pot.potVal(gfdl5.val);
+	    ):
+    gfdl5!=slider25?
+	   (
+		gfdl5=slider25;
+		gfdl5.val=gfdl5;
+		gfdl5.potVal(gfdl5.val);
+		gfdl5.valOld=gfdl5;
+	   );
+    
+	    gfdl6!=gfdl6.val?
+	    (
+		 gfdl6=gfdl6.val;
+		 slider26=gfdl6;
+		 pot.potVal(gfdl6.val);
+		):
+	gfdl6!=slider26?
+	    (
+		 gfdl6=slider26;
+		 gfdl6.val=gfdl6;
+		 gfdl6.potVal(gfdl6.val);
+		 gfdl6.valOld=gfdl6;
+	    ); 
+    gfdl7!=gfdl7.val?
+	   (
+		gfdl7=gfdl7.val;
+		slider27=gfdl7;
+		pot.potVal(gfdl7.val);
+	    ):
+    gfdl7!=slider27?
+	   (
+		gfdl7=slider27;
+		gfdl7.val=gfdl7;
+		gfdl7.potVal(gfdl7.val);
+		gfdl7.valOld=gfdl7;
+	   );
+    gfdl8!=gfdl8.val?
+	   (
+		gfdl8=gfdl8.val;
+		slider28=gfdl8;
+		pot.potVal(gfdl8.val);
+	    ):
+    gfdl8!=slider28?
+	   (
+		gfdl8=slider28;
+		gfdl8.val=gfdl8;
+		gfdl8.potVal(gfdl8.val);
+		gfdl8.valOld=gfdl8;
+	   );  
+);
+	    
+
+update();
+PREdelaylen = (slider17*srate*0.001)|0;
+GAPdelaylen = (slider18*srate*0.001)|0;
+//tilt
+Tgain = slider16;
+
+
+//conditition
+TGFactor = 4;
+Tgain > 0 ? (
+    g1 = -TGFactor*Tgain;
+    g2 = Tgain;
+) : (
+    g1 = -Tgain;
+    g2 = TGFactor*Tgain;
+);
+
+//two separate Tgains
+lTgain = exp(g1/tiltamp)-1;
+hTgain = exp(g2/tiltamp)-1;
+
+//f0
+sx = 16+40*1.20103;
+f0 = floor(exp(sx*log(1.059))*8.17742);
+
+//filter
+omega = 2*tiltpi*f0;
+n = 1/(tiltsr3 + omega);
+a0 = 2*omega*n;
+b1 = (tiltsr3 - omega)*n;
+
+ALGOCAL == 1 ? (ALGOCALL();ALGOCAL = 0);
+
+
+
+@serialize
+
+preset_version = 1;
+file_var(0, preset_version);
