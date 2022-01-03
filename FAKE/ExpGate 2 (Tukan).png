@@ -1,0 +1,1410 @@
+desc:ExpGate 2 (Tukan)
+// Version 1.1
+   // Gate/Expander
+
+MIT License
+
+Copyright (c) 2019 chokehold
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+
+in_pin:Input L
+
+in_pin:Input R
+
+in_pin:External SC / L
+
+in_pin:External SC / R
+
+out_pin:Output L
+
+out_pin:Output R
+
+
+
+filename:0,GATEgui/GATEBACK2.png
+filename:1,GATEgui/VUMeter.png
+filename:2,GATEgui/APIBig.png
+filename:3,GATEgui/APISmall.png
+filename:4,GATEgui/APIRED.png
+filename:5,GATEgui/switch.png
+filename:6,GATEgui/overLED.png
+filename:7,GATEgui/greenyellowled.png
+
+
+slider1:0<0,1,1>-Operation
+slider2:-20<-60,0,0.1>-Threshold (dB)
+slider3:0.5<0,1,0.001>-Ratio
+slider5:2<0.1,50,0.1>-Attack (ms)
+slider6:200<10,1000,2>-Release (ms)
+slider4:50<0,100,1>-Env Decay (ms)
+slider11:0<-12,12,0.1>-Output (dB)
+slider7:linkAmount=100<0,100,1>-Stereo Link [%]
+slider8:scFreq=10<10,350,1>-SC High Pass [Hz]
+slider9:routing=0<0,1,1>-Routing
+slider10:0<0,1,1>-Invert
+
+
+
+@init
+/*
+##################### MEINE INIT ###################################
+*/
+ovrlgain = 1;
+
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+ext_noinit=1;
+initial = 0;
+
+
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+
+front.potcfg  (-20,-60,0,0.06);
+center.potcfg (50,0,100,.1);
+back.potcfg   (2,.1,50,.05);
+four.potcfg (200,50,1000,1); //10Hz-1khz
+five.potcfg (0,0,1,1);
+lmfg.potcfg (0.5,0,1,.001);
+lmff.potcfg (10,10,350,0.35);//20HZ - 15kHz
+lmfq.potcfg (0,0,1,1);
+hmfg.potcfg (0,0,1,1);
+
+outg.potcfg (0,-12,12,0.024);
+
+knobsx = 50;
+knobsy = 50;
+
+front.rectIn(knobsx, knobsy, 75, 75);
+front.rectOut(knobsx, knobsy, 75, 75, 61, 4);
+
+five.rectIn(knobsx+80, knobsy+120, 48, 60); 
+five.rectOut(knobsx+80, knobsy+120, 48, 60, 2, 5);
+
+lmfq.rectIn(knobsx+140, knobsy+120, 48, 60); 
+lmfq.rectOut(knobsx+140, knobsy+120, 48, 60, 2, 5);
+knobsx += 0;
+hmfg.rectIn(knobsx+200, knobsy+120, 48, 60); 
+hmfg.rectOut(knobsx+200, knobsy+120, 48, 60, 2, 5);
+
+
+
+lmfg.rectIn(knobsx+7, knobsy+120, 60, 60); 
+lmfg.rectOut(knobsx+7, knobsy+120, 60, 60, 61, 3);
+
+
+
+knobsx += 140;
+back.rectIn(knobsx, knobsy+7, 60, 60);
+back.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
+
+knobsx += 120;
+center.rectIn(knobsx, knobsy+7, 60, 60); 
+center.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
+
+lmff.rectIn(knobsx, knobsy+120, 60, 60); 
+lmff.rectOut(knobsx, knobsy+120, 60, 60, 61, 3);
+
+knobsx += 120;
+four.rectIn(knobsx, knobsy+7, 60, 60); 
+four.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
+
+knobsx -= 7;
+outg.rectIn(knobsx, knobsy+113, 75, 75);
+outg.rectOut(knobsx, knobsy+113, 75, 75, 61, 2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+output = 1;
+transfer_A = 0;
+transfer_B = 1;
+gain = 1;
+env = 0;
+
+gate = 10^(-120/20); // raw, can be improved...
+
+log2dB = 8.6858896380650365530225783783321;
+db2log = 0.11512925464970228420089957273422;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+halfPi = $PI * 0.5;
+
+
+
+// Sample rate / 1000 = number of samples per millisecond
+
+msRate = srate * 0.001;
+
+
+
+// Global variables that will later hold the values 
+
+// the channel envelope followers will follow.
+
+keyL = 0.0;
+
+keyR = 0.0;
+
+
+
+// Helper functions
+
+function dBToGain (decibels) (10.0 ^ (decibels / 20.0));
+
+function fastReciprocal (value) (sqr(invsqrt(value)));
+
+
+
+// Simple envelope follower, setup stage
+
+function envSetup (msAttack, msRelease, dBThreshold, dBHysteresis) instance (envelope, attack, release, hysteresis, threshold) local ()
+
+(
+
+attack = exp(-1000 * fastReciprocal(msAttack * srate));
+
+release = exp(-1000 * fastReciprocal(msRelease * srate));
+
+hysteresis = dBToGain(dBHysteresis);
+
+threshold = dBToGain(dBThreshold);
+
+);
+
+
+
+// Simple envelope follower, processing stage
+
+function envFollow (signal) instance (envelope, attack, release, hysteresis) local ()
+
+(
+
+// Conditional branching sucks, e.g. "if (x) then do (y) else if".
+
+// Evaluating conditional branches is a slow process and can become
+
+// taxing on the CPU if done too much. The problem lies not in the
+
+// conditions, but in the branches. What I do here removes branches
+
+// and just turns an if/else statement into conditions that evaluate
+
+// to true/false - or 1/0 - and therefor can be used as factors in a
+
+// simple row of additions and multiplications. It leads to the same
+
+// result, but it's faster in per-sample processes.
+
+// 
+
+// Take the first example:
+
+//
+
+// ((signal > envelope) * attack) 
+
+// + ((signal <= envelope) * release))
+
+//
+
+// This is a simple addition of two sides, the left one and the right.
+
+// If "signal > envelope" is true, it evaluates to 1. If that happens,
+
+// the "signal <= envelope" will be false and evaluate to 0. This will
+
+// simplify the above calculation like so:
+
+//
+
+// ((1) * attack) + ((0) * release) --> attack + 0
+
+//
+
+// If it were the other way round, and "signal <= envelope" were true,
+
+// then that would make "signal > envelope" false and invert it all.
+
+//
+
+// ((0) * attack) + ((1) * release) --> 0 + release
+
+// 
+
+// The result is exactly what conditional branching would have given,
+
+// but without doing any actual branching. :)
+
+// 
+
+// Either way, this next bit is "if input louder than envelope, start
+
+// attack stage - else if input quieter than envelope, start release
+
+// stage.
+
+envelope = (((signal > envelope) * attack) + ((signal <= envelope) * release)) * (envelope - signal) + signal;
+
+envelope;
+
+);
+
+
+
+// Gate configuration function
+
+function gateSetup (msAttack, msRelease, dBThreshold, dBRange, dBHysteresis)
+
+(
+
+this.envSetup(msAttack, msRelease, dBThreshold, dBHysteresis);
+
+
+
+// Difference between gate and expander: if Gate mode is selected, the
+
+// "final volume level" for the low end of the envelope will be zero,
+
+// that is absolute silence. But when Expander mode is selected, then
+
+// the actual range parameter from the UI will be used here.
+
+this.range = (operation == 1) ? dBToGain(dBRange) : 0;
+
+);
+
+
+
+// This is the gate function that processes every incoming sample
+
+function tickGate (sample) instance (threshold, gain, envelope, range, hysteresis) local ()
+
+(
+
+// Make the incoming sample all-positive, because the further used gain
+
+// factors like threshold and hysteresis are also positive values. Use
+
+// it to check if the sample is above or below threshold (+hysteresis)
+
+// and to decide whether to let the envelope rise to 1 or fall to range/0.
+
+this.envFollow((abs(sample) < (threshold * hysteresis)) ? range : 1);
+
+
+
+// After the envelope value was calculated, make sure the gain reduction
+
+// does not surpass the "maximum reduction" range parameter. If Gate mode
+
+// is active, the range parameter will be 0 i.e. total silence.
+
+gain = max(envelope, range);
+
+
+
+gain;
+
+);
+
+
+
+// Sidechain high-pass filter processing function
+
+//
+
+// Implemented after Andy Simper's (Cytomic) Biquad Paper. If you want to
+
+// know what these do and how and why, go find his PDF (it's everywhere on
+
+// the Web) and read it. :)
+
+//
+
+function eqTick (sample) instance (v1, v2, v3, ic1eq, ic2eq)
+
+(
+
+v3 = sample - ic2eq;
+
+v1 = this.a1 * ic1eq + this.a2 * v3;
+
+v2 = ic2eq + this.a2 * ic1eq + this.a3 * v3;
+
+ic1eq = 2.0 * v1 - ic1eq; ic2eq = 2.0 * v2 - ic2eq;
+
+(this.m0 * sample + this.m1 * v1 + this.m2 * v2);
+
+);
+
+
+
+// Sidechain high-pass filter coefficient calculation
+
+function eqHP (Hz, Q) instance (a1, a2, a3, m0, m1, m2) local (g, k)
+
+(
+
+g = tan(halfPi * (Hz / srate)); k = 1.0 / Q;
+
+a1 = 1.0 / (1.0 + g * (g + k)); a2 = a1 * g; a3 = a2 * g;
+
+m0 = 1.0; m1 = -k; m2 = -1.0;
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 535 257
+ // SLIDER / VARIABLE REFERSH
+initial == 0 ? (
+        front=slider2;
+        front.val=front;
+        front.potVal(front.val);
+        center=slider4;
+        center.val=center;
+        center.potVal(center.val);
+        back=slider5;
+        back.val=back;
+        back.potVal(back.val);
+        four=slider6;
+        four.val=four;
+        four.potVal(four.val);
+        five=slider1;
+        five.val=five;
+        five.potVal(five.val);
+         lmfg=slider3;
+         lmfg.val=lmfg;
+         lmfg.potVal(lmfg.val);
+         lmff=scFreq;
+         lmff.val=lmff;
+         lmff.potVal(lmff.val);
+         lmfq=slider9;
+         lmfq.val=lmfq;
+         lmfq.potVal(lmfq.val);
+         hmfg=slider10;
+         hmfg.val=hmfg;
+         hmfg.potVal(hmfg.val);
+       outg=slider11;
+       outg.val=outg;
+       outg.potVal(outg.val);
+initial = 1;
+);
+//gfx_line(0,400,800,400);
+//gfx_line(0,600,880,600);
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+
+  LED == 2 ? (
+  ledon = 2;
+  ledcount = 8;
+  );
+  
+  ledcount -= 1;
+  
+  ledcount < 1 ? (
+  ledcount = 0;
+  ledon=1;
+  );
+  
+  function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider, knopfscale)
+  (
+  gfx_x=kx; gfx_y=ky;
+  weg = abs(kmax - kmin);
+  //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+   kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+   scry = kbitmap * floor(kframe);
+   gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+  );
+  
+  
+  
+gfx_ext_flags == 1 ? (
+gfx_r = 0.1; gfx_g = 0.1; gfx_b = 0.1; gfx_a=1;
+gfx_rect(0,0,gfx_w, gfx_h);
+
+  scaleled = 0.4*(60/40);
+  gfx_x=2; gfx_y=gfx_h / 2 - (20*scaleled);
+  
+  gfx_blit(6,scaleled,0,0,40,40,40); 
+  LED > 0 ? (
+  ledon == 2 ? (
+  gfx_blit(7,0.4,0,0,64,64,64); 
+  ):(
+  gfx_blit(7,0.4,0,0,0,64,64); 
+  ll = 0;
+  );
+  ); 
+  
+  kscale = min(75, gfx_h-3)/75;
+  
+  knopf(4, 30, gfx_h / 2 - (kscale*32), 61, 75, -60, 0, slider2, kscale);
+  
+  
+  front.rectIn(30, gfx_h / 2 - (kscale*32), (kscale*75), (kscale*75));
+  front.rectOut(30, gfx_h / 2 - (kscale*32), (kscale*75), (kscale*75), 61, 4);
+  
+  /********************************* Mouse Control ******************************/
+  mouseClick == 1 ? 
+      (
+        front.collision()   ? front.dragStart();
+ ):
+  mouseClick == -1  ? 
+      (
+        front.dragStop();
+ );
+  
+  mouse_wheel ? 
+      (
+        front.collision()   ? front.potWheel():
+ mouse_wheel=0;
+      );
+  
+  
+  front.dragging  ? front.potDrag();
+
+  front!=front.val?
+      (
+        front=front.val;
+       slider2=front;
+        pot.potVal(front.val);
+       ):
+  front!=slider2?
+      (
+        front=slider2;
+        front.val=front;
+        front.potVal(front.val);
+        front.valOld=front;
+      );
+      
+  // slider2 -60 -> 0
+):( //ext flags
+gfx_w = 535;
+gfx_h=257;
+
+gfx_x=1; gfx_y=1;
+gfx_blit(0,1,0);
+
+  gfx_x=130; gfx_y=100;
+  scaleled = 0.7*(60/40);
+  gfx_blit(6,scaleled,0,0,40,40,40); 
+  LED > 0 ? (
+  ledon == 2 ? (
+  gfx_blit(7,0.7,0,0,64,64,64); 
+  ):(
+  gfx_blit(7,0.7,0,0,0,64,64); 
+  ll = 0;
+  );
+  ); 
+  
+//slider6:-.1<-6,0,.01
+front.knob();
+center.knob();
+back.knob();
+four.knob();
+five.knob();
+lmff.knob();
+lmfg.knob();
+lmfq.knob();
+hmfg.knob();
+outg.knob(); 
+
+knobsx = 45;
+knobsy = 410;
+//gfx_line(lffon + 20,355,lffon + 54,389);
+knobsx = 50;
+knobsy = 50;
+
+front.rectIn(knobsx, knobsy, 75, 75);
+front.rectOut(knobsx, knobsy, 75, 75, 61, 4);
+
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+      front.collision()   ? front.dragStart();
+      center.collision()  ?  center.dragStart();  
+      back.collision()    ? back.dragStart(); 
+      four.collision()    ? four.dragStart(); 
+      five.collision()    ? five.pottoggle();
+      lmfg.collision()    ? lmfg.dragStart();
+      lmff.collision()    ? lmff.dragStart();
+      lmfq.collision()    ? lmfq.pottoggle();
+      hmfg.collision()    ? hmfg.pottoggle();
+      outg.collision()    ? outg.dragStart();
+    ):
+mouseClick == -1  ? 
+    (
+      front.dragStop();
+      center.dragStop();
+      back.dragStop();
+      four.dragStop();
+  //    five.dragStop();
+      lmfg.dragStop();
+      lmff.dragStop();
+   //   lmfq.dragStop();
+   //   hmfg.dragStop();
+      outg.dragStop();
+ );
+
+mouse_wheel ? 
+    (
+      front.collision()   ? front.potWheel():
+      center.collision()  ? center.potWheel():
+      back.collision()    ? back.potWheel():
+      four.collision()    ? four.potWheel():
+//      five.collision()    ? five.potWheel():
+      lmfg.collision()    ? lmfg.potWheel():
+      lmff.collision()    ? lmff.potWheel():
+//      lmfq.collision()    ? lmfq.potWheel():
+//      hmfg.collision()    ? hmfg.potWheel():
+      outg.collision()    ? outg.potWheel():
+      mouse_wheel=0;
+    );
+
+
+front.dragging  ? front.potDrag();
+center.dragging ? center.potDrag();
+back.dragging   ? back.potDrag();
+four.dragging   ? four.potDrag();
+five.dragging   ? five.potDrag();
+lmfg.dragging   ? lmfg.potDrag();
+lmff.dragging   ? lmff.potDrag();
+lmfq.dragging   ? lmfq.potDrag();
+hmfg.dragging   ? hmfg.potDrag();
+outg.dragging   ? outg.potDrag();
+//******************************* Slider Knob Control *************************
+  front!=front.val?
+      (
+        front=front.val;
+       slider2=front;
+        pot.potVal(front.val);
+       ):
+  front!=slider2?
+      (
+        front=slider2;
+        front.val=front;
+        front.potVal(front.val);
+        front.valOld=front;
+      );
+    
+  center!=center.val?
+      (
+        center=center.val;
+        slider4=center;
+        pot.potVal(center.val);
+       ):
+  center!=slider4?
+      (
+        center=slider4;
+        center.val=center;
+        center.potVal(center.val);
+        center.valOld=center;
+      );  
+    
+  back!=back.val?
+      (
+        back=back.val;
+        slider5=back;
+        pot.potVal(back.val);
+       ):
+  
+  back!=slider5?
+      (
+        back=slider5;
+        back.val=back;
+        back.potVal(back.val);
+        back.valOld=back;
+      );
+  
+  
+  four!=four.val?
+      (
+        four=four.val;
+        slider6=four;
+        pot.potVal(four.val);
+       ):
+  four!=slider6?
+      (
+        four=slider6;
+        four.val=four;
+        four.potVal(four.val);
+        four.valOld=four;
+      );
+      
+  five!=five.val?
+      (
+        five=five.val;
+        slider1=five;
+        pot.potVal(five.val);
+       ):
+  five!=slider1?
+      (
+        five=slider1;
+        five.val=five;
+        five.potVal(five.val);
+        five.valOld=five;
+      );
+      
+      
+   lmfg!=lmfg.val?
+       (
+         lmfg=lmfg.val;
+         slider3=lmfg;
+         pot.potVal(lmfg.val);
+        ):
+   lmfg!=slider3?
+       (
+         lmfg=slider3;
+         lmfg.val=lmfg;
+         lmfg.potVal(lmfg.val);
+         lmfg.valOld=lmfg;
+       );
+   
+   lmff!=lmff.val?
+       (
+         lmff=lmff.val;
+         slider8=lmff;
+         scFreq=lmff;
+         pot.potVal(lmff.val);
+        ):
+   lmff!=scFreq?
+       (
+         lmff=scFreq;
+         lmff.val=lmff;
+         lmff.potVal(lmff.val);
+         lmff.valOld=lmff;
+       );
+   
+   lmfq!=lmfq.val?
+       (
+         lmfq=lmfq.val;
+         slider9=lmfq;
+         routing=lmfq;
+         pot.potVal(lmfq.val);
+        ):
+   lmfq!=routing?
+       (
+         lmfq=routing;
+         lmfq.val=lmfq;
+         lmfq.potVal(lmfq.val);
+         lmfq.valOld=lmfq;
+       );   
+      
+      
+      
+     
+   hmfg!=hmfg.val?
+       (
+         hmfg=hmfg.val;
+         slider10=hmfg;
+         pot.potVal(hmfg.val);
+        ):
+   hmfg!=slider10?
+       (
+         hmfg=slider10;
+         hmfg.val=hmfg;
+         hmfg.potVal(hmfg.val);
+         hmfg.valOld=hmfg;
+       );
+ 
+ outg!=outg.val?
+     (
+       outg=outg.val;
+       slider11=outg;
+        pot.potVal(outg.val);
+      ):
+ outg!=slider11?
+     (
+       outg=slider11;
+       outg.val=outg;
+       outg.potVal(outg.val);
+       outg.valOld=outg;
+     );  
+ 
+ 
+ 
+ ); // EXT FLAGS
+ 
+ 
+ 
+ 
+// Just passing UI values into the configuration method
+
+gateL.gateSetup(gateAttack, gateRelease, gateThresh, gateRange, gateHyst);
+
+gateR.gateSetup(gateAttack, gateRelease, gateThresh, gateRange, gateHyst);
+
+
+
+// Calculates the amount of stereo-linked signal used in the key signal.
+
+lnkMix = linkAmount * 0.01;
+
+splMix = 1.0 - lnkMix;
+
+
+
+// Make the sidechain high-pass filters
+
+filterL.eqHP(scFreq, 1.5);
+
+filterR.eqHP(scFreq, 1.5);
+
+
+
+
+
+
+
+
+
+
+
+
+threshold = 10^(slider2/20);
+slider1 == 1 ?(
+transferding = slider3;
+):(
+transferding = 0;
+);
+
+transfer_A = (1/transferding)-1;
+transfer_B = output * pow(threshold,-transfer_A);
+
+attack = exp(-1/(slider5/1000*srate));
+release = exp(-1/(slider6/1000*srate));
+envelope_decay = exp(-1/(slider4/1000*srate));
+
+vol = 10^(slider11/20);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+
+
+// Just passing UI values into the configuration method
+
+gateL.gateSetup(gateAttack, gateRelease, gateThresh, gateRange, gateHyst);
+
+gateR.gateSetup(gateAttack, gateRelease, gateThresh, gateRange, gateHyst);
+
+
+
+// Calculates the amount of stereo-linked signal used in the key signal.
+
+lnkMix = linkAmount * 0.01;
+
+splMix = 1.0 - lnkMix;
+
+
+
+// Make the sidechain high-pass filters
+
+filterL.eqHP(scFreq, 1.5);
+
+filterR.eqHP(scFreq, 1.5);
+
+
+
+threshold = 10^(slider2/20);
+slider1 == 1 ?(
+transferding = slider3;
+):(
+transferding = 0;
+);
+
+transfer_A = (1/transferding)-1;
+transfer_B = output * pow(threshold,-transfer_A);
+
+attack = exp(-1/(slider5/1000*srate));
+release = exp(-1/(slider6/1000*srate));
+envelope_decay = exp(-1/(slider4/1000*srate));
+
+vol = 10^(slider11/20);
+
+  
+@block
+
+
+
+
+
+
+
+@sample
+/*
+operation=slider1;
+gateThresh=slider2;
+gateRange=slider3;
+gateHyst=slider4;
+gateAttack=slider5;
+gateRelease=slider6;
+linkAmount=slider7;
+scFreq=slider8;
+routing=slider9;
+*/
+Inverter = slider10; 
+
+rohL = spl0;
+rohR = spl1;
+
+slider9 == 0 ? (
+key0 = spl0;
+key1 = spl1;
+):(
+key0 = spl2;
+key1 = spl3;
+);
+
+inL = filterL.eqTick(key0);
+inR = filterR.eqTick(key1);
+
+det = max(abs(inL),abs(inR));
+det += 0.000000000001; 
+env = det >= env ? det : det+envelope_decay*(env-det);
+transfer_gain = env < threshold ? pow(env,transfer_A)*transfer_B:output;
+gain = transfer_gain > gain ? transfer_gain+attack*(gain-transfer_gain) : transfer_gain+release*(gain-transfer_gain);
+
+gain = max(gain,gate);
+
+LED=0;
+gain > 0.001 ? (LED=1);
+gain > 0.85 ? (LED=2);
+
+
+Inverter == 1 ? (
+spl0 = ((-1* rohL * gain)+rohL) * vol;
+spl1 = ((-1* rohR * gain)+rohR) * vol;
+):(
+spl0 = rohL * gain * vol;
+spl1 = rohR * gain * vol;
+);
+
+
+
+/// LIMITER ///////////////
+ovrlParam1=1.5; //ovrlthresh
+ovrlParam2=0.5; //output
+ovrlParam3=0.5+0*0.5; //ovrlattack
+ovrlParam4=0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+ovrlol = spl0;
+ovrlor = spl1;
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (ovrlol * ovrltr * ovrlg);
+spl1 = (ovrlor * ovrltr * ovrlg);
+
+ovrlgain = ovrlg;
+
+
+
+
+
+
+/*
+// Stereo int SC
+
+routing == 0 ?
+
+(
+
+// Store filtered sidechain samples
+
+
+
+
+
+
+keyL = filterL.eqTick(spl0);
+
+keyR = filterR.eqTick(spl1);
+
+
+
+// Link louder
+
+(lnkMix > 0) ?
+
+(
+
+// If stereo-linked, pick louder channel
+
+linked = max(keyL, keyR) * lnkMix;
+
+
+
+keyL *= splMix;
+
+keyR *= splMix;
+
+
+
+keyL += linked;
+
+keyR += linked;
+
+);
+
+
+
+// Run the gate calculations on whatever mixture
+
+// of the two input channels is left in the keys.
+
+
+);
+
+
+
+// Stereo ext SC
+
+(routing == 1) ? 
+
+(
+
+// Store filtered sidechain samples
+keyL = filterL.eqTick(spl2);
+keyR = filterR.eqTick(spl3);
+
+
+// Link louder
+
+lnkMix > 0 ?
+
+(
+
+// If stereo-linked, pick louder channel
+
+linked = max(keyL, keyR) * lnkMix;
+
+
+
+keyL *= splMix;
+
+keyR *= splMix;
+
+
+
+keyL += linked;
+
+keyR += linked;
+
+);
+
+
+
+// Run the gate calculations on whatever mixture
+
+// of the two input channels is left in the keys.
+
+);
+
+Inverter == 1 ? (
+spl0 = (-1*spl0* gateL.tickGate(keyL))+spl0;
+spl1 = (-1*spl1* gateR.tickGate(keyR))+spl1;
+):(
+spl0 *= gateL.tickGate(keyL);
+spl1 *= gateR.tickGate(keyR);
+);
+
+
+// Mono L
+
+routing == 2 ?
+
+(
+
+// Process L channel and pass its result 
+
+// through to R channel
+
+spl1 = spl0 *= gateL.tickGate(filterL.eqTick(spl0));
+
+);
+
+
+
+// Mono R
+
+routing == 3 ? 
+
+(
+
+// Process R channel and pass its result 
+
+// through to L channel 
+
+spl0 = spl1 *= gateR.tickGate(filterR.eqTick(spl1));
+
+);
+
+
+
+// Mono L <- R
+
+routing == 4 ?
+
+(
+
+// Process L channel using R channel as key.
+
+// Duplicate result into channel R.
+
+spl1 = spl0 *= gateL.tickGate(filterL.eqTick(spl1));
+
+);
+
+
+
+// Mono L -> R
+
+routing == 5 ? 
+
+(
+
+// Process R channel using R channel as key.
+
+// Duplicate result into channel L.
+
+spl0 = spl1 *= gateR.tickGate(filterR.eqTick(spl0));
+
+);
+
+
+

@@ -1,0 +1,6472 @@
+desc:EQ1.1 (Tukan)
+
+/*
+ReEQ - A parametric graphic equalizer
+Version: TUKAN v1.1.2   <--- Make sure you change VERSION below if this changes!!
+
+The MIT License (MIT)
+
+Copyright (c) 2020 Justin Johnson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+DONE:
+
+TODO:
+ 
+*/
+filename:0,EQgui/EQBACK2.png
+filename:1,EQgui/VUMeter.png
+filename:2,EQgui/APIBig.png
+filename:3,EQgui/APISmall.png
+filename:4,EQgui/APIRED.png
+filename:5,EQgui/on.png
+filename:6,EQgui/off.png
+filename:7,EQgui/switch.png
+filename:8,EQgui/EQBACK2eco.png
+
+
+slider1:Stereo_Mode=<0,1,1{Mid/Side,Left/Right}>-Stereo Mode
+slider2:Quality=1<0,1,1{Eco,HQ}>Quality
+slider3:Gain=0<-16,16,0.01>-Gain
+slider4:MLGain=0<-136,30,0.01>-Mid/Left Gain
+slider5:SRGain=0<-136,30,0.01>-Side/Right Gain
+slider6:Scale=100<0,200,0.01>-Scale
+
+slider7:Spectrum_Mode=6<0,6,1{Full,Mid,Side,Mid / Side,Left,Right,Left / Right}>-Spectrum
+slider8:Display_Mode=0<0,2,1{Fill,Line,None}>-Display
+slider9:Ceiling_Value=0<0,2,1{0dB,20dB,40dB}>-Ceiling
+slider10:Floor_Value=0<0,2,1{-90dB,-140dB,-200dB}>-Floor
+slider11:Tilt_Value=3<0,5,1{0dB/oct,1.5dB/oct,3dB/oct,4.5dB/oct,6dB/oct}>-Tilt
+slider12:Type_Value=1<0,3,1{Hamming,Blackman-Harris,Blackman,Rectangular}>-Type
+slider13:Block_Value=2<0,3,1{2048,4096,8192,16384}>-Block Size
+slider14:Show_Piano=0<0,1,1{Off,On}>-Show Piano
+slider15:Show_Peaks=0<0,1,1{Off,On}>-Show Peaks
+slider16:Show_PreEQ=0<0,1,1{Off,On}>-Show Pre-EQ
+slider17:Db_Range=2<0,4,1{6dB,12dB,18dB,24dB,30dB}>-dB Range
+
+slider18:Node1_Enabled=1<0,2,1{Off,Disabled,Enabled}>-Filter1 Mode
+slider19:Node1_Group=0<0,2,1{Stereo,Mid,Side,Left,Right}>-Filter1 Group
+slider20:Node1_Type=1<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>-Filter1 Type
+slider21:Node1_Frequency=3<0,100,0.01>-Filter1 HPF Frequency
+slider22:Node1_Gain=8.0<-18.0,18.0,0.01>-Filter1 Gain
+slider23:Node1_Q=32.647<0,100.0,0.01>-Filter1 Q
+slider24:Node1_Slope=1<0,15,1>-Filter1 Slope
+
+slider25:Node2_Enabled=2<0,2,1{Off,Disabled,Enabled}>-Filter2 Mode
+slider26:Node2_Group=0<0,2,1{Stereo,Mid,Side,Left,Right}>-Filter2 Group
+slider27:Node2_Type=3<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>-Filter2 Type
+slider28:Node2_Frequency=25<0,100,0.01>-Filter2 Frequency
+slider29:Node2_Gain=0.0<-18.0,18.0,0.01>-Filter2 Gain
+slider30:Node2_Q=27<0,100.0,0.01>-Filter2 Q
+slider31:Node2_Slope=0<0,15,1>-Filter2 Slope
+
+slider32:Node3_Enabled=2<0,2,1{Off,Disabled,Enabled}>-Filter3 Mode
+slider33:Node3_Group=0<0,2,1{Stereo,Mid,Side,Left,Right}>-Filter3 Group
+slider34:Node3_Type=0<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>-Filter3 Type
+slider35:Node3_Frequency=40<0,100,0.01>-Filter3 Frequency
+slider36:Node3_Gain=0.0<-18.0,18.0,0.01>-Filter3 Gain
+slider37:Node3_Q=32.647<0,100.0,0.01>-Filter3 Q
+slider38:Node3_Slope=0<0,15,1>-Filter3 Slope
+
+slider39:Node4_Enabled=2<0,2,1{Off,Disabled,Enabled}>-Filter4 Mode
+slider40:Node4_Group=0<0,2,1{Stereo,Mid,Side,Left,Right}>-Filter4 Group
+slider41:Node4_Type=0<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>-Filter4 Type
+slider42:Node4_Frequency=70<0,100,0.01>-Filter4 Frequency
+slider43:Node4_Gain=0.0<-18.0,18.0,0.01>-Filter4 Gain
+slider44:Node4_Q=40<0,100.0,0.01>-Filter4 Q
+slider45:Node4_Slope=0<0,15,1>-Filter4 Slope
+
+slider46:Node5_Enabled=2<0,2,1{Off,Disabled,Enabled}>-Filter5 Mode
+slider47:Node5_Group=0<0,2,1{Stereo,Mid,Side,Left,Right}>-Filter5 Group
+slider48:Node5_Type=4<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>-Filter5 Type
+slider49:Node5_Frequency=85<0,100,0.01>-Filter5 Frequency
+slider50:Node5_Gain=0.0<-18.0,18.0,0.01>-Filter5 Gain
+slider51:Node5_Q=27<0,100.0,0.01>-Filter5 Q
+slider52:Node5_Slope=0<0,15,1>-Filter5 Slope
+
+slider53:MidPolarity=0<0,1,1>-Mid Polarity
+slider54:SidePolarity=0<0,1,1>-Side Polarity
+slider55:LimitOutput=0<0,1,1>-Limit Output
+slider56:AGCEnabled=0<0,1,1>-AGC Enabled
+slider57:PanelEnabled=0<0,1,1>-Panel Enabled
+
+import spectrum.jsfx-inc
+import svf_filter.jsfx-inc
+import firhalfband.jsfx-inc
+import textinput.jsfx-inc
+
+in_pin:left input
+in_pin:right input
+in_pin:sc input left
+in_pin:sc input right
+out_pin:left output
+out_pin:right output
+
+//options:no_meter
+
+@init
+
+// This should be the same as in the comment header
+#VERSION = "1.0.13";
+
+xgfx_ext_retina  = 1;
+ext_nodenorm    = 1;
+ext_noinit = 1;
+last_xgfx_ext_retina = -1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+Node1_Enabled=1;
+Node2_Enabled=2;
+Node3_Enabled=2;
+Node4_Enabled=2;
+Node5_Enabled=2;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+##################### MEINE INIT ###################################
+*/
+
+ovrlgain = 1;
+
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+Spectrum_Mode = 6; 
+
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+
+front.potcfg  (0,0,0,0);
+center.potcfg (3,0,60,.06);
+back.potcfg   (10,0,80,0.08);
+four.potcfg (30,0,60,.06); //10Hz-1khz
+five.potcfg (0,-16,16,0.032);
+six.potcfg (32.647,18,40,.02);
+bell.potcfg(1,0,1,1);
+
+lmfg.potcfg (0,-16,16,0.032);
+lmff.potcfg (40,9,94.84,.02);//20HZ - 15kHz
+lmfq.potcfg (32.647,0,80,.02);
+
+
+hmfg.potcfg (0,-16,16,0.032);
+hmff.potcfg (70,9,94.84,.02);
+hmfq.potcfg (32.647,0,80,.02);
+
+hshlvg.potcfg (0,-16,16,0.032);
+hshlvf.potcfg (70,60,100,.02); //1khz
+
+
+
+outg.potcfg (0,-16,16,.032);
+
+
+knobsx = 30;
+knobsy = 410;
+
+front.rectIn(knobsx, knobsy, 220, 120);
+front.rectOut(knobsx, knobsy, 220, 120, 60, 0);
+
+center.rectIn(knobsx, knobsy, 75, 75);
+center.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+hpfon=knobsx;
+
+//knobsx += 12;
+back.rectIn(knobsx+7, knobsy+105, 60, 60); 
+//knobsx += 12;
+back.rectOut(knobsx+7, knobsy+105, 60, 60, 61, 3);
+
+knobsx += 160;
+four.rectIn(knobsx+7-40, knobsy+105, 60, 60); 
+four.rectOut(knobsx+7-40, knobsy+105, 60, 60, 61, 3);
+bell.rectIn(knobsx-50, knobsy-50, 48, 60); 
+bell.rectOut(knobsx-50, knobsy-50, 48, 60, 2, 7);
+
+five.rectIn(knobsx, knobsy, 75, 75); 
+five.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+six.rectIn(knobsx+7+55, knobsy+105, 60, 60); 
+six.rectOut(knobsx+7+55, knobsy+105, 60, 60, 61, 3);
+lffon = knobsx;
+
+knobsx += 200;
+lmff.rectIn(knobsx-40, knobsy+105, 60, 60); 
+lmff.rectOut(knobsx-40, knobsy+105, 60, 60, 61, 3);
+lmfg.rectIn(knobsx, knobsy, 75, 75); 
+lmfg.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+lmfq.rectIn(knobsx+7+55, knobsy+105, 60, 60); 
+lmfq.rectOut(knobsx+7+55, knobsy+105, 60, 60, 61, 3);
+lmfon = knobsx;
+
+knobsx += 200;
+hmff.rectIn(knobsx-40, knobsy+105, 60, 60); 
+hmff.rectOut(knobsx-40, knobsy+105, 60, 60, 61, 3);
+hmfg.rectIn(knobsx, knobsy, 75, 75); 
+hmfg.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+hmfq.rectIn(knobsx+7+55, knobsy+105, 60, 60); 
+hmfq.rectOut(knobsx+7+55, knobsy+105, 60, 60, 61, 3);
+hmfon = knobsx;
+
+knobsx += 150;
+hshlvf.rectIn(knobsx+7, knobsy+105, 60, 60); 
+hshlvf.rectOut(knobsx+7, knobsy+105, 60, 60, 61, 3);
+hshlvg.rectIn(knobsx, knobsy, 75, 75); 
+hshlvg.rectOut(knobsx, knobsy, 75, 75, 61, 2);
+hshlvon = knobsx;
+
+knobsx += 118;
+knobsy += 60;
+outg.rectIn(knobsx, knobsy, 75, 75); 
+outg.rectOut(knobsx, knobsy, 75, 75, 61, 4);
+outon = knobsx;
+
+front.potVal(front.val); 
+center.potVal(center.val);
+back.potVal(back.val);
+four.potval(four.val);
+five.potval(five.val);
+six.potval(six.val);
+lmfg.potval(lmfg.val);
+lmff.potval(lmff.val);
+lmfq.potval(lmfq.val);
+hmfg.potval(hmfg.val);
+hmff.potval(hmff.val);
+hmfq.potval(hmfq.val);
+hshlvf.potval(hshlvf.val);
+hshlvg.potval(hshlvg.val);
+outg.potval(outg.val);
+bell.potval(bell.val);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Initialise memory allocator
+ */
+function init_memory() instance(index) ( 
+  index = 0;
+);
+
+/*
+ * Allocate memory
+ */
+function alloc_memory(amount) instance(index) local(i) ( 
+  i = index;
+  index += amount;
+  i;
+);
+
+/*
+ * Round number up or down
+ */
+function round(in) (
+  floor(in + 0.5 * sign(in));
+);
+
+/*
+ * Standard log2
+ */
+function log2(x) ( 
+  log(x) / log(2);
+);
+
+/*
+ * Return string of integer
+ */
+function int2str(intIn) local (outStr) (
+  strcpy(outStr=#,"");
+  sprintf(outStr,"%d",intIn);
+  outStr;
+);
+
+/*
+ * Get note from frequency
+ */
+function freq2note(f) (
+  round(12*(log(f/440)/log(2))+69);
+);
+
+/*
+ * Get gain (for filters) from dB
+ */
+function db_to_gain(db) ( 
+    10^(db / 40);
+);
+
+function RMS_init(buffer_index, buffer_size)
+    instance(rms_sum, rms_buffer, rms_bufIdx, rms_prev_val, rms_max_count)
+( 
+    rms_sum = 0;
+    rms_buffer = buffer_index;
+    rms_bufIdx = 0;
+    rms_prev_val = 0;
+    rms_max_count = buffer_size;
+    memset(rms_buffer , 0, rms_max_count);
+);
+
+function RMS_reset()
+    instance(rms_sum, rms_buffer, rms_bufIdx, rms_prev_val, rms_max_count)
+( 
+    rms_sum = 0;
+    rms_bufIdx = 0;
+    rms_prev_val = 0;
+    memset(rms_buffer , 0, rms_max_count);
+);
+
+function RMS_process(s0, s1)
+    instance(rms_sum, rms_buffer, rms_bufIdx, rms_prev_val, rms_max_count)
+    local(rms_ampL, rms_ampR, rms_amp)
+( 
+    rms_ampL = abs(s0);
+    rms_ampR = abs(s1);
+
+    // Epsilon clamp required
+    rms_ampL < 0.0000001 ? rms_ampL = 0.0000001;
+    rms_ampR < 0.0000001 ? rms_ampR = 0.0000001;
+
+    rms_amp = (rms_ampL * rms_ampL + rms_ampR * rms_ampR) * 0.5;
+
+    rms_sum += rms_amp;
+    rms_prev_val = rms_buffer[rms_bufIdx];
+    rms_buffer[rms_bufIdx] = rms_amp;
+
+    rms_bufIdx += 1;
+
+    rms_bufIdx == rms_max_count ? (
+        rms_bufIdx = 0;
+    );
+
+    rms_sum  -= rms_prev_val;
+    rms_sum < 0 ? rms_sum = 0.0;
+);
+
+function RMS_getDB()
+    instance(rms_sum, rms_max_count)
+    local(rms_delta, rms_db)
+( 
+    rms_delta = rms_sum / rms_max_count;
+    rms_db = 20 * log10(sqrt(rms_delta));
+    rms_db;
+);
+
+/*
+ * Color object
+ */
+function create_color(r, g, b)
+  instance(red, green, blue) (
+  red = r / 255;
+  green = g / 255;
+  blue = b / 255;
+);
+
+/*
+ * Set oversampling rate including PDC
+ */
+function set_oversample(os) (
+  // We'll only switch to oversampling if the sample rate
+  // is low enough to benefit.
+  srate < 88200 && os ? (
+    DO_OVERSAMPLE = 1;
+    SAMPLE_RATE = srate * 2;
+
+    // Choose right FIR window for sample rate
+    srate == 44100 ? (
+      firL.init_FIR_filter_44100();
+      firR.init_FIR_filter_44100();
+    ) : srate == 48000 ? ( 
+      firL.init_FIR_filter_48000();
+      firR.init_FIR_filter_48000();
+    );
+
+    pdc_delay = get_FIR_pdc();
+    pdc_bot_ch = 0;
+    pdc_top_ch = 2; 
+  ) : ( 
+    DO_OVERSAMPLE = 0;
+    SAMPLE_RATE = srate;
+    pdc_delay = 0;
+    pdc_bot_ch = 0;
+    pdc_top_ch = 2;
+  );
+);
+
+/*
+ * Update the state of any changes
+ */
+function update_state() local (blocks, fade, fill_r, fill_g, fill_b, fill_a, line_r, line_g, line_b, line_a) (
+  spectrum.ceiling = Ceiling_Value == 0 ? 0 : Ceiling_Value == 1 ? 20 : Ceiling_Value == 2 ? 40;
+  spectrum.noise_floor = Floor_Value == 0 ? -90 : Floor_Value == 1 ? -140 : Floor_Value == 2 ? -200;
+  spectrum.noise_floor = Floor_Value == 0 ? -90 : Floor_Value == 1 ? -140 : Floor_Value == 2 ? -200;
+  spectrum.tilt = Tilt_Value == 0 ? 0 : Tilt_Value == 1 ? 1.5 : Tilt_Value == 2 ? 3 : Tilt_Value == 3 ? 4.5 :
+                  Tilt_Value == 4 ? 6;
+
+  spectrum.windowtype != Type_Value+1 ? spectrum.set_type(Type_Value+1);
+
+  blocks = (2 ^ (Block_Value+1)) * 1024;
+
+  spectrum.windowsize != blocks ? spectrum.set_block_size(blocks);
+
+  fade = do_listen ? 0.5 : 1.0;
+
+  // Listen spectrum colours
+  listline_r = (240 / 255) * 0.80;
+  listline_g = (101 / 255) * 0.80;
+  listline_b = (76 / 255) * 0.80;
+
+  Display_Mode == 0 ? (
+    fill_r = 46 / 255;
+    fill_g = 71 / 255;
+    fill_b = 83 / 255;
+    fill_a = 1.0;
+    spectrum.set_fill(0, 1);
+    spectrum.set_color(0, fill_r*fade, fill_g*fade, fill_b*fade, fill_a);
+
+    spectrum.set_fill(2, 0);
+    spectrum.set_color(2, 0.5, 0.5, 0.5, 1);
+
+    fill_r = 96 / 255;
+    fill_g = 223 / 255;
+    fill_b = 255 / 255;
+    fill_a = 0.5;
+    spectrum.set_fill(1, 1); 
+    spectrum.set_color(1, fill_r*fade, fill_g*fade, fill_b*fade, fill_a);
+
+    spectrum.set_fill(3, 0);
+    spectrum.set_color(3, 0.5, 0.5, 0.5, 1);
+
+    spectrum.set_fill(4, 0);
+    spectrum.set_color(4, listline_r, listline_g, listline_b, 1);
+
+    spectrum.set_fill(5, 0);
+    spectrum.set_color(5, listline_r*0.80, listline_g*0.80, listline_b*0.80, 1);
+
+  ) : Display_Mode == 1 ? (
+    line_a=1.0;
+    //line_r = 114 / 255; line_g = 215 / 255; line_b = 253 / 255;;
+    line_r = 46 / 255; line_g = 71 / 255; line_b = 83 / 255;
+    spectrum.set_fill(0, 0);
+    spectrum.set_color(0, line_r*fade, line_g*fade, line_b*fade, line_a);
+    
+    spectrum.set_fill(2, 0);
+    spectrum.set_color(2, 0.5, 0.5, 0.5, 1);
+
+    line_r = 253 / 255; line_g = 185 / 255; line_b = 21 / 255;;
+    line_r = 0 / 100; line_g = 200 / 255; line_b = 255 / 255;
+    spectrum.set_fill(1, 0);
+    spectrum.set_color(1, line_r*fade, line_g*fade, line_b*fade, line_a);
+
+    spectrum.set_fill(3, 0);
+    spectrum.set_color(3, 0.5, 0.5, 0.5, 1);
+
+    spectrum.set_fill(4, 0);
+    spectrum.set_color(4, listline_r, listline_g, listline_b, 1);
+
+    spectrum.set_fill(5, 0);
+    spectrum.set_color(5, listline_r*0.80, listline_g*0.80, listline_b*0.80, 1);
+  );
+
+  Db_Range == 0 ? (DB_EQ_RANGE = 6; DB_EQ_RANGE_STEPS = 1;) : 
+    Db_Range == 1 ? (DB_EQ_RANGE = 12; DB_EQ_RANGE_STEPS = 3;) :
+      Db_Range == 2 ? (DB_EQ_RANGE = 18; DB_EQ_RANGE_STEPS = 6;) :
+        Db_Range == 3 ? (DB_EQ_RANGE = 24; DB_EQ_RANGE_STEPS = 8;) :
+          Db_Range == 4 ? (DB_EQ_RANGE = 30; DB_EQ_RANGE_STEPS = 10;);
+
+  // spectrum.reset_buffers();
+);
+
+/*
+ * Notify Reaper that frequency has been touched
+ */
+function notify_touched_frequency(node) (
+  // Notify Reaper that a parameter change has happened
+  node == 0 ? slider_automate(Node1_Frequency) :
+    node == 1 ? slider_automate(Node2_Frequency) :
+      node == 2 ? slider_automate(Node3_Frequency) :
+        node == 3 ? slider_automate(Node4_Frequency) :
+          node == 4 ? slider_automate(Node5_Frequency);
+);
+
+/*
+ * Notify Reaper that gain has been touched
+ */
+function notify_touched_gain(node) (
+  // Notify Reaper that a parameter change has happened
+  node == 0 ? slider_automate(Node1_Gain) :
+    node == 1 ? slider_automate(Node2_Gain) :
+      node == 2 ? slider_automate(Node3_Gain) :
+        node == 3 ? slider_automate(Node4_Gain) :
+          node == 4 ? slider_automate(Node5_Gain);
+);
+
+/*
+ * Notify Reaper that Q has been touched
+ */
+function notify_touched_Q(node) (
+  // Notify Reaper that a parameter change has happened
+  node == 0 ? slider_automate(Node1_Q) :
+    node == 1 ? slider_automate(Node2_Q) :
+      node == 2 ? slider_automate(Node3_Q) :
+        node == 3 ? slider_automate(Node4_Q) :
+          node == 4 ? slider_automate(Node5_Q);
+);
+
+function band_init()
+  instance (enabled, type, frequency, gain, q, filter, color) ( 
+  filter.zdf_set_sample_rate(SAMPLE_RATE);
+  filter.zdf_bypass();
+  color.create_color(0,0,0);
+
+  filter.a1 = filter.t_a1;
+  filter.a2 = filter.t_a2;
+  filter.a3 = filter.t_a3;
+
+  filter.m0 = filter.t_m0;
+  filter.m1 = filter.t_m1;
+  filter.m2 = filter.t_m2;
+  filter.iter_t = 1.0;
+);
+
+/*
+ * Set enabled state for a band
+ */
+function band_set_enabled(e)
+  instance (enabled, type, frequency, gain, q, filter, color) ( 
+  enabled = e;
+);
+
+/*
+ * Set the filter
+ */
+function band_set_filter(t, f, g, qval, slope)
+  instance (enabled, type, frequency, gain, q, filter, color) (
+  type = t; frequency = f; gain = g; q = qval;
+  type == 0 ? filter.zdf_eq(frequency, q, db_to_gain(gain)) :
+    type == 1 ? filter.zdf_hp(frequency, q, slope) :
+      type == 2 ? filter.zdf_hpb(frequency, slope) :
+        type == 3 ? filter.zdf_ls(frequency, q, db_to_gain(gain)) :
+          type == 4 ? filter.zdf_hs(frequency, q, db_to_gain(gain)) :
+            type == 5 ? filter.zdf_lp(frequency, q, slope) :
+              type == 6 ? filter.zdf_lpb(frequency, slope) :
+                type == 7 ? filter.zdf_bs(frequency, q) :
+                  type == 8 ? filter.zdf_bp2(frequency, q) :
+                    type == 9 ? filter.zdf_st(frequency, q, gain) :
+                      type == 10 ? filter.zdf_pultecls(frequency, q, gain) :
+                        type == 11 ? filter.zdf_ap(frequency, q) :
+                          type == 12 ? filter.zdf_analog_lowcut(frequency, q, gain) :
+                            type == 13 ? filter.zdf_analog_highcut(frequency, q, gain);
+);
+
+/*
+ * Convert slider % to frequency
+ */
+function per_to_freq(x, range) (
+  MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+);
+
+/*
+ * Convert frequency to slider %
+ */
+function freq_to_per(freq, range) (
+  range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+);
+
+
+function per_to_q(x, range) (
+  MIN_Q * exp(Q_LOG_MAX * x / range);
+);
+
+/*
+ * Convert frequency to slider %
+ */
+function q_to_per(q, range) (
+  range * log(q / MIN_Q) / Q_LOG_MAX;
+);
+
+
+
+/*
+ * Update sliders with filter data
+ */
+function filters_to_sliders() ( 
+  Node1_Enabled = Band_Enabled[0];
+  Node1_Group = Band_Group[0];
+  Node1_Type = Band_Type[0];
+  Node1_Frequency = freq_to_per(Band_Frequency[0], 100);
+  Node1_Gain = Band_Gain[0];
+  Node1_Q = q_to_per(Band_Q[0], 100);
+  Node1_Slope = Band_Slope[0];
+
+  Node2_Enabled = Band_Enabled[1];
+  Node2_Group = Band_Group[1];
+  Node2_Type = Band_Type[1];
+  Node2_Frequency = freq_to_per(Band_Frequency[1], 100);
+  Node2_Gain = Band_Gain[1];
+  Node2_Q = q_to_per(Band_Q[1], 100);
+  Node2_Slope = Band_Slope[1];
+
+  Node3_Enabled = Band_Enabled[2];
+  Node3_Group = Band_Group[2];
+  Node3_Type = Band_Type[2];
+  Node3_Frequency = freq_to_per(Band_Frequency[2], 100);
+  Node3_Gain = Band_Gain[2];
+  Node3_Q = q_to_per(Band_Q[2], 100);
+  Node3_Slope = Band_Slope[2];
+
+  Node4_Enabled = Band_Enabled[3];
+  Node4_Group = Band_Group[3];
+  Node4_Type = Band_Type[3];
+  Node4_Frequency = freq_to_per(Band_Frequency[3], 100);
+  Node4_Gain = Band_Gain[3];
+  Node4_Q = q_to_per(Band_Q[3], 100);
+  Node4_Slope = Band_Slope[3];
+
+  Node5_Enabled = Band_Enabled[4];
+  Node5_Group = Band_Group[4];
+  Node5_Type = Band_Type[4];
+  Node5_Frequency = freq_to_per(Band_Frequency[4], 100);
+  Node5_Gain = Band_Gain[4];
+  Node5_Q = q_to_per(Band_Q[4], 100);
+  Node5_Slope = Band_Slope[4];
+);
+
+/*
+ * Update filter data with sliders
+ */
+function sliders_to_filters() ( 
+  Band_Enabled[0] = Node1_Enabled;
+  Band_Group[0] = Node1_Group;
+  Band_Type[0] = Node1_Type;
+  Band_Frequency[0] = per_to_freq(Node1_Frequency, 100);
+  Band_Gain[0] = Node1_Gain;
+  Band_Q[0] = per_to_q(Node1_Q, 100);
+  Band_Slope[0] = Node1_Slope;
+
+  Band_Enabled[1] = Node2_Enabled;
+  Band_Group[1] = Node2_Group;
+  Band_Type[1] = Node2_Type;
+  Band_Frequency[1] = per_to_freq(Node2_Frequency, 100);
+  Band_Gain[1] = Node2_Gain;
+  Band_Q[1] = per_to_q(Node2_Q, 100);
+  Band_Slope[1] = Node2_Slope;
+
+  Band_Enabled[2] = Node3_Enabled;
+  Band_Group[2] = Node3_Group;
+  Band_Type[2] = Node3_Type;
+  Band_Frequency[2] = per_to_freq(Node3_Frequency, 100);;
+  Band_Gain[2] = Node3_Gain;
+  Band_Q[2] = per_to_q(Node3_Q, 100);
+  Band_Slope[2] = Node3_Slope;
+
+  Band_Enabled[3] = Node4_Enabled;
+  Band_Group[3] = Node4_Group;
+  Band_Type[3] = Node4_Type;
+  Band_Frequency[3] = per_to_freq(Node4_Frequency, 100);;
+  Band_Gain[3] = Node4_Gain;
+  Band_Q[3] = per_to_q(Node4_Q, 100);
+  Band_Slope[3] = Node4_Slope;
+
+  Band_Enabled[4] = Node5_Enabled;
+  Band_Group[4] = Node5_Group;
+  Band_Type[4] = Node5_Type;
+  Band_Frequency[4] = per_to_freq(Node5_Frequency, 100);;
+  Band_Gain[4] = Node5_Gain;
+  Band_Q[4] = per_to_q(Node5_Q, 100);
+  Band_Slope[4] = Node5_Slope;
+);
+
+/*
+ * Flag filter to update for both audio and graphics
+ */
+function flag_filter_update(band) ( 
+  Band_Update[band] = 1;
+  Band_GfxUpdate[band] = 1;
+ );
+
+function flag_filter_update_all() ( 
+  Band_Update[0] = 1; Band_GfxUpdate[0] = 1;
+  Band_Update[1] = 1; Band_GfxUpdate[1] = 1;
+  Band_Update[2] = 1; Band_GfxUpdate[2] = 1;
+  Band_Update[3] = 1; Band_GfxUpdate[3] = 1;
+  Band_Update[4] = 1; Band_GfxUpdate[4] = 1;
+  Band_Update[5] = 1; Band_GfxUpdate[5] = 1;
+  Band_Update[6] = 1; Band_GfxUpdate[6] = 1;
+  Band_Update[7] = 1; Band_GfxUpdate[7] = 1;
+  Band_Update[8] = 1; Band_GfxUpdate[8] = 1;
+  Band_Update[9] = 1; Band_GfxUpdate[9] = 1;
+  Band_Update[10] = 1; Band_GfxUpdate[10] = 1;
+  Band_Update[11] = 1; Band_GfxUpdate[11] = 1;
+  Band_Update[12] = 1; Band_GfxUpdate[12] = 1;
+  Band_Update[13] = 1; Band_GfxUpdate[13] = 1;
+  Band_Update[14] = 1; Band_GfxUpdate[14] = 1;
+  Band_Update[15] = 1; Band_GfxUpdate[15] = 1;
+ );
+
+/*
+ * Update the filter parameters
+ */
+function update_visual_filters() local (band_scalar) (
+  band_scalar = Scale / 100.0;
+
+  Band_GfxUpdate[0] ? (Band_GfxUpdate[0] = 0; gfx_band1.band_set_filter(Band_Type[0], Band_Frequency[0], Band_Gain[0] * band_scalar, Band_Q[0], Band_Slope[0]); );
+  Band_GfxUpdate[1] ? (Band_GfxUpdate[1] = 0; gfx_band2.band_set_filter(Band_Type[1], Band_Frequency[1], Band_Gain[1] * band_scalar, Band_Q[1], Band_Slope[1]); );
+  Band_GfxUpdate[2] ? (Band_GfxUpdate[2] = 0; gfx_band3.band_set_filter(Band_Type[2], Band_Frequency[2], Band_Gain[2] * band_scalar, Band_Q[2], Band_Slope[2]); );
+  Band_GfxUpdate[3] ? (Band_GfxUpdate[3] = 0; gfx_band4.band_set_filter(Band_Type[3], Band_Frequency[3], Band_Gain[3] * band_scalar, Band_Q[3], Band_Slope[3]); );
+  Band_GfxUpdate[4] ? (Band_GfxUpdate[4] = 0; gfx_band5.band_set_filter(Band_Type[4], Band_Frequency[4], Band_Gain[4] * band_scalar, Band_Q[4], Band_Slope[4]); );
+  Band_GfxUpdate[5] ? (Band_GfxUpdate[5] = 0; gfx_band6.band_set_filter(Band_Type[5], Band_Frequency[5], Band_Gain[5] * band_scalar, Band_Q[5], Band_Slope[5]); );
+  Band_GfxUpdate[6] ? (Band_GfxUpdate[6] = 0; gfx_band7.band_set_filter(Band_Type[6], Band_Frequency[6], Band_Gain[6] * band_scalar, Band_Q[6], Band_Slope[6]); );
+  Band_GfxUpdate[7] ? (Band_GfxUpdate[7] = 0; gfx_band8.band_set_filter(Band_Type[7], Band_Frequency[7], Band_Gain[7] * band_scalar, Band_Q[7], Band_Slope[7]); );
+  Band_GfxUpdate[8] ? (Band_GfxUpdate[8] = 0; gfx_band9.band_set_filter(Band_Type[8], Band_Frequency[8], Band_Gain[8] * band_scalar, Band_Q[8], Band_Slope[8]); );
+  Band_GfxUpdate[9] ? (Band_GfxUpdate[9] = 0; gfx_band10.band_set_filter(Band_Type[9], Band_Frequency[9], Band_Gain[9] * band_scalar, Band_Q[9], Band_Slope[9]); );
+  Band_GfxUpdate[10] ? (Band_GfxUpdate[10] = 0; gfx_band11.band_set_filter(Band_Type[10], Band_Frequency[10], Band_Gain[10] * band_scalar, Band_Q[10], Band_Slope[10]); );
+  Band_GfxUpdate[11] ? (Band_GfxUpdate[11] = 0; gfx_band12.band_set_filter(Band_Type[11], Band_Frequency[11], Band_Gain[11] * band_scalar, Band_Q[11], Band_Slope[11]); );
+  Band_GfxUpdate[12] ? (Band_GfxUpdate[12] = 0; gfx_band13.band_set_filter(Band_Type[12], Band_Frequency[12], Band_Gain[12] * band_scalar, Band_Q[12], Band_Slope[12]); );
+  Band_GfxUpdate[13] ? (Band_GfxUpdate[13] = 0; gfx_band14.band_set_filter(Band_Type[13], Band_Frequency[13], Band_Gain[13] * band_scalar, Band_Q[13], Band_Slope[13]); );
+  Band_GfxUpdate[14] ? (Band_GfxUpdate[14] = 0; gfx_band15.band_set_filter(Band_Type[14], Band_Frequency[14], Band_Gain[14] * band_scalar, Band_Q[14], Band_Slope[14]); );
+  Band_GfxUpdate[15] ? (Band_GfxUpdate[15] = 0; gfx_band16.band_set_filter(Band_Type[15], Band_Frequency[15], Band_Gain[15] * band_scalar, Band_Q[15], Band_Slope[15]); );
+);
+
+function update_audio_filters() local (band_scalar) (
+  band_scalar = Scale / 100.0;
+
+  Band_Update[0] ? (Band_Update[0] = 0; Band_Enabled[0] != BAND_STATE_ENABLED ? band1.filter.zdf_bypass() : band1.band_set_filter(Band_Type[0], Band_Frequency[0], Band_Gain[0] * band_scalar, Band_Q[0], Band_Slope[0]); );
+  Band_Update[1] ? (Band_Update[1] = 0; Band_Enabled[1] != BAND_STATE_ENABLED ? band2.filter.zdf_bypass() : band2.band_set_filter(Band_Type[1], Band_Frequency[1], Band_Gain[1] * band_scalar, Band_Q[1], Band_Slope[1]); );
+  Band_Update[2] ? (Band_Update[2] = 0; Band_Enabled[2] != BAND_STATE_ENABLED ? band3.filter.zdf_bypass() : band3.band_set_filter(Band_Type[2], Band_Frequency[2], Band_Gain[2] * band_scalar, Band_Q[2], Band_Slope[2]); );
+  Band_Update[3] ? (Band_Update[3] = 0; Band_Enabled[3] != BAND_STATE_ENABLED ? band4.filter.zdf_bypass() : band4.band_set_filter(Band_Type[3], Band_Frequency[3], Band_Gain[3] * band_scalar, Band_Q[3], Band_Slope[3]); );
+  Band_Update[4] ? (Band_Update[4] = 0; Band_Enabled[4] != BAND_STATE_ENABLED ? band5.filter.zdf_bypass() : band5.band_set_filter(Band_Type[4], Band_Frequency[4], Band_Gain[4] * band_scalar, Band_Q[4], Band_Slope[4]); );
+  Band_Update[5] ? (Band_Update[5] = 0; Band_Enabled[5] != BAND_STATE_ENABLED ? band6.filter.zdf_bypass() : band6.band_set_filter(Band_Type[5], Band_Frequency[5], Band_Gain[5] * band_scalar, Band_Q[5], Band_Slope[5]); );
+  Band_Update[6] ? (Band_Update[6] = 0; Band_Enabled[6] != BAND_STATE_ENABLED ? band7.filter.zdf_bypass() : band7.band_set_filter(Band_Type[6], Band_Frequency[6], Band_Gain[6] * band_scalar, Band_Q[6], Band_Slope[6]); );
+  Band_Update[7] ? (Band_Update[7] = 0; Band_Enabled[7] != BAND_STATE_ENABLED ? band8.filter.zdf_bypass() : band8.band_set_filter(Band_Type[7], Band_Frequency[7], Band_Gain[7] * band_scalar, Band_Q[7], Band_Slope[7]); );
+  Band_Update[8] ? (Band_Update[8] = 0; Band_Enabled[8] != BAND_STATE_ENABLED ? band9.filter.zdf_bypass() : band9.band_set_filter(Band_Type[8], Band_Frequency[8], Band_Gain[8] * band_scalar, Band_Q[8], Band_Slope[8]); );
+  Band_Update[9] ? (Band_Update[9] = 0; Band_Enabled[9] != BAND_STATE_ENABLED ? band10.filter.zdf_bypass() : band10.band_set_filter(Band_Type[9], Band_Frequency[9], Band_Gain[9] * band_scalar, Band_Q[9], Band_Slope[9]); );
+  Band_Update[10] ? (Band_Update[10] = 0; Band_Enabled[10] != BAND_STATE_ENABLED ? band11.filter.zdf_bypass() : band11.band_set_filter(Band_Type[10], Band_Frequency[10], Band_Gain[10] * band_scalar, Band_Q[10], Band_Slope[10]); );
+  Band_Update[11] ? (Band_Update[11] = 0; Band_Enabled[11] != BAND_STATE_ENABLED ? band12.filter.zdf_bypass() : band12.band_set_filter(Band_Type[11], Band_Frequency[11], Band_Gain[11] * band_scalar, Band_Q[11], Band_Slope[11]); );
+  Band_Update[12] ? (Band_Update[12] = 0; Band_Enabled[12] != BAND_STATE_ENABLED ? band13.filter.zdf_bypass() : band13.band_set_filter(Band_Type[12], Band_Frequency[12], Band_Gain[12] * band_scalar, Band_Q[12], Band_Slope[12]); );
+  Band_Update[13] ? (Band_Update[13] = 0; Band_Enabled[13] != BAND_STATE_ENABLED ? band14.filter.zdf_bypass() : band14.band_set_filter(Band_Type[13], Band_Frequency[13], Band_Gain[13] * band_scalar, Band_Q[13], Band_Slope[13]); );
+  Band_Update[14] ? (Band_Update[14] = 0; Band_Enabled[14] != BAND_STATE_ENABLED ? band15.filter.zdf_bypass() : band15.band_set_filter(Band_Type[14], Band_Frequency[14], Band_Gain[14] * band_scalar, Band_Q[14], Band_Slope[14]); );
+  Band_Update[15] ? (Band_Update[15] = 0; Band_Enabled[15] != BAND_STATE_ENABLED ? band16.filter.zdf_bypass() : band16.band_set_filter(Band_Type[15], Band_Frequency[15], Band_Gain[15] * band_scalar, Band_Q[15], Band_Slope[15]); );
+);
+
+init_rate != srate ? (
+  init_rate = srate;
+
+  // Initialise everything
+
+  MEMORY.init_memory();
+
+  spectrum.init();
+
+  MEMORY.index = spectrum.get_memory_index();
+
+  BAND_STATE_OFF = 0;
+  BAND_STATE_DISABLED = 1;
+  BAND_STATE_ENABLED = 2;
+  BAND_STATE_INFORM_DISABLE = 3;
+
+  // Allocate and init filter bands
+  NUM_BANDS = 16;
+
+  Band_Update = MEMORY.alloc_memory(NUM_BANDS);
+  Band_GfxUpdate = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Enabled = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Group = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Type = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Frequency = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Gain = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Q = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Slope = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Dynamic_Range = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Red = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Green = MEMORY.alloc_memory(NUM_BANDS);
+  Band_Blue = MEMORY.alloc_memory(NUM_BANDS);
+
+  // Filters for @slider, @block and @sample
+  band1.band_init();
+  band2.band_init();
+  band3.band_init();
+  band4.band_init();
+  band5.band_init();
+  band6.band_init();
+  band7.band_init();
+  band8.band_init();
+  band9.band_init();
+  band10.band_init();
+  band11.band_init();
+  band12.band_init();
+  band13.band_init();
+  band14.band_init();
+  band15.band_init();
+  band16.band_init();
+
+  // Filters for @gfx
+  gfx_band1.band_init();
+  gfx_band2.band_init();
+  gfx_band3.band_init();
+  gfx_band4.band_init();
+  gfx_band5.band_init();
+  gfx_band6.band_init();
+  gfx_band7.band_init();
+  gfx_band8.band_init();
+  gfx_band9.band_init();
+  gfx_band10.band_init();
+  gfx_band11.band_init();
+  gfx_band12.band_init();
+  gfx_band13.band_init();
+  gfx_band14.band_init();
+  gfx_band15.band_init();
+  gfx_band16.band_init();
+
+  color_band0.create_color(231, 33, 75);
+  color_band1.create_color(241, 111, 50);
+  color_band2.create_color(253, 199, 50);
+  color_band3.create_color(126, 188, 111);
+  color_band4.create_color(20, 146, 104);
+  color_band5.create_color(19, 124, 168);
+  color_band6.create_color(48, 57, 142);
+  color_band7.create_color(135, 45, 138);
+  color_band8.create_color(231, 33, 75);
+  color_band9.create_color(241, 111, 50);
+  color_band10.create_color(253, 199, 50);
+  color_band11.create_color(126, 188, 111);
+  color_band12.create_color(20, 146, 104);
+  color_band13.create_color(19, 124, 168);
+  color_band14.create_color(48, 57, 142);
+  color_band15.create_color(135, 45, 138);
+
+  // Init FIR filter
+  firL.init_FIR_filter_44100();
+  firR.init_FIR_filter_44100();
+
+  // Allocate and init RMS
+  rms_time_constant_ms = 300;
+  rms_alloc = (0.001 * rms_time_constant_ms * 192000)|0;
+  rms_max_count = (0.001 * rms_time_constant_ms * srate)|0;
+
+  RMSPreIndex = MEMORY.alloc_memory(rms_alloc);
+  RMSPostIndex = MEMORY.alloc_memory(rms_alloc);
+
+  RMSPre.RMS_init(RMSPreIndex, rms_max_count);
+  RMSPost.RMS_init(RMSPostIndex, rms_max_count);
+
+  RMSSCIndex = MEMORY.alloc_memory(rms_alloc);
+  RMSSidechain.RMS_init(RMSSCIndex, rms_max_count);
+
+  set_oversample(Quality);
+
+  // Visible frequency limit
+  MAX_FREQ = 44100 / 2.0;
+  MIN_FREQ = 10;
+  FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+
+  MAX_Q = 40;
+  MIN_Q = 0.10;
+  Q_LOG_MAX = log(MAX_Q / MIN_Q);
+
+  DB_EQ_RANGE = 18;
+  DB_EQ_RANGE_STEPS = 6;
+
+  OLD_WIDTH = 0;
+
+  button_focus = -1;
+
+  gfx_mode = 1;
+  gfx_clear = 0;
+
+  read_freq = 0;
+
+  click_up = 0;
+  click_time = 0;
+
+  selected_node = -1;
+  selected_node_group = 0;
+
+  node_drag_mode = 0;
+  node_drag = 0;
+  node_drag_offx = 0;
+  node_drag_offy = 0;
+  node_drag_stablex = 0;
+  node_drag_stabley = 0;
+  node_drag_mouse_speed = 6;
+  node_drag_lock = 0;
+
+  gainDb = 1;
+  gainML = 1;
+  gainSR = 1;
+
+  initialise_gfx = 0;
+
+  do_listen = 0;
+  listen_width = 0.10;
+  listen_q = 0.7071;
+  listen_group = 0;
+  listen_gain = db_to_gain(0);
+  listen_filter.zdf_set_sample_rate(srate);
+  listen_filter.zdf_bypass();
+  listen_node = -1;
+
+  listen_filter.a1 = listen_filter.t_a1;
+  listen_filter.a2 = listen_filter.t_a2;
+  listen_filter.a3 = listen_filter.t_a3;
+
+  listen_filter.m0 = listen_filter.t_m0;
+  listen_filter.m1 = listen_filter.t_m1;
+  listen_filter.m2 = listen_filter.t_m2;
+  listen_filter.iter_t = 1.0;
+
+  // Define filter index numbers
+  FILTER_PEAK = 0;
+  FILTER_LOW_CUT = 1;
+  FILTER_LOW_CUT_BUTTERWORTH = 2;
+  FILTER_LOW_SHELF = 3;
+  FILTER_HIGH_SHELF = 4;
+  FILTER_HIGH_CUT = 5;
+  FILTER_HIGH_CUT_BUTTERWORTH = 6;
+  FILTER_NOTCH = 7;
+  FILTER_BAND_PASS = 8;
+  FILTER_TILT_SHELF = 9;
+  FILTER_PULTEC_LOW_SHELF = 10;
+  FILTER_ALL_PASS = 11;
+  FILTER_LOW_CUT_ANALOG = 12;
+  FILTER_HIGH_CUT_ANALOG = 13;
+
+  // Define filter display order
+  FilterTypes = MEMORY.alloc_memory(14);
+  FilterTypes[0] = "Peak";
+  FilterTypes[1] = "Low Cut";
+  FilterTypes[2] = "Low Cut (Butterworth)";
+  FilterTypes[3] = "Low Channel (Analog)";
+  FilterTypes[4] = "Low Shelf";
+  FilterTypes[5] = "High Shelf";
+  FilterTypes[6] = "High Cut";
+  FilterTypes[7] = "High Cut (Butterworth)";
+  FilterTypes[8] = "High Channel (Analog)";
+  FilterTypes[9] = "Notch";
+  FilterTypes[10] = "Band Pass";
+  FilterTypes[11] = "Tilt Shelf";
+  FilterTypes[12] = "Pultec Low Shelf";
+  FilterTypes[13] = "All Pass";
+
+  // Define mapping from display order to index
+  FilterMappingTo = MEMORY.alloc_memory(14);
+  FilterMappingTo[0] = 0;
+  FilterMappingTo[1] = 1;
+  FilterMappingTo[2] = 2;
+  FilterMappingTo[3] = 12;
+  FilterMappingTo[4] = 3;
+  FilterMappingTo[5] = 4;
+  FilterMappingTo[6] = 5;
+  FilterMappingTo[7] = 6;
+  FilterMappingTo[8] = 13;
+  FilterMappingTo[9] = 7;
+  FilterMappingTo[10] = 8;
+  FilterMappingTo[11] = 9;
+  FilterMappingTo[12] = 10;
+  FilterMappingTo[13] = 11;
+
+  // Define mapping from index to display order
+  FilterMappingFrom = MEMORY.alloc_memory(14);
+  FilterMappingFrom[0] = 0;
+  FilterMappingFrom[1] = 1;
+  FilterMappingFrom[2] = 2;
+  FilterMappingFrom[3] = 4;
+  FilterMappingFrom[4] = 5;
+  FilterMappingFrom[5] = 6;
+  FilterMappingFrom[6] = 7;
+  FilterMappingFrom[7] = 9;
+  FilterMappingFrom[8] = 10;
+  FilterMappingFrom[9] = 11;
+  FilterMappingFrom[10] = 12;
+  FilterMappingFrom[11] = 13;
+  FilterMappingFrom[12] = 3;
+  FilterMappingFrom[13] = 8;
+
+  NumFilterSlopes = 10;
+  FilterSlopes = MEMORY.alloc_memory(10);
+  FilterSlopes[0] = "6dB";
+  FilterSlopes[1] = "12dB";
+  FilterSlopes[2] = "18dB";
+  FilterSlopes[3] = "24dB";
+  FilterSlopes[4] = "30dB";
+  FilterSlopes[5] = "36dB";
+  FilterSlopes[6] = "48dB";
+  FilterSlopes[7] = "72dB";
+  FilterSlopes[8] = "96dB";
+  FilterSlopes[9] = "120dB";
+
+  StereoModes = MEMORY.alloc_memory(3);
+  StereoModes[0] = "Stereo";
+  StereoModes[1] = "Mid";
+  StereoModes[2] = "Side";
+  StereoModes[3] = "Left";
+  StereoModes[4] = "Right";
+
+  // Automatic Gain Control
+  agcControl = 0;
+  agcOverride = 0;
+
+  compact_width = 0;
+  compact_height = 0;
+  very_compact_width = 0;
+  very_compact_height = 0;
+
+  ShowPanel = PanelEnabled;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+
+set_oversample(Quality);
+slider7 = 6;
+button_oversample.select = Quality;
+button_stereo_mode.select = Stereo_Mode;
+
+gainDb = 2 ^ (Gain/6);
+gainML = 2 ^ (MLGain/6);
+gainSR = 2 ^ (SRGain/6);
+
+// Mark filters for update if sliders have changed
+Band_Enabled[0] != Node1_Enabled || Band_Type[0] != Node1_Type || Band_Gain[0] != Node1_Gain || Band_Frequency[0] != per_to_freq(Node1_Frequency,100) || Band_Q[0] != Node1_Q || Band_Slope[0] != Node1_Slope ? flag_filter_update(0);
+Band_Enabled[1] != Node2_Enabled || Band_Type[1] != Node2_Type || Band_Gain[1] != Node2_Gain || Band_Frequency[1] != per_to_freq(Node2_Frequency,100) || Band_Q[1] != Node2_Q || Band_Slope[1] != Node2_Slope ? flag_filter_update(1);
+Band_Enabled[2] != Node3_Enabled || Band_Type[2] != Node3_Type || Band_Gain[2] != Node3_Gain || Band_Frequency[2] != per_to_freq(Node3_Frequency,100) || Band_Q[2] != Node3_Q || Band_Slope[2] != Node3_Slope ? flag_filter_update(2);
+Band_Enabled[3] != Node4_Enabled || Band_Type[3] != Node4_Type || Band_Gain[3] != Node4_Gain || Band_Frequency[3] != per_to_freq(Node4_Frequency,100) || Band_Q[3] != Node4_Q || Band_Slope[3] != Node4_Slope ? flag_filter_update(3);
+Band_Enabled[4] != Node5_Enabled || Band_Type[4] != Node5_Type || Band_Gain[4] != Node5_Gain || Band_Frequency[4] != per_to_freq(Node5_Frequency,100) || Band_Q[4] != Node5_Q || Band_Slope[4] != Node5_Slope ? flag_filter_update(4);
+
+// Update any automation
+sliders_to_filters();
+
+
+
+update_state();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@serialize
+
+file_var(0, front.val);
+file_var(0, center.val);
+file_var(0, back.val);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+file_avail(handle) >= 0 ? (
+  // Read mode
+  file_var(0, version);
+
+  version >= 100 ? (
+    file_var(0, numBands);
+    file_mem(0, Band_Enabled, numBands);
+    file_mem(0, Band_Group, numBands);
+    file_mem(0, Band_Type, numBands);
+    file_mem(0, Band_Frequency, numBands);
+    file_mem(0, Band_Gain, numBands);
+    file_mem(0, Band_Q, numBands);
+    file_mem(0, Band_Slope, numBands);
+    file_mem(0, Band_Dynamic_Range, numBands);
+    file_mem(0, Band_Red, numBands);
+    file_mem(0, Band_Green, numBands);
+    file_mem(0, Band_Blue, numBands);
+
+  ) : (
+    // Old version that has no version number
+    // We've already read the first value and it wasn't a version
+    // number, it's the enabled status for band 0
+    Band_Enabled[0] = version;
+    file_mem(0, Band_Enabled+1, 7);
+    file_mem(0, Band_Group, 8);
+    file_mem(0, Band_Type, 8);
+    file_mem(0, Band_Frequency, 8);
+    file_mem(0, Band_Gain, 8);
+    file_mem(0, Band_Q, 8);
+    file_mem(0, Band_Slope, 8);
+    file_mem(0, Band_Dynamic_Range, 8);
+    file_mem(0, Band_Red, 8);
+    file_mem(0, Band_Green, 8);
+    file_mem(0, Band_Blue, 8);
+  );
+
+) : (
+  // Write mode
+  // The version number should reflect the ReEQ version when the file
+  // format changed.
+  version = 109;
+
+  file_var(0, version);
+  file_var(0, NUM_BANDS);
+  file_mem(0, Band_Enabled, NUM_BANDS);
+  file_mem(0, Band_Group, NUM_BANDS);
+  file_mem(0, Band_Type, NUM_BANDS);
+  file_mem(0, Band_Frequency, NUM_BANDS);
+  file_mem(0, Band_Gain, NUM_BANDS);
+  file_mem(0, Band_Q, NUM_BANDS);
+  file_mem(0, Band_Slope, NUM_BANDS);
+  file_mem(0, Band_Dynamic_Range, NUM_BANDS);
+  file_mem(0, Band_Red, NUM_BANDS);
+  file_mem(0, Band_Green, NUM_BANDS);
+  file_mem(0, Band_Blue, NUM_BANDS);
+);
+
+flag_filter_update_all();
+
+filters_to_sliders();
+
+@block
+
+// Get array accessed variables per block to make access faster
+// in @sample section
+
+update_audio_filters();
+
+Band_Process0 = (Band_Enabled[0] == BAND_STATE_ENABLED) || !band1.filter.zdf_is_resting();
+Band_Process1 = (Band_Enabled[1] == BAND_STATE_ENABLED) || !band2.filter.zdf_is_resting();
+Band_Process2 = (Band_Enabled[2] == BAND_STATE_ENABLED) || !band3.filter.zdf_is_resting();
+Band_Process3 = (Band_Enabled[3] == BAND_STATE_ENABLED) || !band4.filter.zdf_is_resting();
+Band_Process4 = (Band_Enabled[4] == BAND_STATE_ENABLED) || !band5.filter.zdf_is_resting();
+Band_Process5 = (Band_Enabled[5] == BAND_STATE_ENABLED) || !band6.filter.zdf_is_resting();
+Band_Process6 = (Band_Enabled[6] == BAND_STATE_ENABLED) || !band7.filter.zdf_is_resting();
+Band_Process7 = (Band_Enabled[7] == BAND_STATE_ENABLED) || !band8.filter.zdf_is_resting();
+Band_Process8 = (Band_Enabled[8] == BAND_STATE_ENABLED) || !band9.filter.zdf_is_resting();
+Band_Process9 = (Band_Enabled[9] == BAND_STATE_ENABLED) || !band10.filter.zdf_is_resting();
+Band_Process10 = (Band_Enabled[10] == BAND_STATE_ENABLED) || !band11.filter.zdf_is_resting();
+Band_Process11 = (Band_Enabled[11] == BAND_STATE_ENABLED) || !band12.filter.zdf_is_resting();
+Band_Process12 = (Band_Enabled[12] == BAND_STATE_ENABLED) || !band13.filter.zdf_is_resting();
+Band_Process13 = (Band_Enabled[13] == BAND_STATE_ENABLED) || !band14.filter.zdf_is_resting();
+Band_Process14 = (Band_Enabled[14] == BAND_STATE_ENABLED) || !band15.filter.zdf_is_resting();
+Band_Process15 = (Band_Enabled[15] == BAND_STATE_ENABLED) || !band16.filter.zdf_is_resting();
+
+Band_Group0 = Band_Group[0];
+Band_Group1 = Band_Group[1];
+Band_Group2 = Band_Group[2];
+Band_Group3 = Band_Group[3];
+Band_Group4 = Band_Group[4];
+Band_Group5 = Band_Group[5];
+Band_Group6 = Band_Group[6];
+Band_Group7 = Band_Group[7];
+Band_Group8 = Band_Group[8];
+Band_Group9 = Band_Group[9];
+Band_Group10 = Band_Group[10];
+Band_Group11 = Band_Group[11];
+Band_Group12 = Band_Group[12];
+Band_Group13 = Band_Group[13];
+Band_Group14 = Band_Group[14];
+Band_Group15 = Band_Group[15];
+
+Listen_Process = do_listen || listen_node != -1 || !listen_filter.zdf_is_resting();
+
+agcControl = AGCEnabled;
+
+@sample
+
+function encodeMS(l, r, mid*, side*) ( 
+  mid = (l+r) * 0.5;
+  side = (l-r) * 0.5;
+);
+
+function decodeMS(mid, side, l*, r*) (
+  l = mid + side;
+  r = mid - side;
+);
+
+//spl0 += 0.000000000001; // DeNorm fix
+//spl1 += 0.000000000001; // DeNorm fix
+
+spl0orig = spl0;
+spl1orig = spl1;
+
+// Sidechain RMS
+// RMSSidechain.RMS_process(spl2, spl3);
+
+// Feed the correct buffers depending on spectrum modes
+Show_PreEQ ? (
+  Spectrum_Mode == 0 ? spectrum.sample2(spl0 + spl1) :
+  Spectrum_Mode == 1 ? spectrum.sample2((spl0 + spl1) * 0.5) :
+  Spectrum_Mode == 2 ? spectrum.sample2((spl0 - spl1) * 0.5) :
+  Spectrum_Mode == 3 ? (spectrum.sample2((spl0 + spl1) * 0.5); spectrum.sample3((spl0 - spl1) * 0.5)) :
+  Spectrum_Mode == 4 ? spectrum.sample2(spl0);
+  Spectrum_Mode == 5 ? spectrum.sample2(spl1) :
+  Spectrum_Mode == 6 ? (spectrum.sample2(spl0); spectrum.sample3(spl1));
+);
+
+// Interpolate filter coefficients
+
+Band_Process0 ? band1.filter.zdf_tick();
+Band_Process1 ? band2.filter.zdf_tick();
+Band_Process2 ? band3.filter.zdf_tick();
+Band_Process3 ? band4.filter.zdf_tick();
+Band_Process4 ? band5.filter.zdf_tick();
+Band_Process5 ? band6.filter.zdf_tick();
+Band_Process6 ? band7.filter.zdf_tick();
+Band_Process7 ? band8.filter.zdf_tick();
+Band_Process8 ? band9.filter.zdf_tick();
+Band_Process9 ? band10.filter.zdf_tick();
+Band_Process10 ? band11.filter.zdf_tick();
+Band_Process11 ? band12.filter.zdf_tick();
+Band_Process12 ? band13.filter.zdf_tick();
+Band_Process13 ? band14.filter.zdf_tick();
+Band_Process14 ? band15.filter.zdf_tick();
+Band_Process15 ? band16.filter.zdf_tick();
+
+Listen_Process ? listen_filter.zdf_tick();
+
+DO_OVERSAMPLE ? (
+  // Oversampling with zero padding and FIR half band filtering.
+
+  !Listen_Process ? (
+    // Mid/Left
+    y0 = spl0; y1 = 0;
+    y2 = spl1; y3 = 0;
+
+    Band_Process0 ? (
+      Band_Group0 == 1 || Band_Group0 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group0 == 1 ? (mid0 = band1.filter.zdf_svf0(mid0); mid1 = band1.filter.zdf_svf0(mid1)) : (side0 = band1.filter.zdf_svf1(side0); side1 = band1.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group0 == 0 || Band_Group0 == 3 ? (y0 = band1.filter.zdf_svf0(y0); y1 = band1.filter.zdf_svf0(y1));
+        Band_Group0 == 0 || Band_Group0 == 4 ? (y2 = band1.filter.zdf_svf1(y2); y3 = band1.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process1 ? (
+      Band_Group1 == 1 || Band_Group1 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group1 == 1 ? (mid0 = band2.filter.zdf_svf0(mid0); mid1 = band2.filter.zdf_svf0(mid1)) : (side0 = band2.filter.zdf_svf1(side0); side1 = band2.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group1 == 0 || Band_Group1 == 3 ? (y0 = band2.filter.zdf_svf0(y0); y1 = band2.filter.zdf_svf0(y1));
+        Band_Group1 == 0 || Band_Group1 == 4 ? (y2 = band2.filter.zdf_svf1(y2); y3 = band2.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process2 ? (
+      Band_Group2 == 1 || Band_Group2 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group2 == 1 ? (mid0 = band3.filter.zdf_svf0(mid0); mid1 = band3.filter.zdf_svf0(mid1)) : (side0 = band3.filter.zdf_svf1(side0); side1 = band3.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group2 == 0 || Band_Group2 == 3 ? (y0 = band3.filter.zdf_svf0(y0); y1 = band3.filter.zdf_svf0(y1));
+        Band_Group2 == 0 || Band_Group2 == 4 ? (y2 = band3.filter.zdf_svf1(y2); y3 = band3.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process3 ? (
+      Band_Group3 == 1 || Band_Group3 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group3 == 1 ? (mid0 = band4.filter.zdf_svf0(mid0); mid1 = band4.filter.zdf_svf0(mid1)) : (side0 = band4.filter.zdf_svf1(side0); side1 = band4.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group3 == 0 || Band_Group3 == 3 ? (y0 = band4.filter.zdf_svf0(y0); y1 = band4.filter.zdf_svf0(y1));
+        Band_Group3 == 0 || Band_Group3 == 4 ? (y2 = band4.filter.zdf_svf1(y2); y3 = band4.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process4 ? (
+      Band_Group4 == 1 || Band_Group4 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group4 == 1 ? (mid0 = band5.filter.zdf_svf0(mid0); mid1 = band5.filter.zdf_svf0(mid1)) : (side0 = band5.filter.zdf_svf1(side0); side1 = band5.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group4 == 0 || Band_Group4 == 3 ? (y0 = band5.filter.zdf_svf0(y0); y1 = band5.filter.zdf_svf0(y1));
+        Band_Group4 == 0 || Band_Group4 == 4 ? (y2 = band5.filter.zdf_svf1(y2); y3 = band5.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process5 ? (
+      Band_Group5 == 1 || Band_Group5 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group5 == 1 ? (mid0 = band6.filter.zdf_svf0(mid0); mid1 = band6.filter.zdf_svf0(mid1)) : (side0 = band6.filter.zdf_svf1(side0); side1 = band6.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group5 == 0 || Band_Group5 == 3 ? (y0 = band6.filter.zdf_svf0(y0); y1 = band6.filter.zdf_svf0(y1));
+        Band_Group5 == 0 || Band_Group5 == 4 ? (y2 = band6.filter.zdf_svf1(y2); y3 = band6.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process6 ? (
+      Band_Group6 == 1 || Band_Group6 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group6 == 1 ? (mid0 = band7.filter.zdf_svf0(mid0); mid1 = band7.filter.zdf_svf0(mid1)) : (side0 = band7.filter.zdf_svf1(side0); side1 = band7.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group6 == 0 || Band_Group6 == 3 ? (y0 = band7.filter.zdf_svf0(y0); y1 = band7.filter.zdf_svf0(y1));
+        Band_Group6 == 0 || Band_Group6 == 4 ? (y2 = band7.filter.zdf_svf1(y2); y3 = band7.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process7 ? (
+      Band_Group7 == 1 || Band_Group7 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group7 == 1 ? (mid0 = band8.filter.zdf_svf0(mid0); mid1 = band8.filter.zdf_svf0(mid1)) : (side0 = band8.filter.zdf_svf1(side0); side1 = band8.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group7 == 0 || Band_Group7 == 3 ? (y0 = band8.filter.zdf_svf0(y0); y1 = band8.filter.zdf_svf0(y1));
+        Band_Group7 == 0 || Band_Group7 == 4 ? (y2 = band8.filter.zdf_svf1(y2); y3 = band8.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process8 ? (
+      Band_Group8 == 1 || Band_Group8 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group8 == 1 ? (mid0 = band9.filter.zdf_svf0(mid0); mid1 = band9.filter.zdf_svf0(mid1)) : (side0 = band9.filter.zdf_svf1(side0); side1 = band9.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group8 == 0 || Band_Group8 == 3 ? (y0 = band9.filter.zdf_svf0(y0); y1 = band9.filter.zdf_svf0(y1));
+        Band_Group8 == 0 || Band_Group8 == 4 ? (y2 = band9.filter.zdf_svf1(y2); y3 = band9.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process9 ? (
+      Band_Group9 == 1 || Band_Group9 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group9 == 1 ? (mid0 = band10.filter.zdf_svf0(mid0); mid1 = band10.filter.zdf_svf0(mid1)) : (side0 = band10.filter.zdf_svf1(side0); side1 = band10.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group9 == 0 || Band_Group9 == 3 ? (y0 = band10.filter.zdf_svf0(y0); y1 = band10.filter.zdf_svf0(y1));
+        Band_Group9 == 0 || Band_Group9 == 4 ? (y2 = band10.filter.zdf_svf1(y2); y3 = band10.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process10 ? (
+      Band_Group10 == 1 || Band_Group10 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group10 == 1 ? (mid0 = band11.filter.zdf_svf0(mid0); mid1 = band11.filter.zdf_svf0(mid1)) : (side0 = band11.filter.zdf_svf1(side0); side1 = band11.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group10 == 0 || Band_Group10 == 3 ? (y0 = band11.filter.zdf_svf0(y0); y1 = band11.filter.zdf_svf0(y1));
+        Band_Group10 == 0 || Band_Group10 == 4 ? (y2 = band11.filter.zdf_svf1(y2); y3 = band11.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process11 ? (
+      Band_Group11 == 1 || Band_Group11 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group11 == 1 ? (mid0 = band12.filter.zdf_svf0(mid0); mid1 = band12.filter.zdf_svf0(mid1)) : (side0 = band12.filter.zdf_svf1(side0); side1 = band12.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group11 == 0 || Band_Group11 == 3 ? (y0 = band12.filter.zdf_svf0(y0); y1 = band12.filter.zdf_svf0(y1));
+        Band_Group11 == 0 || Band_Group11 == 4 ? (y2 = band12.filter.zdf_svf1(y2); y3 = band12.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process12 ? (
+      Band_Group12 == 1 || Band_Group12 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group12 == 1 ? (mid0 = band13.filter.zdf_svf0(mid0); mid1 = band13.filter.zdf_svf0(mid1)) : (side0 = band13.filter.zdf_svf1(side0); side1 = band13.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group12 == 0 || Band_Group12 == 3 ? (y0 = band13.filter.zdf_svf0(y0); y1 = band13.filter.zdf_svf0(y1));
+        Band_Group12 == 0 || Band_Group12 == 4 ? (y2 = band13.filter.zdf_svf1(y2); y3 = band13.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process13 ? (
+      Band_Group13 == 1 || Band_Group13 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group13 == 1 ? (mid0 = band14.filter.zdf_svf0(mid0); mid1 = band14.filter.zdf_svf0(mid1)) : (side0 = band14.filter.zdf_svf1(side0); side1 = band14.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group13 == 0 || Band_Group13 == 3 ? (y0 = band14.filter.zdf_svf0(y0); y1 = band14.filter.zdf_svf0(y1));
+        Band_Group13 == 0 || Band_Group13 == 4 ? (y2 = band14.filter.zdf_svf1(y2); y3 = band14.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process14 ? (
+      Band_Group14 == 1 || Band_Group14 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group14 == 1 ? (mid0 = band15.filter.zdf_svf0(mid0); mid1 = band15.filter.zdf_svf0(mid1)) : (side0 = band15.filter.zdf_svf1(side0); side1 = band15.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group14 == 0 || Band_Group14 == 3 ? (y0 = band15.filter.zdf_svf0(y0); y1 = band15.filter.zdf_svf0(y1));
+        Band_Group14 == 0 || Band_Group14 == 4 ? (y2 = band15.filter.zdf_svf1(y2); y3 = band15.filter.zdf_svf1(y3))
+      )
+    );
+
+    Band_Process15 ? (
+      Band_Group15 == 1 || Band_Group15 == 2 ? ( // Mid or Side
+        encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+        Band_Group15 == 1 ? (mid0 = band16.filter.zdf_svf0(mid0); mid1 = band16.filter.zdf_svf0(mid1)) : (side0 = band16.filter.zdf_svf1(side0); side1 = band16.filter.zdf_svf1(side1));
+        decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+      ) : ( // Left and/or Right
+        Band_Group15 == 0 || Band_Group15 == 3 ? (y0 = band16.filter.zdf_svf0(y0); y1 = band16.filter.zdf_svf0(y1));
+        Band_Group15 == 0 || Band_Group15 == 4 ? (y2 = band16.filter.zdf_svf1(y2); y3 = band16.filter.zdf_svf1(y3))
+      )
+    );
+
+    // Unoptimised
+    // spl0 = firL.do_FIR_filter(y0) * 2;
+    // firL.do_FIR_filter(y1);
+    // spl1 = firR.do_FIR_filter(y0) * 2;
+    // firR.do_FIR_filter(y1);
+
+    spl0 = firL.do_FIR_filter(y0, y1);
+    spl1 = firR.do_FIR_filter(y2, y3);
+
+  ) : (
+    // Listen/Solo mode
+    y0 = spl0; y1 = 0;
+    y2 = spl1; y3 = 0;
+
+    listen_group == 1 || listen_group == 2 ? ( // Mid or Side
+      encodeMS(y0, y2, mid0, side0); encodeMS(y1, y3, mid1, side1);
+      listen_group == 1 ? (mid0 = listen_filter.zdf_svf0(mid0); mid1 = listen_filter.zdf_svf0(mid1)) : (side0 = listen_filter.zdf_svf1(side0); side1 = listen_filter.zdf_svf1(side1));
+
+      listen_group == 1 ? (side0 = side1 = 0;) : (mid0 = mid1 = 0;);
+      decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
+    ) : ( // Left and/or Right
+      listen_group == 0 || listen_group == 3 ? (y0 = listen_filter.zdf_svf0(y0); y1 = listen_filter.zdf_svf0(y1));
+      listen_group == 0 || listen_group == 4 ? (y2 = listen_filter.zdf_svf1(y2); y3 = listen_filter.zdf_svf1(y3));
+      listen_group == 3 ? (y2 = y3 = 0);
+      listen_group == 4 ? (y0 = y1 = 0);
+    );
+
+    spl0list = firL.do_FIR_filter(y0, y1);
+    spl1list = firR.do_FIR_filter(y2, y3);
+
+    spl0list *= listen_gain;
+    spl1list *= listen_gain;
+  );
+) : (
+  // No oversampling
+
+  !Listen_Process ? (
+
+    Band_Process0 ? (
+      Band_Group0 == 1 || Band_Group0 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group0 == 1 ? mid0 = band1.filter.zdf_svf0(mid0) : side0 = band1.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group0 == 0 || Band_Group0 == 3 ? spl0 = band1.filter.zdf_svf0(spl0);
+        Band_Group0 == 0 || Band_Group0 == 4 ? spl1 = band1.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process1 ? (
+      Band_Group1 == 1 || Band_Group1 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group1 == 1 ? mid0 = band2.filter.zdf_svf0(mid0) : side0 = band2.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group1 == 0 || Band_Group1 == 3 ? spl0 = band2.filter.zdf_svf0(spl0);
+        Band_Group1 == 0 || Band_Group1 == 4 ? spl1 = band2.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process2 ? (
+      Band_Group2 == 1 || Band_Group2 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group2 == 1 ? mid0 = band3.filter.zdf_svf0(mid0) : side0 = band3.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group2 == 0 || Band_Group2 == 3 ? spl0 = band3.filter.zdf_svf0(spl0);
+        Band_Group2 == 0 || Band_Group2 == 4 ? spl1 = band3.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process3 ? (
+      Band_Group3 == 1 || Band_Group3 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group3 == 1 ? mid0 = band4.filter.zdf_svf0(mid0) : side0 = band4.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group3 == 0 || Band_Group3 == 3 ? spl0 = band4.filter.zdf_svf0(spl0);
+        Band_Group3 == 0 || Band_Group3 == 4 ? spl1 = band4.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process4 ? (
+      Band_Group4 == 1 || Band_Group4 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group4 == 1 ? mid0 = band5.filter.zdf_svf0(mid0) : side0 = band5.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group4 == 0 || Band_Group4 == 3 ? spl0 = band5.filter.zdf_svf0(spl0);
+        Band_Group4 == 0 || Band_Group4 == 4 ? spl1 = band5.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process5 ? (
+      Band_Group5 == 1 || Band_Group5 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group5 == 1 ? mid0 = band6.filter.zdf_svf0(mid0) : side0 = band6.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group5 == 0 || Band_Group5 == 3 ? spl0 = band6.filter.zdf_svf0(spl0);
+        Band_Group5 == 0 || Band_Group5 == 4 ? spl1 = band6.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process6 ? (
+      Band_Group6 == 1 || Band_Group6 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group6 == 1 ? mid0 = band7.filter.zdf_svf0(mid0) : side0 = band7.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group6 == 0 || Band_Group6 == 3 ? spl0 = band7.filter.zdf_svf0(spl0);
+        Band_Group6 == 0 || Band_Group6 == 4 ? spl1 = band7.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process7 ? (
+      Band_Group7 == 1 || Band_Group7 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group7 == 1 ? mid0 = band8.filter.zdf_svf0(mid0) : side0 = band8.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group7 == 0 || Band_Group7 == 3 ? spl0 = band8.filter.zdf_svf0(spl0);
+        Band_Group7 == 0 || Band_Group7 == 4 ? spl1 = band8.filter.zdf_svf1(spl1);
+      )
+    );
+
+
+    Band_Process8 ? (
+      Band_Group8 == 1 || Band_Group8 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group8 == 1 ? mid0 = band9.filter.zdf_svf0(mid0) : side0 = band9.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group8 == 0 || Band_Group8 == 3 ? spl0 = band9.filter.zdf_svf0(spl0);
+        Band_Group8 == 0 || Band_Group8 == 4 ? spl1 = band9.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process9 ? (
+      Band_Group9 == 1 || Band_Group9 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group9 == 1 ? mid0 = band10.filter.zdf_svf0(mid0) : side0 = band10.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group9 == 0 || Band_Group9 == 3 ? spl0 = band10.filter.zdf_svf0(spl0);
+        Band_Group9 == 0 || Band_Group9 == 4 ? spl1 = band10.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process10 ? (
+      Band_Group10 == 1 || Band_Group10 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group10 == 1 ? mid0 = band11.filter.zdf_svf0(mid0) : side0 = band11.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group10 == 0 || Band_Group10 == 3 ? spl0 = band11.filter.zdf_svf0(spl0);
+        Band_Group10 == 0 || Band_Group10 == 4 ? spl1 = band11.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process11 ? (
+      Band_Group11 == 1 || Band_Group11 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group11 == 1 ? mid0 = band12.filter.zdf_svf0(mid0) : side0 = band12.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group11 == 0 || Band_Group11 == 3 ? spl0 = band12.filter.zdf_svf0(spl0);
+        Band_Group11 == 0 || Band_Group11 == 4 ? spl1 = band12.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process12 ? (
+      Band_Group12 == 1 || Band_Group12 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group12 == 1 ? mid0 = band13.filter.zdf_svf0(mid0) : side0 = band13.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group12 == 0 || Band_Group12 == 3 ? spl0 = band13.filter.zdf_svf0(spl0);
+        Band_Group12 == 0 || Band_Group12 == 4 ? spl1 = band13.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process13 ? (
+      Band_Group13 == 1 || Band_Group13 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group13 == 1 ? mid0 = band14.filter.zdf_svf0(mid0) : side0 = band14.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group13 == 0 || Band_Group13 == 3 ? spl0 = band14.filter.zdf_svf0(spl0);
+        Band_Group13 == 0 || Band_Group13== 4 ? spl1 = band14.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process14 ? (
+      Band_Group14 == 1 || Band_Group14 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group14 == 1 ? mid0 = band15.filter.zdf_svf0(mid0) : side0 = band15.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group14 == 0 || Band_Group14 == 3 ? spl0 = band15.filter.zdf_svf0(spl0);
+        Band_Group14 == 0 || Band_Group14 == 4 ? spl1 = band15.filter.zdf_svf1(spl1);
+      )
+    );
+
+    Band_Process15 ? (
+      Band_Group15 == 1 || Band_Group7 == 2 ? ( // Mid or Side
+        encodeMS(spl0, spl1, mid0, side0);
+        Band_Group15 == 1 ? mid0 = band16.filter.zdf_svf0(mid0) : side0 = band16.filter.zdf_svf1(side0);
+        decodeMS(mid0, side0, spl0, spl1);
+      ) : ( // Left and/or Right
+        Band_Group15 == 0 || Band_Group15 == 3 ? spl0 = band16.filter.zdf_svf0(spl0);
+        Band_Group15 == 0 || Band_Group15 == 4 ? spl1 = band16.filter.zdf_svf1(spl1);
+      )
+    );
+
+
+  ) : (
+    // Listen/Solo mode
+    spl0list = spl0;
+    spl1list = spl1;
+
+    listen_group == 1 || listen_group == 2 ? ( // Mid or Side
+      encodeMS(spl0list, spl1list, mid0, side0);
+      listen_group == 1 ? mid0 = listen_filter.zdf_svf0(mid0) : side0 = listen_filter.zdf_svf1(side0);
+
+      listen_group == 1 ? side0 = 0 : mid0 = 0;
+      decodeMS(mid0, side0, spl0list, spl1list);
+    ) : ( // Left and/or Right
+      listen_group == 0 || listen_group == 3 ? spl0list = listen_filter.zdf_svf0(spl0list);
+      listen_group == 0 || listen_group == 4 ? spl1list = listen_filter.zdf_svf1(spl1list);
+      listen_group == 3 ? spl1list = 0;
+      listen_group == 4 ? spl0list = 0;
+    );
+
+    spl0list *= listen_gain;
+    spl1list *= listen_gain;
+  );
+);
+
+// Mid/Side encode
+Stereo_Mode == 0 ? (encodeMs(spl0, spl1, mid0, side0); spl0 = mid0; spl1 = side0);
+
+// Stereo gains
+spl0 *= gainML;
+spl1 *= gainSR;
+
+MidPolarity ? spl0 = -spl0;
+SidePolarity ? spl1 = -spl1;
+
+// Mid/Side decode
+Stereo_Mode == 0 ? (mid0 = spl0; side0 = spl1; decodeMs(mid0, side0, spl0, spl1));
+
+// Overall gains
+spl0 *= gainDb;
+spl1 *= gainDb;
+
+Listen_Process ? (
+  // Mid/Side encode
+  Stereo_Mode == 0 ? (encodeMs(spl0list, spl1list, mid0, side0); spl0list = mid0; spl1list = side0);
+
+  // Stereo gains
+  spl0list *= gainML;
+  spl1list *= gainSR;
+
+  MidPolarity ? spl0list = -spl0list;
+  SidePolarity ? spl1list = -spl1list;
+
+  // Mid/Side decode
+  Stereo_Mode == 0 ? (mid0 = spl0list; side0 = spl1list; decodeMs(mid0, side0, spl0list, spl1list));
+
+  // Overall gains
+  spl0list *= gainDb;
+  spl1list *= gainDb;
+);
+
+// Feed the correct buffers depending on spectrum modes
+Spectrum_Mode == 0 ? spectrum.sample0(spl0 + spl1) :
+Spectrum_Mode == 1 ? spectrum.sample0((spl0 + spl1) * 0.5) :
+Spectrum_Mode == 2 ? spectrum.sample0((spl0 - spl1) * 0.5) :
+Spectrum_Mode == 3 ? (spectrum.sample0((spl0 + spl1) * 0.5); spectrum.sample1((spl0 - spl1) * 0.5)) :
+Spectrum_Mode == 4 ? spectrum.sample0(spl0);
+Spectrum_Mode == 5 ? spectrum.sample0(spl1) :
+Spectrum_Mode == 6 ? (spectrum.sample0(spl0); spectrum.sample1(spl1));
+
+Listen_Process ? (
+  Spectrum_Mode == 0 ? spectrum.sample4(spl0list + spl1list) :
+  Spectrum_Mode == 1 ? spectrum.sample4((spl0list + spl1list) * 0.5) :
+  Spectrum_Mode == 2 ? spectrum.sample4((spl0list - spl1list) * 0.5) :
+  Spectrum_Mode == 3 ? (spectrum.sample4((spl0list + spl1list) * 0.5); spectrum.sample5((spl0list - spl1list) * 0.5)) :
+  Spectrum_Mode == 4 ? spectrum.sample4(spl0list);
+  Spectrum_Mode == 5 ? spectrum.sample4(spl1list) :
+  Spectrum_Mode == 6 ? (spectrum.sample4(spl0list); spectrum.sample5(spl1list));
+  spl0 = spl0list;
+  spl1 = spl1list;
+);
+
+play_state == 1 && agcControl > 0 || agcOverride > 0 ? ( 
+  RMSPre.RMS_process(spl0orig, spl1orig);
+  RMSPost.RMS_process(spl0, spl1);
+
+  rms_db = RMSPre.RMS_getDB();
+  rms_db2 = RMSPost.RMS_getDB();
+  diffdb = rms_db - rms_db2;
+
+  agc_gain = 2 ^ (diffdb/6);
+
+  spl0 *= agc_gain;
+  spl1 *= agc_gain;
+
+  agcOverride > 0 ? ( 
+    agcOverride -= .001;
+    agcOverride <= 0 ? (
+
+      agcControl == 0 ? (
+        Gain = Gain + 6 * log(agc_gain) / log(2);
+        button_gain.db = Gain;
+
+        RMSPre.RMS_reset();
+        RMSPost.RMS_reset();
+      );
+    );
+  );
+);
+
+// Limit the output
+/// LIMITER ///////////////
+ovrlParam1=1.5; //ovrlthresh
+ovrlParam2=0.5; //output
+ovrlParam3=0.5+0*0.5; //ovrlattack
+ovrlParam4=0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+ovrlol = spl0;
+ovrlor = spl1;
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (ovrlol * ovrltr * ovrlg);
+spl1 = (ovrlor * ovrltr * ovrlg);
+
+ovrlgain = ovrlg;
+
+@gfx 955 600
+
+gfx_mode = 0;
+
+gfx_set(1,1,1,1);
+
+gfx_x = 100; gfx_y = 100;
+
+actual_width = gfx_w / xgfx_ext_retina;
+actual_height = gfx_h / xgfx_ext_retina;
+
+// Calculage compact view flags
+// These are used to disable certain elements for graceful visual shrinking
+compact_width = actual_width < 600;
+compact_height = actual_height < 320;
+very_compact_width = actual_width < 300;
+very_compact_height = actual_height < 160;
+
+TOP_MARGIN = 10;
+BOTTOM_MARGIN = xgfx_ext_retina == 2 ? 64 : 32;
+RAISED_BOTTOM = xgfx_ext_retina == 2 ? 240 : 120;
+
+compact_width || compact_height ? BOTTOM_MARGIN = 0;
+
+ShowPanel = PanelEnabled && !compact_width && !compact_height;
+
+ENABLE_RAISED_BOTTOM = ShowPanel;
+
+LEFT_MARGIN = 0;
+RIGHT_MARGIN = 0;
+
+spectrum.top_margin = TOP_MARGIN;
+spectrum.bottom_margin = BOTTOM_MARGIN;
+spectrum.left_margin = LEFT_MARGIN;
+spectrum.left_margin = RIGHT_MARGIN;
+
+gfx_ext_flags == 0 ? ( ///////////////////////////////// MEINE EXT FLAGS
+gfx_w = 955;
+gfx_h=360;
+extfl == 1 ? (
+Display_mode = 0;
+slider8 = 0;
+    flag_filter_update_all(); 
+    sliders_to_filters();
+    update_state();
+extfl = 0;
+);
+):(
+extfl == 0 ? (
+Display_mode = 1;
+slider8 = 1;
+    flag_filter_update_all(); 
+    sliders_to_filters();
+    update_state();
+extfl = 1;
+);
+);
+/*
+ * Set rgb from 0..255
+ */
+function set_rgb255(r, g, b) (
+  gfx_r = r / 255;
+  gfx_g = g / 255;
+  gfx_b = b / 255;
+);
+
+/*
+ * Set rgba from 0..255
+ */
+function set_rgba255(r, g, b, a) (
+  gfx_r = r / 255;
+  gfx_g = g / 255;
+  gfx_b = b / 255;
+  gfx_a = b / 255;
+);
+
+/*
+ * Get screen x from freq
+ */
+function freq_to_scx(freq) (
+  LEFT_MARGIN + ((gfx_w - LEFT_MARGIN - RIGHT_MARGIN) * log(freq / MIN_FREQ) / FREQ_LOG_MAX);
+);
+
+/*
+ * Get freq from screen x
+ */
+function scx_to_freq(x) (
+  x = MIN_FREQ * exp(FREQ_LOG_MAX * (x - LEFT_MARGIN) / (gfx_w - LEFT_MARGIN - RIGHT_MARGIN));
+  max(min(x, MAX_FREQ), MIN_FREQ);
+);
+
+/*
+ * Convert eq dB to screen y
+ */
+function db_to_y(db) local(m) (
+  m = 1.0 - (((db / DB_EQ_RANGE) / 2) + 0.5);
+  TOP_MARGIN+(m * (gfx_h - (gfx_texth*2) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM)));
+);
+
+/*
+ * Get eq dB from screen y
+ */
+function y_to_db(y) local(m) (
+  m = (y - TOP_MARGIN) / (gfx_h - (gfx_texth*2) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM));
+  m = (1.0 - (m + 0.5)) * 2 * DB_EQ_RANGE;
+  max(min(m, DB_EQ_RANGE), -DB_EQ_RANGE);
+);
+
+/*
+ * Draw the node indicators for a band/node
+ * Used for mid/side and left/right indicators
+ */
+function draw_node_stereo(band, x, y, alpha) local (size, nx, ny, x1, x2, x3, y1, y2, y3) (
+  xgfx_ext_retina == 2 ? size = 13 : size = 7;
+
+  gfx_r = gfx_g = gfx_b = 1; gfx_a = alpha;
+
+  // Top + bottom
+  (Band_Group[band] == 1) ? (
+    start = 14 * (2*$pi/16);
+    end = 18 * (2*$pi/16);
+
+    gfx_arc(x-1, y-1, size*2, start, end, 1);
+    gfx_arc(x-1, y-1, (size*2)-0.5, start, end, 1);
+    xgfx_ext_retina == 2 ? gfx_arc(x-1, y-1, (size*2)-1.0, start, end, 1);
+   
+    start = 22 * (2*$pi/16);
+    end = 26 * (2*$pi/16);
+
+    gfx_arc(x-1, y-1, size*2, start, end, 1);
+    gfx_arc(x-1, y-1, (size*2)-0.5, start, end, 1);
+    xgfx_ext_retina == 2 ? gfx_arc(x-1, y-1, (size*2)-1.0, start, end, 1);
+  );
+
+  // Left
+  (Band_Group[band] == 2 || Band_Group[band] == 3) ? (
+    start = 26 * (2*$pi/16);
+    end = 30 * (2*$pi/16);
+
+    gfx_arc(x-1, y-1, size*2, start, end, 1);
+    gfx_arc(x-1, y-1, (size*2)-0.5, start, end, 1);
+    xgfx_ext_retina == 2 ? gfx_arc(x-1, y-1, (size*2)-1.0, start, end, 1);
+  );
+
+  // Right
+  (Band_Group[band] == 2 || Band_Group[band] == 4) ? (
+    start = 18 * (2*$pi/16);
+    end = 22 * (2*$pi/16);
+
+    gfx_arc(x-1, y-1, size*2, start, end, 1);
+    gfx_arc(x-1, y-1, (size*2)-0.5, start, end, 1);
+    xgfx_ext_retina == 2 ? gfx_arc(x-1, y-1, (size*2)-1.0, start, end, 1);
+  );
+);
+
+/*
+ * Draw the node/band
+ */
+function draw_node(band, freq, db, enabled, selected) local(x, y, m, scy, transfer, size, alpha, width) (
+  x = freq_to_scx(freq);
+  y = db_to_y(db);
+
+  //xgfx_ext_retina == 2 ? size = 12 : size = 6;
+  xgfx_ext_retina == 2 ? size = 18 : size = 9;
+
+  y > gfx_h - gfx_texth - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM) ? (
+    node_alpha = 0.5;
+  ) : node_alpha = 1.0;
+
+  y > gfx_h - gfx_texth - BOTTOM_MARGIN ? node_alpha = 0;
+  
+  draw_node_stereo(band, x, y, node_alpha);
+
+  gfx_r = Band_Red[band]; gfx_g = Band_Green[band]; gfx_b = Band_Blue[band];
+
+  // JSFX issue with circles being off one pixel?
+  enabled==2 ? gfx_a=node_alpha : gfx_a = node_alpha * 0.3;
+  gfx_circle(x-1, y-1, size, 1, 1);
+
+  gfx_r = 1; gfx_g = 1; gfx_b = 1; gfx_a -= 0.1;
+  gfx_circle(x-1, y-1, size, 0, 1); gfx_a -= 0.1;
+  gfx_circle(x-1, y-1, size-1, 0, 1); gfx_a -= 0.1;
+  xgfx_ext_retina == 2 ? (
+    gfx_circle(x-1, y-1, size-2, 0, 1); gfx_a -= 0.1;
+    gfx_circle(x-1, y-1, size-3, 0, 1);
+  );
+
+  gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = node_alpha;
+  gfx_circle(x-1, y-1, size, 0, 1);
+
+  band == node_hover || selected_node == band ? (
+    //Custom
+    // Change Alpha when node is pressed
+    selected_node == band ? (
+      gfx_r = 1; gfx_g = 1; gfx_b = 0.3; gfx_a = node_alpha * 0.4;
+    ):(
+      gfx_r = 1; gfx_g = 1; gfx_b = 0.3; gfx_a = node_alpha * 0.2;
+    );
+    // Add extra circle when hovering over band
+    xgfx_ext_retina == 2 ?(
+      gfx_circle(x-1, y-0.7, 20, 0, 1);
+      gfx_circle(x-1, y-0.7, 20, 1, 1);
+    ):(
+      gfx_circle(x-1, y-0.7, 10, 0, 1);
+      gfx_circle(x-1, y-1, 10, 1, 1);
+    );
+  );
+
+  // Draw the band index number
+  gfx_setfont(2);
+  gfx_measurestr(sprintf(#, "%d", band+1), width, height);
+
+  gfx_r = gfx_g = gfx_b = 1; gfx_a = node_alpha;
+  gfx_x = x - width * 0.5;
+  gfx_y = y - gfx_texth * 0.5;
+
+  gfx_drawnumber(band+1,0);
+  gfx_setfont(1);
+
+  Band_Type[band] != BAND_STATE_OFF || Scale != 100 ? (
+    // Draw connecting line so that we can see which node affects which part of the curve
+    // Low Cut,Low Cut (Butterworth),High Cut,High Cut (Butterworth),Band Pass,Notch,Peak,Low Shelf,High Shelf,Tilt Shelf,Pultec Low Shelf,All Pass
+    transfer = (
+      band == 0 ? gfx_band1.filter.zdf_magnitude(freq) :
+        band == 1 ? gfx_band2.filter.zdf_magnitude(freq) :
+          band == 2 ? gfx_band3.filter.zdf_magnitude(freq) :
+            band == 3 ? gfx_band4.filter.zdf_magnitude(freq) :
+              band == 4 ? gfx_band5.filter.zdf_magnitude(freq) :
+                band == 5 ? gfx_band6.filter.zdf_magnitude(freq) :
+                  band == 6 ? gfx_band7.filter.zdf_magnitude(freq) :
+                    band == 7 ? gfx_band8.filter.zdf_magnitude(freq) :
+                      band == 8 ? gfx_band9.filter.zdf_magnitude(freq) :
+                        band == 9 ? gfx_band10.filter.zdf_magnitude(freq) :
+                          band == 10 ? gfx_band11.filter.zdf_magnitude(freq) :
+                            band == 11 ? gfx_band12.filter.zdf_magnitude(freq) :
+                              band == 12 ? gfx_band13.filter.zdf_magnitude(freq) :
+                                band == 13 ? gfx_band14.filter.zdf_magnitude(freq) :
+                                  band == 14 ? gfx_band15.filter.zdf_magnitude(freq) :
+                                    band == 15 ? gfx_band16.filter.zdf_magnitude(freq);
+    );
+
+    m = 20 * log10(transfer);
+
+    // Convert db to screen y
+    scy = db_to_y(m);
+
+    // Notch filters transfer is somewhere down the abyss...compensate
+    Band_Enabled[band] == 2 && Band_Type[band] == 7 ? scy = gfx_h - BOTTOM_MARGIN - gfx_texth;
+
+    scy = min(gfx_h - BOTTOM_MARGIN - gfx_texth, scy);
+
+    gfx_r = Band_Red[band]; gfx_g = Band_Green[band]; gfx_b = Band_Blue[band]; gfx_a = 1;
+
+    scy > y ? y = min(y+size, scy) : y = max(y-size, scy);
+    gfx_line(x, y, x, scy);
+    gfx_a = 0.5;
+    gfx_line(x-1, y, x-1, scy);
+    gfx_line(x+1, y, x+1, scy);
+  ); 
+);
+
+/*
+ * Draw all node/bands
+ */
+function draw_nodes() local (band) (
+  band = 0;
+  loop (NUM_BANDS, (
+      Band_Enabled[band] ? draw_node(band, Band_Frequency[band], Band_Gain[band], Band_Enabled[band], 0);
+      band += 1;
+    );
+  );
+);
+
+/*
+ * Draw a normal line
+ */
+function draw_line(x1, y1, x2, y2)
+(
+  x1 = floor(x1);
+  x2 = floor(x2);
+  x2 = floor(x2);
+  y2 = floor(y2);
+  
+  gfx_a = 1;
+  gfx_line(x1, y1, x2, y2, 1); 
+);
+
+/*
+ * Draw a thick line
+ */
+function draw_thick_line(x1, y1, x2, y2)
+(
+  x1 = floor(x1);
+  x2 = floor(x2);
+  x2 = floor(x2);
+  y2 = floor(y2);
+  
+  gfx_a = 1;
+  gfx_line(x1, y1, x2, y2, 1); 
+  gfx_a = 0.25;
+  gfx_line(x1-1, y1-1, x2+1, y2-1, 1);
+  gfx_line(x1-1, y1+1, x2+1, y2+1, 1);
+);
+
+/*
+ * Draw the colored filter bands
+ */
+function draw_filter_bands()
+  local(xf, step, xo1, yo1, freq, m, scy, midp, tx0, lx0, x0, y0, x1, y1, bottom)
+( 
+  // Frequency to track
+  xf = 0;
+
+  // Go across the screen in these steps
+  step = gfx_w / 1000;
+  gfx_x = 0;
+  gfx_y = (gfx_h / 2) - gfx_texth;
+
+  gfx_r = 0.6; gfx_g = 0.6; gfx_b = 0.6; gfx_a = 1.0;
+
+  bottom = gfx_h - BOTTOM_MARGIN - gfx_texth;
+
+  midp = db_to_y(0);
+
+  band = 0;
+
+  loop(NUM_BANDS, (
+      state = Band_Enabled[band];
+      state != BAND_STATE_OFF ? ( 
+
+        gfx_r = Band_Red[band]; gfx_g = Band_Green[band]; gfx_b = Band_Blue[band];
+
+        xo1 = 0;
+        yo1 = (gfx_h - gfx_texth)*0.5;
+        xf = 0;
+        while (
+          freq = scx_to_freq(xf);
+
+          transfer = (
+            band == 0 ? gfx_band1.filter.zdf_magnitude(freq) :
+              band == 1 ? gfx_band2.filter.zdf_magnitude(freq) :
+                band == 2 ? gfx_band3.filter.zdf_magnitude(freq) :
+                  band == 3 ? gfx_band4.filter.zdf_magnitude(freq) :
+                    band == 4 ? gfx_band5.filter.zdf_magnitude(freq) :
+                      band == 5 ? gfx_band6.filter.zdf_magnitude(freq) :
+                        band == 6 ? gfx_band7.filter.zdf_magnitude(freq) :
+                          band == 7 ? gfx_band8.filter.zdf_magnitude(freq) :
+                            band == 8 ? gfx_band9.filter.zdf_magnitude(freq) :
+                              band == 9 ? gfx_band10.filter.zdf_magnitude(freq) :
+                                band == 10 ? gfx_band11.filter.zdf_magnitude(freq) :
+                                  band == 11 ? gfx_band12.filter.zdf_magnitude(freq) :
+                                    band == 12 ? gfx_band13.filter.zdf_magnitude(freq) :
+                                      band == 13 ? gfx_band14.filter.zdf_magnitude(freq) :
+                                        band == 14 ? gfx_band15.filter.zdf_magnitude(freq) :
+                                          band == 15 ? gfx_band16.filter.zdf_magnitude(freq);
+          );
+
+          m = 20 * log10(transfer);
+
+          // Convert db to screen y
+          scy = db_to_y(m);
+
+          xo1 > 0 ? (
+            x0 = xo1; y0 = yo1;
+            x1 = xf; y1 = scy;
+
+            yo1 < bottom && scy < bottom ? (
+              gfx_a = 1.0;
+
+              // Clip line against bottom
+              y1 > bottom ? (
+                delta = (bottom - y0) / (y1 - y0);
+                x1 = x0 + delta * (x1 - x0);
+                y1 = bottom;
+              );
+
+              y0 > bottom ? (
+                delta = (bottom - y1) / (y0 - y1);
+                x0 = x1 + delta * (x0 - x1);
+                y0 = bottom;
+              );
+
+              // Thinner line in very compact mode, thicker if not
+              (very_compact_width || very_compact_height) ? draw_line(x0, y0, x1, y1) :
+                draw_thick_line(x0, y0, x1, y1);
+            );
+
+            // Fill in
+            gfx_a = 0.5;
+            tx0=xf|0;
+            lx0=xo1|0;
+            y1 = min(scy, bottom);
+            y0 = min(yo1, bottom);
+            state == BAND_STATE_ENABLED ? (
+              tx0>lx0 ? (
+                xgfx_ext_retina == 2 ? gfx_triangle(xo1, y0+2, xf-1, y1+2, xf-1, midp, xo1, midp) :
+                  gfx_triangle(xo1, y0+1, xf-1, y1+1, xf-1, midp, xo1, midp);
+              );
+            );
+          );
+
+          xo1 = xf; yo1 = scy;
+
+          xf += step;
+          xf < gfx_w;
+        );
+
+      );
+
+      band += 1;
+    );
+  );
+);
+
+/*
+ * Draw the response for all filters
+ */
+function draw_filter_response(group, red, green, blue)
+  local(xf, step, xo1, yo1, freq, m, scy, midp, tx0, lx0, x0, y0, x1, y1, delta, bottom,
+    be0, be1, be2, be3, be4, be5, be6, be7, be8, be9, be10, be11, be12, be13, be14, be15,
+    bg0, bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, bg13, bg14, bg15)
+(
+  // Go across the screen in these steps
+  step = gfx_w / 1000;
+  gfx_x = 0;
+  gfx_y = (gfx_h / 2) - gfx_texth;
+
+  gfx_r = red; gfx_g = green; gfx_b = blue; gfx_a = 1.0;
+
+  be0 = (Band_Enabled[0] == BAND_STATE_ENABLED) && (Band_Group[0] == group);
+  be1 = (Band_Enabled[1] == BAND_STATE_ENABLED) && (Band_Group[1] == group);
+  be2 = (Band_Enabled[2] == BAND_STATE_ENABLED) && (Band_Group[2] == group);
+  be3 = (Band_Enabled[3] == BAND_STATE_ENABLED) && (Band_Group[3] == group);
+  be4 = (Band_Enabled[4] == BAND_STATE_ENABLED) && (Band_Group[4] == group);
+  be5 = (Band_Enabled[5] == BAND_STATE_ENABLED) && (Band_Group[5] == group);
+  be6 = (Band_Enabled[6] == BAND_STATE_ENABLED) && (Band_Group[6] == group);
+  be7 = (Band_Enabled[7] == BAND_STATE_ENABLED) && (Band_Group[7] == group);
+  be8 = (Band_Enabled[8] == BAND_STATE_ENABLED) && (Band_Group[8] == group);
+  be9 = (Band_Enabled[9] == BAND_STATE_ENABLED) && (Band_Group[9] == group);
+  be10 = (Band_Enabled[10] == BAND_STATE_ENABLED) && (Band_Group[10] == group);
+  be11 = (Band_Enabled[11] == BAND_STATE_ENABLED) && (Band_Group[11] == group);
+  be12 = (Band_Enabled[12] == BAND_STATE_ENABLED) && (Band_Group[12] == group);
+  be13 = (Band_Enabled[13] == BAND_STATE_ENABLED) && (Band_Group[13] == group);
+  be14 = (Band_Enabled[14] == BAND_STATE_ENABLED) && (Band_Group[14] == group);
+  be15 = (Band_Enabled[15] == BAND_STATE_ENABLED) && (Band_Group[15] == group);
+
+  bottom = gfx_h - BOTTOM_MARGIN - gfx_texth;
+
+  xo1 = 0;
+  yo1 = (gfx_h - gfx_texth)*0.5;
+  xf = 0;
+  while (
+    freq = scx_to_freq(xf);
+    freq > 22049 ? freq = 22049;
+
+    // Apply the filters
+    m = 1.0;
+
+    be0 ? m *= gfx_band1.filter.zdf_magnitude(freq);
+    be1 ? m *= gfx_band2.filter.zdf_magnitude(freq);
+    be2 ? m *= gfx_band3.filter.zdf_magnitude(freq);
+    be3 ? m *= gfx_band4.filter.zdf_magnitude(freq);
+    be4 ? m *= gfx_band5.filter.zdf_magnitude(freq);
+    be5 ? m *= gfx_band6.filter.zdf_magnitude(freq);
+    be6 ? m *= gfx_band7.filter.zdf_magnitude(freq);
+    be7 ? m *= gfx_band8.filter.zdf_magnitude(freq);
+    be8 ? m *= gfx_band9.filter.zdf_magnitude(freq);
+    be9 ? m *= gfx_band10.filter.zdf_magnitude(freq);
+    be10 ? m *= gfx_band11.filter.zdf_magnitude(freq);
+    be11 ? m *= gfx_band12.filter.zdf_magnitude(freq);
+    be12 ? m *= gfx_band13.filter.zdf_magnitude(freq);
+    be13 ? m *= gfx_band14.filter.zdf_magnitude(freq);
+    be14 ? m *= gfx_band15.filter.zdf_magnitude(freq);
+    be15 ? m *= gfx_band16.filter.zdf_magnitude(freq);
+
+    // Convert from scalar to db
+    m = 20 * log10(m);
+
+    // Convert db to screen y
+    scy = db_to_y(m);
+
+    xo1 > 0 && !(yo1 > bottom && scy > bottom) ? (
+      x0 = xo1; y0 = yo1;
+      x1 = xf; y1 = scy;
+
+      // Clip line against bottom
+      y1 > bottom ? (
+        delta = (bottom - y0) / (y1 - y0);
+        x1 = x0 + delta * (x1 - x0);
+        y1 = bottom;
+      );
+
+      y0 > bottom ? (
+        delta = (bottom - y1) / (y0 - y1);
+        x0 = x1 + delta * (x0 - x1);
+        y0 = bottom;
+      );
+
+      gfx_a = 1;
+
+      xgfx_ext_retina == 2 ? (
+        draw_thick_line(x0, y0, x1, y1);
+
+        // If we're not in very compact mode then thicken the line up more
+        (!very_compact_width && !very_compact_height) ? (
+          abs(x1 - x0) > abs(y1 - y0) ? (
+            draw_thick_line(x0, y0+1, x1, y1+1);
+            draw_thick_line(x0, y0-1, x1, y1-1);
+          ) : ( 
+            draw_thick_line(x0+1, y0, x1+1, y1);
+            draw_thick_line(x0-1, y0, x1-1, y1);
+          );
+        );
+      ) : (
+        // Thinner line in very compact mode, thicker if not
+        (very_compact_width || very_compact_height) ? draw_line(x0, y0, x1, y1) :
+          draw_thick_line(x0, y0, x1, y1);
+      )
+
+      /*
+      midp = (gfx_h - gfx_texth) / 2;
+
+      // Fill in positive gain (above mid line)
+      scy < midp-3 ? ( 
+        gfx_r = 1; gfx_g = 1; gfx_b = 1; gfx_a = 0.3;
+
+        tx0=xf|0;
+        lx0=xo|0;
+        tx0>lx0 ? (
+          gfx_triangle(xo1, yo1+2, xf-1, scy+2, xf-1, midp, xo1, midp);
+        );
+      );
+
+      // Fill in negative gain (below mid line)
+      scy > midp+3 ? ( 
+        gfx_r = 1; gfx_g = 1; gfx_b = 1; gfx_a = 0.2;
+
+        tx0=xf|0;
+        lx0=xo|0;
+        tx0>lx0 ? (
+          gfx_triangle(xo1, yo1-2, xf-1, scy-2, xf-1, midp, xo1, midp);
+        );
+      );
+      */
+    );
+
+    xo1 = xf; yo1 = scy;
+
+    xf += step;
+    xf < gfx_w;
+  );
+);
+
+/*
+ * Draw the eq grid
+ */
+function draw_grid() local (db, y, scx, size) (
+
+  spectrum.draw_grid(1);
+
+  gfx_r=gfx_g=0.3; gfx_b=0; gfx_a=1.0;
+
+  // Draw db scale button area
+  xgfx_ext_retina == 2 ? (
+    gfx_rect(gfx_w - 40, 0, gfx_w - (gfx_w - 40), gfx_texth*1.2);
+    gfx_circle(gfx_w - 40, gfx_texth/2+2, 12, 1);
+  ) : ( 
+    gfx_rect(gfx_w - 22, 0, gfx_w - (gfx_w - 30), gfx_texth*1.7);
+    gfx_circle(gfx_w - 22, gfx_texth/2+2, 12, 1);
+  );
+
+  // Draw gain db
+  gfx_y=-100;
+
+  db = DB_EQ_RANGE;
+
+  while(
+    y = db_to_y(db);
+
+    scx = gfx_w;
+
+    y > gfx_y ? (
+      gfx_r=gfx_g=gfx_b=1; gfx_a=0.3;
+    
+      abs(db) <= DB_EQ_RANGE ? (
+        gfx_line((gfx_texth*2), y, gfx_w-(gfx_texth*2.2), y, 0);
+        gfx_r=gfx_g=0.75; gfx_b=0; gfx_a=1.0;
+        gfx_x = scx-gfx_texth*(xgfx_ext_retina == 2 ? 2 : 2); gfx_y = y - gfx_texth/2;
+        db > 0 ? gfx_printf("+%d", db) : db < 0 ? gfx_printf("%d", db) : gfx_printf("  %d", db);
+      ) : (
+        y < gfx_h - gfx_texth*2 - BOTTOM_MARGIN ? gfx_line((gfx_texth*2), y, gfx_w - gfx_texth, y, 0);
+      );
+      gfx_y += gfx_texth;
+    );
+    db -= DB_EQ_RANGE_STEPS;
+
+    y < gfx_h - gfx_texth*2 - BOTTOM_MARGIN;
+
+  );
+);
+
+/*
+ * Return true if the mouse is over the freq and dB
+ */
+function is_node_selected(freq, db) local (x, y, d) ( 
+ x = freq_to_scx(freq);
+  y = db_to_y(db);
+  d = sqrt((x - mouse_x)^2 + (y - mouse_y)^2);
+  d < 12;
+
+);
+
+/*
+ * Return nearest node to mouse within dist or -1 if none
+ */
+function get_node_in_range(dist)
+  local(band, found, founddist, dist, x, y, d)
+(
+  band = 0;
+  found = -1;
+  founddist = 1000000;
+
+  while( 
+    Band_Enabled[band] != BAND_STATE_OFF ? (
+      x = freq_to_scx(Band_Frequency[band]);
+      y = db_to_y(Band_Gain[band]);
+
+      d = sqrt((x - mouse_x)^2 + (y - mouse_y)^2);
+      d < founddist && d < dist ? (
+        founddist = d;
+        found = band;
+      );
+    );
+    band += 1;
+    band < NUM_BANDS;
+  );
+
+  found;
+);
+
+/*
+ * Return node nearby to mouse or -1 if none
+ */
+function get_nearby_node()
+  local(band, found, founddist, dist, x, y, d)
+(
+  get_node_in_range(xgfx_ext_retina == 1 ? dist = sqrt(70 * 70) : dist = sqrt(140 * 140));
+);
+
+/*
+ * Return node nearest to mouse within node halo dist or -1 if none
+ */
+function get_nearest_node()
+  local(band, found, founddist, dist, x, y, d)
+(
+  get_node_in_range(xgfx_ext_retina == 1 ? dist = sqrt(12 * 12) : dist = sqrt(24 * 24));
+);
+
+/*
+ * Return readable string of frequency
+ */
+function get_freq_str(read_freq) instance(frq) ( 
+  frq = #;
+  read_freq < 100 ? ( sprintf(frq,"%.1f Hz", read_freq) ) :
+    (read_freq < 1000 ? ( sprintf(frq,"%.0f Hz", read_freq) ) : ( 
+      (read_freq < 10000 ? ( sprintf(frq,"%.2f kHz", read_freq/1000) ) : ( 
+        sprintf(frq,"%.1f kHz", read_freq/1000);
+      )
+    )
+  ));
+  frq;
+);
+
+/*
+ * Draw the mouse crosshair
+ */
+function draw_mouse_crosshair() local(read_freq, frq, width, height, frq) (
+  read_freq = spectrum.x_to_freq(mouse_x+1);
+
+  frq = cross.get_freq_str(read_freq);
+
+  gfx_measurestr(frq, width, height);
+
+  // Black rectangle background
+  gfx_set(0, 0, 0, 1);
+  gfx_x = mouse_x - (width * 0.5);
+  gfx_y = gfx_h-(gfx_texth-2)-spectrum.bottom_margin;
+  gfx_rect(gfx_x - 10, gfx_y, width+20, gfx_texth);
+
+  // Now draw the frequency string
+  gfx_set(0.6, 0.6, 0.6, 1);
+
+  gfx_x = mouse_x - (width * 0.5);
+  gfx_y = gfx_h-(gfx_texth-2)-spectrum.bottom_margin;
+
+  gfx_drawstr(frq);
+
+/*
+  // Draw the mouse crosshairs
+  gfx_set(1.0, 1.0, 1.0, 0.3);
+  mouse_y < gfx_h - BOTTOM_MARGIN ? gfx_line(0,mouse_y,gfx_w,mouse_y,1);
+  gfx_line(mouse_x,0,mouse_x,gfx_h - BOTTOM_MARGIN, 1);
+*/
+);
+
+/*
+ * Draw a round cornered rectangle
+ */
+function draw_filled_rect(x, y, w, h, rad, alias) ( 
+    gfx_circle(x+rad, y+rad, rad, 1, alias);
+    gfx_circle(x+w-rad-1, y+rad, rad, 1, alias);
+    gfx_circle(x+w-rad-1, y+h-rad-1, rad, 1, alias);
+    gfx_circle(x+rad, y+h-rad-1, rad, 1, alias);
+
+    gfx_rect(x, y+rad, rad*2, h-rad*2, alias);
+    gfx_rect(x+w-rad*2, y+rad, rad*2, h-rad*2, alias);
+    gfx_rect(x+rad, y, w-rad*2, rad*2, alias);
+    gfx_rect(x+rad, y+h-rad*2, w-rad*2, rad*2, alias);
+
+    gfx_rect(x+rad, y+rad, w-rad*2, h-rad*2, alias);
+);
+
+/*
+ * Return true if mouse is within current window boundaries
+ */
+function mouse_within_window() ( 
+ // mouse_x >= 0 && mouse_x < gfx_w && mouse_y >= 0 && mouse_y < gfx_h;
+0>1;
+);
+
+/*
+ * Return true if mouse is within panel
+ */
+function mouse_within_panel() ( 
+ // ShowPanel && (mouse_x >= panel_x && mouse_x < panel_x+panel_w && mouse_y >= panel_y && mouse_y < panel_y+panel_h);
+0>1;
+);
+
+/*
+ * Draw the info panel showing frequency, note, cent and dB
+ */
+function draw_info_panel(note_select)
+  local(x, y, xbase, read_freq, read_amp, q, band, C0, semi, octave, note, cent, keys, nn, note_freq, centstr, width, rect_height, slope, panel_offset_x)
+ (
+  hide = 0;
+  mouse_within_window() || node_drag_mode ? 
+  (
+    gfx_set(0, 0.5, 1);
+    read_freq = note_select == 0 ? spectrum.x_to_freq(mouse_x) : note_select;
+    read_amp = y_to_db(mouse_y);
+    
+ node_drag_mode == 1 ?
+    (
+      read_freq = Band_Frequency[node_drag];
+      read_amp = Band_Gain[node_drag];
+      q = Band_Q[node_drag];
+    );
+    
+    node_drag_mode == 0 ? (
+      q = -1;
+      slope = -1;
+      node_hover = do_listen ? get_nearest_node() : get_nearby_node();
+
+      node_hover == -1 ? node_hover = listen_node;
+
+      node_hover != -1 ? ( 
+        band = node_hover;
+        q = Band_Q[band];
+        read_freq = Band_Frequency[band];
+        read_amp = Band_Gain[band];
+        Band_Type[band] == 1 || Band_Type[band] == 2 || Band_Type[band] == 5 || Band_Type[band] == 6 ? slope = 6 + Band_Slope[band] * 6;
+        band = NUM_BANDS;
+
+        // Hide info panel if it's too low
+        y = db_to_y(read_amp);
+        y > gfx_h - gfx_texth - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM) ? hide = 1;
+      );
+    );
+ 
+    //Only show info while hovering band point or in listen mode (handy to see freq etc)
+    node_drag_mode || node_hover != -1 || do_listen && !hide ? (
+
+      x = freq_to_scx(read_freq);
+      y = db_to_y(read_amp);
+    
+      xgfx_ext_retina != 2 ? x += 20;
+      rect_height = 4.2;
+      q != -1 ? rect_height += 1;
+      slope != -1 ? rect_height += 1;
+      width = 140;
+      
+      //CUSTOM
+      panel_offset_x = 50;
+      panel_offset_y = 60;
+      
+      xgfx_ext_retina != 2 ? ( width -= 50; panel_offset_x += 45; );
+
+      gfx_x = x - 50;
+
+      // Clamp x position so the panel is never off screen horizontally
+      xgfx_ext_retina != 2 ? (
+        gfx_x = max(32, gfx_x);
+        gfx_x = min(gfx_w - width - 18, gfx_x);
+      ) : ( 
+        gfx_x = max(48, gfx_x);
+        gfx_x = min(gfx_w - width - 32, gfx_x);
+      );
+
+      xbase = gfx_x;
+      
+      xgfx_ext_retina != 2 ? (
+        panel_offset_y -= 130;
+      ):(
+       panel_offset_y -= 190;
+     );
+     
+      //Show panel below band node when dragged under 0db
+      read_amp > 0 ?
+      (
+        gfx_y = y - gfx_texth * rect_height - gfx_texth;
+        gfx_y < 14 ? ( 
+          gfx_y = y - rect_height - panel_offset_y - BOTTOM_MARGIN; //Below
+        );
+      ):
+      (
+        gfx_y = y - rect_height - panel_offset_y - BOTTOM_MARGIN; //Below
+        gfx_y > gfx_h - (gfx_texth * rect_height) - gfx_texth - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM) ? (
+          gfx_y = y - gfx_texth * rect_height - gfx_texth;
+        );
+      );
+      
+      xgfx_ext_retina != 2 ? rect_height += 1.0;
+      
+      //draw_filled_rect(gfx_x-15, gfx_y-15, width+10, gfx_texth*rect_height+10, 8, 1);
+      xgfx_ext_retina != 2 ?
+      (
+        gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2; //shadow
+        gfx_rect(gfx_x-15,gfx_y-7,width+5, gfx_texth*rect_height);
+        
+        gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.3; //black border
+        gfx_rect(gfx_x-12,gfx_y-15,width-1, gfx_texth*rect_height+1);
+        
+        gfx_r = 1; gfx_g = 1; gfx_b = 1; gfx_a = 0.2; //Highlight
+        gfx_rect(gfx_x-11,gfx_y-14,width-3, gfx_texth*rect_height-1);
+        
+        gfx_gradrect(gfx_x-10, gfx_y-13, width-5, gfx_texth*rect_height-3,
+          0.1 ,0.1, 0.1, 0.4,
+          0.0, 0.0, 0.0, 0 / width,
+          0.0, 0.0, 0.0, -0.0025 /gfx_texth*rect_height);  
+      ) :
+      (
+        gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.1; //shadow
+        gfx_rect(gfx_x-22,gfx_y-4,width+14, gfx_texth*rect_height+3);
+        
+        gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2; //black border
+        gfx_rect(gfx_x-18,gfx_y-17,width+5, gfx_texth*rect_height+5);
+        
+        gfx_r = 1; gfx_g = 1; gfx_b = 1; gfx_a = 0.1; //Highlight
+        gfx_rect(gfx_x-15,gfx_y-15,width-1, gfx_texth*rect_height-1);
+        
+        gfx_gradrect(gfx_x-12, gfx_y-12, width-7,  gfx_texth*rect_height-7,
+          0.1 ,0.1, 0.1, 0.3,
+          0.0, 0.0, 0.0, 0 / width,
+          0.0, 0.0, 0.0, -0.0025 /gfx_texth*rect_height); 
+      );
+   
+      xgfx_ext_retina != 2 ? x -= 17;
+
+      //Text Color
+      gfx_r = 1; gfx_g = 1; gfx_b = 0.3; gfx_a = 1;
+  
+      gfx_x = xbase;
+      gfx_y -= 6;
+
+      read_freq < 100 ? ( gfx_drawstr(sprintf(#,"%.1f Hz", read_freq)) ) :
+        (read_freq < 1000 ? ( gfx_drawstr(sprintf(#,"%.0f Hz", read_freq)) ) : ( 
+          (read_freq < 10000 ? ( gfx_drawstr(sprintf(#,"%.2f kHz", read_freq/1000)) ) : ( 
+            gfx_drawstr(sprintf(#,"%.1f kHz", read_freq/1000));
+          )
+        )
+      ));
+      gfx_r = 180 / 255; gfx_g = 180 / 255; gfx_b = 180 / 255; gfx_a = 1.0;
+      // 440Hz is A4, get C0 as offset from that
+      C0 = 440 * pow(2, -4.75);
+  
+      // Get seminotes (note number), octave and note within octave
+      semi = round(12 * log2(read_freq / C0));
+      octave = floor(semi / 12);
+      note = (semi % 12);
+  
+      // Calculate cents
+      note_freq = C0 * 2.71828 ^ (0.0577623 * semi);
+      cent = floor(1200 * log2(read_freq / note_freq));
+  
+      // The above math goes a bit screwy for our -1 lowest octave.
+      // We get a kind of inverse reflection.  This fixes it up.
+      octave == -1 ? (
+        note = (13 - (-(semi))) % 12;
+        cent = -(99 - cent);
+      );
+ 
+      // Display it all
+      keys="CCDDEFFGGAAB";
+  
+      strcpy_substr(nn=#,keys,note,1);
+      note==1 || note==3 || note==6 || note==8 || note==10 ? strcat(nn,"#");
+  
+      strcat(nn, int2str(octave));
+  
+      cent < 0 ? strcpy(centstr=#,"-") : strcpy(centstr=#,"+");
+      abs(cent) <= 9 ? strcat(centstr, "0");
+  
+      strcat(centstr, sprintf(#, "%d", abs(cent)));
+      
+      //Offset Info panels
+      gfx_x = xbase;
+      gfx_y += gfx_texth+2;
+      gfx_drawstr(nn); 
+
+      gfx_x = xbase + (xgfx_ext_retina != 2 ? 35 : 65);
+      gfx_drawstr(centstr);
+      
+      gfx_x = xbase;
+      gfx_y += gfx_texth+2;
+      gfx_drawstr(sprintf(#,"%.1f dB", read_amp));
+  
+      q > -1 ? (
+        gfx_x = xbase;
+        gfx_y += gfx_texth+2;
+        band = -1;
+        node_drag_mode != 0 ? band = node_drag : node_hover != -1 ? band = node_hover;
+        band != -1 && Band_Type[band] == 10 ? gfx_drawstr(sprintf(#,"Cut: %.2f", q/40))
+        : gfx_drawstr(sprintf(#,"Q: %.2f", q));
+      );
+  
+      slope > -1 ? (
+        gfx_x = xbase;
+        gfx_y += gfx_texth+2;
+        gfx_drawstr(sprintf(#,"S: %d dB", slope));        
+      );
+    );
+  );
+);
+
+/*
+ * Draw the listener boundaries and set the Q for the bandpass filter
+*/
+function draw_listen_helper()
+  local (mouse_spec, lread_freq, rread_freq, lfreq, rfreq, lx, rx, node, width, gain, sy)
+(
+  gfx_r = 240 / 255; gfx_g = 101 / 255; gfx_b = 76 / 255;
+  
+  listen_freq = spectrum.x_to_freq(mouse_x);
+
+  mouse_spec = (mouse_x - spectrum.left_margin) / (gfx_w - spectrum.left_margin - spectrum.right_margin);
+
+  lread_freq = spectrum.min_freq * exp(spectrum.freq_log_max * (mouse_spec - listen_width));
+  rread_freq = spectrum.min_freq * exp(spectrum.freq_log_max * (mouse_spec + listen_width));
+
+  lfreq = lread_freq;
+  rfreq = rread_freq;
+
+  lx = spectrum.freq_to_x(lfreq);
+  rx = spectrum.freq_to_x(rfreq);
+
+  node_drag_mode == 1 || node_hover != -1  || listen_node != -1 ? (
+
+    node_drag_mode == 1 ? node = node_drag : node = node_hover;
+
+    listen_node != -1 ? node = listen_node;
+
+    listen_freq = Band_Frequency[node];
+    listen_q = Band_Q[node];
+    listen_group = Band_Group[node];
+    width = listen_filter.zdf_qtobw(listen_q);
+
+    // Peak or notch? - Has a wider band range
+    Band_Type[node] == FILTER_PEAK || Band_Type[node] == FILTER_NOTCH ? ( 
+      width *= 2;
+    );
+
+    lread_freq = listen_freq / (pow(2, width/2));
+    rread_freq = listen_freq * (pow(2, width/2));
+
+    lfreq = lread_freq;
+    rfreq = rread_freq;
+
+    lx = spectrum.freq_to_x(lfreq);
+    rx = spectrum.freq_to_x(rfreq);
+
+    listen_q = listen_filter.zdf_bwtoq(width);
+
+    // Peak, Band Pass or Notch?
+    Band_Type[node] == FILTER_PEAK || Band_Type[node] == FILTER_BAND_PASS || Band_Type[node] == FILTER_NOTCH ? ( 
+
+      Band_Type[node] == FILTER_PEAK ? (
+        gain = Band_Enabled[node] == BAND_STATE_ENABLED ? Band_Gain[node] : 0;
+        listen_filter.zdf_listen_eq(lfreq, rfreq, Band_Frequency[node], Band_Q[node], db_to_gain(gain));
+      ) : (
+        Band_Type[node] == FILTER_BAND_PASS ? (
+          listen_filter.zdf_listen_bs(lfreq, rfreq, Band_Frequency[node], Band_Q[node]);
+        ) : ( 
+          listen_filter.zdf_bp2(listen_freq, Band_Q[node]);
+        );
+      );
+
+      gfx_a = 1.0;
+      gfx_line(lx, 0, lx, gfx_h - BOTTOM_MARGIN);
+      gfx_line(rx, 0, rx, gfx_h - BOTTOM_MARGIN);
+
+      gfx_a = 0.8;
+      gfx_line(lx-1, 0, lx-1, gfx_h - BOTTOM_MARGIN);
+      gfx_line(rx+1, 0, rx+1, gfx_h - BOTTOM_MARGIN);
+
+      gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2;
+      gfx_rect(lx-3, 0, 2, gfx_h - BOTTOM_MARGIN);
+
+      gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2;
+      gfx_rect(rx+2, 0, 2, gfx_h - BOTTOM_MARGIN);
+
+    ) : (
+      // Cut or shelf
+      gfx_a = 1.0;
+      lx = spectrum.freq_to_x(listen_freq);
+
+      Band_Type[node] == FILTER_LOW_CUT ? (
+        listen_filter.zdf_lp(listen_freq, Band_Q[node], Band_Slope[node]);
+      );
+      Band_Type[node] == FILTER_LOW_CUT_BUTTERWORTH ? (
+        listen_filter.zdf_lpb(listen_freq, Band_Slope[node]);
+      );
+
+      Band_Type[node] == FILTER_LOW_CUT_ANALOG ? (
+        listen_filter.zdf_lp(listen_freq, 0.701, 3);
+      );
+      Band_Type[node] == FILTER_HIGH_CUT_ANALOG ? (
+        listen_filter.zdf_hp(listen_freq, 0.701, 3);
+      );
+
+      Band_Type[node] == FILTER_LOW_SHELF ? (
+        lx = spectrum.freq_to_x(rfreq);
+        rfreq = min(max(rfreq, 10), 44000);
+        listen_filter.zdf_lpb(rfreq, 3);
+      );
+      Band_Type[node] == FILTER_HIGH_SHELF ? (
+        lx = spectrum.freq_to_x(lfreq);
+        lfreq = min(max(lfreq, 10), 44000);
+        listen_filter.zdf_hpb(lfreq, 3);
+      );
+
+      Band_Type[node] == FILTER_HIGH_CUT ? (
+        listen_filter.zdf_hp(listen_freq, Band_Q[node], Band_Slope[node]);
+      );
+      Band_Type[node] == FILTER_HIGH_CUT_BUTTERWORTH ? (
+        listen_filter.zdf_hpb(listen_freq, Band_Slope[node]);
+      );
+
+      Band_Type[node] == FILTER_TILT_SHELF || Band_Type[node] == FILTER_ALL_PASS ? (
+        listen_filter.zdf_bypass();
+      );
+
+      Band_Type[node] == FILTER_PULTEC_LOW_SHELF ? (
+        // Pultec style - maybe we can do better?
+        lx = spectrum.freq_to_x(rfreq);
+        rfreq = min(max(rfreq, 10), 44000);
+        listen_filter.zdf_lpb(rfreq, 3);
+      );
+
+      Band_Type[node] != FILTER_TILT_SHELF && Band_Type[node] != FILTER_ALL_PASS ? gfx_line(lx, 0, lx, gfx_h - BOTTOM_MARGIN);
+    );
+
+  ) : (
+
+
+    // listen_gain = db_to_gain(8);
+    mouse_cap & 1 ? (
+      listen_gain = db_to_gain(y_to_db(mouse_y));
+
+      sy = mouse_y;
+
+      sy < gfx_h - BOTTOM_MARGIN ? (
+        gfx_a = 1.0;
+        gfx_line(lx, sy, rx, sy);
+        gfx_line(lx, sy+1, rx, sy+1);
+      );
+
+    ) : listen_gain = db_to_gain(0);
+
+    listen_filter.zdf_listen_eq(lfreq, rfreq, listen_freq, 0.7071, db_to_gain(0));
+  
+    gfx_a = 1.0;
+    gfx_line(lx, 0, lx, gfx_h - BOTTOM_MARGIN);
+    gfx_line(rx, 0, rx, gfx_h - BOTTOM_MARGIN);
+
+    gfx_a = 0.8;
+    gfx_line(lx-1, 0, lx-1, gfx_h - BOTTOM_MARGIN);
+    gfx_line(rx+1, 0, rx+1, gfx_h - BOTTOM_MARGIN);
+
+    gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2;
+    gfx_rect(lx-3, 0, 2, gfx_h - BOTTOM_MARGIN);
+
+    gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.2;
+    gfx_rect(rx+2, 0, 2, gfx_h - BOTTOM_MARGIN);
+  );
+
+  // gfx_x = gfx_y = 100; gfx_r = gfx_g = gfx_b = gfx_a = 1;
+  // gfx_printf("listen_q = %f", listen_q);  gfx_y = 20;
+  // gfx_printf("listen_width = %f", listen_width);  gfx_y = 20;
+);
+
+/*
+ * Create a band
+ */
+function create_band(band, x, y) local (m, g, f, i, enabledBands) (
+  f = scx_to_freq(x);
+  g = y_to_db(y);
+
+  // See if any bands are enabled
+  enabledBands = 0;
+  i = 0;
+  while ( 
+    Band_Enabled[i] == BAND_STATE_ENABLED ? enabledBands += 1;
+    i += 1;
+    i < NUM_BANDS;
+  );
+
+  // No bands exist, default group is stereo
+  enabledBands == 0 ? selected_node_group = 0;
+
+  Band_Enabled[band] = BAND_STATE_ENABLED;
+  Band_Group[band] = selected_node_group;
+  Band_Frequency[band] = f;
+  Band_Gain[band] = g;
+  Band_Q[band] = 0.7071;
+  Band_Slope[band] = 0;
+
+  // Select band type based on frequency
+  f < 20 ? ( 
+    Band_Type[band] = 1;
+  ) : f < 30 ? ( 
+    Band_Type[band] = 3;
+    Band_Q[band] = 0.36;
+  ) : f < 10000 ? ( 
+    Band_Type[band] = 0;
+  ) : f < 15000 ? ( 
+    Band_Type[band] = 4;
+    Band_Q[band] = 0.36;
+  ) : ( 
+    Band_Type[band] = 5;
+  );
+
+  flag_filter_update(band);
+
+  filters_to_sliders();
+);
+
+/*
+ * Split the band
+ */
+function split_band(band, other) (
+  Band_Enabled[band] = Band_Enabled[other];
+  Band_Group[band] = 1;
+  Band_Type[band] = Band_Type[other];
+  Band_Frequency[band] = Band_Frequency[other];
+  Band_Gain[band] = Band_Gain[other];
+  Band_Q[band] = Band_Q[other];
+  Band_Slope[band] = Band_Slope[other];
+
+  Band_Group[other] = 2;
+
+  Band_Update[band] = 1;
+  Band_GfxUpdate[band] = 1;
+  Band_Update[other] = 1;
+  Band_GfxUpdate[other] = 1;
+
+  flag_filter_update(band);
+  flag_filter_update(other);
+
+  filters_to_sliders();
+);
+
+/*
+ * Split the band
+ */
+function duplicate_band(band, other) (
+  Band_Enabled[band] = Band_Enabled[other];
+  Band_Group[band] = Band_Group[other];
+  Band_Type[band] = Band_Type[other];
+  Band_Frequency[band] = Band_Frequency[other];
+  Band_Gain[band] = Band_Gain[other];
+  Band_Q[band] = Band_Q[other];
+  Band_Slope[band] = Band_Slope[other];
+
+  Band_Update[band] = 1;
+  Band_GfxUpdate[band] = 1;
+  Band_Update[other] = 1;
+  Band_GfxUpdate[other] = 1;
+
+  flag_filter_update(band);
+  flag_filter_update(other);
+
+  filters_to_sliders();
+);
+
+/*
+ * Set the node color
+ */
+function set_node_color(band, frq) local (bnd, bndabs, bndfrac) (
+  bnd = freq_to_per(frq, 7.0);
+
+  bndabs = floor(bnd);
+  bndfrac = bnd - bndabs;
+
+  bndabs == 0.0 ? (r1 = color_band0.red; g1 = color_band0.green; b1 = color_band0.blue) :
+    bndabs == 1.0 ? (r1 = color_band1.red; g1 = color_band1.green; b1 = color_band1.blue) :
+      bndabs == 2.0 ? (r1 = color_band2.red; g1 = color_band2.green; b1 = color_band2.blue) :
+        bndabs == 3.0 ? (r1 = color_band3.red; g1 = color_band3.green; b1 = color_band3.blue) :
+          bndabs == 4.0 ? (r1 = color_band4.red; g1 = color_band4.green; b1 = color_band4.blue) :
+            bndabs == 5.0 ? (r1 = color_band5.red; g1 = color_band5.green; b1 = color_band5.blue) :
+              bndabs == 6.0 ? (r1 = color_band6.red; g1 = color_band6.green; b1 = color_band6.blue) :
+                bndabs == 7.0 ? (r1 = color_band7.red; g1 = color_band7.green; b1 = color_band7.blue) :
+                  bndabs == 8.0 ? (r1 = color_band8.red; g1 = color_band8.green; b1 = color_band8.blue) :
+                    bndabs == 9.0 ? (r1 = color_band9.red; g1 = color_band9.green; b1 = color_band9.blue) :
+                      bndabs == 10.0 ? (r1 = color_band10.red; g1 = color_band10.green; b1 = color_band10.blue) :
+                        bndabs == 11.0 ? (r1 = color_band11.red; g1 = color_band11.green; b1 = color_band11.blue) :
+                          bndabs == 12.0 ? (r1 = color_band12.red; g1 = color_band12.green; b1 = color_band12.blue) :
+                            bndabs == 13.0 ? (r1 = color_band13.red; g1 = color_band13.green; b1 = color_band13.blue) :
+                              bndabs == 14.0 ? (r1 = color_band14.red; g1 = color_band14.green; b1 = color_band14.blue) :
+                                bndabs == 15.0 ? (r1 = color_band15.red; g1 = color_band15.green; b1 = color_band15.blue);
+
+
+
+  bndabs == 0.0 ? (r2 = color_band1.red; g2 = color_band1.green; b2 = color_band1.blue) :
+    bndabs == 1.0 ? (r2 = color_band2.red; g2 = color_band2.green; b2 = color_band2.blue) :
+      bndabs == 2.0 ? (r2 = color_band3.red; g2 = color_band3.green; b2 = color_band3.blue) :
+        bndabs == 3.0 ? (r2 = color_band4.red; g2 = color_band4.green; b2 = color_band4.blue) :
+          bndabs == 4.0 ? (r2 = color_band5.red; g2 = color_band5.green; b2 = color_band5.blue) :
+            bndabs == 5.0 ? (r2 = color_band6.red; g2 = color_band6.green; b2 = color_band6.blue) :
+              bndabs == 6.0 ? (r2 = color_band7.red; g2 = color_band7.green; b2 = color_band7.blue) :
+                bndabs == 7.0 ? (r2 = color_band8.red; g2 = color_band8.green; b2 = color_band8.blue) :
+                  bndabs == 8.0 ? (r2 = color_band9.red; g2 = color_band9.green; b2 = color_band9.blue) :
+                    bndabs == 9.0 ? (r2 = color_band10.red; g2 = color_band10.green; b2 = color_band10.blue) :
+                      bndabs == 10.0 ? (r2 = color_band11.red; g2 = color_band11.green; b2 = color_band11.blue) :
+                        bndabs == 11.0 ? (r2 = color_band12.red; g2 = color_band12.green; b2 = color_band12.blue) :
+                          bndabs == 12.0 ? (r2 = color_band13.red; g2 = color_band13.green; b2 = color_band13.blue) :
+                            bndabs == 13.0 ? (r2 = color_band14.red; g2 = color_band14.green; b2 = color_band14.blue) :
+                              bndabs == 14.0 ? (r2 = color_band15.red; g2 = color_band15.green; b2 = color_band15.blue) :
+                                bndabs == 15.0 ? (r2 = color_band16.red; g2 = color_band16.green; b2 = color_band16.blue);
+
+  //(1 - t) * v0 + t * v1;
+  Band_Red[band] = 0.3; //(1.0 - bndfrac) * r1 + bndfrac * r2;
+  Band_Blue[band]= 1; //(1.0 - bndfrac) * g1 + bndfrac * g2;
+  Band_Green[band] = 0.4; //(1.0 - bndfrac) * b1 + bndfrac * b2;
+);
+
+
+
+function uix_thick_line(x1, y1, x2, y2) (
+  gfx_line(x1, y1, x2, y2, 1);
+  gfx_line(x1 + 1, y1, x2 + 1, y2, 1);
+  gfx_line(x1, y1 + 1, x2, y2 + 1, 1);
+  gfx_line(x1 - 1, y1, x2 - 1, y2, 1);
+  gfx_line(x1, y1 - 1, x2, y2 - 1, 1);
+);
+
+/*
+ * Draw a dial at x, y with radius r and value v 0..1
+ * Set mode to 1 to support negative..positive mode
+ */
+function draw_dial(x, y, r, v, mode) 
+local(x, y, x1, x2, x3, x4, y1, y2, y3, y4, x1r, y1r, x2r, y2r, x3r, y3r, x4r, y4r, start, end, ang, rsize, rwidth, roffset, ofs, c, i, st, en)
+(
+  // gfx_circle(x, y, r, 1);
+
+  gfx_r *= 0.4;
+  gfx_g *= 0.4;
+  gfx_b *= 0.4;
+  gfx_a = 1;
+  // gfx_circle(x, y, r-(r*0.10), 1);
+
+  // gfx_circle(x, y, r, 1);
+
+  start = 3 * (2*$pi/8);
+  end = 9 * (2*$pi/8);
+
+  ang = start + ((end - start) * v);
+
+  rsize = r-2;
+  rwidth = 1 * xgfx_ext_retina;
+  roffset = r - (7 * xgfx_ext_retina); // * (40 / 50);
+
+  gfx_r = gfx_b = gfx_g = 1; gfx_a = 1;
+
+  x1 = roffset;
+  y1 = 0;
+  x2 = rsize;
+  y2 = 0;
+
+  x1r = x1 * cos(ang) - y1 * sin(ang);
+  y1r = y1 * cos(ang) + x1 * sin(ang);
+
+  x2r = x2 * cos(ang) - y2 * sin(ang);
+  y2r = y2 * cos(ang) + x2 * sin(ang);
+
+
+  uix_thick_line(x+x1r, y+y1r, x+x2r, y+y2r);
+
+  gfx_r = gfx_b = gfx_g = 0.4; gfx_a = 1;
+
+  ofs = 2 * (2*$pi/8);
+
+  mode == 0 ? ( 
+    st = start + ofs;
+    en = ang + ofs;
+  ) : mode == 1 ? (
+    en = 3 * (2*$pi/8) + ofs;
+    st = 6 * (2*$pi/8) + ofs;
+    en = en + ((st - en) * (v*2));
+  );
+
+
+  gfx_r = gfx_g = gfx_b = 0.3; gfx_a = 1;
+  gfx_r = 70/255; gfx_g = 105/255; gfx_b = 127/255;
+
+  //gfx_set(0.40);
+  c = xgfx_ext_retina * 5;
+  i=0;
+  rad = r + 3;
+  while(
+    gfx_arc(x,y,rad, start+ofs, end+ofs, 1); 
+    rad += 0.5;
+    i += 1;
+    i < c;
+  );
+
+
+
+
+  gfx_r = gfx_g = gfx_b = gfx_a = 1;
+  gfx_r = 97/255; gfx_g = 155/255; gfx_b = 173/255;
+
+  c = xgfx_ext_retina * 5;
+  i=0;
+  rad = r + 3;
+  while(
+    gfx_arc(x,y,rad, st, en, 1); 
+    rad += 0.5;
+    i += 1;
+    i < c;
+  );
+);
+
+
+function draw_dial2(x, y, r, v, mode) 
+local(x, y, x1, x2, x3, x4, y1, y2, y3, y4, x1r, y1r, x2r, y2r, x3r, y3r, x4r, y4r, start, end, ang, rsize, rwidth, roffset, ofs, c, i, st, en)
+(
+  // r = r * xgfx_ext_retina;
+
+  gfx_circle(x, y, r, 1);
+
+  gfx_r *= 0.7;
+  gfx_g *= 0.7;
+  gfx_b *= 0.7;
+  gfx_a = 1;
+  gfx_circle(x, y, r-(r*0.10), 1);
+
+  start = 3 * (2*$pi/8);
+  end = 9 * (2*$pi/8);
+
+  ang = start + ((end - start) * v);
+
+  rsize = r+2;
+  rwidth = 1 * xgfx_ext_retina;
+  roffset = r * (20 / 50);
+
+  x1 = roffset;
+  y1 = -rwidth;
+
+  x2 = rsize;
+  y2 = -rwidth;
+
+  x3 = roffset;
+  y3 = rwidth;
+
+  x4 = rsize;
+  y4 = rwidth;
+
+  x1r = x1 * cos(ang) - y1 * sin(ang);
+  y1r = y1 * cos(ang) + x1 * sin(ang);
+
+  x2r = x2 * cos(ang) - y2 * sin(ang);
+  y2r = y2 * cos(ang) + x2 * sin(ang);
+
+  x3r = x3 * cos(ang) - y3 * sin(ang);
+  y3r = y3 * cos(ang) + x3 * sin(ang);
+
+  x4r = x4 * cos(ang) - y4 * sin(ang);
+  y4r = y4 * cos(ang) + x4 * sin(ang);
+
+  gfx_r = gfx_b = gfx_g = 0.4; gfx_a = 1;
+
+  gfx_triangle(x+x1r, y+y1r, x+x2r, y+y2r, x+x3r, y+y3r, x+x4r, y+y4r);
+
+  gfx_r = gfx_b = gfx_g = 0.4; gfx_a = 1;
+  gfx_line(x+x1r, y+y1r, x+x2r, y+y2r, 1);
+  gfx_line(x+x3r, y+y3r, x+x4r, y+y4r, 1);
+
+  ofs = 2 * (2*$pi/8);
+
+  mode == 0 ? ( 
+    st = start + ofs;
+    en = ang + ofs;
+  ) : mode == 1 ? (
+    en = 3 * (2*$pi/8) + ofs;
+    st = 6 * (2*$pi/8) + ofs;
+    en = en + ((st - en) * (v*2));
+  );
+
+  gfx_r = gfx_g = gfx_b = gfx_a = 1;
+  gfx_set(0.80);
+  c = xgfx_ext_retina * 5;
+  i=0;
+  r += 3;
+  while(
+    gfx_arc(x,y,r, st, en, 1); 
+    r += 0.5;
+    i += 1;
+    i < c;
+  );
+);
+
+/*
+ * Draw button capsule
+ */
+function draw_capsule(x, y, w, h)
+  local(radius, diameter, halfh)
+(
+  x = floor(x);
+  y = floor(y);
+
+  radius = h * 0.5;
+  diameter = h;
+  halfh = h * 0.5;
+
+
+  gfx_rect(x, y, w, h+1);
+
+  gfx_circle(x, y + halfh, radius, 1);
+  gfx_circle(x + w, y + halfh, radius, 1);
+);
+
+/*
+ * Init the close style button
+ */
+function init_close_button(xpos, ypos, buttonwidth, select, label) instance (x, y, width, menutext, label, select, select_r, select_g, select_b, small) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.select = select;
+  this.label = label;
+  select_r = 46/255;
+  select_g = 139/255;
+  select_b = 87/255;
+  small = 1;
+);
+
+/*
+ * Draw the close style button
+ */
+function draw_close_button() instance (x, y, width, menutext, label, pressed, height, select, small, select_r, select_g, select_b) ( 
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  small == 1 ? gfx_setfont(2) : gfx_setfont(1);
+
+  strlen(label) == 0 ? gfx_measurestr("*", w, h) : gfx_measurestr(label, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  h = height;
+
+  button_focus == -1 && node_drag_mode == 0 &&
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+    gfx_r = (221 / 255);
+    gfx_g = (119 / 255);
+    gfx_b = (108 / 255);
+  ) : (
+    gfx_r = (234 / 255) * 0.80;
+    gfx_g = (22 / 255) * 0.80;
+    gfx_b = (32 / 255) * 0.80;
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+  gfx_x = x + (width / 2) - (w / 2);
+
+  gfx_y = y + 4 * xgfx_ext_retina;
+
+  gfx_set(0.9, 0.9, 0.9, 1);
+
+
+  xgfx_ext_retina == 2 ? (
+    small == 1 ? gfx_y = y + 4 :
+      gfx_y = y + 4;
+  ) : ( 
+    small == 1 ? gfx_y = y + 2 :
+      gfx_y = y + 4;
+  );
+
+  strlen(label) == 0 ? (
+    xgfx_ext_retina == 2 ? (
+      gfx_circle(gfx_x+6, gfx_y+11, 7, 0, 1);
+      gfx_line(gfx_x, gfx_y+20, gfx_x+13, gfx_y+2);
+    ) : (
+      gfx_circle(gfx_x+3, gfx_y+5, 4, 0, 1);
+      gfx_line(gfx_x-1, gfx_y+10, gfx_x+7, gfx_y);
+    );
+  ) : (
+    select == 1 ? gfx_set(0.9, 0.9, 0.9, 1);
+    gfx_drawstr(label);
+  );
+);
+
+/*
+ * Handle the close style button
+ */
+function handle_close_button() instance (x, y, width, menutext, label, pressed, height, select, m1, m2)
+  local (last_clicked_item)
+(
+  last_clicked_item = 0;
+  button_focus == -1 && node_drag_mode == 0 ? (
+    mouse_cap & 1 && !pressed ? (
+      mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+        pressed = 1;
+
+        select == 0 ? select = 1 : select = 0;
+        last_clicked_item = select;
+
+      ) : pressed = 0;
+    ) : ( 
+      !(mouse_cap & 1) ? pressed = 0;
+    );
+
+  );
+  select;
+);
+
+/*
+ * Init the toggle style button
+ */
+function init_toggle_button(xpos, ypos, buttonwidth, select, label) instance (x, y, width, menutext, label, select, select_r, select_g, select_b, small) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.select = select;
+  this.label = label;
+  select_r = 46/255;
+  select_g = 139/255;
+  select_b = 87/255;
+);
+
+function init_toggle_button_small(xpos, ypos, buttonwidth, select, label) instance (x, y, width, menutext, label, select, select_r, select_g, select_b, small) (
+  this.init_toggle_button(xpos, ypos, buttonwidth, select, label);
+  small = 1;
+
+  select_r = (204*0.90)/255;
+  select_g = (127*0.90)/255;
+  select_b = (28*0.90)/255;
+);
+
+/*
+ * Draw the toggle style button
+ */
+function draw_toggle_button() instance (x, y, width, menutext, label, pressed, height, select, small, select_r, select_g, select_b) ( 
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  small == 1 ? gfx_setfont(2) : gfx_setfont(1);
+
+  strlen(label) == 0 ? gfx_measurestr("*", w, h) : gfx_measurestr(label, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  h = height;
+
+  button_focus == -1 && node_drag_mode == 0 &&
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+
+  select == 1 ? (
+    strlen(label) == 0 ? ( gfx_r = 0.0; gfx_g = 0.4; gfx_b = 1; ) : 
+      ( gfx_r = select_r; gfx_g = select_g; gfx_b = select_b; );
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+  gfx_x = x + (width / 2) - (w / 2);
+
+  xgfx_ext_retina == 2 ? (
+    small == 1 ? gfx_y = y + 4 :
+      gfx_y = y + 4;
+  ) : ( 
+    small == 1 ? gfx_y = y + 2 :
+      gfx_y = y + 4;
+  );
+
+  strlen(label) == 0 ? (
+    xgfx_ext_retina == 2 ? (
+      gfx_circle(gfx_x+3, gfx_y+11, 7, 0, 1);
+      gfx_line(gfx_x-3, gfx_y+20, gfx_x+10, gfx_y+2);
+    ) : (
+      gfx_circle(gfx_x+3, gfx_y+6, 4, 0, 1);
+      gfx_line(gfx_x-1, gfx_y+11, gfx_x+7, gfx_y+1);
+    );
+  ) : (
+    select == 1 ? gfx_set(0.9, 0.9, 0.9, 1);
+    gfx_drawstr(label);
+  );
+
+  gfx_setfont(1);
+);
+
+/*
+ * Handle the toggle style button
+ */
+function handle_toggle_button() instance (x, y, width, menutext, label, pressed, height, select, m1, m2)
+  local (last_clicked_item)
+(
+  last_clicked_item = 0;
+  button_focus == -1 && node_drag_mode == 0 ? (
+    mouse_cap & 1 && !pressed ? (
+      mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+        pressed = 1;
+
+        select == 0 ? select = 1 : select = 0;
+        last_clicked_item = select;
+
+        // pressed = 0;
+
+      ) : pressed = 0;
+    ) : ( 
+      !(mouse_cap & 1) ? pressed = 0;
+    );
+
+  );
+  select;
+);
+
+/*
+ * Init the options style button
+ */
+function init_options_button2(xpos, ypos, buttonwidth, select, nOptions, options) instance (x, y, width, menutext, label, select, small, nOptions, options) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.select = select;
+  label = options[select];
+  this.nOptions = nOptions;
+  this.options = options;
+);
+
+function init_options_button_small2(xpos, ypos, buttonwidth, select, nOptions, options) instance (x, y, width, menutext, label, select, small, nOptions, options) (
+  this.init_options_button2(xpos, ypos, buttonwidth, select, nOptions, options);
+  small = 1;
+);
+
+/*
+ * Draw the options style button
+ */
+function draw_options_button2() instance (x, y, width, menutext, label, pressed, height, select, small, nOptions, options) ( 
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  small == 1 ? gfx_setfont(2) : gfx_setfont(1);
+
+  label = options[select];
+
+  gfx_measurestr(label, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  h = height;
+
+  button_focus == -1 && node_drag_mode == 0 &&
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+
+  gfx_x = x + (width / 2) - (w / 2);
+
+  xgfx_ext_retina == 2 ? (
+    small == 1 ? gfx_y = y + 4 :
+      gfx_y = y + 4;
+  ) : ( 
+    small == 1 ? gfx_y = y + 2 :
+      gfx_y = y + 4;
+  );
+
+  gfx_drawstr(label);
+
+  gfx_setfont(1);
+);
+
+/*
+ * Handle the options style button
+ */
+function handle_options_button2() instance (x, y, width, menutext, label, pressed, height, select, nOptions, options)
+  local (last_clicked_item, oi)
+(
+  last_clicked_item = -1;
+  button_focus == -1 && node_drag_mode == 0 ? (
+    mouse_cap & 1 && !pressed ? (
+      mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+        pressed = 1;
+
+        #menu = "";
+
+        oi = 0;
+        while( 
+          oi == select ? #menu += "!";
+          #menu += options[oi];
+          #menu += "|";
+          oi += 1;
+          oi < nOptions;
+        );
+
+        gfx_x = mouse_x;
+        gfx_y = mouse_y;
+
+        last_clicked_item = gfx_showmenu(#menu) - 1;
+
+        pressed = 0;
+
+      ) : pressed = 0;
+    ) : ( 
+      !(mouse_cap & 1) ? pressed = 0;
+    );
+
+  );
+  last_clicked_item;
+);
+
+/*
+ * Init the options style button
+ */
+function init_options_button(xpos, ypos, buttonwidth, select, m1, m2, mf1, mf2) instance (x, y, width, menutext, label, select, m1, m2, mf1, mf2, small) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.select = select;
+  label = buttonlabel;
+  this.m1 = m1;
+  this.m2 = m2;
+  this.mf1 = mf1;
+  this.mf2 = mf2;
+);
+
+function init_options_button_small(xpos, ypos, buttonwidth, select, m1, m2, mf1, mf2) instance (x, y, width, menutext, label, select, m1, m2, mf1, mf2, small) (
+  this.init_options_button(xpos, ypos, buttonwidth, select, m1, m2, mf1, mf2);
+  small = 1;
+);
+
+/*
+ * Draw the options style button
+ */
+function draw_options_button() instance (x, y, width, menutext, label, pressed, height, select, m1, m2, mf1, mf2, small) ( 
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  small == 1 ? gfx_setfont(2) : gfx_setfont(1);
+
+  label = select == 0 ? m1 : select == 1 ? m2;
+
+  gfx_measurestr(label, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  h = height;
+
+  button_focus == -1 && node_drag_mode == 0 &&
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 4 ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+
+  gfx_x = x + (width / 2) - (w / 2);
+
+  xgfx_ext_retina == 2 ? (
+    small == 1 ? gfx_y = y + 4 :
+      gfx_y = y + 4;
+  ) : ( 
+    small == 1 ? gfx_y = y + 2 :
+      gfx_y = y + 4;
+  );
+
+  gfx_drawstr(label);
+
+  gfx_setfont(1);
+);
+
+/*
+ * Handle the options style button
+ */
+function handle_options_button() instance (x, y, width, menutext, label, pressed, height, select, m1, m2, mf1, mf2)
+  local (last_clicked_item)
+(
+  last_clicked_item = 0;
+  button_focus == -1 && node_drag_mode == 0 ? (
+    mouse_cap & 1 && !pressed ? (
+      mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 9 ? ( 
+        pressed = 1;
+
+        #menu = "";
+        select == 0 ? #menu += "!";
+        #menu += mf1;
+        #menu += "|";
+        select == 1 ? #menu += "!";
+        #menu += mf2;
+
+        gfx_x = mouse_x;
+        gfx_y = mouse_y;
+
+        last_clicked_item = gfx_showmenu(#menu);
+
+        last_clicked_item == 1 ? (label = m1; select = 0;);
+        last_clicked_item == 2 ? (label = m2; select = 1;);
+
+        pressed = 0;
+
+      ) : pressed = 0;
+    ) : ( 
+      !(mouse_cap & 1) ? pressed = 0;
+    );
+
+  );
+  last_clicked_item;
+);
+
+/*
+ * Init the number style button
+ */
+function init_number_button(xpos, ypos, buttonwidth, label, type, db) instance (x, y, width, type, db, label) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.db = db;
+  this.type = type;
+  this.label = label;
+);
+
+/*
+ * Draw the number style button
+ */
+function draw_number_button() instance (x, y, width, label, drag, height, db, type) local (txt) ( 
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  txt = #;
+  type == 0 ? ( 
+    db > 0 ? sprintf(txt, "%s+%.1f dB", label, db) : sprintf(txt, "%s%.1f dB", label, db);
+  ) : ( 
+    sprintf(txt, "%s%d%%", label, db);
+  );
+
+  gfx_measurestr(txt, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  h = height;
+
+  (button_focus == -1 || button_focus == x) && node_drag_mode == 0 &&
+    (mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height + 9) || drag ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+  gfx_x = x + (width / 2) - (w / 2);
+  gfx_y = y + 4;
+  gfx_drawstr(txt);
+);
+
+/*
+ * Return 1 if mouse is over number button
+ */
+function is_mouse_number_button() instance (x, y, width, height)
+(
+  mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height;
+);
+
+/*
+ * Handle the number style button
+ */
+function handle_number_button() instance (x, y, width, menutext, label, drag, height, db, oldy, type)
+  local (oldy, md)
+(
+  (button_focus == -1 || button_focus == x) && node_drag_mode == 0 ? (
+  mouse_cap & 1 && !drag ? (
+    this.is_mouse_number_button() ? (
+      drag = 1;
+      oldy = mouse_y;
+
+      gfx_x = x / 2;
+      gfx_y = y / 2;
+      button_focus = x;
+    );
+  ) : ( 
+    !(mouse_cap & 1) ? ( drag = 0; button_focus = -1; );
+  );
+
+  drag ? ( 
+    md = (mouse_y - oldy);
+    type == 0 ? (
+      md > 0 ? db -= 0.1 * abs(md*0.5);
+      md < 0 ? db += 0.1 * abs(md*0.5);
+      abs(db) < 0.005 ? db = 0;
+      db = min(30, db);
+      db = max(-130, db);
+    ) : (
+      md > 0 ? db -= abs(md*0.5);
+      md < 0 ? db += abs(md*0.5);
+      db = min(200, db);
+      db = max(0, db);
+    );
+    oldy = mouse_y;
+  );
+
+  );
+
+  db;
+);
+
+/*
+ * Init the number style dial
+ */
+function init_number_dial(xpos, ypos, rad, mode, label, label2) instance (x, y, r, v, mode, label, label2) (
+  x = xpos;
+  y = ypos;
+  r = rad;
+  v = 0;
+  this.mode = mode;
+  this.label = label;
+  this.label2 = label2;
+);
+
+/*
+ * Draw the number style button
+ */
+function draw_number_dial() instance (x, y, r, v, mode, label, label2) local (txt) ( 
+  gfx_a = 1;
+  txt = #;
+  /*
+  type == 0 ? ( 
+    db > 0 ? sprintf(txt, "%s+%.1f db", label, db) : sprintf(txt, "%s%.1f db", label, db);
+  ) : ( 
+    sprintf(txt, "%s%d%%", label, db);
+  );
+
+  gfx_measurestr(txt, w, h);
+
+  height = h;
+  */
+
+  gfx_setfont(2);
+
+  gfx_measurestr(label, w, h);
+
+  gfx_r = gfx_b = gfx_g = gfx_a = 1;
+
+  gfx_x = x - (w/2);
+  gfx_y = y - r - (20 * xgfx_ext_retina);
+
+  gfx_printf("%s", label);
+
+  gfx_setfont(1);
+
+  gfx_measurestr(label2, w, h);
+
+  gfx_r = gfx_b = gfx_g = gfx_a = 1;
+
+  gfx_x = x - (w/2);
+  gfx_y = y + r + 4 * xgfx_ext_retina;// + (gfx_texth - (8 * xgfx_ext_retina));
+
+  gfx_printf("%s", label2);
+
+  gfx_setfont(1);
+
+
+  gfx_r = gfx_b = gfx_g = gfx_a = 1;
+
+/*
+  (button_focus == -1 || button_focus == x) && node_drag_mode == 0 &&
+    (mouse_x >= x-r && mouse_x <= x+r && mouse_y >= y-r && mouse_y <= y + r + 9) || drag ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+*/
+
+  rotval = freq_to_per(Band_Frequency[0], 1.0);
+
+  draw_dial(x, y, r, v, mode);
+/*
+  xgfx_ext_retina == 2 ? (
+    gfx_rect(x, y, width, h+9);
+    gfx_circle(x, y + floor((h+8)*0.5), floor((h+8)*0.5), 1);
+    gfx_circle(x + width, y + floor((h+8)*0.5), floor((h+8)*0.5), 1);
+  ) : ( 
+    gfx_rect(x, y, width, h+5);
+    gfx_circle(x, y + floor((h+4)*0.5), floor((h+4)*0.5), 1);
+    gfx_circle(x + width, y + floor((h+4)*0.5), floor((h+4)*0.5), 1);
+  );
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+  gfx_x = x + (width / 2) - (w / 2);
+  gfx_y = y + 4;
+  gfx_drawstr(txt);
+  */
+
+  gfx_setfont(1);
+);
+
+/*
+ * Return 1 if mouse is over number button
+ */
+function is_mouse_number_dial() instance (x, y, r, v) local (rad)
+(
+  rad = r + gfx_texth*2;
+  mouse_x >= x - rad && mouse_x <= x + rad && mouse_y >= y - rad && mouse_y <= y + rad;
+);
+
+/*
+ * Handle the number style button
+ */
+function handle_number_dial(val) instance (x, y, r, v, width, menutext, label, drag, height, db, oldy, type)
+  local (oldy, md, mouse_speed)
+(
+  v = val;
+  (button_focus == -1 || button_focus == x) && node_drag_mode == 0 ? (
+    mouse_cap & 1 && !drag ? (
+      this.is_mouse_number_dial() ? (
+        drag = 1;
+        oldy = mouse_y;
+
+        gfx_x = x / 2;
+        gfx_y = y / 2;
+        button_focus = x;
+      );
+    ) : ( 
+      !(mouse_cap & 1) ? ( drag = 0; button_focus = -1; );
+    );
+
+    drag ? (
+      mouse_cap & 16 ? mouse_speed = 12 : mouse_speed = 1;
+      md = (mouse_y - oldy) / mouse_speed;
+
+      md > 0 ? v -= 0.01 * abs(md*0.5);
+      md < 0 ? v += 0.01 * abs(md*0.5);
+      v < 0.0 ? v = 0;
+      v > 1.0 ? v = 1;
+
+      oldy = mouse_y;
+    );
+  );
+
+  v;
+);
+
+
+/*
+ * Initialise the menu style button
+ */
+function init_menu_button(xpos, ypos, buttonwidth, buttonlabel, menutext) instance (x, y, width, menutext, label) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  this.menutext = menutext;
+  label = buttonlabel;
+);
+
+/*
+ * Draw the menu style button
+ */
+function draw_menu_button() instance (x, y, width, menutext, label, pressed, height, label) ( 
+  mouse_x >= 0 && mouse_x < gfx_w && mouse_y >=0 && mouse_y < gfx_h ? (
+  gfx_a = 1;
+  x = floor(x); y =floor(y);
+
+  gfx_measurestr(label, w, h);
+
+  height = small == 1 ? (
+    xgfx_ext_retina == 1 ? 16 : 30;
+  ) : (
+    xgfx_ext_retina == 1 ? 20 : 32;  
+  );
+
+  node_drag_mode == 0 && mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height ? ( 
+    gfx_r = (114 / 255) * 0.6;
+    gfx_g = (215 / 255) * 0.6;
+    gfx_b = (253 / 255) * 0.6;
+  ) : (
+    gfx_r = (114 / 255) * 0.4;
+    gfx_g = (215 / 255) * 0.4;
+    gfx_b = (253 / 255) * 0.4;
+  );
+
+  draw_capsule(x, y, width, height);
+
+  gfx_r = (114 / 255);
+  gfx_g = (215 / 255);
+  gfx_b = (253 / 255);
+  gfx_a = 1;
+  gfx_x = x + (width / 2) - (w / 2);
+  gfx_y = y + 4;
+  gfx_drawstr(label);
+  );
+);
+
+/*
+ * Handle the menu style button
+ */
+function handle_menu_button() instance (x, y, width, menutext, label, pressed, height, label)
+  local (last_clicked_item, menu)
+(
+  last_clicked_item = 0;
+  mouse_cap & 1 && node_drag_mode == 0 && !pressed ? (
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height ? ( 
+      pressed = 1;
+
+      #menu = "#Version: ";
+      #menu += #VERSION;
+      #menu += " ||";
+
+      // sprintf(#menu, "#Version: %s ||", VERSION);
+
+      #menu += ">Spectrum|";
+      Spectrum_Mode == 0 ? #menu += "!"; #menu += "Full|";
+      Spectrum_Mode == 1 ? #menu += "!"; #menu += "Mid|";
+      Spectrum_Mode == 2 ? #menu += "!"; #menu += "Side|";
+      Spectrum_Mode == 3 ? #menu += "!"; #menu += "Mid + Side|";
+      Spectrum_Mode == 4 ? #menu += "!"; #menu += "Left|";
+      Spectrum_Mode == 5 ? #menu += "!"; #menu += "Right|";
+      Spectrum_Mode == 6 ? #menu += "!"; #menu += "<Left + Right|";
+
+      #menu += ">Display|";
+      Display_Mode == 0 ? #menu += "!"; #menu += "Fill|";
+      Display_Mode == 1 ? #menu += "!"; #menu += "Line|";
+      Display_Mode == 2 ? #menu += "!"; #menu += "<None|";
+
+      #menu += ">Range|";
+      Ceiling_Value == 0 ? #menu += "!"; #menu += "Ceiling 0dB|";
+      Ceiling_Value == 1 ? #menu += "!"; #menu += "Ceiling 20dB|";
+      Ceiling_Value == 2 ? #menu += "!"; #menu += "Ceiling 40dB||";
+      Floor_Value == 0 ? #menu += "!"; #menu += "Floor -90dB|";
+      Floor_Value == 1 ? #menu += "!"; #menu += "Floor -140dB|";
+      Floor_Value == 2 ? #menu += "!"; #menu += "<Floor -200dB|";
+
+      #menu += ">Tilt|";
+      Tilt_Value == 0 ? #menu += "!"; #menu += "0dB/oct|";
+      Tilt_Value == 1 ? #menu += "!"; #menu += "1.5dB/oct|";
+      Tilt_Value == 2 ? #menu += "!"; #menu += "3dB/oct|";
+      Tilt_Value == 3 ? #menu += "!"; #menu += "4.5dB/oct|";
+      Tilt_Value == 4 ? #menu += "!"; #menu += "<6dB/oct|";
+
+      #menu += ">Window Type|";
+      Type_Value == 0 ? #menu += "!"; #menu += "Hamming|";
+      Type_Value == 1 ? #menu += "!"; #menu += "Blackman-Harris|";
+      Type_Value == 2 ? #menu += "!"; #menu += "Blackman|";
+      Type_Value == 3 ? #menu += "!"; #menu += "<Rectangular|";
+
+      #menu += ">FFT Size|";
+      Block_Value == 0 ? #menu += "!"; #menu += "2048|";
+      Block_Value == 1 ? #menu += "!"; #menu += "4096|";
+      Block_Value == 2 ? #menu += "!"; #menu += "8192|";
+      Block_Value == 3 ? #menu += "!"; #menu += "<16384|";
+
+      #menu += ">Display Pre-EQ|";
+      Show_PreEQ == 0 ? #menu += "!"; #menu += "Off|";
+      Show_PreEQ == 1 ? #menu += "!"; #menu += "On|";
+
+      gfx_x = mouse_x;
+      gfx_y = mouse_y;
+
+      last_clicked_item = gfx_showmenu(#menu) - 1;
+
+      pressed = 0;
+
+      last_clicked_item >= 1 && last_clicked_item <= 7 ? (
+        // Force reset of peak buffers
+        spectrum.set_show_peaks(Show_Peaks);
+
+        Spectrum_Mode = last_clicked_item - 1;
+      );
+
+      last_clicked_item >= 8 && last_clicked_item <= 10 ? ( 
+        Display_Mode = last_clicked_item - 8;
+      );
+
+      last_clicked_item >= 11 && last_clicked_item <= 13 ? ( 
+        Ceiling_Value = last_clicked_item - 11;
+      );
+
+      last_clicked_item >= 14 && last_clicked_item <= 16 ? ( 
+        Floor_Value = last_clicked_item - 14;
+      );
+
+      last_clicked_item >= 17 && last_clicked_item <= 21 ? ( 
+        Tilt_Value = last_clicked_item - 17;
+      );
+
+      last_clicked_item >= 22 && last_clicked_item <= 25 ? ( 
+        Type_Value = last_clicked_item - 22;
+      );
+
+      last_clicked_item >= 26 && last_clicked_item <= 29 ? ( 
+        Block_Value = last_clicked_item - 26;
+      );
+
+      last_clicked_item >= 30 && last_clicked_item <= 31 ? ( 
+        Show_PreEQ = last_clicked_item - 30;
+      );
+
+      last_clicked_item >= 1 ? update_state();
+    ) : pressed = 0;
+  ) : ( 
+    !(mouse_cap & 1) ? pressed = 0;
+  );
+
+  last_clicked_item;
+);
+
+/*
+ * Initialise the db scale button
+ */
+function init_dbscale_button(xpos, ypos, buttonwidth, buttonheight) instance (x, y, width, height) (
+  x = xpos;
+  y = ypos;
+  width = buttonwidth;
+  height = buttonheight;
+);
+
+/*
+ * Handle the db scale button
+ */
+function handle_dbscale_button() instance (x, y, width, pressed, height)
+  local (last_clicked_item)
+(
+  last_clicked_item = 0;
+  mouse_cap & 1 && node_drag_mode == 0 && !pressed ? (
+    mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y + height ? ( 
+      pressed = 1;
+
+      #menu = "";
+      Db_Range == 0 ? #menu += "!"; #menu += "6dB|";
+      Db_Range == 1 ? #menu += "!"; #menu += "12dB|";
+      Db_Range == 2 ? #menu += "!"; #menu += "18dB|";
+      Db_Range == 3 ? #menu += "!"; #menu += "24dB|";
+      Db_Range == 4 ? #menu += "!"; #menu += "30dB|";
+
+      gfx_x = mouse_x;
+      gfx_y = mouse_y;
+
+      last_clicked_item = gfx_showmenu(#menu);
+
+      pressed = 0;
+
+      last_clicked_item > 0 ? (
+        Db_Range = last_clicked_item - 1;
+        update_state();
+      );
+    ) : pressed = 0;
+  ) : ( 
+    !(mouse_cap & 1) ? pressed = 0;
+  );
+
+  last_clicked_item;
+);
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// Main execution loop for input and rendering
+////////////////////////////////////////////////////////////////////////////////////////////
+
+xgfx_ext_retina != last_xgfx_ext_retina ? (
+  last_xgfx_ext_retina = xgfx_ext_retina;
+  
+  xgfx_ext_retina > 1 ? (
+    gfx_setfont(1,"Arial",20,'b');
+    gfx_setfont(2,"Arial",18,'b');
+  ) : (
+    gfx_setfont(1,"Arial",12,'b');
+    gfx_setfont(2,"Arial",11,'b');
+  );
+  gfx_setfont(1);
+);
+
+// Update any changed filters
+
+update_visual_filters();
+
+// Draw everything
+
+Display_Mode < 2 ? (
+  spectrum.draw(0);
+  Spectrum_Mode == 3 || Spectrum_Mode == 6 ? spectrum.draw(1);
+
+  Show_PreEQ ? (
+    spectrum.draw(2);
+    Spectrum_Mode == 3 || Spectrum_Mode == 6 ? spectrum.draw(3);
+  );
+
+  do_listen || listen_node != -1 ? ( 
+    spectrum.draw(4);
+    Spectrum_Mode == 3 || Spectrum_Mode == 6 ? spectrum.draw(5);
+  );
+);
+
+
+ht = (gfx_h - BOTTOM_MARGIN - gfx_texth) + 2;
+
+dst_a = 0.55 / ht;
+gfx_gradrect(0, ht/2, gfx_w, ht/2, 0,0,0,0,    0, 0, 0, 0, 0, 0, 0, dst_a*2); 
+
+// Draw the lined grid
+!very_compact_height && !very_compact_width ? (
+  draw_grid();
+);
+
+draw_filter_bands();
+
+// Determine which filter response curves to draw
+drawMid = 0;
+drawSide = 0;
+drawLeft = 0;
+drawRight = 0;
+
+idx = 0;
+while ( 
+  Band_Enabled[idx] == BAND_STATE_ENABLED ? (
+    Band_Group[idx] == 1 ? drawMid = 1 :
+      Band_Group[idx] == 2 ? drawSide = 1 :
+        Band_Group[idx] == 3 ? drawLeft = 1 :
+          Band_Group[idx] == 4 ? drawRight = 1;      
+  );
+  idx += 1;
+  idx < NUM_BANDS;
+);
+
+// Mid
+drawMid ? draw_filter_response(1, 92/255, 190/255, 98/255);
+
+// Side
+drawSide ? draw_filter_response(2, 91/255, 236/255, 252/255);
+
+// Left
+drawLeft ? draw_filter_response(3, 240/255, 201/255, 27/255);
+
+// Right
+drawRight ? draw_filter_response(4, 213/255, 65/255, 66/255);
+
+// Stereo
+draw_filter_response(0, 1.0, 1.0, 1.0);
+
+mouse_within_window() ? (
+
+  do_listen || listen_node != -1 ? draw_listen_helper();
+
+  draw_mouse_crosshair();
+
+  !very_compact_height && !very_compact_width ? (
+    draw_info_panel();
+  );
+
+  draw_nodes();
+) : ( 
+  listen_node != -1 ? draw_listen_helper();
+  node_drag_mode != 0 ? (
+    draw_info_panel();
+    
+    draw_nodes();
+  );
+);
+
+// Set the colors for the bands
+frq = scx_to_freq(mouse_x);
+band = 0;
+loop(NUM_BANDS, ( 
+    set_node_color(band, Band_Frequency[band]);
+    band += 1;
+  );
+);
+
+initialise_gfx == 0 ? ( 
+  initialise_gfx = 1;
+
+  xgfx_ext_retina == 2 ? (
+    menu.init_menu_button(gfx_w - 200, 10, 120, "Settings", "");
+    dbscale.init_dbscale_button(gfx_w - 60, 0, gfx_w - (gfx_w - 60), gfx_texth*1.2);
+    //piano.init_piano_button(gfx_w - 300, 10, 100);
+    //peaks.init_peak_button(gfx_w - 420, 10, 100);
+  ) : ( 
+    menu.init_menu_button(gfx_w - 140, 5, 60, "Settings", "");
+    dbscale.init_dbscale_button(gfx_w - 30, 0, gfx_w - (gfx_w - 30), gfx_texth*2.4);
+    //piano.init_piano_button(gfx_w - 300, 10, 60);
+    //peaks.init_peak_button(gfx_w - 420, 10, 60);
+  );
+
+  spectrum.set_show_peaks(Show_Peaks);
+);
+
+// Handle main screen input?
+
+//mouse_cap & 1 && mouse_within_panel() && node_drag_mode == 0 ? do_general_mouse = 0 : do_general_mouse = 1;
+
+//mouse_cap & 1 && node_drag_mode == 0 ? do_general_mouse = 0 : do_general_mouse = 1;
+
+gfx_x=20; gfx_y=20;
+
+pr = gfx_getchar(0);
+
+
+
+showTextInput ? (
+  textField.text_field(pr,#varstr,25,0x343434);
+  textField.set == 1 ? ( 
+    match("%f", #varstr, inputfreq);
+    Band_Frequency[selected_node] = inputfreq;
+
+    flag_filter_update(selected_node);
+
+    filters_to_sliders();
+
+    showTextInput = 0;
+  );
+);
+
+gfx_y=70; gfx_x=20;
+
+// TODO: comment back in for text input development
+//cc += textField.set;
+//gfx_printf("set = %d", cc);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ------------------------------------------- AB HIER Hab IcH aUs GEMACHT
+do_general_mouse = 1 && !showTextInput;
+do_general_mouse ? (
+  mouse_cap & 2 ? ( 
+    band = 0;
+    while( 
+      Band_Enabled[band]!=BAND_STATE_OFF && is_node_selected(Band_Frequency[band], Band_Gain[band]) ? (
+        selected_node = band;
+        selected_node_group = Band_Group[band];
+
+        #menu = "";
+        Band_Enabled[band] == BAND_STATE_DISABLED ? #menu += "Enable" : #menu += "Disable";
+        #menu += "|Invert Gain";
+        #menu += "|Zero Gain";
+        #menu += "||>Shape|";
+        Band_Type[band] == 0 ? #menu += "!"; #menu += "Peak|";
+        Band_Type[band] == 1 ? #menu += "!"; #menu += "Low Cut|";
+        Band_Type[band] == 2 ? #menu += "!"; #menu += "Low Cut (Butterworth)|";
+        Band_Type[band] == 12 ? #menu += "!"; #menu += "Low Channel (Analog)|";
+        Band_Type[band] == 3 ? #menu += "!"; #menu += "Low Shelf|";
+        Band_Type[band] == 4 ? #menu += "!"; #menu += "High Shelf|";
+        Band_Type[band] == 5 ? #menu += "!"; #menu += "High Cut|";
+        Band_Type[band] == 6 ? #menu += "!"; #menu += "High Cut (Butterworth)|";
+        Band_Type[band] == 13 ? #menu += "!"; #menu += "High Channel (Analog)|";
+        Band_Type[band] == 7 ? #menu += "!"; #menu += "Notch|";
+        Band_Type[band] == 8 ? #menu += "!"; #menu += "Band Pass|";
+        Band_Type[band] == 9 ? #menu += "!"; #menu += "Tilt Shelf|";
+        Band_Type[band] == 10 ? #menu += "!"; #menu += "Pultec Low Shelf|";
+        Band_Type[band] == 11 ? #menu += "!"; #menu += "<All Pass|";
+
+        // Only slope for cut filters
+        has_slope_menu = 0;
+        Band_Type[band] == FILTER_LOW_CUT || Band_Type[band] == FILTER_LOW_CUT_BUTTERWORTH || Band_Type[band] == FILTER_HIGH_CUT || Band_Type[band] == FILTER_HIGH_CUT_BUTTERWORTH ? (
+          #menu += ">Slope|";
+
+          slope = 0;
+          while(
+            match("%ddB", FilterSlopes[slope], value);
+
+            Band_Slope[band] == ((value / 6)-1) ? #menu += "!";
+            slope == NumFilterSlopes-1 ? #menu += "<";
+            #menu += FilterSlopes[slope]; #menu += "|";
+
+            slope += 1;
+            slope < NumFilterSlopes;
+          );
+          has_slope_menu = 1;
+        );
+
+        #menu += ">Stereo Placement|";
+        Band_Group[band] == 0 ? #menu += "!"; #menu += "Stereo|";
+        Band_Group[band] == 1 ? #menu += "!"; #menu += "Mid|";
+        Band_Group[band] == 2 ? #menu += "!"; #menu += "Side|";
+        Band_Group[band] == 3 ? #menu += "!"; #menu += "Left|";
+        Band_Group[band] == 4 ? #menu += "!"; #menu += "<Right|";
+
+        #menu += "|Split|Duplicate|Delete";
+
+        gfx_x = mouse_x;
+        gfx_y = mouse_y;
+
+        last_clicked_item = gfx_showmenu(#menu);
+
+        last_clicked_item == 1 ? (
+          Band_Enabled[band] = Band_Enabled[band]==BAND_STATE_ENABLED ? BAND_STATE_DISABLED : BAND_STATE_ENABLED;
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item == 2 ? (
+          Band_Gain[band] = -Band_Gain[band];
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item == 3 ? (
+          Band_Gain[band] = 0;
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item >= 4 && last_clicked_item <= 17 ? (
+          !has_slope_menu ? Band_Slope[band] = 0;
+          Band_Type[band] = FilterMappingTo[last_clicked_item - 4];   //jj
+
+          Band_Type[band] == FILTER_PULTEC_LOW_SHELF ? Band_Q[band] = 20 :
+            Band_Q[band] = 0.7071;
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        has_slope_menu ? (
+          last_clicked_item >= 18 && last_clicked_item <= 27 ? (
+            match("%ddB", FilterSlopes[last_clicked_item - 18], value);
+            Band_Slope[band] = (value / 6) - 1;
+
+            flag_filter_update(band);
+
+            filters_to_sliders();
+          );
+        ) : last_clicked_item += 10;
+
+        last_clicked_item >= 28 && last_clicked_item <= 32 ? (
+          Band_Group[band] = last_clicked_item - 28;
+          selected_node_group = Band_Group[band];
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item == 33 ? (
+          // Split band
+          fband = 0;
+          while(
+            Band_Enabled[fband]==BAND_STATE_OFF ? (                
+              split_band(fband, band);
+              fband = NUM_BANDS;
+            );
+            fband += 1;
+            fband < NUM_BANDS;
+          );
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item == 34 ? (
+          // Duplicate band
+          fband = 0;
+          while(
+            Band_Enabled[fband]==BAND_STATE_OFF ? (                
+              duplicate_band(fband, band);
+              fband = NUM_BANDS;
+            );
+            fband += 1;
+            fband < NUM_BANDS;
+          );
+
+          filters_to_sliders();
+        );
+
+        last_clicked_item == 35 ? (
+          // Delete band
+          selected_node = -1;
+          listen_node = -1;
+
+          Band_Enabled[band] = BAND_STATE_OFF;
+
+          band == 0 ? gfx_band1.filter.zdf_bypass() :
+          band == 1 ? gfx_band2.filter.zdf_bypass() :
+          band == 2 ? gfx_band3.filter.zdf_bypass() :
+          band == 3 ? gfx_band4.filter.zdf_bypass() :
+          band == 4 ? gfx_band5.filter.zdf_bypass() :
+          band == 5 ? gfx_band6.filter.zdf_bypass() :
+          band == 6 ? gfx_band7.filter.zdf_bypass() :
+          band == 7 ? gfx_band8.filter.zdf_bypass();
+          band == 8 ? gfx_band9.filter.zdf_bypass() :
+          band == 9 ? gfx_band10.filter.zdf_bypass() :
+          band == 10 ? gfx_band11.filter.zdf_bypass() :
+          band == 11 ? gfx_band12.filter.zdf_bypass() :
+          band == 12 ? gfx_band13.filter.zdf_bypass() :
+          band == 13 ? gfx_band14.filter.zdf_bypass() :
+          band == 14 ? gfx_band15.filter.zdf_bypass() :
+          band == 15 ? gfx_band16.filter.zdf_bypass();
+
+          flag_filter_update(band);
+
+          filters_to_sliders();
+        );
+
+        band = NUM_BANDS;
+      );
+      band += 1;
+      band < NUM_BANDS;
+    );
+  );
+
+  mouse_cap & 1 ? (
+    click_up ? (
+      tm = time_precise();
+
+      // Double click?
+      tm - click_time < 0.4 ? (
+        // Handle double click button value resets
+        mouse_cap & 4 && ((mouse_y >= gfx_h - BOTTOM_MARGIN - gfx_texth) || (selected_node != -1 && mouse_within_panel())) ? (
+          button_scale.is_mouse_number_button() ? (Scale = button_scale.db = 100;) : 
+            button_gain.is_mouse_number_button() ? (Gain = button_gain.db = 0;) :
+              button_mid_gain.is_mouse_number_button() ? (MLGain = button_mid_gain.db = 0;) :
+                button_side_gain.is_mouse_number_button() ? (SRGain = button_side_gain.db = 0;) :
+                  dial_gain.is_mouse_number_dial() ? (Band_Gain[selected_node] = 0; ) : 
+                    dial_freq.is_mouse_number_dial() ? (Band_Frequency[selected_node] = 500; ) : 
+                      dial_q.is_mouse_number_dial() ? (Band_Q[selected_node] = 0.707);
+          
+          filters_to_sliders();
+          // Flag all filters for updating
+          flag_filter_update_all();
+        ) : (
+          mouse_within_panel() ? (
+            dial_freq.is_mouse_number_dial() ? (
+              // TODO: comment back in for text input development
+              //textField.text_field_init();
+              //showTextInput = 1;
+              0;
+            );
+          );
+          // Handle general double click cases
+          !mouse_within_panel() ? (
+            // Delete band?
+            mouse_cap & 16 ? (
+              band = 0;
+              while( 
+                Band_Enabled[band]!=BAND_STATE_OFF && is_node_selected(Band_Frequency[band], Band_Gain[band]) ? (
+                  selected_node = -1;
+                  listen_node = -1;
+                  Band_Enabled[band] = BAND_STATE_OFF;
+
+                  band == 0 ? gfx_band1.filter.zdf_bypass() :
+                  band == 1 ? gfx_band2.filter.zdf_bypass() :
+                  band == 2 ? gfx_band3.filter.zdf_bypass() :
+                  band == 3 ? gfx_band4.filter.zdf_bypass() :
+                  band == 4 ? gfx_band5.filter.zdf_bypass() :
+                  band == 5 ? gfx_band6.filter.zdf_bypass() :
+                  band == 6 ? gfx_band7.filter.zdf_bypass() :
+                  band == 7 ? gfx_band8.filter.zdf_bypass();
+                  band == 8 ? gfx_band9.filter.zdf_bypass() :
+                  band == 9 ? gfx_band10.filter.zdf_bypass() :
+                  band == 10 ? gfx_band11.filter.zdf_bypass() :
+                  band == 11 ? gfx_band12.filter.zdf_bypass() :
+                  band == 12 ? gfx_band13.filter.zdf_bypass() :
+                  band == 13 ? gfx_band14.filter.zdf_bypass() :
+                  band == 14 ? gfx_band15.filter.zdf_bypass() :
+                  band == 15 ? gfx_band16.filter.zdf_bypass();
+
+                  flag_filter_update(band);
+
+                  filters_to_sliders();
+
+                  band = NUM_BANDS;
+                );
+                band += 1;
+                band < NUM_BANDS;
+              );
+            ) : (
+              // Band toggle?
+              toggled_band = 0;
+              band = 0;
+              while( 
+                 Band_Enabled[band]!=BAND_STATE_OFF && is_node_selected(Band_Frequency[band], Band_Gain[band]) ? (
+                  Band_Enabled[band]==BAND_STATE_DISABLED ? Band_Enabled[band] = BAND_STATE_ENABLED : Band_Enabled[band] = BAND_STATE_DISABLED;
+                  toggled_band = 1;
+                  band = NUM_BANDS;
+                );
+                band += 1;
+                band < NUM_BANDS;
+              );
+
+              // Create band?
+              !toggled_band && mouse_y < gfx_h - BOTTOM_MARGIN - gfx_texth ? ( 
+                band = 0;
+                while(
+                  Band_Enabled[band]==BAND_STATE_OFF ? (                
+                    create_band(band, mouse_x+1, mouse_y);
+                    band = NUM_BANDS;
+                  );
+                  band += 1;
+                  band < NUM_BANDS;
+                );
+              );
+            );
+          );
+        );
+      );
+      click_time = tm;
+    );
+
+    click_up = 0;
+
+    !mouse_within_panel() && node_drag_mode == 0 && button_focus == -1 ? (
+      band = get_nearest_node();
+      band != -1 ? (
+        selected_node = band;
+        selected_node_group = Band_Group[band];
+        node_drag = band;
+        node_drag_mode = 1;
+        node_drag_origy = mouse_y;
+        node_drag_offy = mouse_y - db_to_y(Band_Gain[band]);
+        node_drag_offx = mouse_x - freq_to_scx(Band_Frequency[band]);
+
+        node_drag_stablex = mouse_x;
+        node_drag_stabley = mouse_y;
+
+        mouse_cap & 4 ? ( 
+          node_drag_lock = 1;
+        ) : node_drag_lock = 0;
+      ) : (
+        mouse_y < gfx_h - BOTTOM_MARGIN - gfx_texth ? (
+          selected_node = -1;
+        );
+        listen_node = -1;        
+      );
+    );
+
+    node_drag_mode ? (
+
+      mouse_cap & 16 ? (
+        node_drag_mouse_speed == 1 ? (
+          // Changing speed - reset offsets
+          node_drag_offx = mouse_x - freq_to_scx(Band_Frequency[node_drag]);
+          node_drag_offy = mouse_y - db_to_y(Band_Gain[node_drag]);
+          node_drag_stablex = mouse_x;
+          node_drag_stabley = mouse_y;
+        );
+
+        node_drag_mouse_speed = 6;
+      ) : (
+        node_drag_mouse_speed == 6 ? (
+          // Changing speed - reset offsets
+          node_drag_offx = mouse_x - freq_to_scx(Band_Frequency[node_drag]);
+          node_drag_offy = mouse_y - db_to_y(Band_Gain[node_drag]);
+          node_drag_stablex = mouse_x;
+          node_drag_stabley = mouse_y;
+          0;
+        );
+
+        node_drag_mouse_speed = 1;
+      );
+
+      mouse_cap & 4 ? (
+        node_drag_lock = 1;
+      ) : (
+        node_drag_lock != 0 ? (
+          node_drag_offx = mouse_x - freq_to_scx(Band_Frequency[node_drag]);
+          node_drag_offy = mouse_y - db_to_y(Band_Gain[node_drag]);
+          node_drag_stablex = mouse_x;
+          node_drag_stabley = mouse_y;
+        );
+        node_drag_lock = 0;
+      );
+
+      // Normal drag?
+      node_drag_lock == 0 ? (
+
+        diffx = ((mouse_x - node_drag_stablex) / node_drag_mouse_speed) + ofx;
+        diffy = (node_drag_stabley - mouse_y) / node_drag_mouse_speed;
+
+        mmx = (node_drag_stablex + diffx) - node_drag_offx;
+        mmy = (node_drag_stabley - diffy) - node_drag_offy;
+
+        Band_Frequency[node_drag] = scx_to_freq(mmx);
+        Band_Gain[node_drag] = y_to_db(mmy);
+
+        node_drag_origy = mouse_y;
+
+        filters_to_sliders();
+
+        // Notify Reaper that a parameter change has happened
+        notify_touched_gain(node_drag);
+        notify_touched_frequency(node_drag);
+      );
+
+      // Fixed gain with Q control drag?
+      node_drag_lock == 1 ? (
+
+        diffx = (mouse_x - node_drag_stablex) / node_drag_mouse_speed;
+        diffy = (node_drag_stabley - mouse_y) / node_drag_mouse_speed;
+
+        mmx = (node_drag_stablex + diffx) - node_drag_offx;
+        mmy = (node_drag_stabley - diffy) - node_drag_offy;
+
+        Band_Frequency[node_drag] = scx_to_freq(mmx);
+
+        // Alter Q according to drag
+        md = (node_drag_origy - mouse_y) / node_drag_mouse_speed;
+        node_drag_origy = mouse_y;
+
+        scalar = 0.5 / xgfx_ext_retina;
+
+        Band_Q[node_drag] = max(0.10, min(40, per_to_q(q_to_per(Band_Q[node_drag], 100) + md * scalar, 100)));
+
+        // Notify Reaper that a parameter change has happened
+        notify_touched_Q(node_drag);
+
+        filters_to_sliders();
+
+        // Notify Reaper that a parameter change has happened
+        notify_touched_frequency(node_drag);
+      );
+
+      flag_filter_update(node_drag);
+    );
+
+  ) : (
+    node_drag_mode = 0;
+    node_drag_lock = 0;
+    click_up = 1;
+  );
+
+  // Enable or disable listen mode
+  mouse_cap & 8 ? (
+    do_listen == 0 ? ( 
+      do_listen = 1;
+    );
+  ) : (
+    do_listen != 0 ? ( 
+      do_listen = 0;
+      listen_filter.zdf_bypass();
+    );
+  );
+
+  // Get mouse wheel movements
+  mw = mouse_wheel;
+  md = -(mw - last_wheel) / 120;
+  last_wheel = mw;
+
+  md != 0.0 ? ( 
+    done_band = 0;
+
+    band = get_nearby_node();
+    band != -1 ? (
+        done_band = 1;
+        mouse_cap & 4 ? (
+          // Alter filter slope
+          md < 0 ? md = -1;
+          md > 0 ? md = 1;
+
+          // Find the current slope
+          foundSlope = 0;
+          slope = 0;
+          while( 
+            match("%ddB", FilterSlopes[slope], value);
+
+            numSlope = ((value / 6) - 1);
+
+            numSlope >= Band_Slope[band] ? (
+              foundSlope = slope;
+              slope = NumFilterSlopes;
+            );
+
+            slope += 1;
+            slope < NumFilterSlopes;
+          );
+
+          foundSlope = max(min(foundSlope - md, 9), 0);
+
+          match("%ddB", FilterSlopes[foundSlope], value);
+
+          Band_Slope[band] = ((value / 6) - 1);
+        ) : (
+          // Alter filter Q
+          // Get the Q value as 0..1, apply mouse offset then convert back to logarithmic Q
+          // This ensure that inc/dec movement is uniform throughout the entire Q range
+          Band_Q[band] = max(0.10, min(40, per_to_q(q_to_per(Band_Q[band], 1) + md * 0.008, 1)));
+
+          filters_to_sliders();
+
+          // Notify Reaper that a parameter change has happened
+          notify_touched_Q(band);
+        );
+
+        flag_filter_update(band);
+    );
+
+    // Shift held and not on a band?  Alter freeform listen width
+    mouse_cap & 8 && done_band == 0 ? ( 
+      listen_width -= md / 200;
+      listen_width = min(0.30, listen_width);
+      listen_width = max(0.01, listen_width);
+    );
+  );
+);
+
+
+
+
+--------------------------------------- AB HIER WIDER AN... MaUS VORBeI? */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Set the button positions each time in case we move between
+// retina and non-retina displays (like I do!)
+xgfx_ext_retina == 2 ? (
+  button_oversample_xoffset = 0;
+  button_oversample_width = 70;
+  button_stereo_mode_xoffset = 110;
+  button_stereo_mode_width = 70;
+  button_scale_xoffset = 220;
+  button_scale_width = 90;
+  button_gain_xoffset = 350;
+  button_gain_width = 90;
+  button_mid_gain_xoffset = 480;
+  button_mid_gain_width = 100;
+  button_side_gain_xoffset = 660;
+  button_side_gain_width = 100;
+  button_mid_toggle_xoffset = 610;
+  button_mid_toggle_width = 10;
+  button_side_toggle_xoffset = 790;
+  button_side_toggle_width = 10;
+  button_limit_toggle_xoffset = 840;
+  button_limit_toggle_width = 50;
+  button_agc_toggle_xoffset = 1030;
+  button_agc_toggle_width = 60;
+  button_agcset_toggle_xoffset = 1105;
+  button_agcset_toggle_width = 5;
+  button_panel_toggle_xoffset = 930;
+  button_panel_toggle_width = 60;
+  py = gfx_h - (gfx_texth+28);
+) : ( 
+  button_oversample_xoffset = 0;
+  button_oversample_width = 40;
+  button_stereo_mode_xoffset = 65;
+  button_stereo_mode_width = 40;
+  button_scale_xoffset = 130;
+  button_scale_width = 40;
+  button_gain_xoffset = 195;
+  button_gain_width = 50;
+  button_mid_gain_xoffset = 270;
+  button_mid_gain_width = 60;
+  button_side_gain_xoffset = 380;
+  button_side_gain_width = 60;
+  button_mid_toggle_xoffset = 345;
+  button_mid_toggle_width = 10;
+  button_side_toggle_xoffset = 455;
+  button_side_toggle_width = 10;
+  button_limit_toggle_xoffset = 490;
+  button_limit_toggle_width = 40;
+  button_agc_toggle_xoffset = 620;
+  button_agc_toggle_width = 40;
+  button_agcset_toggle_xoffset = 665;
+  button_agcset_toggle_width = 5;
+  button_panel_toggle_xoffset = 555;
+  button_panel_toggle_width = 40;
+  py = gfx_h - (gfx_texth);
+);
+
+// TODO: work in progress for panel to track selected node
+/*
+selected_node != -1 ? (
+  panel_x = freq_to_scx(Band_Frequency[selected_node]) - floor(panel_w/2);
+) : (
+  panel_x = floor(gfx_w/2 - panel_w/2);
+);
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+buttons_init == 0 || gfx_w != OLD_WIDTH || gfx_h != OLD_HEIGHT ? (
+
+  button_oversample.init_options_button(button_oversample_xoffset, py, button_oversample_width, Quality, "ECO", "HQ", "Economy - Fastest, No Latency", "High Quality - Accurate, Latency");
+  button_stereo_mode.init_options_button(button_stereo_mode_xoffset, py, button_stereo_mode_width, Stereo_Mode, "M/S", "L/R", "Mid / Side", "Left / Right");
+  button_scale.init_number_button(button_scale_xoffset, py, button_scale_width, "", 1, 100);
+  button_gain.init_number_button(button_gain_xoffset, py, button_gain_width, "", 0, 0);
+  button_mid_gain.init_number_button(button_mid_gain_xoffset, py, button_mid_gain_width, "M: ", 0, 0);
+  button_side_gain.init_number_button(button_side_gain_xoffset, py, button_side_gain_width, "S: ", 0, 0);
+
+  button_mid_toggle.init_toggle_button(button_mid_toggle_xoffset, py, button_mid_toggle_width, 0, "");
+  button_side_toggle.init_toggle_button(button_side_toggle_xoffset, py, button_side_toggle_width, 0, "");
+
+  button_limit_toggle.init_toggle_button(button_limit_toggle_xoffset, py, button_limit_toggle_width, 0, "LIMIT");
+
+  button_agc_toggle.init_toggle_button(button_agc_toggle_xoffset, py, button_agc_toggle_width, 0, "AGC");
+  button_agcset_toggle.init_toggle_button(button_agcset_toggle_xoffset, py, button_agcset_toggle_width, 0, "S");
+
+  button_panel_toggle.init_toggle_button(button_panel_toggle_xoffset, py, button_panel_toggle_width, 0, "PANEL");
+
+
+  panel_w = 550 * xgfx_ext_retina;
+  panel_h = 108 * xgfx_ext_retina;
+
+  gfx_setfont(2);
+
+  panel_x = floor(gfx_w/2 - panel_w/2);
+  panel_y = gfx_h - BOTTOM_MARGIN - gfx_texth*2.5 - panel_h;
+
+  xgfx_ext_retina == 2 ? panel_y += 10 * (xgfx_ext_retina * 0.4) : panel_y += 10;
+
+  panel_side_margin = 26 * xgfx_ext_retina;
+  panel_vert_margin = 8 * xgfx_ext_retina;
+  panel_gap1 = 20 * xgfx_ext_retina;
+  panel_gap2 = 20 * 2 * xgfx_ext_retina;
+  panel_gap3 = 20 * 3 * xgfx_ext_retina;
+  panel_gap4 = 20 * 4 * xgfx_ext_retina;
+
+  // Filter panel
+
+  panel_bypass_xoffset = panel_x + panel_side_margin;
+  panel_bypass_width = 50 * xgfx_ext_retina;
+  panel_bypass_toggle.init_toggle_button_small(panel_bypass_xoffset, panel_y+panel_vert_margin, panel_bypass_width, 0, "BYPASS");
+
+  panel_shape_xoffset = panel_x + panel_side_margin;
+  panel_shape_width = 112 * xgfx_ext_retina;
+  panel_shape_options.init_options_button_small2(panel_shape_xoffset, panel_y+panel_vert_margin+panel_gap1, panel_shape_width, 0, 14, FilterTypes);
+
+  panel_slope_xoffset = panel_x + panel_side_margin;
+  panel_slope_width = 50 * xgfx_ext_retina;
+  panel_slope_toggle.init_options_button_small2(panel_slope_xoffset, panel_y+panel_vert_margin+panel_gap2, panel_slope_width, 0, NumFilterSlopes, FilterSlopes);
+
+  panel_stereo_xoffset = panel_x + panel_side_margin;
+  panel_stereo_width = 50 * xgfx_ext_retina;
+  panel_stereo_options.init_options_button_small2(panel_stereo_xoffset, panel_y+panel_vert_margin+panel_gap3, panel_stereo_width, 0, 5, StereoModes);
+
+
+  panel_delete_xoffset = panel_x + panel_w - panel_side_margin - 40 * xgfx_ext_retina;
+  panel_delete_width = 46 * xgfx_ext_retina;
+  panel_delete_toggle.init_close_button(panel_delete_xoffset, panel_y+panel_vert_margin, panel_delete_width, 0, "DELETE");
+
+
+  panel_next_xoffset = panel_x + panel_w - panel_side_margin;
+  panel_next_width = 6 * xgfx_ext_retina;
+  panel_next_toggle.init_toggle_button_small(panel_next_xoffset, panel_y+panel_vert_margin+panel_gap1, panel_next_width, 0, ">");
+
+  panel_prev_xoffset = panel_x + panel_w - panel_side_margin - 38 * xgfx_ext_retina;
+  panel_prev_width = 6 * xgfx_ext_retina;
+  panel_prev_toggle.init_toggle_button_small(panel_prev_xoffset, panel_y+panel_vert_margin+panel_gap1, panel_next_width, 0, "<");
+
+
+  panel_listen_xoffset = panel_x + panel_w - panel_side_margin - 40 * xgfx_ext_retina;
+  panel_listen_width = 46 * xgfx_ext_retina;
+  panel_listen_toggle.init_toggle_button_small(panel_listen_xoffset, panel_y+panel_vert_margin+panel_gap2, panel_listen_width, 0, "LISTEN");
+
+
+  /* -------------------------- CIH WIEDER AUS...unteres Panel?
+  buttons_init == 0 ? (
+    dial_freq.init_number_dial(100, 200, 20 * xgfx_ext_retina, 0, "FREQ", "10kHz");
+    dial_gain.init_number_dial(300, 200, 30 * xgfx_ext_retina, 1, "GAIN", "18dB");
+    dial_q.init_number_dial(500, 200, 20 * xgfx_ext_retina, 0, "Q", "0.701");
+  );
+
+  gfx_setfont(1);
+
+  buttons_init = 1;
+  OLD_WIDTH = gfx_w;
+  OLD_HEIGHT = gfx_h;
+);
+
+
+button_focus != -1 || (mouse_x >= 0 && mouse_x < gfx_w && mouse_y >=0 && mouse_y < gfx_h) ? (
+  xgfx_ext_retina == 2 ? px = (gfx_w / 2) - (1090/2) : px = (gfx_w / 2) - (660/2);
+  xgfx_ext_retina == 2 ? py = gfx_h - (gfx_texth+28) : py = gfx_h - (gfx_texth+14);
+  button_oversample.x = px+button_oversample_xoffset; button_oversample.y = py;
+  button_stereo_mode.x = px+button_stereo_mode_xoffset; button_stereo_mode.y = py;
+  button_scale.x = px+button_scale_xoffset; button_scale.y = py;
+  button_gain.x = px+button_gain_xoffset; button_gain.y = py;
+  button_mid_gain.x = px+button_mid_gain_xoffset; button_mid_gain.y = py;
+  button_side_gain.x = px+button_side_gain_xoffset; button_side_gain.y = py;
+  button_mid_toggle.x = px+button_mid_toggle_xoffset; button_mid_toggle.y = py;
+  button_side_toggle.x = px+button_side_toggle_xoffset; button_side_toggle.y = py;
+  button_limit_toggle.x = px+button_limit_toggle_xoffset; button_limit_toggle.y = py;
+  button_agc_toggle.x = px+button_agc_toggle_xoffset; button_agc_toggle.y = py;
+  button_agcset_toggle.x = px+button_agcset_toggle_xoffset; button_agcset_toggle.y = py;
+  button_panel_toggle.x = px+button_panel_toggle_xoffset; button_panel_toggle.y = py;
+
+  !compact_height && !compact_width ? (
+    mb = button_oversample.handle_options_button();
+    mb > 0 ? (
+
+      Quality = mb - 1;
+      set_oversample(Quality);
+
+      flag_filter_update_all();
+
+      filters_to_sliders();
+    );
+
+    button_oversample.draw_options_button();
+
+    mb = button_stereo_mode.handle_options_button();
+    mb > 0 ? Stereo_Mode = mb - 1;
+
+    button_stereo_mode.draw_options_button();
+
+    last_scale = Scale;
+    button_scale.db = Scale;
+    Scale = button_scale.handle_number_button();
+    Scale != last_scale ? flag_filter_update_all();
+
+    button_scale.draw_number_button();
+
+    button_gain.db = Gain;
+    Gain = button_gain.handle_number_button();
+
+    button_gain.draw_number_button();
+
+    button_mid_gain.label = Stereo_Mode ? "L: " : "M: ";
+    button_mid_gain.db = MLGain;
+    MLGain = button_mid_gain.handle_number_button();
+
+    button_mid_gain.draw_number_button();
+
+    button_side_gain.label = Stereo_Mode ? "R: " : "S: ";
+    button_side_gain.db = SRGain;
+    SRGain = button_side_gain.handle_number_button();
+
+    button_side_gain.draw_number_button();
+
+    button_mid_toggle.select = MidPolarity;
+    MidPolarity = button_mid_toggle.handle_toggle_button();
+    button_mid_toggle.draw_toggle_button();
+
+    button_side_toggle.select = SidePolarity;
+    SidePolarity = button_side_toggle.handle_toggle_button();
+    button_side_toggle.draw_toggle_button();
+
+    button_limit_toggle.select = LimitOutput;
+    LimitOutput = button_limit_toggle.handle_toggle_button();
+    button_limit_toggle.draw_toggle_button();
+
+    button_agc_toggle.select = AGCEnabled;
+    AGCEnabled = button_agc_toggle.handle_toggle_button();
+    button_agc_toggle.draw_toggle_button();
+
+    AGCEnabled ? (
+      button_agcset_toggle.select = 0;
+      agc_set = button_agcset_toggle.handle_toggle_button();
+      button_agcset_toggle.draw_toggle_button();
+      agc_set == 1 ? ( 
+        agcOverride = 10;
+        agcControl = 0;
+        AGCEnabled = 0;
+      );
+    );
+
+    button_panel_toggle.select = PanelEnabled;
+    PanelEnabled = button_panel_toggle.handle_toggle_button();
+    button_panel_toggle.draw_toggle_button();
+
+    xgfx_ext_retina == 2 ? (
+      dbscale.x = gfx_w - 60;
+      dbscale.width = gfx_w - (gfx_w - 60);
+    ) : (
+      dbscale.x = gfx_w - 40;
+      dbscale.width = gfx_w - (gfx_w - 40);
+    );
+
+    dbscale.handle_dbscale_button();
+  );
+______________________________ ICH */
+
+
+
+
+
+
+  !compact_height ? ( 
+    xgfx_ext_retina == 2 ? (
+      menu.x = gfx_w - 200; 
+      menu.width = 120;
+    ) : (
+      menu.x = gfx_w - 120; 
+      menu.width = 60;
+    );
+
+    menu.draw_menu_button();
+    menu.handle_menu_button();
+  );
+  
+  /*
+
+  Filter node panel features:
+
+    Enable
+    Delete
+    Shape
+    Slope
+    Stereo
+    Split
+    Duplicate
+    Listen
+    Next
+    Prev
+
+  */
+
+  ShowPanel && selected_node != -1 ? (
+    // Draw node panel background
+    gfx_r = 0; gfx_g = 0; gfx_b = 0; gfx_a = 0.5;
+    gfx_rect(panel_x, panel_y, panel_w, panel_h);
+
+
+    //gfx_r = 0; gfx_g = 0; gfx_b = 0;
+    gfx_r = 70/255; gfx_g = 105/255; gfx_b = 127/255;
+    gfx_a = 0.9;
+    gfx_roundrect(panel_x-2, panel_y-2, panel_w+4, panel_h+4, 3, 1);
+    gfx_roundrect(panel_x-1, panel_y-1, panel_w+2, panel_h+2, 3, 1);
+
+    gfx_setfont(2);
+
+    dial_freq.r = 20 * xgfx_ext_retina;
+    dial_gain.r = 30 * xgfx_ext_retina;
+    dial_q.r = 20 * xgfx_ext_retina;
+
+    // Bypass
+    panel_bypass_toggle.select = Band_Enabled[selected_node] == 1;
+
+    bypassed = panel_bypass_toggle.handle_toggle_button() ? 1 : 2;
+    bypassed != Band_Enabled[selected_node] ? (
+      Band_Enabled[selected_node] = bypassed;
+      flag_filter_update(selected_node);
+      filters_to_sliders();
+    );
+
+    panel_bypass_toggle.draw_toggle_button();
+
+    // Shape
+    panel_shape_options.select = FilterMappingFrom[Band_Type[selected_node]];
+
+    panel_shape_options.draw_options_button2();
+
+    new_shape = panel_shape_options.handle_options_button2();
+
+    new_shape != -1 ? (
+      new_shape = FilterMappingTo[new_shape];
+
+      new_shape != Band_Type[selected_node] ? (
+
+        Band_Type[selected_node] = new_shape;
+
+        !(Band_Type[selected_node] == FILTER_LOW_CUT || Band_Type[selected_node] == FILTER_LOW_CUT_BUTTERWORTH || Band_Type[selected_node] == FILTER_HIGH_CUT || Band_Type[selected_node] == FILTER_HIGH_CUT_BUTTERWORTH) ? (
+          Band_Slope[selected_node] = 0;
+        );
+
+        Band_Type[selected_node] == FILTER_PULTEC_LOW_SHELF ? Band_Q[selected_node] = 20 :
+          Band_Q[selected_node] = 0.7071;
+
+        flag_filter_update(selected_node);
+
+        filters_to_sliders();
+      );
+    );
+
+
+    // Slope
+    Band_Type[selected_node] == FILTER_LOW_CUT || Band_Type[selected_node] == FILTER_LOW_CUT_BUTTERWORTH || Band_Type[selected_node] == FILTER_HIGH_CUT || Band_Type[selected_node] == FILTER_HIGH_CUT_BUTTERWORTH ? (
+      cur_slope = Band_Slope[selected_node];
+      cur_slope == 7 ? cur_slope = 6 :
+        cur_slope == (72/6)-1 ? cur_slope = 7 :
+          cur_slope == (96/6)-1 ? cur_slope = 8 :
+            cur_slope == (120/6)-1 ? cur_slope = 9;
+
+      panel_slope_toggle.select = cur_slope;
+
+      new_slope = panel_slope_toggle.handle_options_button2();
+
+      new_slope != -1 && new_slope != cur_slope ? ( 
+
+        match("%ddB", FilterSlopes[new_slope], values);
+        Band_Slope[selected_node] = (values / 6) - 1;
+
+        flag_filter_update(selected_node);
+
+        filters_to_sliders();
+      );
+
+      panel_slope_toggle.draw_options_button2();
+    );
+
+    // Stereo
+    panel_stereo_options.select = Band_Group[selected_node];
+
+    new_stereo = panel_stereo_options.handle_options_button2();
+
+    new_stereo != -1 && new_stereo != Band_Group[selected_node] ? (
+      Band_Group[selected_node] = new_stereo;
+
+      selected_node_group = Band_Group[selected_node];
+
+      flag_filter_update(selected_node);
+
+      filters_to_sliders();
+    );
+
+    panel_stereo_options.draw_options_button2();
+
+
+
+    dial_freq.x = panel_x + panel_w/2 - 90 * xgfx_ext_retina;
+    dial_freq.y = panel_y + panel_h/2;
+
+    dial_gain.x = panel_x + panel_w/2;
+    dial_gain.y = panel_y + panel_h/2;
+
+    dial_q.x = panel_x + panel_w/2 + 90 * xgfx_ext_retina;
+    dial_q.y = panel_y + panel_h/2;
+
+    dial_freq.draw_number_dial();
+    rotval = freq_to_per(Band_Frequency[selected_node], 1.0);
+
+    v = dial_freq.handle_number_dial(rotval);
+
+    v != rotval ? (
+      Band_Frequency[selected_node] = per_to_freq(v, 1.0);
+      flag_filter_update(selected_node);
+
+      notify_touched_frequency(selected_node);
+    );
+    dial_freq.label2 = dialf.get_freq_str(Band_Frequency[selected_node]);
+
+
+
+    dial_gain.draw_number_dial();
+    a1 = -30;  b1 = 30;
+    rotval = (Band_Gain[selected_node] - a1) / (b1 - a1);
+
+    v = dial_gain.handle_number_dial(rotval);
+    v != rotval ? (
+      Band_Gain[selected_node] = a1 + (b1 - a1) * v;
+      flag_filter_update(selected_node);
+
+      notify_touched_gain(selected_node);
+    );
+    dialgs = #;
+    sprintf(dialgs, "%.2f dB", Band_Gain[selected_node]);
+    dial_gain.label2 = dialgs;
+
+
+
+    dial_q.draw_number_dial();
+    a1 = 0.10;  b1 = 40;
+    rotval = q_to_per(Band_Q[selected_node], 1.0);
+
+    v = dial_q.handle_number_dial(rotval);
+    v != rotval ? (
+      Band_Q[selected_node] = per_to_q(v, 1.0);
+      flag_filter_update(selected_node);
+
+      notify_touched_Q(selected_node);
+    );
+
+    dialqs = #;
+    sprintf(dialqs, "%.2f", Band_Q[selected_node]);
+    dial_q.label2 = dialqs;
+
+
+
+
+
+    next = panel_next_toggle.handle_toggle_button();
+    next == 1 ? (
+      
+      panel_next_toggle.select = 0;
+
+      done = 0;
+      while(
+        selected_node += 1;
+        selected_node >= NUM_BANDS ? selected_node = 0;
+        Band_Enabled[selected_node] != BAND_STATE_OFF ? (
+          listen_node != -1 ? listen_node = selected_node;
+          done = 1;
+        );
+        !done;
+      );
+
+      flag_filter_update(selected_node);
+      filters_to_sliders();
+    );
+
+    panel_next_toggle.draw_toggle_button();
+
+
+
+    prev = panel_prev_toggle.handle_toggle_button();
+    prev == 1 ? (
+
+      panel_prev_toggle.select = 0;
+
+      done = 0;
+      while(
+        selected_node -= 1;
+        selected_node < 0 ? selected_node = NUM_BANDS - 1;
+        Band_Enabled[selected_node] != BAND_STATE_OFF ? ( 
+          listen_node != -1 ? listen_node = selected_node;
+          done = 1;
+        );
+        !done;
+      );
+
+      flag_filter_update(selected_node);
+      filters_to_sliders();
+    );
+
+    panel_prev_toggle.draw_toggle_button();
+
+
+    // Current node number
+    wd = (selected_node >= 9) ? 15 : 20;
+
+    //jj
+    gfx_x = panel_prev_toggle.x + wd * xgfx_ext_retina;
+    gfx_y = panel_prev_toggle.y + 2 * xgfx_ext_retina;;
+
+    gfx_r = gfx_b = gfx_g = 1;
+    gfx_drawnumber(selected_node+1, 0);
+
+    // Listen
+    old_listen = (listen_node == selected_node);
+    panel_listen_toggle.select = old_listen;
+
+    new_listen = panel_listen_toggle.handle_toggle_button();
+
+    new_listen != -1 && new_listen != old_listen ? (
+      new_listen == 0 ? listen_node = -1 : listen_node = selected_node;
+
+      // Band_Enabled[selected_node] = bypassed;
+
+      flag_filter_update(selected_node);
+      filters_to_sliders();
+    );
+
+    panel_listen_toggle.draw_toggle_button();
+
+    // Delete
+    panel_delete_xoffset = 750;
+    panel_delete_width = 40;
+
+    del = panel_delete_toggle.handle_close_button();
+    del == 1 ? (
+      
+      panel_delete_toggle.select = 0;
+      Band_Enabled[selected_node] = BAND_STATE_OFF;
+
+      listen_node = -1;
+
+      flag_filter_update(selected_node);
+      filters_to_sliders();
+
+      original_select_node = selected_node;
+      done = 0;
+      while(
+        selected_node += 1;
+        selected_node >= NUM_BANDS ? selected_node = 0;
+        Band_Enabled[selected_node] != BAND_STATE_OFF ? (
+          done = 1;
+        ) :
+        selected_node == original_selected_node ? ( 
+          selected_node = -1;
+          listen_node = -1;
+          done = 1;
+        );
+        !done;
+      );
+    );
+
+    panel_delete_toggle.draw_close_button();
+
+    gfx_setfont(1);
+
+  );
+
+);
+
+gainDb = 2 ^ (Gain/6);
+gainML = 2 ^ (MLGain/6);
+gainSR = 2 ^ (SRGain/6);
+
+gfx_r = gfx_g = gfx_b = gfx_a = 1.0; gfx_x = 100; gfx_y = 120;
+
+//Band_Enabled[0] != 0 ? _global.test = Band_Enabled[0];
+
+//gfx_printf("Global = %d", _global.test);  gfx_x = 100; gfx_y += 30;
+
+
+//rms = RMSSidechain.RMS_getDB();
+//gfx_printf("RMS pre = %f", RMSPre.RMS_getDB());  gfx_x = 100; gfx_y += 30;
+//gfx_printf("RMS post = %f", RMSPost.RMS_getDB());  gfx_x = 100; gfx_y += 30;
+
+//gfx_printf("gain_diff         = %f", diffdb);  gfx_x = 100; gfx_y += 120;
+
+// gfx_printf("gain_diff         = %f", gain_diff);  gfx_x = 100; gfx_y = 120;
+
+// gfx_printf("srate         = %f", srate);  gfx_x = 100; gfx_y = 120;
+// gfx_printf("SAMPLE_RATE   = %f", SAMPLE_RATE);  gfx_x = 100; gfx_y = 140;
+// gfx_printf("pdc_delay     = %f", pdc_delay);  gfx_x = 100; gfx_y = 160;
+
+/*
+gfx_printf("BandProcess0 = %d BandEnabled0 = %d  rest = %d",Band_Process0, Band_Enabled[0], band1.filter.zdf_is_resting()); gfx_x = 100; gfx_y = 140;
+gfx_printf("Coeffs       = %f %f %f %f %f %f", band1.filter.a1, band1.filter.a2, band1.filter.a3, band1.filter.m0, band1.filter.m1, band1.filter.m2);  gfx_x = 100; gfx_y = 160;
+gfx_printf("Targ Coeffs  = %f %f %f %f %f %f", band1.filter.t_a1, band1.filter.t_a2, band1.filter.t_a3, band1.filter.t_m0, band1.filter.t_m1, band1.filter.t_m2); gfx_x = 100; gfx_y = 180;
+gfx_printf("Targ Steps  = %f %f %f %f %f %f", band1.filter.t_sa1, band1.filter.t_sa2, band1.filter.t_sa3, band1.filter.t_sm0, band1.filter.t_sm1, band1.filter.t_sm2); gfx_x = 100; gfx_y = 200;
+*/
+
+/*
+gfx_printf("Listen_Process = %d do_listen = %d  rest = %d",Listen_Process, do_listen, listen_filter.zdf_is_resting()); gfx_x = 100; gfx_y = 140;
+gfx_printf("Coeffs       = %f %f %f %f %f %f", listen_filter.a1, listen_filter.a2, listen_filter.a3, listen_filter.m0, listen_filter.m1, listen_filter.m2);  gfx_x = 100; gfx_y = 160;
+gfx_printf("Targ Coeffs  = %f %f %f %f %f %f", listen_filter.t_a1, listen_filter.t_a2, listen_filter.t_a3, listen_filter.t_m0, listen_filter.t_m1, listen_filter.t_m2); gfx_x = 100; gfx_y = 180;
+gfx_printf("Targ Steps  = %f %f %f %f %f %f", listen_filter.t_sa1, listen_filter.t_sa2, listen_filter.t_sa3, listen_filter.t_sm0, listen_filter.t_sm1, listen_filter.t_sm2); gfx_x = 100; gfx_y = 200;
+*/
+
+//gfx_printf("bands enabled = %d %d %d %d %d %d %d %d", Band_Enabled[0], Band_Enabled[1], Band_Enabled[2], Band_Enabled[3], Band_Enabled[4], Band_Enabled[5], Band_Enabled[6], Band_Enabled[7]);  gfx_x = 100; gfx_y = 180;
+
+/*
+gfx_r = gfx_g = gfx_b = gfx_a = 1.0;
+
+gfx_x = 100;
+gfx_y = 100;
+
+gfx_printf("a = %f %f %f", band1.filter.cas7.a1, band1.filter.cas7.a2, band1.filter.cas7.a3);  gfx_x = 100; gfx_y = 120;
+gfx_printf("m = %f %f %f", band1.filter.cas7.m0, band1.filter.cas7.m1, band1.filter.cas7.m2);  gfx_x = 100; gfx_y = 140;
+
+gfx_printf("ai = %f %f %f", band1.filter.cas1.i_a1.b, band1.filter.cas1.i_a2.b, band1.filter.cas1.i_a3.b);  gfx_x = 100; gfx_y = 120;
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extfl == 0 ? (
+
+
+
+gra = 1;
+gra < 1.8 ? (
+
+gfx_w = 880;
+gfx_h=600;
+//gfx_line(0,400,800,400);
+//gfx_line(0,600,880,600);
+gfx_x=1; gfx_y=1;
+
+Quality == 1 ? (
+gfx_blit(0,1,0);
+):(
+gfx_blit(8,1,0);
+);
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+
+
+
+//initial == 0 ? (
+      front=0;
+      front.val=front;
+      front.potVal(front.val);
+     // front.valOld=front;
+      center=Node1_Frequency;
+      center.val=center;
+      center.potVal(center.val);
+      back=10*Node1_Slope;
+      back.val=back;
+      back.potVal(back.val);
+      four=Node2_Frequency;
+      four.val=four;
+      four.potVal(four.val);
+      five=Node2_Gain;
+      five.val=five;
+      five.potVal(five.val);
+      six=Node2_Q;
+      six.val=six;
+      six.potVal(six.val);
+       lmfg=Node3_Gain;
+       lmfg.val=lmfg;
+       lmfg.potVal(lmfg.val);
+       lmff=Node3_Frequency;
+       lmff.val=lmff;
+       lmff.potVal(lmff.val);
+       lmfq=Node3_Q;
+       lmfq.val=lmfq;
+       lmfq.potVal(lmfq.val);
+       hmfg=Node4_Gain;
+       hmfg.val=hmfg;
+       hmfg.potVal(hmfg.val);
+       hmff=Node4_Frequency;
+       hmff.val=hmff;
+       hmff.potVal(hmff.val);
+       hmfq=Node4_Q;
+       hmfq.val=hmfq;
+       hmfq.potVal(hmfq.val);
+       hshlvg=Node5_Gain;
+       hshlvg.val=hshlvg;
+       hshlvg.potVal(hshlvg.val);
+       hshlvf=Node5_Frequency;
+       hshlvf.val=hshlvf;
+       hshlvf.potVal(hshlvf.val);
+       outg=Gain;
+       outg.val=outg;
+       outg.potVal(outg.val);
+       bell=Node2_Type/3;
+       bell.val=bell;
+       bell.potVal(bell.val);
+       initial = 1;
+//);
+
+  
+//slider6:-.1<-6,0,.01
+front.knob();
+center.knob();
+back.knob();
+four.knob();
+five.knob();
+six.knob();
+lmff.knob();
+lmfg.knob();
+lmfq.knob();
+hmff.knob();
+hmfg.knob();
+hmfq.knob();
+hshlvf.knob();
+hshlvg.knob();
+outg.knob();
+bell.knob();
+
+knobsx = 45;
+knobsy = 410;
+//gfx_line(lffon + 20,355,lffon + 54,389);
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+      //front.collision()   ? front.dragStart();
+      center.collision()  ?  center.dragStart();  
+      back.collision()    ? back.dragStart(); 
+      four.collision()    ? four.dragStart(); 
+      five.collision()    ? five.dragStart();
+      six.collision()     ? six.dragStart();
+      lmfg.collision()    ? lmfg.dragStart();
+      lmff.collision()    ? lmff.dragStart();
+      lmfq.collision()    ? lmfq.dragStart();
+      hmfg.collision()    ? hmfg.dragStart();
+      hmff.collision()    ? hmff.dragStart();
+      hmfq.collision()    ? hmfq.dragStart();
+      hshlvg.collision()    ? hshlvg.dragStart();
+      hshlvf.collision()    ? hshlvf.dragStart();
+outg.collision()    ? outg.dragStart();     
+
+bell.collision()    ? (bell.potToggle();  changer=1);  
+  
+
+    ):
+mouseClick == -1  ? 
+    (
+     // front.dragStop();
+      center.dragStop();
+      back.dragStop();
+      four.dragStop();
+      five.dragStop();
+      six.dragStop();
+      lmfg.dragStop();
+      lmff.dragStop();
+      lmfq.dragStop();
+      hmfg.dragStop();
+      hmff.dragStop();
+      hmfq.dragStop();
+      hshlvg.dragStop();
+      hshlvf.dragStop();
+      outg.dragStop();
+     // bell.dragStop();
+    );
+
+mouse_wheel ? 
+    (
+     // front.collision()   ? front.potWheel():
+      center.collision()  ? (center.potWheel();changer = 1):
+      back.collision()    ? (back.potWheel();changer = 1):
+      four.collision()    ? (four.potWheel();changer = 1):
+      five.collision()    ? (five.potWheel();changer = 1):
+      six.collision()     ? (six.potWheel();changer = 1):
+      lmfg.collision()    ? (lmfg.potWheel();changer = 1):
+      lmff.collision()    ? (lmff.potWheel();changer = 1):
+      lmfq.collision()    ? (lmfq.potWheel();changer = 1):
+      hmfg.collision()    ? (hmfg.potWheel();changer = 1):
+      hmff.collision()    ? (hmff.potWheel();changer = 1):
+      hmfq.collision()    ? (hmfq.potWheel();changer = 1):
+      hshlvg.collision()    ? (hshlvg.potWheel();changer = 1):
+      hshlvf.collision()    ? (hshlvf.potWheel();changer = 1):
+      outg.collision()    ? (outg.potWheel();changer = 1):
+      mouse_wheel=0;
+    );
+
+
+//front.dragging  ? front.potDrag();
+center.dragging ? (center.potDrag(); changer = 1);
+back.dragging   ? (back.potDrag();changer = 1);
+four.dragging   ? (four.potDrag();changer = 1);
+five.dragging   ? (five.potDrag();changer = 1);
+six.dragging    ? (six.potDrag();changer = 1);
+lmfg.dragging   ? (lmfg.potDrag();changer = 1);
+lmff.dragging   ? (lmff.potDrag();changer = 1);
+lmfq.dragging   ? (lmfq.potDrag();changer = 1);
+hmfg.dragging   ? (hmfg.potDrag();changer = 1);
+hmff.dragging   ? (hmff.potDrag();changer = 1);
+hmfq.dragging   ? (hmfq.potDrag();changer = 1);
+hshlvg.dragging   ? (hshlvg.potDrag();changer = 1);
+hshlvf.dragging   ? (hshlvf.potDrag();changer = 1);
+outg.dragging   ? (outg.potDrag();changer = 1);
+bell.dragging   ? (bell.potDrag();changer = 1);
+//******************************* Slider Knob Control *************************
+  /*
+front!=front.val?
+    (
+      front=front.val;
+      Slider7=front;
+      pot.potVal(front.val);
+     ):
+front!=slider7?
+    (
+      front=0;
+      front.val=front;
+      front.potVal(front.val);
+      front.valOld=front;
+    );
+  */
+center!=center.val?
+    (
+      center=center.val;
+      slider21=center;
+      Node1_Frequency=center;
+      pot.potVal(center.val);
+     ):
+center!=Node1_Frequency?
+    (
+      center=Node1_Frequency;
+      center.val=center;
+      center.potVal(center.val);
+      center.valOld=center;
+    );  
+  
+back!=back.val?
+    (
+      back=back.val;
+      slider24=floor((back/10)+.5);
+      Node1_Slope=floor((back/10)+.5);
+      pot.potVal(back.val);
+     ):
+/*
+back!=10*Node1_Slope?
+    (
+      back=10*Node1_Slope;
+      back.val=back;
+      back.potVal(back.val);
+      back.valOld=back;
+    );
+*/
+
+four!=four.val?
+    (
+      four=four.val;
+      slider28=four;
+      Node2_Frequency=four;
+      pot.potVal(four.val);
+     ):
+four!=Node2_Frequency?
+    (
+      four=Node2_Frequency;
+      four.val=four;
+      four.potVal(four.val);
+      four.valOld=four;
+    );
+    
+five!=five.val?
+    (
+      five=five.val;
+      slider29=five;
+      Node2_Gain=five;
+      pot.potVal(five.val);
+     ):
+five!=Node2_Gain?
+    (
+      five=Node2_Gain;
+      five.val=five;
+      five.potVal(five.val);
+      five.valOld=five;
+    );
+
+     six!=six.val?
+     (
+       six=six.val;
+       slider30=six;
+       Node2_Q=six;
+       pot.potVal(six.val);
+      ):
+ six!=Node2_Q?
+     (
+       six=Node2_Q;
+       six.val=six;
+       six.potVal(six.val);
+       six.valOld=six;
+     ); 
+    
+    
+ lmfg!=lmfg.val?
+     (
+       lmfg=lmfg.val;
+       slider36=lmfg;
+       Node3_Gain=lmfg;
+       pot.potVal(lmfg.val);
+      ):
+ lmfg!=Node3_Gain?
+     (
+       lmfg=Node3_Gain;
+       lmfg.val=lmfg;
+       lmfg.potVal(lmfg.val);
+       lmfg.valOld=lmfg;
+     );
+ 
+ lmff!=lmff.val?
+     (
+       lmff=lmff.val;
+       slider35=lmff;
+       Node3_Frequency=lmff;
+       pot.potVal(lmff.val);
+      ):
+ lmff!=Node3_Frequency?
+     (
+       lmff=Node3_Frequency;
+       lmff.val=lmff;
+       lmff.potVal(lmff.val);
+       lmff.valOld=lmff;
+     );
+ 
+ lmfq!=lmfq.val?
+     (
+       lmfq=lmfq.val;
+       slider37=lmfq;
+       Node3_Q=lmfq;
+       pot.potVal(lmfq.val);
+      ):
+ lmfq!=Node3_Q?
+     (
+       lmfq=Node3_Q;
+       lmfq.val=lmfq;
+       lmfq.potVal(lmfq.val);
+       lmfq.valOld=lmfq;
+     );   
+    
+    
+    
+   
+ hmfg!=hmfg.val?
+     (
+       hmfg=hmfg.val;
+       slider43=hmfg;
+       Node4_Gain=hmfg;
+       pot.potVal(hmfg.val);
+      ):
+ hmfg!=Node4_Gain?
+     (
+       hmfg=Node4_Gain;
+       hmfg.val=hmfg;
+       hmfg.potVal(hmfg.val);
+       hmfg.valOld=hmfg;
+     );
+ 
+ hmff!=hmff.val?
+     (
+       hmff=hmff.val;
+       slider42=hmff;
+       Node4_Frequency=hmff;
+       pot.potVal(hmff.val);
+      ):
+ hmff!=Node4_Frequency?
+     (
+       hmff=Node4_Frequency;
+       hmff.val=hmff;
+       hmff.potVal(hmff.val);
+       hmff.valOld=hmff;
+     );
+ 
+ hmfq!=hmfq.val?
+     (
+       hmfq=hmfq.val;
+       slider44=hmfq;
+       Node4_Q=hmfq;
+       pot.potVal(hmfq.val);
+      ):
+ hmfq!=Node4_Q?
+     (
+       hmfq=Node4_Q;
+       hmfq.val=hmfq;
+       hmfq.potVal(hmfq.val);
+       hmfq.valOld=hmfq;
+     );      
+    
+    
+ hshlvg!=hshlvg.val?
+     (
+       hshlvg=hshlvg.val;
+       slider50=hshlvg;
+       Node5_Gain=hshlvg;
+       pot.potVal(hshlvg.val);
+      ):
+ hshlvg!=Node5_Gain?
+     (
+       hshlvg=Node5_Gain;
+       hshlvg.val=hshlvg;
+       hshlvg.potVal(hshlvg.val);
+       hshlvg.valOld=hshlvg;
+     );
+ 
+ hshlvf!=hshlvf.val?
+     (
+       hshlvf=hshlvf.val;
+       slider49=hshlvf;
+       Node5_Frequency=hshlvf;
+       pot.potVal(hshlvf.val);
+      ):
+ hshlvf!=Node5_Frequency?
+     (
+       hshlvf=Node5_Frequency;
+       hshlvf.val=hshlvf;
+       hshlvf.potVal(hshlvf.val);
+       hshlvf.valOld=hshlvf;
+     );
+
+outg!=outg.val?
+     (
+       outg=outg.val;
+       slider3=outg;
+       Gain=outg;
+       pot.potVal(outg.val);
+      ):
+ outg!=Gain?
+     (
+       outg=Gain;
+       outg.val=outg;
+       outg.potVal(outg.val);
+       outg.valOld=outg;
+     );
+     bell!=bell.val?
+          (
+            bell=bell.val;
+            
+            bell == 0 ? (
+            six.potcfg (32.647,0,80,.2);
+            ):(
+            six.potcfg (32.647,18,40,.2);
+            six < 18 ? (six=18);
+            six > 40 ? (six=40);
+            six.val=six;
+            slider30=six;
+            Node2_Q=six;
+            pot.potVal(six.val);
+            );
+            
+            slider27=bell*3;
+            Node2_Type=bell*3;
+            pot.potVal(bell.val);
+           ):
+      bell!=Node2_Type/3?
+          (
+            bell=Node2_Type/3;
+            bell == 0 ? (
+            six.potcfg (32.647,0,80,.2);
+            ):(
+            six.potcfg (32.647,18,40,.2);
+            four.potcfg (30,0,60,.2);
+            six < 18 ? (six=18);
+            six > 40 ? (six=40);
+            six.val=six;
+            slider30=six;
+            Node2_Q=six;
+            pot.potVal(six.val);
+            );
+            bell.val=bell;
+            bell.potVal(bell.val);
+            bell.valOld=bell;
+          );
+    
+    
+    
+    
+    mouseclick == 1 ? 
+        (
+        mouse_x > lffon + 20 ? (
+          mouse_x < lffon+54 ? (
+          mouse_y > 355 ? (
+          mouse_y < 389 ? (
+          changer = 1;
+          Node2_enabled == 2? (
+          slider25=1;
+          Node2_Enabled=1;
+          ): (
+          slider25=2;
+          Node2_Enabled=2;
+          );
+          );
+          );
+          );
+          );
+          
+          mouse_x > lmfon + 20 ? (
+             mouse_x < lmfon+54 ? (
+             mouse_y > 355 ? (
+             mouse_y < 389 ? (
+             changer = 1;
+             Node3_Enabled ==2? (
+             slider32=1;
+             Node3_Enabled=1;
+             ): (
+             slider32=2;
+             Node3_Enabled=2;
+             );
+              );
+             );
+             );
+             );
+
+        
+          mouse_x > hmfon + 20 ? (
+             mouse_x < hmfon+54 ? (
+             mouse_y > 355 ? (
+             mouse_y < 389 ? (
+             changer = 1;
+             Node4_Enabled==2? (
+             slider39=1;
+             Node4_Enabled=1;
+             ): (
+             slider39=2;
+             Node4_Enabled=2;
+             );
+              );
+             );
+             );
+             );
+             
+             mouse_x > hshlvon + 20 ? (
+                mouse_x < hshlvon+54 ? (
+                mouse_y > 355 ? (
+                mouse_y < 389 ? (
+                changer = 1;
+                Node5_Enabled ==2? (
+                slider46=1;
+                Node5_Enabled=1;
+                ): (
+                slider46=2;
+                Node5_Enabled=2;
+                );
+                 );
+                );
+                );
+                );
+                
+                mouse_x > hpfon + 20 ? (
+                   mouse_x < hpfon+54 ? (
+                   mouse_y > 355 ? (
+                   mouse_y < 389 ? (
+                   changer = 1;
+                   Node1_Enabled ==2? (
+                   slider18=1;
+                   Node1_Enabled=1;
+                   ): (
+                   slider18=2;
+                   Node1_Enabled=2;
+                   );
+                    );
+                   );
+                   );
+                   );
+                   
+                   
+                   //gfx_rect(870,355,60,80);
+                   mouse_x > 870 ? (
+                   mouse_x < 960 ? (
+                   mouse_y > 355 ? (
+                   mouse_y < 435 ? (
+                   Quality == 0 ? (Quality=1):(Quality=0);
+                   changer = 1;
+                   //slider2 = Quality;
+                   //set_oversample(Quality);
+                   //button_oversample.select = Quality;
+                   );
+                   );
+                   );
+                   );
+        );
+        
+        
+    changer > 0 ? (
+    changer = 0;
+    set_oversample(Quality);
+    slider7 = 6;
+    button_oversample.select = Quality;
+    button_stereo_mode.select = Stereo_Mode;
+    
+    flag_filter_update_all(); 
+    
+    sliders_to_filters();
+    
+    update_state();
+     );
+    //sliderchange(2^21);
+    
+    
+    
+    slider7 = 6;
+    
+    
+    
+    gfx_y = 340;
+    //slider25:Node2_Enabled=0<0,2,1{Off,Disabled,Enabled}>-Filter2 Mode
+    Node1_Enabled > 1 ? (
+    gfx_x = hpfon+5;
+    gfx_blit(5,1,0);
+    ) : (
+    gfx_x = hpfon+5;
+    gfx_blit(6,1,0);
+    );  
+    
+    Node2_Enabled > 1 ? (
+    gfx_x = lffon+5;
+    gfx_blit(5,1,0);
+    ) : (
+    gfx_x = lffon+5;
+    gfx_blit(6,1,0);
+    );    
+   
+    gfx_x = lmfon+5;
+     Node3_Enabled > 1 ? (
+     gfx_blit(5,1,0);
+     ) : (
+     gfx_blit(6,1,0);
+     );   
+     
+     gfx_x = hmfon+5;
+     Node4_Enabled > 1 ? (
+     gfx_blit(5,1,0);
+     ) : (
+     gfx_blit(6,1,0);
+     );   
+     
+     gfx_x = hshlvon+5;
+     Node5_Enabled > 1 ? (
+     gfx_blit(5,1,0);
+     ) : (
+     gfx_blit(6,1,0);
+     );   
+
+
+); // ENDE AUSKLAMMERN (Slider8)
+
+); ////// EXTFL
