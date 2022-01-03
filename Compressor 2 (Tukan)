@@ -1,4 +1,7 @@
 desc:Compressor 2 (Tukan)
+//author: Tukan
+//version 1.1
+
 slider1:-16<-32,0,0.1>-Threshold (dB)
 slider2:0<0,100,1>-Knee (%)
 slider3:4<1,17,0.1>-Ratio
@@ -19,6 +22,7 @@ filename:3,TKCC2gui/APISmall.png
 filename:4,TKCC2gui/switch.png
 filename:5,TKCC2gui/VUMeter.png
 filename:6,TKCC2gui/screw.png
+filename:7,TKCC2gui/VUMeter2.png
 
 in_pin:L in
 in_pin:R in
@@ -274,21 +278,22 @@ gr_meter2 > 1 ? gr_meter2 =1;
                     valOld = val;
                    );
  
- function potDrag()
-       local      (val)
-         instance   (valOld minVal maxVal yOld step)
-                  (
-                    !shift ? (
-                   val = valOld + (yOld - mouse_y) * step;
-                   val = limitgui(val, minVal, maxVal);
-                   this.potVal(val);
-                   ):(
-                   val = valOld + (yOld - mouse_y) * step/10;
-                   val = limitgui(val, minVal, maxVal);
-                   this.potVal(val);
-                   );
-                  );
-                  
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
     function potToggle()
           local      (val)
             instance   (valOld minVal maxVal yOld step)
@@ -298,28 +303,29 @@ gr_meter2 > 1 ? gr_meter2 =1;
                       this.potVal(val);
                       valOld=val;
                        );
- 
- function potWheel()
-     local         (val)
-     instance      (valOld minVal maxVal step)
-                   (
-                    val = valOld + (mouse_wheel/12)*step;
-                    val = limitgui(val, minVal, maxVal);
-                    this.potVal(val);
-                    valOld=val;
-                    mouse_wheel=0;
-                     );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
  
    
- gthresh.potcfg  (-16,-32,-0,.1); //default. von, bis, step
- gratio.potcfg (4,1,15,.1);
+ gthresh.potcfg  (-16,-32,-0,.032); //default. von, bis, step
+ gratio.potcfg (4,1,15,.015);
  gatt.potcfg   (20,0,150,1);
- grel.potcfg   (200,2,1000,5);
- goutgain.potcfg   (0,-24,24,.1);
+ grel.potcfg   (200,2,1000,1);
+ goutgain.potcfg   (0,-24,24,.048);
  gfeedback.potcfg   (1,0,1,1);
  Trick.potcfg   (0,0,1,1);
  SC.potcfg   (0,0,1,1);
- screw.potcfg   (5,0,5,.1);
+ screw.potcfg   (5,0,5,.01);
  
  
  knobsx = 50; 
@@ -519,6 +525,7 @@ ovrlgain = ovrlg;
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
+gfx_ext_flags == 0 ? (
 
 initial == 0 ? (
 grmin = 0;
@@ -554,9 +561,6 @@ grmin = 0;
           screw.valOld=screw;
 );
   
-
-
-
 
 
 
@@ -599,7 +603,7 @@ gfx_line(meterx+120+(slider1*3), metery+10-(slider1*3), meterx+120, metery+10-gr
 gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
 gfx_rect(meterx+123,metery+10,5,(-1 * (log10(gr_meter)*100)));
 grold > gr_meter ? (grold = gr_meter);
-gfx_rect(meterx+123,metery+10+(-1 * (log10(grold)*100)),5,1);
+grold != 1 ? (gfx_rect(meterx+123,metery+10+(-1 * (log10(grold)*100)),5,1));
 
 ticker += 1;
 gcG > cG ? (
@@ -889,6 +893,100 @@ g*=s2;
 gfx_x >=0;
 );
 */
+):( /// ext flags
+
+
+ax=0;
+   
+      slider10 == 0 ? (
+      
+      
+      meterx = 0; metery = 0; meterh = gfx_h - metery; meterw = meterh;
+      gfx_r=0.1;gfx_g=0.1;gfx_b=0.1; gfx_a=1;
+      //gfx_rect(0,0,650,300);
+      
+      //gfx_rect(meterx,metery,220,meterw);
+      n= 1;
+      gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=0.3;
+      loop(3,
+      gfx_line(meterx+meterw-(n*meterw*3/10),metery,meterx+meterw-(n*meterw*3/10),metery+meterh);
+      gfx_line(meterx,metery+(n*meterh*3/10),meterx+meterw,metery+(n*meterh*3/10));
+      n = n + 1;
+      );
+      
+      gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=1;
+      gfx_line(meterx,metery,meterx,metery+meterh);
+      gfx_line(meterx+meterw,metery,meterx+meterw,metery+meterh);
+      gfx_line(meterx,metery,meterx+meterw,metery);
+      gfx_line(meterx,metery+meterh-1,meterx+meterw,metery+meterh-1);
+      gfx_line(meterx,metery+meterh, meterx+meterw+(slider1*3*meterw/100), metery-(slider1*3*meterh/100));
+      grat = (slider1*3*meterh/100) - ((slider1*3*meterh/100)/slider3);
+      gfx_line(meterx+meterw+(slider1*3*meterw/100), metery-(slider1*3*meterh/100), meterx+meterw, metery-grat);
+      gfx_r=0.7; gfx_g=gfx_b=0; gfx_a=1;
+      gfx_rect(meterx+meterh,metery,2,(-1 * (log10(gr_meter)*meterh)));
+      grold > gr_meter ? (grold = gr_meter);
+      grold != 1 ? (gfx_rect(meterx+meterh,metery+(-1 * (log10(grold)*meterh)),2,1));
+      
+      fontsize = min(max((meterh-10) / 2,8),14);
+      gfx_setfont(1, "Arial", fontsize);
+      gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
+      gfx_x = meterx + meterh + 3; gfx_y=metery+2;
+      gfx_drawnumber(gcG,1);//(grmin,1); gcG
+      gfx_drawstr(" dB");
+      gfx_a=0.7;
+      gfx_x = meterx + meterh+3; gfx_y=metery+20 ;
+      gfx_drawnumber(grmin,1);
+      gfx_drawstr(" dB");
+      gfx_drawstr(" (max)");
+       
+      gfx_setfont(1);
+      
+      ticker += 1;
+      gcG > cG ? (
+      gcG = cG;
+      ticker = 0;
+      ) : (
+      ticker > 15 ? (
+      gcG = cG;
+      ticker = 0;
+      );
+      );
+      
+      mouseClick == 1 ? (
+      mouse_x > gfx_w/2 ? grmin=0;
+      mouse_x < gfx_w/2 ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      );
+      
+      ):( // slider10
+      
+      
+      gfx_mode=0; gfx_a = 1;
+      
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(7,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      
+       gfx_x = 2; gfx_y = 1;
+       gfx_setfont();
+      gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("C2");
+      
+      mouseClick == 1 ? (
+      mouse_x > gfx_w/2 ? grmin=0;
+      mouse_x < gfx_w/2 ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      );
+      
+      );//slider10
+); // ext flags
+groldreset += 1;
+groldreset > 45 ? (groldreset = 0; grold=1);
 
 changer == 1 ?(
 threshold = slider1;

@@ -1,4 +1,7 @@
 desc:NC76 (Tukan)
+// Version 1.1
+
+
 // Copyright 2006, Thomas Scott Stillwell
 // All rights reserved.
 //
@@ -44,7 +47,7 @@ filename:2,76gui/MY1176.png
 filename:3,76gui/MY1176small.png
 filename:4,76gui/1176button.png
 filename:5,76gui/screw.png
-
+filename:6,76gui/VUMeter2.png
 //options:no_meter
 
 
@@ -260,22 +263,24 @@ ovrlgain = 1;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
                      );
-    
-    
+                     
+ 
     function potWheel()
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -287,13 +292,13 @@ ovrlgain = 1;
     slider12:0<0,100,1>-Denoiser
     slider13:0<-100,100,2>-Output
     */
-  gInGain.potcfg  (0.77,0,4,.01);
-  gOutGain.potcfg (-10,-60,17,0.1);
-  gAtt.potcfg (100,20,800,2);
-  gRel.potcfg (250,10,1100,2); 
+  gInGain.potcfg  (0.77,0,4,.004);
+  gOutGain.potcfg (-10,-60,17,0.077);
+  gAtt.potcfg (100,20,800,1);
+  gRel.potcfg (250,10,1100,1); 
  // gRatio.potcfg   (4,4,8,4);
  // gSidechain.potcfg (0,0,1,1);
-  screw.potcfg   (4.9,0,5,.1);
+  screw.potcfg   (4.9,0,5,.005);
   knobsx = 80;
   knobsy = 60;
   gInGain.rectIn(knobsx, knobsy, 100, 100);
@@ -497,7 +502,7 @@ ovrlgain = ovrlg;
       lastCap = mouseHold;
       
       
-       
+gfx_ext_flags == 0 ? (      
       
       meterx = 590;
       metery = 40;
@@ -813,6 +818,26 @@ gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
             );
             
             
+            
+  ):( // EXT FLAGS
+      gfx_mode=0; gfx_a = 1;
+ 
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(6,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      
+       gfx_x = 2; gfx_y = 1;
+      gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("76")
+
+  ); // EXT FLAgs
             
             
             

@@ -18,6 +18,9 @@
 
 
 desc:PreAmp (Tukan)
+// Version 1.1
+
+
 slider1:-6<-6,24,0.1>-Input (dB)
 slider2:50<1,100,1>-Tube (%)
 slider3:0<-24,24,0.1>-Wet (dB)
@@ -295,11 +298,12 @@ ovrlgain = 1;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -319,20 +323,20 @@ ovrlgain = 1;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
                        mouse_wheel=0;
                         );
- 
                       
                       
                       
-       ggin.potcfg  (-6,-6,24,.15); //default. von, bis, step
-       ggout.potcfg (0,-12,12,.15);
-       ggLow.potcfg   (0,-20,20,.2);
-       ggHigh.potcfg   (0,-20,20,.2);
+       ggin.potcfg  (-6,-6,24,.03); //default. von, bis, step
+       ggout.potcfg (0,-12,12,.024);
+       ggLow.potcfg   (0,-20,20,.04);
+       ggHigh.potcfg   (0,-20,20,.04);
        ggDist.potcfg   (0,0,1,1);
        ggHPF.potcfg   (1,0,1,1);
        
@@ -659,17 +663,46 @@ ovrlgain = ovrlg;
 
 
 @gfx 350 410
+     function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
+     (
+     gfx_x=kx; gfx_y=ky;
+     weg = abs(kmax - kmin);
+     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+      scry = kbitmap * floor(kframe);
+      gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+     );
 
 
-decayer = 0.9;
-meterscale = 290;
-meterh = 3 ;
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
 
-// 120 50
-inmeterx = 30;
-inmetery = 170;
-outmeterx = 30;
-outmetery = 200;
+initial == 0 ? (
+      ggin=slider1;
+      ggin.val=ggin;
+      ggin.potVal(ggin.val);
+      ggout=slider9;
+      ggout.val=ggout;
+      ggout.potVal(ggout.val);
+      ggLow=slider7;
+      ggLow.val=ggLow;
+      ggLow.potVal(ggLow.val);
+      ggHigh=slider8;
+      ggHigh.val=ggHigh;
+      ggHigh.potVal(ggHigh.val);
+      ggDist=slider10;
+      ggDist.val=ggDist;
+      ggDist.potVal(ggDist.val);
+      ggHPF=slider11;
+      ggHPF.val=ggHPF;
+      ggHPF.potVal(ggHPF.val);
+      EQN = 1;
+          initial = 1;
+);
+
 
 
 gout0 > 1 ? (gout0clip = 30; gout0=1;);
@@ -701,6 +734,238 @@ vmet += 0.5 * meterscale;
 meters = min(log10(meters*10),1);
 meters*=meterscale;
 );
+
+
+
+
+
+
+
+     function miniknopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider,knopfscale)
+     (
+     gfx_x=kx; gfx_y=ky;
+     weg = abs(kmax - kmin);
+     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+      scry = kbitmap * floor(kframe);
+      gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+     );
+
+
+
+
+gfx_ext_flags == 1 ? (
+gfx_r = 0.2; gfx_g=0.2;gfx_b=0.2;gfx_a=1;
+gfx_rect(0,0,gfx_w,gfx_h);
+
+
+
+
+gfx_w > 61 ? (
+
+
+  knscale = 0.75*gfx_w/110;
+  miniknopf(1,(gfx_w/2)-(0.5*knscale*110),10+meterh+meterh+2,101,110,-6,24,slider1,knscale);
+  
+  
+decayer = 0.7;
+meterscale = gfx_W;
+meterh = 3 ;
+
+// 120 50
+inmeterx = 0;
+inmetery = 3;
+outmeterx = 0;
+outmetery = gfx_h-16;
+
+
+
+
+
+
+
+
+
+gfx_r=0;gfx_b=0;gfx_g=0;gfx_a=.2;
+gfx_rect(inmeterx-2, inmetery-2, meterscale+2, 10+meterh+meterh+2);
+gfx_rect(outmeterx-2, outmetery-2, meterscale+2, 10+meterh+meterh+2);
+
+gfx_r=0;gfx_b=0;gfx_g=1;gfx_a=0.15;
+gfx_rect(inmeterx, inmetery, meterscale, meterh);
+gfx_rect(inmeterx, inmetery+10, meterscale, meterh);
+gfx_a=1;
+gfx_rect(inmeterx, inmetery,scalemeters(gin0), meterh);
+gfx_rect(inmeterx, inmetery+10, scalemeters(gin1), meterh);
+
+
+gfx_rect(inmeterx + (log10(gin0max*10) * meterscale) - 3, inmetery,3, meterh);
+gfx_rect(inmeterx + (log10(gin1max*10) * meterscale) - 3, inmetery+10, 3, meterh);
+
+gfx_r=0;gfx_b=0;gfx_g=1;gfx_a=0.15;
+gfx_rect(outmeterx, outmetery, meterscale, meterh);
+gfx_rect(outmeterx, outmetery+10, meterscale, meterh);
+gfx_a=1;
+gfx_rect(outmeterx, outmetery, scalemeters(gout0), meterh);
+gfx_rect(outmeterx, outmetery+10,scalemeters(gout1), meterh);
+
+
+
+gout0max > 0.1 ? (gfx_rect(outmeterx+ (log10(gout0max*10) * meterscale) - 3, outmetery,3, meterh));
+gout1max > 0.1 ? (gfx_rect(outmeterx+ (log10(gout1max*10) * meterscale) - 3, outmetery+10, 3, meterh));
+
+
+gfx_r=0;gfx_b=0;gfx_g=0;gfx_a=1;
+n = 1;
+loop(50,
+stepper = meterscale / 50;
+
+gfx_line(inmeterx + stepper * n, inmetery, inmeterx + stepper * n, inmetery+meterh);
+gfx_line(inmeterx + stepper * n, inmetery+10, inmeterx + stepper * n, inmetery+10+meterh);
+
+gfx_line(outmeterx + stepper * n, outmetery, outmeterx + stepper * n, outmetery+meterh);
+gfx_line(outmeterx + stepper * n, outmetery+10, outmeterx + stepper * n, outmetery+10+meterh);
+
+n += 1;
+);
+
+gin0 *= decayer;
+gin1 *= decayer;
+gout0 *= decayer;
+gout1 *= decayer;
+
+
+maxi > 60 ? (
+maxi = 0;
+gin0max = 0;
+gin1max=0;
+gout0max=0;
+gout1max=0;
+);
+
+
+
+
+mouseClick == 1 ? 
+    (
+      mouse_y > gfx_h/4 ? (
+      mouse_y < gfx_h/4 + (knscale*110) ? (
+      ggin.dragStart();   
+      );
+      );
+    ):
+mouseClick == -1  ? 
+    (
+      ggin.dragStop();
+   );
+
+mouse_wheel ? 
+    (
+      //ggin.collision()   ? ggin.potWheel():
+      mouse_y > gfx_h/4 ? (
+      mouse_y < gfx_h/4 + (knscale*110) ? (
+      ggin.potWheel();   
+      );
+      ):
+     mouse_wheel=0;
+    );
+
+
+ggin.dragging  ? ggin.potDrag();
+
+):( // GFX_W > 50
+decayer = 0.7;
+meterscale = gfx_W;
+meterh = 3 ;
+
+// 120 50
+inmeterx = 0;
+inmetery = 3;
+outmeterx = 0;
+outmetery = gfx_h-16;
+
+gfx_r=0;gfx_b=0;gfx_g=1;gfx_a=0.15;
+gfx_rect(inmeterx, inmetery, meterscale, meterh);
+gfx_rect(inmeterx, inmetery+10, meterscale, meterh);
+gfx_a=1;
+gfx_rect(inmeterx, inmetery,scalemeters(gin0), meterh);
+gfx_rect(inmeterx, inmetery+10, scalemeters(gin1), meterh);
+
+
+gfx_rect(inmeterx + (log10(gin0max*10) * meterscale) - 3, inmetery,3, meterh);
+gfx_rect(inmeterx + (log10(gin1max*10) * meterscale) - 3, inmetery+10, 3, meterh);
+
+gfx_r=0;gfx_b=0;gfx_g=1;gfx_a=0.15;
+gfx_rect(outmeterx, outmetery, meterscale, meterh);
+gfx_rect(outmeterx, outmetery+10, meterscale, meterh);
+gfx_a=1;
+gfx_rect(outmeterx, outmetery, scalemeters(gout0), meterh);
+gfx_rect(outmeterx, outmetery+10,scalemeters(gout1), meterh);
+
+
+
+gout0max > 0.1 ? (gfx_rect(outmeterx+ (log10(gout0max*10) * meterscale) - 3, outmetery,3, meterh));
+gout1max > 0.1 ? (gfx_rect(outmeterx+ (log10(gout1max*10) * meterscale) - 3, outmetery+10, 3, meterh));
+
+
+
+
+gin0 *= decayer;
+gin1 *= decayer;
+gout0 *= decayer;
+gout1 *= decayer;
+
+
+maxi > 60 ? (
+maxi = 0;
+gin0max = 0;
+gin1max=0;
+gout0max=0;
+gout1max=0;
+);
+
+
+);
+
+
+
+):( // ext flags
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+decayer = 0.9;
+meterscale = 290;
+meterh = 3 ;
+
+// 120 50
+inmeterx = 30;
+inmetery = 170;
+outmeterx = 30;
+outmetery = 200;
+
+
+
+
+
+
+
+
 
 gfx_r=0;gfx_b=0;gfx_g=0;gfx_a=1;
 gfx_rect(inmeterx-2, inmetery-2, meterscale+2, 10+meterh+meterh+2);
@@ -767,48 +1032,6 @@ gout1max=0;
 
 
 
-
-     function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
-     (
-     gfx_x=kx; gfx_y=ky;
-     weg = abs(kmax - kmin);
-     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
-      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
-      scry = kbitmap * floor(kframe);
-      gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
-     );
-
-
-      mouseHold = mouse_cap & 1;
-      ctrl = mouse_cap & 4;
-      shift = mouse_cap & 8;
-      mouseClick = mouseHold - lastCap;
-      lastCap = mouseHold;
-
-initial == 0 ? (
-      ggin=slider1;
-      ggin.val=ggin;
-      ggin.potVal(ggin.val);
-      ggout=slider9;
-      ggout.val=ggout;
-      ggout.potVal(ggout.val);
-      ggLow=slider7;
-      ggLow.val=ggLow;
-      ggLow.potVal(ggLow.val);
-      ggHigh=slider8;
-      ggHigh.val=ggHigh;
-      ggHigh.potVal(ggHigh.val);
-      ggDist=slider10;
-      ggDist.val=ggDist;
-      ggDist.potVal(ggDist.val);
-      ggHPF=slider11;
-      ggHPF.val=ggHPF;
-      ggHPF.potVal(ggHPF.val);
-      EQN = 1;
-          initial = 1;
-);
-
-
 clipper = max(gout0clip,gout1clip);
 
 clipper == 0 ? (
@@ -872,6 +1095,9 @@ ggHigh.dragging   ? ggHigh.potDrag();
 ggDist.dragging   ? ggDist.potDrag();
 ggHPF.dragging   ? ggHPF.potDrag();
 
+
+
+); // EXT FLAGS
 /******************************* Slider Knob Control **************************/
   
 ggin!=ggin.val?
@@ -965,8 +1191,6 @@ ggHPF!=slider11?
       EQN = 1;
       ggHPF.valOld=ggHPF;
     );
-
-
 
 
 

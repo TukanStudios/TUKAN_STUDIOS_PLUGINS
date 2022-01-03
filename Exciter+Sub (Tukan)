@@ -1,4 +1,6 @@
 desc:Exciter+Sub (Tukan)
+// Version 1.1
+
 // Copyright 2007, Thomas Scott Stillwell
 // All rights reserved.
 //
@@ -293,11 +295,12 @@ initial = 0;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -317,7 +320,8 @@ initial = 0;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -336,12 +340,12 @@ initial = 0;
    
    
    */
- glfreq.potcfg  (150,10,320,3); //default. von, bis, step
+ glfreq.potcfg  (150,10,320,0.31); //default. von, bis, step
  //glthresh.potcfg (0.3,0,1,.01);
- gllevel.potcfg   (6,0,20,.05);
- ghfreq.potcfg   (5000,1500,9000,75);
- ghlevel.potcfg   (0,0,100,1);
- goutgain.potcfg   (0,-12,12,.05);
+ gllevel.potcfg   (6,0,20,.02);
+ ghfreq.potcfg   (5000,1500,9000,7.5);
+ ghlevel.potcfg   (0,0,100,.1);
+ goutgain.potcfg   (0,-12,12,.024);
  LowOn.potcfg   (1,0,1,1);
  HighOn.potcfg   (1,0,1,1);
  
@@ -720,6 +724,114 @@ solobot == 0 ? (
       HighOn.potVal(HighOn.val);
             initial = 1;
   );
+  
+  
+  
+  
+  
+  /*
+  slider1:0<0,100,0.1>-Mix (%)
+  slider2:100<0,100,0.1>-Drive (%)
+  slider3:5000<1500,9000,100>-Frequency (Hz)
+  slider5:150<10,320,3>-Frequency (Hz)
+  slider6:0.1<0,5,0.001>-Size (sharp <> dull) 
+  
+  slider4:6<0,20,.05>-Wet Mix (dB)
+  
+  */
+  
+  
+  
+  
+  
+  
+  gfx_ext_flags == 1 ? (
+  gfx_r = 0.2; gfx_g=0.2;gfx_b=0.2;gfx_a=0.8;
+  gfx_rect(0,0,gfx_w,gfx_h);
+  
+  
+  gfx_r = 0.4; gfx_b = 0.8; gfx_g = 0 ; gfx_a = 1;
+  gfx_rect(0,0,gfx_w,gfx_h/5);
+  //OUT
+  slider7 > 0 ? (
+  gfx_rect(2*gfx_w/5,(3*gfx_h/5)-(2*gfx_h/5)*(slider7/12),gfx_w/5,(2*gfx_h/5)*(slider7/12));
+  ):(
+  gfx_rect(2*gfx_w/5,(3*gfx_h/5),gfx_w/5, (2*gfx_h/5)*(Abs(slider7)/12));
+  );
+  
+  //Low
+  gfx_r = 0.8; gfx_b = 00; gfx_g = 0 ; gfx_a = 1;
+  gfx_rect(0,(gfx_h)-(4*gfx_h/5)*(slider5/320),gfx_w/5,gfx_h);
+  
+  
+  gfx_r = 0; gfx_b = 0; gfx_g = 0.8; gfx_a = 1;
+  gfx_rect(gfx_w/5,(gfx_h)-(4*gfx_h/5)*(slider4/20),gfx_w/5,gfx_h);
+  
+  
+  //high
+  gfx_r = 0.8; gfx_b = 00; gfx_g = 0 ; gfx_a = 1;
+  gfx_rect(3*gfx_w/5,(gfx_h)-(4*gfx_h/5)*(slider3/9000),gfx_w/5,gfx_h);
+  
+  
+  gfx_r = 0; gfx_b = 0; gfx_g = 0.8; gfx_a = 1;
+  gfx_rect(4*gfx_w/5,(gfx_h)-(4*gfx_h/5)*(slider1/100),gfx_w/5,gfx_h);
+  
+  
+  
+  gfx_r = 0.7; gfx_b = 0.7; gfx_g = 0.7; gfx_a = 1;
+  gfx_line(0,-1+gfx_h/5,gfx_w,-1+gfx_h/5);
+  gfx_x = 0; gfx_y = gfx_h - 12; gfx_drawstr("Lows");
+  gfx_x = gfx_w-32; gfx_y = gfx_h - 12; gfx_drawstr("High");
+  
+  
+  
+  
+  mouseClick == 1 ? 
+      (
+        mouse_x < gfx_w / 5   ? (glfreq.dragStart();  alt==16 ? solobot == 1 ? (solobot = 0):(solobot=1));
+    //    glthresh.collision()  ? glthresh.dragStart();  
+        mouse_x > gfx_w / 5 ? (mouse_x < 2*gfx_w / 5    ? gllevel.dragStart()); 
+        mouse_x > 3*gfx_w / 5 ? (mouse_x < 4*gfx_w / 5    ? ghfreq.dragStart(); alt==16 ? solobot == 2 ? (solobot = 0):(solobot=2));
+        mouse_x > 4 * gfx_w / 5 ? ghlevel.dragStart();
+        mouse_x > 2 * gfx_w / 5 ? (mouse_x < 3 *gfx_w / 5  ? goutgain.dragStart());
+       // LowOn.collision()    ? LowOn.potToggle();
+       // HighOn.collision()    ? HighOn.potToggle();
+      ):
+  mouseClick == -1  ? 
+      (
+        glfreq.dragStop();
+     //   glthresh.dragStop();
+        gllevel.dragStop();
+        ghfreq.dragStop();ghlevel.dragStop();goutgain.dragStop();
+        //LowOn.dragStop();
+        //HighOn.dragStop();
+       );
+  
+  /*
+  mouse_wheel ? 
+      (
+        mouse_x < gfx_w / 5   ? glfreq.potWheel():
+     //   glthresh.collision()  ? glthresh.potWheel():
+        mouse_x > gfx_w / 5 ? (mouse_x < 2*gfx_w / 5     ? gllevel.potWheel()):
+        mouse_x > 3*gfx_w / 5 ? (mouse_x < 4*gfx_w / 5   ? ghfreq.potWheel()): 
+        mouse_x > 4 * gfx_w / 5 ? ghlevel.potWheel():
+        mouse_x > 2 * gfx_w / 5 ? (mouse_x < 3 *gfx_w / 5  ? goutgain.potWheel()):
+      //  LowOn.collision()    ? LowOn.potWheel():
+      //  HighOn.collision()    ? HighOn.potWheel():
+        mouse_wheel=0;
+      );
+  */
+  
+  
+  
+  ):( // EXT FLAGS
+  
+  
+  
+  
+  
+  
+  
     gfx_y=0; gfx_x =0;
    gfx_blit(0,1,0);
     glfreq.knob();
@@ -777,7 +889,14 @@ solobot == 0 ? (
       //  HighOn.collision()    ? HighOn.potWheel():
         mouse_wheel=0;
       );
-  
+      
+      
+      
+      
+      
+      
+      
+  ); // EXT FLAGS
   
   glfreq.dragging  ? glfreq.potDrag();
  // glthresh.dragging ? glthresh.potDrag();
@@ -789,6 +908,10 @@ solobot == 0 ? (
   HighOn.dragging   ? HighOn.potDrag();
   /******************************* Slider Knob Control **************************/
     
+    
+   
+   
+   
   glfreq!=glfreq.val?
       (
         glfreq=glfreq.val;

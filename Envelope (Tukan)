@@ -4,7 +4,8 @@ desc:Envelope Shaper (Tukan)
 // http://www.gnu.org/licenses/gpl.html
  
 //tags: processing dynamics transient
-//author: TUKAN STUDIO
+//author: TUKAN STUDIOS
+//version 1.1
 
 filename:0,TKENVgui/background.png
 filename:1,TKENVgui/APIBig.png
@@ -161,11 +162,12 @@ a0Env3 = 1.0 + b1Env3;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -185,17 +187,17 @@ a0Env3 = 1.0 + b1Env3;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
                        mouse_wheel=0;
                         );
-
    
- front.potcfg  (0,-101,100,1);
- center.potcfg (0,-101,100,1);
- back.potcfg   (0,-24,8,0.1);
+ front.potcfg  (0,-101,100,.2);
+ center.potcfg (0,-101,100,.2);
+ back.potcfg   (0,-24,8,.032);
  
  front.rectIn(40, 130, 75, 75);
  front.rectOut(40, 130, 75, 75, 60, 1);
@@ -222,8 +224,7 @@ vol = 2^(slider3/6);
 
 
 @gfx 315 315
-gfx_h = 315;
-gfx_w = 315;
+
 
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
@@ -245,6 +246,51 @@ initial == 0 ? (
 );
 
 //panel.bkg(315,315,0);
+
+
+gfx_ext_flags == 1 ? (
+
+
+gfx_r = 1; gfx_g = 1; gfx_b=1; gfx_a=0.5;
+gfx_line(0,gfx_h / 2, gfx_w, gfx_h / 2);
+
+
+gfx_r = 1; gfx_g = 1; gfx_b=1; gfx_a=0.3;
+hebel = slider3-8;
+
+slider3 > 0 ? (
+gfx_rect(gfx_w/4, gfx_h/2-((gfx_h/2)*(slider3/24)), gfx_w/4, ((gfx_h/2)*(slider3/24)));
+):(
+gfx_rect(gfx_w/4, gfx_h/2, gfx_w/4, (gfx_h/2)*(abs(slider3)/24));
+);
+
+
+gfx_r = 0; gfx_g = 1; gfx_b=1; gfx_a=1;
+start = gfx_h / 2 - (slider1/100)*(gfx_h/2);
+
+gfx_line(0,start,0,gfx_h);
+gfx_line(0,start,gfx_h/4,gfx_h/2);
+gfx_line(gfx_w/4,gfx_h/2,2*gfx_w/4,gfx_h/2);
+
+gfx_line(2*gfx_w/4,gfx_h/2, 3*gfx_w/4 + (slider2/100)*gfx_w/4 ,gfx_h);
+
+
+gfx_x = 2 + gfx_w/4; gfx_y = gfx_h -10;
+gfx_drawnumber(slider3,1); gfx_drawstr(" db");
+
+ front.rectIn(0, 0, gfx_w/4, gfx_h);
+ front.rectOut(0, 0, gfx_w/4, gfx_h, 60, 1);
+ 
+ center.rectIn(gfx_w/2, 0, gfx_w/2, gfx_h);
+ center.rectOut(gfx_w/2, 0, gfx_w/2, gfx_h, 60, 2);
+ 
+ back.rectIn(gfx_w/4, 0, gfx_w/4, gfx_h); 
+ back.rectOut(gfx_w/4, 0, gfx_w/4, gfx_h, 61, 3);
+ 
+ 
+):( // EXT FLAGS
+
+gfx_w = 315; gfx_h = 315;
 gfx_x=0; gfx_y=0; gfx_a=1;
 gfx_blit(0,1,0);
 
@@ -275,7 +321,7 @@ gfx_lineto(graphx+74,graphy+33);
 graphx = 121;
 graphy = 54;
 gfx_r = 0; gfx_g = 1; gfx_b=0; gfx_a=1;
-gfx_r = 0; gfx_g = 1; gfx_b=0; gfx_a=1;
+
 
 gfx_x = graphx;
 gfx_y = graphy;
@@ -305,6 +351,18 @@ gfx_lineto(graphx-20,graphy-(slider1/3));
 gfx_x = graphx+40;
 gfx_y = graphy;
 gfx_lineto(graphx+74+(slider2/3),graphy+33);
+
+
+ front.rectIn(40, 130, 75, 75);
+ front.rectOut(40, 130, 75, 75, 60, 1);
+ 
+ center.rectIn(200, 130, 75, 75);
+ center.rectOut(200, 130, 75, 75, 60, 2);
+ 
+ back.rectIn(128,230, 60, 60); 
+ back.rectOut(128, 230, 60, 60, 61, 3);
+
+); // EXT FLAGS
 
 
 /********************************* Mouse Control ******************************/
@@ -378,9 +436,20 @@ back!=slider3?
       back.valOld=back;
     );
 
+
 attack=slider1/100;
 sustain=slider2/50;
 vol = 2^(slider3/6);
+
+
+
+
+
+
+
+
+
+
 
 
 

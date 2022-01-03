@@ -1,3 +1,6 @@
+desc: Goniometer (Tukan)
+// Version 1.1
+
 MIT License
 
 Copyright (c) 2019 chokehold
@@ -19,7 +22,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-desc: Goniometer (Tukan)
  
 in_pin:left input
 in_pin:right input
@@ -177,11 +179,12 @@ filename:2,Scopegui/APIBig.png
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -201,7 +204,8 @@ filename:2,Scopegui/APIBig.png
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -209,12 +213,12 @@ filename:2,Scopegui/APIBig.png
                         );
  
    
- front.potcfg  (0,0,30,.1);
+ front.potcfg  (0,0,30,.03);
  
  front.rectIn(350, 40, 75, 75);
  front.rectOut(350, 40, 75, 75, 4, 1);
 
- center.potcfg(0.7,0.3,0.95,0.01);
+ center.potcfg(0.7,0.3,0.95,0.00092);
 
  center.rectIn(350, 160, 75, 75);
  center.rectOut(350, 160, 75, 75, 61, 2);
@@ -708,7 +712,6 @@ decay*=slider7*4;
 Indicor=Indicor-(Indicor-corr)*decay;
 
 @gfx 479 434
-  gfx_w=479;gfx_h=434;
   
   // Switch to main drawing context
   gfx_dest  = -1;
@@ -732,6 +735,68 @@ Indicor=Indicor-(Indicor-corr)*decay;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
   
+  
+gfx_ext_flags == 1 ? (
+
+  // Calculate the side length of a square centered in the window
+  viewSize = gfx_h*0.8*0.5;//min(gfx_w, gfx_h) / 2;
+  
+  // The distance a dot may be from center in any
+  // direction to still appear inside a circle.
+  viewScale = (viewSize * 0.70710681);
+  
+  // The absolute center point in the current window
+  centerX = gfx_w * 0.5;
+  centerY = gfx_h*0.8 * 0.5;
+  
+  drawHistory();
+  drawIndicators();
+  
+  
+  size = min(gfx_w,gfx_h);
+  Sizi = Size*45/46/2;
+  gx0=gfx_w/2;
+  gx2=gx0-sizeh*1/45;
+  sizeH = size/2;
+  sizeQ=sizeH/2;
+  size2Q=2*sizeQ;
+  size3Q=3*sizeQ;
+  x03=gx0-sizeh;
+  shiftLed=(size>150)*15+(size<150)*4;
+  step=0.004;
+  
+  ph=Indicor;
+
+  
+  
+  
+    ////////////
+    // Led 1  //
+    ////////////
+    
+  
+    gfx_r=gfx_g=gfx_b=0.1; gfx_g=0; gfx_a=0.066;
+    gfx_x=gx2-sizi; gfx_y=size-1;
+    gfx_rectto(gfx_x+size+11,gfx_y-size*0.06); //Hintergrund
+    
+    gfx_r=(1-PH)*0.7; gfx_g=(PH+1)*0.7; gfx_b=2*ph-1; gfx_a=1;
+    gfx_r=0.4;
+    gfx_g=0.8;
+  Phx = (ph*gfx_w/2);
+  phy= 7*gfx_h/8;
+  gfx_x=phx-1+(gfx_w/2);gfx_y=phy;
+    gfx_b=1; gfx_a=1; //gfx_x=gx2+(ph)*sizi; gfx_y=size-1;
+    //gfx_rectto(gfx_x+size*0.033,gfx_y-size*0.06);
+    PH < 0 ? (gfx_r = 1; gfx_g=0.3; gfx_b=0.3);
+  gfx_rectto(gfx_x +2,gfx_y+20);
+  
+  
+  
+  
+  
+  
+):( /// GFX EXT FLAGS  
+  gfx_w=479;gfx_h=434;
   // Calculate the side length of a square centered in the window
   viewSize = 125;//min(gfx_w, gfx_h) / 2;
   
@@ -779,6 +844,14 @@ gfx_x=phx+165;gfx_y=phy;
   //gfx_rectto(gfx_x+size*0.033,gfx_y-size*0.06);
   PH < 0 ? (gfx_r = 1; gfx_g=0.3; gfx_b=0.3);
 gfx_rectto(gfx_x +5,gfx_y+20);
+
+
+
+
+
+
+
+
 
 
 
@@ -853,3 +926,5 @@ center!=slider7?
       center.potVal(center.val);
       center.valOld=center;
     );  
+    
+); /// GFX EXT FLAGS

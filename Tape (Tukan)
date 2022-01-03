@@ -1,3 +1,6 @@
+desc: Tape Recorder (Tukan)
+// Version 1.1 
+ 
  // (C) 2009, Lubomir I. Ivanov
 // 
 // NO WARRANTY IS GRANTED. THIS PLUG-IN IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
@@ -20,7 +23,7 @@
 // and frequency response of basic electronic circuit.
 // *****************************************************************************
 
-desc: Tape Recorder (Tukan)
+
 //tags: processing gain distortion
 //author: Liteon
 filename:0,TAPE/Tape.png
@@ -34,6 +37,7 @@ filename:7,TAPE/VUMeter.png
 filename:8,TAPE/APIBig.png
 filename:9,TAPE/APISmall.png
 filename:10,TAPE/switch.png
+filename:11,TAPE/VUMeter2.png
 
 slider1:100<0,100,0.01>-Saturation Amount (%)
 slider2:10<0,100,0.01>-Fluctuation Amount (%)
@@ -190,11 +194,12 @@ player = 0;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -214,7 +219,8 @@ player = 0;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -227,13 +233,13 @@ player = 0;
   slider12:0<0,100,1>-Denoiser
   slider13:0<-100,100,2>-Output
   */
-front.potcfg  (91,1,91,1);
-center.potcfg (51,1,51,1);
-back.potcfg   (100,0,100,1);
-four.potcfg (0,-100,100,1);
+front.potcfg  (91,1,91,0.91);
+center.potcfg (51,1,51,0.051);
+back.potcfg   (100,0,100,.1);
+four.potcfg (0,-100,100,.1);
 five.potcfg (2,1,2,1);
-six.potcfg   (0,0,100,1);
-seven.potcfg   (0,0,100,1);
+six.potcfg   (0,0,100,.1);
+seven.potcfg   (0,0,100,.1);
 //slider6:-.1<-6,0,.01
 knobsx = 45;
 knobsy = 230;
@@ -471,6 +477,41 @@ i > n ? i = 0;
 spl0 = -1*fxoutl*outgain;
 spl1 = -1*fxoutr*outgain;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //==============================================================================
 @gfx 700 500
 //==============================================================================
@@ -513,6 +554,53 @@ gfx_rectto(gfx_w,gfx_h-gfx_h/3);
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
+
+
+
+
+
+
+gfx_ext_flags == 1 ? (
+
+gfx_r = 0.2; gfx_g=0.2;gfx_b=0.2;gfx_a=1;
+gfx_rect(0,0,gfx_w,gfx_h);
+
+      gfx_mode=0; gfx_a = 1;
+ 
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = gfx_w/3; 
+      gfx_blit(11,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = gfx_w/3 + 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),gfx_w/3 + 125*blitscale+((110*blitscale)*sin(winkel)));
+      
+      gr_meter_old = gr_meter;
+      
+      
+      tapescale = gfx_w / 400;
+      gfx_x = 0-(400*tapescale)/2; gfx_y = (0-(170*tapescale)/2)-(400*tapescale)/2;
+gfx_blit(1,tapescale,taperotl,0,400,400,400);
+
+
+      gfx_x = gfx_w-(400*tapescale)/2; gfx_y = (0-(170*tapescale)/2)-(400*tapescale)/2;
+gfx_blit(1,tapescale,taperotr,0,400,400,400);
+
+play_state > 0 ? (
+taperotl -= 2*$pi/40;
+taperotl < 0 ? (taperotl = 2*$pi);
+taperotr -= 2*$pi/27;
+taperotr < 0 ? (taperotr = 2*$pi);
+);
+
+// 1 2 400
+
+):( ////////// ext flags
+
 
 meterx = 230;
 metery = 330;
@@ -769,7 +857,10 @@ six!=slider11?
        seven.potVal(seven.val);
        seven.valOld=seven;
      );
-     
+ ); //////// EXT FLAGS
+ 
+ 
+ 
      sliderchange(2 ^ 1);
      sliderchange(2 ^ 2);
      sliderchange(2 ^ 3);
@@ -804,4 +895,5 @@ gr_meter*=1;
 //);
 //gfx_rectto(200+gr_meters,20);
 
+    
     

@@ -1,4 +1,7 @@
 desc:Modulation (Tukan)
+// Version 1.1
+
+
 // Copyright 2007, Thomas Scott Stillwell
 // All rights reserved.
 //
@@ -262,11 +265,12 @@ initial = 0;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -286,7 +290,8 @@ initial = 0;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -295,18 +300,18 @@ initial = 0;
 
 
 
-front.potcfg  (0.5,0,1,0.01);
-center.potcfg (0.5,0.1,10,.1);
-back.potcfg   (0.5,0,1,.01);
-four.potcfg (5,0,5,0.05); //10Hz-1khz
+front.potcfg  (0.5,0,1,0.001);
+center.potcfg (0.5,0.1,10,.01);
+back.potcfg   (0.5,0,1,.001);
+four.potcfg (5,0,5,0.005); //10Hz-1khz
 operation = 0;
 five.potcfg (0,0,1,1);
 
-lmfg.potcfg (0.5,-1,1,.01);
+lmfg.potcfg (0.5,-1,1,.001);
 //lmff.potcfg (10,10,350,1);//20HZ - 15kHz
 
 routing = 0;
-lmfq.potcfg (300,0,1000,10);
+lmfq.potcfg (300,0,1000,1);
 
 Inverter = 0;
 //hmfg.potcfg (300,0,1000,1);
@@ -851,7 +856,41 @@ bufferleer == 2 ?(
   
 @gfx 738 238
 
-  
+gfx_ext_flags == 1 ? (
+
+gw = gfx_w; gh = gfx_h;
+
+gfx_R = 0; gfx_g = 0; gfx_b = 0; gfx_a = 1;
+
+gfx_rect(0,0,gw, gh);
+
+
+gfx_R = 1; gfx_g = 0; gfx_b = 0; gfx_a = 0.6;
+gfx_line(0,gh/2, gw, gh/2);
+
+gfx_R = 0; gfx_g = 1; gfx_b = 1; gfx_a = 0.5*slider5;
+
+n = 1;
+loop(gw,
+piy = sin(-2*$pi*(n/gw))*gh;
+piy*= feedback;
+piy = gh/2 + piy;
+
+piy2 = sin(-2*$pi*(n+1/gw))*gh;
+piy2*= feedback;
+piy2 = gh/2 + piy2;
+gfx_line(n,piy,n+1,piy2);
+
+n += 1;
+);
+
+gfx_R = 1; gfx_g = 0; gfx_b = 0; gfx_a = 0.6;
+gfx_line(gw*(tpos/twopi), 0, gw*(tpos/twopi), gh);
+gfx_R = 0; gfx_g = 1; gfx_b = 1; gfx_a = 1;
+gfx_line(gw*(tpos/twopi),gh/2,gw*(tpos/twopi),gh/2 + sin(-tpos)*gh*feedback);
+gfx_line(1+gw*(tpos/twopi), gh/2, 1+gw*(tpos/twopi) ,gh/2 + sin(-tpos)*gh*feedback);
+
+):( // // EXT FLAGS
 
 gfx_w = 738;
 gfx_h=238;
@@ -859,7 +898,6 @@ gfx_h=238;
 //gfx_line(0,600,880,600);
 gfx_x=1; gfx_y=1;
 gfx_blit(0,1,0);
-
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
@@ -1238,6 +1276,14 @@ modus > 0 ? (
   tdelay1 = (delay + offset);
    sdelay0 = tdelay0 / 1000 * srate;
    sdelay1 = tdelay1 / 1000 * srate;
+  
+   
+   
+   
+ 
+   
+   
+   
    
    /*
   a1 = 1;
@@ -1263,7 +1309,10 @@ modus > 0 ? (
   );
   );
 
- 
+  ); // EXT FLAGS
+  
+  
+  
  /*
   tdelay0 = delay;
  tdelay1 = (delay + offset);
@@ -1321,4 +1370,5 @@ modus > 0 ? (
  b21 /= a01;
  a11 /= a01;
  a21 /= a01;
+
 

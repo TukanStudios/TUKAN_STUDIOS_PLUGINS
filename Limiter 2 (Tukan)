@@ -1,4 +1,6 @@
 desc:Limiter 2 (Tukan)
+// Version 1.1
+
 slider1:0<-32,0,0.1>-Threshold (dB)
 slider2:0<0,100,1>-Knee (%)
 slider3:30<0,800,1>-Release (ms)
@@ -211,11 +213,12 @@ player = 0;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -235,22 +238,22 @@ player = 0;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
                        mouse_wheel=0;
                         );
-
   /*
   slider10:100<0,100,1>-Input Att
   slider11:0<0,100,1>-Service Old
   slider12:0<0,100,1>-Denoiser
   slider13:0<-100,100,2>-Output
   */
-gThresh.potcfg  (0,-32,0,.1);
-gRel.potcfg (30,0,800,2);
-gOut.potcfg   (-0.1,-16,0,.1);
+gThresh.potcfg  (0,-32,0,.032);
+gRel.potcfg (30,0,800,0.8);
+gOut.potcfg   (-0.1,-16,0,.016);
 gMeter.potcfg (1,0,1,1);
 
 meterx = 70;
@@ -391,7 +394,163 @@ ginRm < ginR ? (ginRm = ginR);
       initial = 1;
       );
               
+    
               
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+gfx_ext_flags == 1 ? (
+gr_meter_decay = 1.00005;//exp(1/(1*srate));
+meterx = 0;
+metery = 0;
+meterw = gfx_w;
+meter_h= gfx_h/4;
+
+gfx_r=0.7; gfx_g=0.7; gfx_b=0.7; gfx_a=0.3;
+gfx_rect(0,0,meterw+200,250);
+gfx_r=0; gfx_g=0; gfx_b=0; gfx_a=1;
+gfx_rect(meterx,metery,meterw+70,3*meter_h+6);
+
+meter_bot=21;
+//smin(gfx_h,gfx_h-4);
+xscale=meterw*20/meter_bot; 
+
+gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=0.1;
+  gfx_rect(meterx,metery+3+meter_h,meterw,meter_h);
+gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=0.6;
+gfx_y=metery+meter_h+3;
+gfx_x=meterx + meterw + log10(gr_meter)*xscale;
+gfx_x < meterx ? (gfx_x = meterx);
+gfx_rectto(meterx+meterw,metery+meter_h+meter_h+3);
+grminx = min(grminx,gr_meter);
+ ginRzielx=meterx + meterw + log10(grminx)*xscale;
+ grminx >= 0.9999 ? (
+ grminx = 1;
+ ):(
+  gfx_rect(ginRzielx-4,metery+3+meter_h,4,meter_h);
+ );
+
+
+indecay = 0.7;
+
+gfx_x = meterx; gfx_y = metery;//meterh/;
+gfx_r=0; gfx_g=0.8; gfx_b=0; gfx_a=0.1;
+  gfx_rect(meterx,metery,meterw,meter_h);
+  gfx_rect(meterx,metery+2*meter_h+6,meterw,meter_h);
+gfx_r=0; gfx_g=0.8; gfx_b=0; gfx_a=0.9;
+  
+ ginLzielx=log10(ginL*1.12201845430*10)*xscale;
+ ginLzielx < 0 ? (ginLZielx = 0);
+gfx_rect(meterx,metery,ginLzielx,meter_h);
+ ginRzielx=log10(ginLm*1.12201845430*10)*xscale;
+ ginRzielx < 0 ? (
+ ginRZielx = 0;
+ ):(
+  gfx_rect(meterx+ginRzielx-4,metery,4,meter_h);
+ );
+ ginL*=indecay;
+ginl <0.01 ? (ginl = 0); 
+
+ ginRzielx=log10(ginR*1.12201845430*10)*xscale;
+ ginRzielx <= 0 ? (ginRZielx = 0);
+gfx_rect(meterx,metery+meter_h+meter_h+6,ginRzielx,meter_h);
+
+ ginRzielx=log10(ginRm*1.12201845430*10)*xscale;
+ ginRzielx < 0 ? (
+ ginRZielx = 0;
+ ):(
+  gfx_rect(meterx+ginRzielx-4,metery+meter_h+meter_h+6,4,meter_h);
+ );
+ ginR*=indecay;
+ ginR <0.01 ? (ginR = 0); 
+ 
+
+gfx_x=meterx+meterw+10;
+gfx_y=metery + meter_h/2 - gfx_texth/2;
+log10(ginLm*1.12201845430*10)*20-21 > -100 ? (
+gfx_drawnumber(log10(ginLm*1.12201845430*10)*20-21,1);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+
+);
+
+log10(ginRm*1.12201845430*10)*20-21+.4 > -100 ? (
+gfx_x=meterx+meterw+10;
+gfx_y=metery + meter_h+ meter_h+6+meter_h/2 - gfx_texth/2;
+gfx_drawnumber(log10(ginRm*1.12201845430*10)*20-21,1);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+
+);
+
+
+
+
+
+
+gfx_r=0; gfx_g=gfx_b=0; gfx_a=1;
+
+curser = 0;
+loop(meterw/5,
+gfx_line(meterx+curser*5, metery, meterx+curser*5, metery+meter_h+meter_h+meter_h+6);
+curser += 1;
+);
+
+
+
+
+
+
+mouseclick == 1 ? (
+      grmin=0;
+      ginLm = 0;
+      ginRm = 0;
+      grminx = 1;
+);
+
+
+
+
+
+
+
+
+
+
+
+):( // EXT FLAGS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 gfx_r=0.7; gfx_g=0.7; gfx_b=0.7; gfx_a=0.3;
 gfx_rect(0,0,meterw+200,250);
 gfx_r=0; gfx_g=0; gfx_b=0; gfx_a=1;
@@ -647,3 +806,5 @@ gMeter!=slider5?
     knee_factor = (slope / (knee_width * 2));
     
     output = 10^(slider4/20); 
+    
+    ); // EXT FLAGS

@@ -1,4 +1,6 @@
 desc:Lexikan (Tukan)
+// Version 1.1
+
 slider1:0<-48,12,0.1>-Dry (dB)
 slider2:-6<-48,12,0.1>-Wet (dB)
 slider3:1<0,10,0.001>-Length (s)
@@ -1054,6 +1056,13 @@ mumu = 0;
 abs(spl0)>outLmeter ? outLmeter =abs(spl0);// : ( inLmeter *= 0.8; inLmeter >.01?inLmeter =0; );
 abs(spl1)>outRmeter ? outRmeter =abs(spl1);
 
+inm0 < abs(input) ? inm0 = abs(input):(inm0*=0.99995);
+inm1 < abs(Rinput) ? inm1 = abs(Rinput):(inm1*=0.99995);
+
+fxm0 < abs(out) ? FXm0 = abs(out);//:(fxm0*=0.999);
+fxm1 < abs(Rout) ? FXm1 = abs(Rout);//:(fxm1*=0.999);
+
+
 );
 
 
@@ -1096,7 +1105,7 @@ Rb12 = Rb11+Rl11;
 
 );
 
-@gfx 500 722 
+@gfx //500 722 
 /*
 gfx_r=0; gfx_g=0.9; gfx_b=0; gfx_a=1;
 gfx_setfont(1,"Arial", 16);
@@ -1171,7 +1180,37 @@ gfx_x =120; gfx_y =230;  gfx_printf("+y 10");
       gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
      );
      
-     
+gfx_ext_flags == 1 ? (
+      
+gfx_r=1;gfx_g=0;gfx_b=0;gfx_a=0.7; //LEXIBLUE
+    
+gfx_rect(0,0,gfx_w*inm0,(gfx_h/4)-2);
+gfx_rect(0,gfx_h/4,gfx_w*inm1,(gfx_h/4)-2);          
+   
+    
+fxm0 *= 2;
+fxm1 *= 2;
+gfx_a = 0.5;
+gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,  (gfx_w/2*fxm0)+(gfx_w/2*fxm1),  gfx_h/2);
+gfx_a = 0.7;
+gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,3,gfx_h/2);
+
+gfx_rect(gfx_w/2+(gfx_w/2*fxm1),gfx_h/2,3,gfx_h/2);
+
+fxm0 = 0; fxm1 =0;
+
+
+
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1;
+n = 1;
+loop(gfx_w / 3,
+gfx_line(n * 3, 0, n*3, (gfx_h / 2)-2);
+n+=1;
+);
+
+gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
+
+    ):( // EXT FLAGS    
       initial == 0 ? (
             //slider28 = 4; slider29 = 4;
             //curpreset = (slider28*5)+(slider29);
@@ -2243,4 +2282,4 @@ gfx_x =120; gfx_y =230;  gfx_printf("+y 10");
                                       
                                       
                                       //slider11 = fdlround(slider11);
-                                      
+           ); // EXT FLAGS                           

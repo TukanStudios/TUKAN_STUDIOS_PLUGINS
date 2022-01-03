@@ -1,7 +1,8 @@
 desc:EQ1.1 (Tukan)
+
 /*
 ReEQ - A parametric graphic equalizer
-Version: TUKAN v1.1   <--- Make sure you change VERSION below if this changes!!
+Version: TUKAN v1.1.2   <--- Make sure you change VERSION below if this changes!!
 
 The MIT License (MIT)
 
@@ -301,11 +302,12 @@ Spectrum_Mode = 6;
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -325,7 +327,8 @@ Spectrum_Mode = 6;
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -334,28 +337,28 @@ Spectrum_Mode = 6;
 
 
 front.potcfg  (0,0,0,0);
-center.potcfg (3,0,60,.1);
-back.potcfg   (10,0,80,1);
-four.potcfg (30,0,60,.2); //10Hz-1khz
-five.potcfg (0,-16,16,0.2);
-six.potcfg (32.647,18,40,.2);
+center.potcfg (3,0,60,.06);
+back.potcfg   (10,0,80,0.08);
+four.potcfg (30,0,60,.06); //10Hz-1khz
+five.potcfg (0,-16,16,0.032);
+six.potcfg (32.647,18,40,.02);
 bell.potcfg(1,0,1,1);
 
-lmfg.potcfg (0,-16,16,0.2);
-lmff.potcfg (40,9,94.84,.2);//20HZ - 15kHz
-lmfq.potcfg (32.647,0,80,.2);
+lmfg.potcfg (0,-16,16,0.032);
+lmff.potcfg (40,9,94.84,.02);//20HZ - 15kHz
+lmfq.potcfg (32.647,0,80,.02);
 
 
-hmfg.potcfg (0,-16,16,0.2);
-hmff.potcfg (70,9,94.84,.2);
-hmfq.potcfg (32.647,0,80,.2);
+hmfg.potcfg (0,-16,16,0.032);
+hmff.potcfg (70,9,94.84,.02);
+hmfq.potcfg (32.647,0,80,.02);
 
-hshlvg.potcfg (0,-16,16,0.2);
-hshlvf.potcfg (70,60,100,.2); //1khz
+hshlvg.potcfg (0,-16,16,0.032);
+hshlvf.potcfg (70,60,100,.02); //1khz
 
 
 
-outg.potcfg (0,-16,16,.1);
+outg.potcfg (0,-16,16,.032);
 
 
 knobsx = 30;
@@ -655,7 +658,8 @@ function update_state() local (blocks, fade, fill_r, fill_g, fill_b, fill_a, lin
 
   ) : Display_Mode == 1 ? (
     line_a=1.0;
-    line_r = 114 / 255; line_g = 215 / 255; line_b = 253 / 255;;
+    //line_r = 114 / 255; line_g = 215 / 255; line_b = 253 / 255;;
+    line_r = 46 / 255; line_g = 71 / 255; line_b = 83 / 255;
     spectrum.set_fill(0, 0);
     spectrum.set_color(0, line_r*fade, line_g*fade, line_b*fade, line_a);
     
@@ -663,6 +667,7 @@ function update_state() local (blocks, fade, fill_r, fill_g, fill_b, fill_a, lin
     spectrum.set_color(2, 0.5, 0.5, 0.5, 1);
 
     line_r = 253 / 255; line_g = 185 / 255; line_b = 21 / 255;;
+    line_r = 0 / 100; line_g = 200 / 255; line_b = 255 / 255;
     spectrum.set_fill(1, 0);
     spectrum.set_color(1, line_r*fade, line_g*fade, line_b*fade, line_a);
 
@@ -2138,9 +2143,27 @@ spectrum.bottom_margin = BOTTOM_MARGIN;
 spectrum.left_margin = LEFT_MARGIN;
 spectrum.left_margin = RIGHT_MARGIN;
 
-
+gfx_ext_flags == 0 ? ( ///////////////////////////////// MEINE EXT FLAGS
 gfx_w = 955;
 gfx_h=360;
+extfl == 1 ? (
+Display_mode = 0;
+slider8 = 0;
+    flag_filter_update_all(); 
+    sliders_to_filters();
+    update_state();
+extfl = 0;
+);
+):(
+extfl == 0 ? (
+Display_mode = 1;
+slider8 = 1;
+    flag_filter_update_all(); 
+    sliders_to_filters();
+    update_state();
+extfl = 1;
+);
+);
 /*
  * Set rgb from 0..255
  */
@@ -5819,7 +5842,7 @@ gfx_printf("ai = %f %f %f", band1.filter.cas1.i_a1.b, band1.filter.cas1.i_a2.b, 
 
 
 
-
+extfl == 0 ? (
 
 
 
@@ -6445,3 +6468,5 @@ outg!=outg.val?
 
 
 ); // ENDE AUSKLAMMERN (Slider8)
+
+); ////// EXTFL

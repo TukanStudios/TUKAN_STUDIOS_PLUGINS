@@ -1,4 +1,6 @@
 desc:LA-1A (Tukan)
+// Version 1.1
+
 // Copyright 2006, Thomas Scott Stillwell
 // All rights reserved.
 //
@@ -33,6 +35,7 @@ filename:1,LAgui/LABack.png
 filename:2,LAgui/machick.png
 filename:3,LAgui/switch.png
 filename:4,LAgui/screw.png
+filename:5,LAgui/VUMeter2.png
 
 slider1:-40<-60,0,0.1>-Threshold (dB)
 slider2:4<1,20,0.1>-Ratio
@@ -268,20 +271,6 @@ out_pin:right output
                        valOld = val;
                       );
     
-    function potDrag()
-          local      (val)
-            instance   (valOld minVal maxVal yOld step)
-                     (
-                       !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
-                      val = limitgui(val, minVal, maxVal);
-                      this.potVal(val);
-                      ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
-                      val = limitgui(val, minVal, maxVal);
-                      this.potVal(val);
-                      );
-                     );
                      
     function potToggle()
           local      (val)
@@ -302,11 +291,28 @@ out_pin:right output
                       valOld=val;
                        );
                        
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+               
     function potWheel()
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -319,11 +325,11 @@ out_pin:right output
     slider12:0<0,100,1>-Denoiser
     slider13:0<-100,100,2>-Output
     */
-  gGain.potcfg  (0,-10,20,.1);
-  gReduct.potcfg (20,0,60,0.5);
+  gGain.potcfg  (0,-10,20,.03);
+  gReduct.potcfg (20,0,60,0.06);
   gRatio.potcfg   (4,4,8,4);
   gSidechain.potcfg (0,0,1,1);
- screw.potcfg   (5,0,5,.1);
+ screw.potcfg   (5,0,5,.005);
  
   knobsx = 165;
   knobsy = 130;
@@ -537,7 +543,7 @@ meterspeed();
       lastCap = mouseHold;
     
     
-    
+gfx_ext_flags == 0 ? (   
     
     meterx = (800/2)-(220/2);
     metery = 70;
@@ -727,4 +733,22 @@ winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
               );
               opto = slider8;
               
-            
+     ):( // EXT FLAGS
+      gfx_mode=0; gfx_a = 1;
+ 
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(5,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      
+       gfx_x = 2; gfx_y = 1;
+      gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("LA");
+
+      ); // EXT FLAgs          

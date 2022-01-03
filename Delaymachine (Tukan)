@@ -1,7 +1,7 @@
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 desc: Delay Machine (Tukan)
-
+// version 1.1
 slider1:100<0,3000,1>-Delay (ms) (0=tempo sync)
 slider2:-5<-40,0,1>-Feedback (dB)
 slider3:0<-120,6,1>-Mix In (dB)
@@ -214,11 +214,12 @@ out_pin:right output
             instance   (valOld minVal maxVal yOld step)
                      (
                        !shift ? (
-                      val = valOld + (yOld - mouse_y) * step;
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       ):(
-                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = valOld + (yOld - mouse_y) * step;
                       val = limitgui(val, minVal, maxVal);
                       this.potVal(val);
                       );
@@ -238,7 +239,8 @@ out_pin:right output
         local         (val)
         instance      (valOld minVal maxVal step)
                       (
-                       val = valOld + (mouse_wheel/12)*step;
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
                        val = limitgui(val, minVal, maxVal);
                        this.potVal(val);
                        valOld=val;
@@ -249,10 +251,10 @@ out_pin:right output
 
 
   gdelay.potcfg(100,0,3000,1); //Delay ms
-  gfb.potcfg(-3,-40,0,1);
-  gmix.potcfg(0.5,0,1,0.01);
-  gst.potcfg(0,0,100,1);
-  gdist.potcfg(0,0,100,1);
+  gfb.potcfg(-3,-40,0,.1);
+  gmix.potcfg(0.5,0,1,0.001);
+  gst.potcfg(0,0,100,.1);
+  gdist.potcfg(0,0,100,.1);
   gtape.potcfg(0,0,1,1);  
   ghpf.potcfg(0,0,1000,.01);  
   glpf.potcfg(14.2877123,9.96,14.2877123,.01);  
@@ -265,34 +267,34 @@ slider9 == 0 ? (
   
   gdelay.rectIn(knobsx, knobsy, 75, 75);
   gdelay.rectOut(knobsx, knobsy, 75, 75, 61, 1);
-  gdelay.step = 9;
+  gdelay.step = 1;
   gdelayx = knobsx;
   gdelayy = knobsy;
   
   knobsx += 130;
   gfb.rectIn(knobsx, knobsy, 75, 75);
   gfb.rectOut(knobsx, knobsy, 75, 75, 61, 1);
-  gfb.step = .1;
+  gfb.step = .04;
   gfbx = knobsx;
   gfby = knobsy;
   
   knobsx += 137;
   glpf.rectIn(knobsx, knobsy, 60, 60);
   glpf.rectOut(knobsx, knobsy, 60, 60, 61, 2);
-  glpf.step = .025;
+  glpf.step = .001;
   glpfx = knobsx;
   glpfy = knobsy;  
   
   ghpf.rectIn(knobsx, knobsy+75, 60, 60);
   ghpf.rectOut(knobsx, knobsy+75, 60, 60, 61, 2);
-  ghpf.step = 5;
+  ghpf.step = 1;
   ghpfx = knobsx;
   ghpfy = knobsy+75;  
   
   knobsx -=7;
   gdist.rectIn(knobsx, knobsy, 75, 75);
   gdist.rectOut(knobsx, knobsy, 75, 75, 61, 2);
-  gdist.step = 1;
+  gdist.step = .1;
   gdistx = knobsx;
   gdisty = knobsy;
   
@@ -300,7 +302,7 @@ slider9 == 0 ? (
   knobsx += 130;
   gst.rectIn(knobsx, knobsy+7, 60, 60);
   gat.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
-  gst.step = 1;
+  gst.step = .1;
   gstx = knobsx;
   gsty = knobsy+7;
     
@@ -308,7 +310,7 @@ slider9 == 0 ? (
   knobsx += 130;
   gmix.rectIn(knobsx, knobsy, 75, 75);
   gmix.rectOut(knobsx, knobsy, 75, 75, 61, 2);
-  gmix.step = 0.01;
+  gmix.step = 0.001;
   gmixx = knobsx;
   gmixy = knobsy;
   
@@ -632,7 +634,58 @@ slider13 < 1000 ? (slider13=1000);
   initial = 1;
   );
   
+  function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
+  (
+  gfx_x=kx; gfx_y=ky;
+  weg = abs(kmax - kmin);
+  //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+   kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+   scry = kbitmap * floor(kframe);
+   gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+  );
   
+  gfx_ext_flags == 1 ? (
+       // gfx_h = gfx_w/2;
+        
+  gfx_r=0;gfx_g=1;gfx_b=0;gfx_a=0.8;  
+  gfx_rect(0,0,gfx_w*inm0,(gfx_h/4)-2);
+  gfx_r=1;gfx_g=0;gfx_b=0;gfx_a=0.8;  
+  gfx_rect(0,gfx_h/4,gfx_w*inm1,(gfx_h/4)-2);          
+     
+      
+  fxm0 *= 3;
+  fxm1 *= 3;
+  gfx_a = 0.5;
+  gfx_r=0;gfx_g=1;gfx_b=0;
+  gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,  (gfx_w/2*fxm0),  gfx_h/2);
+  
+  gfx_r=1;gfx_g=0;gfx_b=0;
+  gfx_rect(gfx_w/2,gfx_h/2, (gfx_w/2*fxm1),  gfx_h/2);
+  
+  
+  gfx_a = 1;
+  gfx_r=0;gfx_g=1;gfx_b=0;
+  gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,3,gfx_h/2);
+  
+  gfx_r=1;gfx_g=0;gfx_b=0;
+  gfx_rect(gfx_w/2+(gfx_w/2*fxm1),gfx_h/2,3,gfx_h/2);
+  
+  fxm0 = 0; fxm1 =0;
+  
+  
+  
+  gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1;
+  n = 1;
+  loop(gfx_w / 3,
+  gfx_line(n * 3, 0, n*3, (gfx_h / 2)-2);
+  n+=1;
+  );
+  
+  gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
+  
+      ):( // EXT FLAGS
+      
+      
   gfx_w = 838;
   gfx_h=255;
   gfx_x=0; gfx_y=0;
@@ -669,15 +722,6 @@ slider13 < 1000 ? (slider13=1000);
  gfx_blit(7,1,0);           // HINTERGRUND
   );
   
-  function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
-  (
-  gfx_x=kx; gfx_y=ky;
-  weg = abs(kmax - kmin);
-  //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
-   kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
-   scry = kbitmap * floor(kframe);
-   gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
-  );
   potsupdate();
   
 
@@ -1152,6 +1196,14 @@ odelay != delaylen ? (
   freembuf(delaylen*2);
 );
 */
+
+); //EXT FLAGS
+
+
+
+
+
+
 @block
 /*
 odelay=delaylen;
@@ -1475,6 +1527,8 @@ wetmixFB = wetmix;
     );   
 //  );
   
+  inm0 < abs(spl0) ? inm0 = abs(spl0):(inm0*=0.99995);
+  inm1 < abs(spl1) ? inm1 = abs(spl1):(inm1*=0.99995);
   
   
  // panloc = pongpan + pongwidth * switch;
@@ -1508,6 +1562,9 @@ d > 0 ?(
    spl0*=1;//drymix2;
    spl1*=1;//drymix2;
 );
+  
+  fxm0 < abs(spl0) ? FXm0 = abs(spl0);//:(fxm0*=0.999);
+  fxm1 < abs(spl1) ? FXm1 = abs(spl1);//:(fxm1*=0.999);
   
   /*
   play_state != 0 ? (PlSt =1);

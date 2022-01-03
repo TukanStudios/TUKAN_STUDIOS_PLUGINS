@@ -1,4 +1,5 @@
 desc:Lexikan 2 (Tukan)
+// Version 1.1
 //This plugin contains code by Geraint Luff. THANK YOU!
 
 in_pin:Ch1
@@ -45,7 +46,7 @@ slider30:0<0,1,1>-WETSOLO 30
 slider31:0<0,1,1>-Displaymode 31
 slider32:0<0,1,1>-Bypass
 slider33:0<0,1,1>-FDL 33
-slider34:1<0,1,1>-Dry to Aux 34
+slider34:1<0,1,1>-LPF/TILT 34
 slider35:0<0,1,.01>-as35
 
 
@@ -615,26 +616,34 @@ tiltsr3 = 3*srate;
 				 valOld = val;
 				);
   
-function potDrag()
-	   local      (val)
-		instance   (valOld minVal maxVal yOld step)
-			    (
-				val = valOld + (yOld - mouse_y) * step;
-				val = limit(val, minVal, maxVal);
-				this.potVal(val);
-			    );
-  
-  
-  function potWheel()
-	 local         (val)
-	 instance      (valOld minVal maxVal step)
-				(
-				 val = valOld + (mouse_wheel/120)*step;
-				 val = limit(val, minVal, maxVal);
-				 this.potVal(val);
-				 valOld=val;
-				 mouse_wheel=0;
-				);
+    function potDrag()
+		local      (val)
+		  instance   (valOld minVal maxVal yOld step)
+				 (
+				   !shift ? (
+				   mstep = (this.maxval - this.minval)/100;
+				  val = valOld + (yOld - mouse_y) * mstep;
+				  val = limit(val, minVal, maxVal);
+				  this.potVal(val);
+				  ):(
+				  val = valOld + (yOld - mouse_y) * step;
+				  val = limit(val, minVal, maxVal);
+				  this.potVal(val);
+				  );
+				 );
+	function potWheel()
+	   local         (val)
+	   instance      (valOld minVal maxVal step)
+				  (
+				  mstep = (this.maxval - this.minval)/100;
+				   val = valOld + (mouse_wheel/36)*mstep;
+				   val = limit(val, minVal, maxVal);
+				   this.potVal(val);
+				   valOld=val;
+				   mouse_wheel=0;
+				    );
+				    
+				    
   function init_gfx () (
 
 		gPreDelay=slider17;
@@ -688,24 +697,24 @@ function potDrag()
   
   );
 
-gPreDelay.potcfg  (20,0,300,1);
-gERTail.potcfg (50,0,100,1);
-gGap.potcfg   (10,0,300,1);
-gLPF.potcfg (8000,500,20000,200); //10Hz-1khz
-gDryWet.potcfg (0.5,0,1,0.01);
-gStereo.potcfg (1,0,1,.01);
-gTilt.potcfg (0,-6,6,.1);
+gPreDelay.potcfg  (20,0,300,0.3);
+gERTail.potcfg (50,0,100,.1);
+gGap.potcfg   (10,0,300,.3);
+gLPF.potcfg (8000,500,20000,20); //10Hz-1khz
+gDryWet.potcfg (0.5,0,1,0.001);
+gStereo.potcfg (1,0,1,.001);
+gTilt.potcfg (0,-6,6,.012);
 
-gKnob1.potcfg(70,0,100,0.3);
+gKnob1.potcfg(70,0,100,0.1);
 
-gfdl1.potcfg (0,-0.95,0.95,.01);
-gfdl2.potcfg (0,-0.95,0.95,.01);
-gfdl3.potcfg (0,-0.95,0.95,.01);
-gfdl4.potcfg (0,-0.95,0.95,.01);
-gfdl5.potcfg (0,-0.95,0.95,.01);
-gfdl6.potcfg (0,-0.95,0.95,.01);
-gfdl7.potcfg (0,-0.95,0.95,.01);
-gfdl8.potcfg (0,-0.95,0.95,.01);
+gfdl1.potcfg (0,-0.95,0.95,.002);
+gfdl2.potcfg (0,-0.95,0.95,.002);
+gfdl3.potcfg (0,-0.95,0.95,.002);
+gfdl4.potcfg (0,-0.95,0.95,.002);
+gfdl5.potcfg (0,-0.95,0.95,.002);
+gfdl6.potcfg (0,-0.95,0.95,.002);
+gfdl7.potcfg (0,-0.95,0.95,.002);
+gfdl8.potcfg (0,-0.95,0.95,.002);
 
 /*
 gKnob2.potcfg (0,-16,16,0.2);
@@ -1286,7 +1295,11 @@ slider32 == 1 ? (mix = 0);
 spl0=DRYspl0*drymixn+FXL*drymixo;//+rdpos[0];
 spl1=DRYspl1*drymixn+FXR*drymixo;//+rdpos[1];
 
+inm0 < abs(DRYspl0) ? inm0 = abs(DRYspl0):(inm0*=0.99995);
+inm1 < abs(DRYspl1) ? inm1 = abs(DRYspl1):(inm1*=0.99995);
 
+fxm0 < abs(FXL) ? FXm0 = abs(FXL);//:(fxm0*=0.999);
+fxm1 < abs(FXR) ? FXm1 = abs(FXR);//:(fxm1*=0.999);
 
 aaa= __memtop();
 //bpos+=2;
@@ -1348,10 +1361,6 @@ aaa= __memtop();
 
 
 @gfx 1020 180
-
-		
-		
-		
 	function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
 	(
 	gfx_x=kx; gfx_y=ky;
@@ -1361,76 +1370,69 @@ aaa= __memtop();
 	 scry = kbitmap * floor(kframe);
 	 gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
 	);
+	
+	
+gfx_ext_flags == 1 ? (
+	   // gfx_h = gfx_w/2;
+	    
+gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8; //LEXIBLUE
+		
+gfx_rect(0,0,gfx_w*inm0,(gfx_h/4)-2);
+gfx_rect(0,gfx_h/4,gfx_w*inm1,(gfx_h/4)-2);          
+   
+		
+fxm0 *= 3;
+fxm1 *= 3;
+gfx_a = 0.5;
+gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,  (gfx_w/2*fxm0)+(gfx_w/2*fxm1),  gfx_h/2);
+gfx_a = 1;
+gfx_rect(gfx_w/2-(gfx_w/2*fxm0),gfx_h/2,3,gfx_h/2);
+
+gfx_rect(gfx_w/2+(gfx_w/2*fxm1),gfx_h/2,3,gfx_h/2);
+
+fxm0 = 0; fxm1 =0;
+
+
+
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1;
+n = 1;
+loop(gfx_w / 3,
+gfx_line(n * 3, 0, n*3, (gfx_h / 2)-2);
+n+=1;
+);
+
+gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
+
+		):( // EXT FLAGS
+		
+	  gfx_w=1020; gfx_h = 180;   
+		
+		
+		
+		
 
 mouseHold = mouse_cap & 1;
 ctrl = mouse_cap & 4;
 mouseClick = mouseHold - lastCap;
 lastCap = mouseHold;
+	 shift = mouse_cap & 8;
+
+
+
 
 gfx_r=0.3;gfx_g=0.3;gfx_b=0.4;gfx_a=0.3;
 gfx_rect(0,0,sknobsx+kndistance*6+70+90,sknobsy+80);
 aax = sknobsx+kndistance*6+70+90;
 aay = sknobsy+80; 
 
-gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8;
-gfx_rect(sknobsx-270,sknobsy +30,kndistance*6+360,50);
-
-
-gfx_x = 0; gfx_y = 0; gfx_a=1;
-slider34 == 0 ? (gfx_blit(0,1,0)):(gfx_blit(8,1,0));
-//initial == 0 ? (
-	 gPreDelay=0;
-init_gfx();
-
-	  initial = 1;
-//);
-gfx_a = 1;
-  slider29 == 0 ? (lengin = 30; lengout = 80); //gKnob1.potcfg(70,30,80,0.3));
-  slider29 == 1 ? (lengin = 20; lengout = 60); //gKnob1.potcfg(70,20,60,0.4));
-  slider29 == 2 ? (lengin = 17; lengout = 61); //gKnob1.potcfg(70,17,61,0.4));
-  slider29 == 3 ? (lengin = 35; lengout = 85); //gKnob1.potcfg(70,35,85,0.5));
-  slider29 == 4 ? (lengin = 25; lengout = 85); //gKnob1.potcfg(70,25,85,0.5));
-
-  knopf(5,sknobsx-10,sknobsy-7,61,80,lengin,lengout,slider2); //bild, posx, posy, frames, hoehe, von, bis, wert
-  slider29 < 3.6 ? (
-  knopf(1,sknobsx+kndistance,sknobsy,61,65,0,300,slider17); //bild, posx, posy, frames, hoehe, von, bis, wert 
-  knopf(3,sknobsx+kndistance*2,sknobsy,61,65,0,100,slider15); //bild, posx, posy, frames, hoehe, von, bis, wert 
-  ):(
-  faac = 0.83;
-  gfx_r=faac*0.72/18;gfx_g=faac*13.5/18;gfx_b=faac*1;gfx_a=1;
-  gfx_rect(sknobsx+80,sknobsy +30,150,50);
-  );
-  knopf(1,sknobsx+kndistance*3,sknobsy,61,65,0,300,slider18); //bild, posx, posy, frames, hoehe, von, bis, wert 
-  knopf(2,sknobsx+kndistance*4,sknobsy,61,65,500,20000,slider7); //bild, posx, posy, frames, hoehe, von, bis, wert 
-slider34 == 1 ? (
-  knopf(3,sknobsx+kndistance*4,sknobsy,61,65,-6,6,slider16); //bild, posx, posy, frames, hoehe, von, bis, wert
-);
-  
-  knopf(3,sknobsx+kndistance*5,sknobsy,61,65,0,1,slider20); //bild, posx, posy, frames, hoehe, von, bis, wert
-  knopf(4,sknobsx+kndistance*6,sknobsy,61,65,0,1,slider19); //bild, posx, posy, frames, hoehe, von, bis, wert 
-
-//slider6:-.1<-6,0,.01
-knx = 630; kny = 10; knxs = knx;knys = kny;knxspace = 60; 
-
-slider29 == 0 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,30,80,0.3);):(knopf(6,knx,kny,2,50,0,1,0));
-knx += knxspace;
-slider29 == 1 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,20,60,0.4);):(knopf(6,knx,kny,2,50,0,1,0));
-knx += knxspace;
-slider29 == 2 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,17,61,0.4);):(knopf(6,knx,kny,2,50,0,1,0));
-knx += knxspace;
-slider29 == 3 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,35,85,0.5);):(knopf(6,knx,kny,2,50,0,1,0));
-knx += knxspace;
-slider29 == 4 ? (knopf(6,knx,kny,2,50,0,1,1); gKnob1.potcfg(slider2,25,85,0.5);):(knopf(6,knx,kny,2,50,0,1,0));
-knx += knxspace;
-
-kny += 30;knx = knxs;
-slider30 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
-slider32 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
-slider31 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
-slider33 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
-slider34 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));
-
 displayx = 85; displayy=40; displayw = 230; displayh=120;
+gfx_r=0.8*0.72/18;gfx_g=0.8*13.5/18;gfx_b=0.8*1;gfx_a=1; //0.8
+gfx_rect(sknobsx-270,sknobsy +30,displayx+displayw-(sknobsx-270),50);
+
+
+
+/////////////////////////////////////// DISPLAY
+
 gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLACK
 //gfx_rect(displayx,displayy,displayw,displayh);
 gfx_x=displayx; gfx_y=displayy;
@@ -1515,7 +1517,9 @@ loops = dREVtime;
 astep = 1/drevtime;
 gfx_a = 0;gfx_r=0;gfx_g=0;gfx_b=0;
 loop(loops,
+displayx+10+dGaptime+loopi < displayx + displayw ? (
 gfx_line(displayx+10+dGaptime+loopi, displayy + displayh-10,displayx+10+dGaptime+loopi, displayy + displayh - dRevvol);
+);
 //dings = loopi*(slider15/500)*(displayh-50);
 //gfx_line(displayx+10+dGaptime+dREVtime, displayy + displayh-10,displayx+10+dGaptime, displayy + displayh-10 - dings);
 gfx_a += astep;
@@ -1555,6 +1559,76 @@ gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8; //LEXIBLUE
   knopf(7,sfdlx+fdlstep*3,sfdly+fdlstep,61,30,-0.95,0.95,slider28);
   gfx_y = sfdly+fdlstep+30;gfx_x = sfdlx+fdlstep*3; gfx_drawnumber(slider28,2);
 );
+
+
+/////////////////////////////////////// ENDE DISPLAY
+
+
+ggfx_r=0.8*0.72/18;gfx_g=0.8*13.5/18;gfx_b=0.8*1;gfx_a=1; //0.8
+gfx_rect(displayx+displayw,sknobsy +30,kndistance*6+360,50);
+
+gfx_x = 0; gfx_y = 0; gfx_a=1;
+slider34 == 0 ? (gfx_blit(0,1,0)):(gfx_blit(8,1,0));
+//initial == 0 ? (
+	 gPreDelay=0;
+init_gfx();
+
+	  initial = 1;
+//);
+gfx_a = 1;
+  slider29 == 0 ? (lengin = 30; lengout = 80); //gKnob1.potcfg(70,30,80,0.3));
+  slider29 == 1 ? (lengin = 20; lengout = 60); //gKnob1.potcfg(70,20,60,0.4));
+  slider29 == 2 ? (lengin = 17; lengout = 61); //gKnob1.potcfg(70,17,61,0.4));
+  slider29 == 3 ? (lengin = 35; lengout = 85); //gKnob1.potcfg(70,35,85,0.5));
+  slider29 == 4 ? (lengin = 25; lengout = 85); //gKnob1.potcfg(70,25,85,0.5));
+
+  knopf(5,sknobsx-10,sknobsy-7,61,80,lengin,lengout,slider2); //bild, posx, posy, frames, hoehe, von, bis, wert
+  slider29 < 3.6 ? (
+  knopf(1,sknobsx+kndistance,sknobsy,61,65,0,300,slider17); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  knopf(3,sknobsx+kndistance*2,sknobsy,61,65,0,100,slider15); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  ):(
+  faac = 0.83;
+  gfx_r=faac*0.72/18;gfx_g=faac*13.5/18;gfx_b=faac*1;gfx_a=1;
+  gfx_rect(sknobsx+80,sknobsy +30,150,50);
+  );
+  knopf(1,sknobsx+kndistance*3,sknobsy,61,65,0,300,slider18); //bild, posx, posy, frames, hoehe, von, bis, wert 
+  knopf(2,sknobsx+kndistance*4,sknobsy,61,65,500,20000,slider7); //bild, posx, posy, frames, hoehe, von, bis, wert 
+slider34 == 1 ? (
+  knopf(3,sknobsx+kndistance*4,sknobsy,61,65,-6,6,slider16); //bild, posx, posy, frames, hoehe, von, bis, wert
+);
+  
+  knopf(3,sknobsx+kndistance*5,sknobsy,61,65,0,1,slider20); //bild, posx, posy, frames, hoehe, von, bis, wert
+  knopf(4,sknobsx+kndistance*6,sknobsy,61,65,0,1,slider19); //bild, posx, posy, frames, hoehe, von, bis, wert 
+
+//slider6:-.1<-6,0,.01
+knx = 630; kny = 10; knxs = knx;knys = kny;knxspace = 60; 
+
+slider29 == 0 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,30,80,0.05);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 1 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,20,60,0.04);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 2 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,17,61,0.04);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 3 ? (knopf(6,knx,kny,2,50,0,1,1);gKnob1.potcfg(slider2,35,85,0.05);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+slider29 == 4 ? (knopf(6,knx,kny,2,50,0,1,1); gKnob1.potcfg(slider2,25,85,0.05);):(knopf(6,knx,kny,2,50,0,1,0));
+knx += knxspace;
+
+kny += 30;knx = knxs;
+slider30 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider32 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider31 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider33 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));knx += knxspace;
+slider34 == 0 ? (knopf(6,knx,kny,2,50,0,1,0)):(knopf(6,knx,kny,2,50,0,1,1));
+
+
+
+
+
+
+// DISPLAY ???
+
+
 
 play_state = 0 ? (inmeter*0.999);
 gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=1; // DIPLAY BLACK
@@ -1763,10 +1837,10 @@ mouseClick == -1  ?
 
 mouse_wheel ? 
     (
+    gKnob1.collision()    ? gKnob1.potWheel():
 	 gPreDelay.collision()   ? gPreDelay.potWheel():
 	 gERTail.collision()  ? gERTail.potWheel():
 	 gGap.collision()    ? gGap.potWheel():
-	 gLPF.collision()    ? gLPF.potWheel():
 	 gDryWet.collision()    ? gDryWet.potWheel():
 	 gStereo.collision()     ? gStereo.potWheel():
 	 gfdl1.collision()    ? gfdl1.potWheel():
@@ -1778,10 +1852,12 @@ mouse_wheel ?
 	 gfdl7.collision()    ? gfdl7.potWheel():
 	 gfdl8.collision()    ? gfdl8.potWheel():
 	 gKnob10.collision()    ? gKnob10.potWheel():
-	 gtilt.collision()    ? gtilt.potWheel():
+	 gLPF.collision()    ? slider34 == 0 ? (gLPF.potWheel()):
+	 gtilt.collision()    ? slider34 == 1 ? (gtilt.potWheel()):
 	 mouse_wheel=0;
     );
 
+ 
 //Slider34 = tilt
   slider29 < 3.6 ? (
 gPreDelay.dragging  ? gPreDelay.potDrag();
@@ -2067,8 +2143,7 @@ a0 = 2*omega*n;
 b1 = (tiltsr3 - omega)*n;
 
 ALGOCAL == 1 ? (ALGOCALL();ALGOCAL = 0);
-
-
+); // EXT FLAGS
 
 @serialize
 
