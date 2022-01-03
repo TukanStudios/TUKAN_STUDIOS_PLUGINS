@@ -1,0 +1,845 @@
+desc:NC76 (Tukan)
+// Version 1.1
+
+
+// Copyright 2006, Thomas Scott Stillwell
+// All rights reserved.
+//
+//Redistribution and use in source and binary forms, with or without modification, are permitted 
+//provided that the following conditions are met:
+//
+//Redistributions of source code must retain the above copyright notice, this list of conditions 
+//and the following disclaimer. 
+//
+//Redistributions in binary form must reproduce the above copyright notice, this list of conditions 
+//and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+//
+//The name of Thomas Scott Stillwell may not be used to endorse or 
+//promote products derived from this software without specific prior written permission. 
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR 
+//IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
+//FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS 
+//BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+//(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+//PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+//STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
+//THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+//tags: dynamics compressor
+//author: Stillwell
+
+slider1:0<-60,0,0.1>-Threshold (dB)
+slider2:5<0,9,1{Blown Capacitor 4 (Deprecated),Blown Capacitor 8 (Deprecated),Blown Capacitor 12 (Deprecated),Blown Capacitor 20 (Deprecated),Blown Capacitor All (Deprecated),4,8,12,20,All}>-Ratio
+slider3:-10<-60,17,0.1>-Gain (dB)
+slider4:100<20,800,10>-Attack (uS)
+slider5:250<10,1100,1>-Release (mS)
+slider6:100<0,100,0.1>-Mix (%)
+slider7:0.77<0,4,0.01>-IN GAIN
+slider8:0<0,1,1>-Punch
+slider9:0<0,1,1>-SC
+slider10:0<0,1>-Trick
+slider11:4.9<0,5,0.01>-Meterspeed
+
+filename:0,76gui/VUMeter.png
+filename:1,76gui/76Back.png
+filename:2,76gui/MY1176.png
+filename:3,76gui/MY1176small.png
+filename:4,76gui/1176button.png
+filename:5,76gui/screw.png
+filename:6,76gui/VUMeter2.png
+//options:no_meter
+
+
+in_pin:left input
+in_pin:right input
+in_pin:External SC / L
+in_pin:External SC / R
+out_pin:left output
+out_pin:right output
+
+@init
+ovrlgain = 1;
+
+  log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+  db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+  attime=0.010;
+  reltime=0.100;
+  ratio=0;
+  cratio=0;
+  rundb=0;
+  overdb=0;
+  ratatcoef = exp(-1/(0.00001 * srate));
+  ratrelcoef = exp(-1/(0.5 * srate));
+  atcoef=exp(-1/(attime * srate));
+  relcoef=exp(-1/(reltime * srate));
+  mix=1;
+  gr_meter=1;
+  gr_meter_decay = exp(1/(1*srate));
+  grk = 0;
+  
+  meter_dif = 0.0005;
+  gr_meter2 = 1;
+  function meterspeed()
+  (
+  mspd = slider11;
+  meter_speed = mspd/srate;
+  
+  mspd == 5 ? (
+  gr_meter2 < gr_meter ? (
+    meter_speed /= 5;
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+  
+      gr_meter2 = gr_meter;
+  
+    );
+  );
+  ;
+  
+  mspd == 0 ? (
+    gr_meter2 > gr_meter ? (
+      gr_meter2 = gr_meter;
+    );
+  );
+  
+  mspd > 0 ? (
+  mspd < 5 ? (
+  gr_meter2 < gr_meter ? (
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 - meter_speed*8;
+     gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+    );
+  );
+  );
+  );
+  
+  gr_meter2 > 1 ? gr_meter2 =1;
+  );
+  
+  //==============================================================================
+    gfx_clear=1;
+    //ext_noinit=1;
+    lastCap=1;
+    mouse_wheel=1;
+  player = 0;
+   initial = 0;
+      function limitgui(s low up)
+                    ( min(max(s, low), up) );
+      function deg(r)
+                    ( r / $pi * 180 );
+      function rad(d)
+                    ( d * $pi / 180 );
+  
+  
+  
+  
+  /******************************* GUI Function ***********************************/
+  
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+ 
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+    /*
+    slider10:100<0,100,1>-Input Att
+    slider11:0<0,100,1>-Service Old
+    slider12:0<0,100,1>-Denoiser
+    slider13:0<-100,100,2>-Output
+    */
+  gInGain.potcfg  (0.77,0,4,.004);
+  gOutGain.potcfg (-10,-60,17,0.077);
+  gAtt.potcfg (100,20,800,1);
+  gRel.potcfg (250,10,1100,1); 
+ // gRatio.potcfg   (4,4,8,4);
+ // gSidechain.potcfg (0,0,1,1);
+  screw.potcfg   (4.9,0,5,.005);
+  knobsx = 80;
+  knobsy = 60;
+  gInGain.rectIn(knobsx, knobsy, 100, 100);
+  gInGain.rectOut(knobsx, knobsy, 100, 100, 61, 2);
+  
+  screw.rectIn(knobsx+140,knobsy+45, 10, 10); 
+  screw.rectOut(knobsx+140,knobsy+45, 10, 10, 61, 5);
+  
+  knobsx +=190;
+//knobsy = 60;
+ gOutGain.rectIn(knobsx, knobsy, 100, 100);
+ gOutGain.rectOut(knobsx, knobsy, 100, 100, 61, 2);
+  
+    knobsx +=190;
+    knobsy += 13;
+   gAtt.rectIn(knobsx, knobsy-20, 40, 40);
+   gAtt.rectOut(knobsx, knobsy-20, 40, 40, 61, 3);
+  
+   gRel.rectIn(knobsx, knobsy+60, 40, 40);
+   gRel.rectOut(knobsx, knobsy+60, 40, 40, 61, 3);
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+@slider
+
+
+            thresh = slider1;
+            threshv = exp(thresh * db2log);
+            
+            capsc = log2db;
+            (rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
+            ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
+            rpos == 4 ? (allin=1; cratio=20;) : (allin=0; cratio = ratio;);
+            cthresh = (softknee ? (thresh -3) : thresh);
+            cthreshv = exp(cthresh * db2log);
+            makeup = slider3;
+            makeupv = exp((makeup+autogain) * db2log);
+            attime = slider4 / 1000000;
+            slider8==1?(attime+=0.008);
+             reltime = slider5 / 1000;
+            atcoef=exp(-1/(attime * srate));
+            relcoef=exp(-1/(reltime * srate));
+            mix=slider6/100;
+            ingain=exp(db2log*12)*slider7;
+@sample
+
+spl0*=ingain;
+spl1*=ingain;
+spl2*=ingain;
+spl3*=ingain;
+
+  ospl0 = spl0;
+  ospl1 = spl1;
+  slider9 == 0 ? (
+  aspl0 = abs(spl0);
+  aspl1 = abs(spl1);
+  ):(
+ aspl0 = abs(spl2);
+ aspl1 = abs(spl3); 
+  );
+  
+  maxspl = max(aspl0, aspl1);
+  maxspl = maxspl * maxspl;
+  runave = maxspl + rmscoef * (runave - maxspl);
+  det = sqrt(max(0,runave));
+
+  overdb = max(0, capsc * log(det/cthreshv));
+
+  overdb - rundb > 5 ? (averatio = 4;);
+
+  overdb > rundb ? (
+    rundb = overdb + atcoef * (rundb - overdb);
+    runratio = averatio + ratatcoef * (runratio - averatio);
+  ) : (
+    rundb = overdb + relcoef * (rundb - overdb);
+    runratio = averatio + ratrelcoef * (runratio - averatio);
+  );
+  overdb = rundb;
+  averatio = runratio;
+
+  allin ? (
+    cratio = 12 + averatio;
+  ) : (
+    cratio = ratio;
+  );
+  
+  gr = -overdb * (cratio-1)/cratio;
+  grv = exp(gr * db2log);
+  
+  runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
+  maxover = runmax;
+grgr = (1/gr_meter)/20;
+
+gr_meter_decay = 1.1;
+grv < gr_meter ? gr_meter=grv : ( gr_meter = grv; gr_meter>1?gr_meter=1; );// gr_meter*=gr_meter_decay
+grmin = min( min(cG,cG) , grmin);
+
+meterspeed();
+
+
+  slider10 == 1 ? (
+  spl0 = (-1*(spl0+(-1* spl0 * grv )))* makeupv * mix;
+  spl1 = (-1*(spl1+(-1* spl1*  grv )))* makeupv * mix;  
+  ) : (
+  spl0 *= grv * makeupv * mix;
+  spl1 *= grv * makeupv * mix;  
+  );
+  
+  
+  
+  
+  spl0 += ospl0 * (1-mix); // ????????????????????????? AHHH! DAS IST PARALLEL COMPERSSION!
+  spl1 += ospl1 * (1-mix);
+
+
+
+/// LIMITER ///////////////
+ovrlParam1=1.5; //ovrlthresh
+ovrlParam2=0.5; //output
+ovrlParam3=0.5+0*0.5; //ovrlattack
+ovrlParam4=0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+ovrlol = spl0;
+ovrlor = spl1;
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (ovrlol * ovrltr * ovrlg);
+spl1 = (ovrlor * ovrltr * ovrlg);
+
+ovrlgain = ovrlg;
+
+
+
+@gfx 906 213 // request horizontal/vertical heights (0 means dont care)
+     
+     //exp(1/20)
+
+     play_state == 0 ? (
+      gr_meter = min(gr_meter *= 1.05, 1); // decay meter here so if the audio processing stops it doesnt "stick"
+      //gr_meter*=1.2;
+      );
+      /*
+      grk == 0 ? (gr_meter = min(gr_meter *= 1.3,1));
+      */
+      gfx_r=1; gfx_g=gfx_b=0; gfx_a=0.8;
+      
+      meter_bot=20;
+      meter_h=min(gfx_h,32);
+      xscale=gfx_w*20/meter_bot;
+   
+      
+      
+      function toggles(tog) (
+      tog == 0 ? (tog = 1):(tog=0);
+      );         
+      
+      
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      
+      
+gfx_ext_flags == 0 ? (      
+      
+      meterx = 590;
+      metery = 40;
+      
+      gfx_x = meterx; gfx_y = metery;
+      gfx_blit(0,1,0);
+      gfx_x = meterx+110;
+      gfx_y = metery+125;
+      // -71 = 0; -130 = -oo;
+gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
+slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
+slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
+      
+ 
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+      winkel > -0.91 ? (
+      winkel = -0.91;
+      );
+gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
+      gr_meter_old = gr_meter;
+      
+        gfx_x = 0; gfx_y = 0;
+     gfx_blit(1,1,0); 
+                        
+   
+      
+  
+      initial == 0 ? (
+            gInGain=slider7;
+            gInGain.val=gInGain;
+            gInGain.potVal(gInGain.val);
+                gOutGain=slider3;
+                gOutGain.val=gOutGain;
+                gOutGain.potVal(gOutGain.val);
+               gAtt=820-slider4;
+               gAtt.val=gAtt;
+               gAtt.potVal(gAtt.val);              
+              gRel=1150-slider5;
+              gRel.val=gRel;
+              gRel.potVal(gRel.val);
+              screw=slider11;
+              screw.val=screw;
+              screw.potVal(screw.val);
+              screw.valOld=screw;
+      initial = 1;
+
+      );
+              
+      
+      
+      
+      
+      ksx=540;
+      ksy=40;
+      gfx_x=ksx; gfx_y=ksy;slider2 == 8 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+      slider2 == 9 ? (gfx_blit(4,1,0,0,35,35,35));
+      ksy+=35;
+      gfx_x=ksx; gfx_y=ksy;slider2 == 7 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+      slider2 == 9 ? (gfx_blit(4,1,0,0,35,35,35));
+      ksy+=35;
+      gfx_x=ksx; gfx_y=ksy;slider2 == 6 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+      slider2 == 9 ? (gfx_blit(4,1,0,0,35,35,35));
+      ksy+=35;
+      gfx_x=ksx; gfx_y=ksy;slider2 == 5 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+      slider2 == 9 ? (gfx_blit(4,1,0,0,35,35,35));
+       ksx=540;
+       ksy=40;
+      
+       
+       
+       tksx=820;
+       tksy=40;
+       gfx_x=tksx; gfx_y=tksy;slider8 == 1 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+       tksy+=35;
+       gfx_x=tksx; gfx_y=tksy;slider9 == 1 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+       tksy+=35;
+       gfx_x=tksx; gfx_y=tksy;slider10 == 1 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+       tksy+=35;
+       gfx_x=tksx; gfx_y=tksy;slider2 == 9 ? (gfx_blit(4,1,0,0,35,35,35)):(gfx_blit(4,1,0,0,0,35,35));
+        tksx=820;
+        tksy=40;
+        
+        
+        changer = 0;
+      gInGain.knob();
+     gOutGain.knob();      
+      gAtt.knob();
+      gRel.knob();
+      screw.knob();
+      /********************************* Mouse Control ******************************/
+      mouseClick == 1 ? 
+          (
+            gInGain.collision()   ? gInGain.dragStart();   
+            gOutGain.collision()  ? gOutGain.dragStart();  
+            gAtt.collision()    ? gAtt.dragStart(); 
+            gRel.collision()    ? gRel.dragStart(); 
+            screw.collision()    ? screw.dragstart();
+            mouse_x > ksx+7 ?(
+            mouse_x < ksx-7 + 33?(
+            mouse_y > ksy ?(
+            mouse_y < ksy + 35 ?(
+            slider2 = 8;
+            changer =1;
+            );
+            );
+            );
+            );
+            ksy+=35;
+            mouse_x > ksx+7 ?(
+            mouse_x < ksx-7 + 33?(
+            mouse_y > ksy ?(
+            mouse_y < ksy + 35 ?(
+            slider2 = 7;
+            changer =1;
+            );
+            );
+            );
+            );
+            ksy+=35;            mouse_x > ksx+7 ?(
+            mouse_x < ksx-7 + 33?(
+            mouse_y > ksy ?(
+            mouse_y < ksy + 35 ?(
+            slider2 = 6;
+            changer =1;
+            );
+            );
+            );
+            );
+            ksy+=35;            mouse_x > ksx+7 ?(
+            mouse_x < ksx-7 + 33?(
+            mouse_y > ksy ?(
+            mouse_y < ksy + 35 ?(
+            slider2 = 5;
+            changer =1;
+            );
+            );
+            );
+            );
+            mouse_x > tksx+7 ?(
+                   mouse_x < tksx-7 + 33?(
+                   mouse_y > tksy ?(
+                   mouse_y < tksy + 35 ?(
+                   slider8 = toggles(slider8);
+                   changer =1;
+                   );
+                   );
+                   );
+                   );
+                   tksy+=35;
+                   mouse_x > tksx+7 ?(
+                   mouse_x < tksx-7 + 33?(
+                   mouse_y > tksy ?(
+                   mouse_y < tksy + 35 ?(
+                   slider9 = toggles(slider9);
+                   changer =1;
+                   );
+                   );
+                   );
+                   );
+                   tksy+=35;            mouse_x > tksx+7 ?(
+                   mouse_x < tksx-7 + 33?(
+                   mouse_y > tksy ?(
+                   mouse_y < tksy + 35 ?(
+                   slider10 = toggles(slider10);
+                   changer =1;
+                   );
+                   );
+                   );
+                   );
+                   tksy+=35;            mouse_x > tksx+7 ?(
+                   mouse_x < tksx-7 + 33?(
+                   mouse_y > tksy ?(
+                   mouse_y < tksy + 35 ?(
+                   //slider11 = 1;//toggles(slider11);
+                   changer =1;
+                   slider2 = 9;
+                   );
+                   );
+                   );
+                   );
+            ):
+      mouseClick == -1  ? 
+          (
+            gInGain.dragStop();
+            gOutGain.dragStop();
+            gAtt.dragStop();
+            gRel.dragStop();
+            screw.dragstop();
+          );
+      
+      mouse_wheel ? 
+          (
+            gInGain.collision()   ? gInGain.potWheel():
+            gOutGain.collision()  ? gOutGain.potWheel():
+            gAtt.collision()    ? gAtt.potWheel():
+            gRel.collision()    ? gRel.potWheel():
+            screw.collision()    ? screw.potWheel():
+            mouse_wheel=0;
+          );
+      
+      
+      gInGain.dragging  ? gInGain.potDrag();
+      gOutGain.dragging ? gOutGain.potDrag();
+      gAtt.dragging   ? gAtt.potDrag();
+      gRel.dragging   ? gRel.potDrag();
+      screw.dragging   ? screw.potDrag();
+      /******************************* Slider Knob Control **************************/
+      gInGain!=gInGain.val?
+          (
+            gInGain=gInGain.val;
+            slider7=gInGain;
+            pot.potVal(gInGain.val);
+            changer =1;
+           ):
+      gInGain!=slider7?
+          (
+            gInGain=slider7;
+            gInGain.val=gInGain;
+            gInGain.potVal(gInGain.val);
+            gInGain.valOld=gInGain;
+            changer =1;
+          );
+          
+          gOutGain!=gOutGain.val?
+              (
+                gOutGain=gOutGain.val;
+                slider3=gOutGain;
+                pot.potVal(gOutGain.val);
+                changer =1;
+               ):
+          gOutGain!=slider3?
+              (
+                gOutGain=slider3;
+                gOutGain.val=gOutGain;
+                gOutGain.potVal(gOutGain.val);
+                gOutGain.valOld=gOutGain;
+                changer =1;
+              );
+              
+              
+         gAtt!=gAtt.val?
+             (
+               gAtt=gAtt.val;
+               slider4=820-gAtt;
+               pot.potVal(gAtt.val);
+               changer =1;
+              ):
+         gAtt!=820-slider4?
+             (
+               gAtt=820-slider4;
+               gAtt.val=gAtt;
+               gAtt.potVal(gAtt.val);
+               gAtt.valOld=gAtt;
+               changer =1;
+             );
+             
+        gRel!=gRel.val?
+            (
+              gRel=gRel.val;
+              Slider5=1150-gRel;
+              pot.potVal(gRel.val);
+              changer =1;
+             ):
+        gRel!=1150-slider5?
+            (
+              gRel=1150-slider5;
+              gRel.val=gRel;
+              gRel.potVal(gRel.val);
+              gRel.valOld=gRel;
+              changer =1;
+            );
+        screw!=screw.val?
+            (
+              screw=screw.val;
+              slider11=screw;
+              pot.potVal(screw.val);
+             ):
+        screw!=slider11?
+            (
+              screw=slider11;
+              screw.val=screw;
+              screw.potVal(screw.val);
+              screw.valOld=screw;
+            );
+        
+        
+            
+            
+            
+            
+            
+            
+            
+            changer == 1 ? (
+            thresh = slider1;
+            threshv = exp(thresh * db2log);
+            
+            capsc = log2db;
+            (rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
+            ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
+            rpos == 4 ? (allin=1; cratio=20;) : (allin=0; cratio = ratio;);
+            cthresh = (softknee ? (thresh -3) : thresh);
+            cthreshv = exp(cthresh * db2log);
+            makeup = slider3;
+            makeupv = exp((makeup+autogain) * db2log);
+            attime = slider4 / 1000000;
+            slider8==1?(attime+=0.008);
+             reltime = slider5 / 1000;
+            atcoef=exp(-1/(attime * srate));
+            relcoef=exp(-1/(reltime * srate));
+            mix=slider6/100;
+            ingain=exp(db2log*12)*slider7;
+            );
+            
+            
+            
+  ):( // EXT FLAGS
+      gfx_mode=0; gfx_a = 1;
+ 
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(6,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      
+       gfx_x = 2; gfx_y = 1;
+      gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("76")
+
+  ); // EXT FLAgs
+            
+            
+            
+            
+            

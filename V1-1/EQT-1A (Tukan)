@@ -1,0 +1,1117 @@
+desc:EQT-1A (Tukan)
+// Version 1.1
+slider1:1<0,3,1{20,30,60,100}>-|------------- LSF (Hz)
+slider2:0<0,18,0.1>-Push (dB)
+slider3:0<0,18,0.1>-Pull (dB)
+
+slider5:832<3000,16000,1>-|----------- Peak (Hz)
+slider6:0.7<0.2,2,0.05>-Mid Q//0<0,1,1{dull,sharp}>Q Mode
+slider7:0<0,18,0.1>-Gain (dB)
+
+slider9:2<0,2,1{5k,10k,20k,}>-|------------- HSF (Hz)
+slider10:0<0,18,0.1>-Gain (dB)
+
+slider12:0<-12,12,0.1>-|---------- Output (dB)
+
+slider13:3<0,6,1>-Freq Peak
+slider14:2<0,3,1>-Freq L
+slider15:1<0,2,1>-freq H
+
+
+
+filename:0,EQTgui/EQTback.png
+filename:1,EQTgui/Pultec.png
+filename:2,EQTgui/PFL.png
+filename:3,EQTgui/PFH.png
+filename:4,EQTgui/pulchick.png
+filename:5,EQTgui/mini.png
+
+in_pin:L in
+in_pin:R in
+out_pin:L out
+out_pin:R out
+
+@init
+
+tempA = slider2*10/15;
+src_wetA = tgt_wetA = slider2 <= 0 ? 0.0 : 10^(tempA/20);
+
+tempB = (-7.5-slider3*0.5);
+src_wetB = tgt_wetB = slider3 >= 0 ? 0.0 : 10^(tempB/20);
+
+dry = 1;
+
+
+
+
+
+
+
+initial = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+ gfx_clear=0;
+  ext_noinit=1;
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+  initial = 0;
+  
+
+       function limitgui(s low up)
+                   ( min(max(s, low), up) );
+     function deg(r)
+                   ( r / $pi * 180 );
+     function rad(d)
+                   ( d * $pi / 180 );
+                   
+                   
+  /******************************* GUI Function ***********************************/
+     function xy(x y)
+                ( gfx_x = x; gfx_y = y; );
+     
+     function rgb(r g b)
+                 ( gfx_r = r; gfx_g = g; gfx_b = b; );
+     
+     function rectIn  (xIn_ yIn_ wIn hIn)
+       instance       (xIn yIn widthIn heightIn)
+                      (
+                       xIn = xIn_;
+                       yIn = yIn_;
+                       widthIn = wIn;
+                       heightIn = hIn;
+                       );
+                     
+     function rectOut  (xOut_ yOut_ wOut hOut c i)
+       instance        (xOut yOut widthOut heightOut count index)
+                       (
+                        xOut = xOut_;
+                        yOut = yOut_;
+                        widthOut = wOut;
+                        heightOut = hOut;
+                        count = c;
+                        index = i;
+                        );                
+     
+     function potVal(v)
+       instance      (frame val minVal maxVal count heightOut)
+                     (
+                      val = v;
+                      frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                      frame |= 0;
+                     );
+     
+     function potCfg  (default_ minVal_ maxVal_ step_)
+       instance        (default minVal maxVal step)
+                       (
+                        default = default_;
+                        minVal = minVal_;
+                        maxVal = maxVal_;
+                        step    = step_;
+                        this.potVal();
+                       );
+   
+     function bkg(wImg hImg indImg)
+                  (
+                    gfx_a=1;
+                    coords[0] = coords[4] = 0;
+                    coords[1] = coords[5] = 0;;
+                    coords[2] = coords[6] = wImg;
+                    coords[3] = coords[7] = hImg;
+                    gfx_blitext(indImg, coords, 0);
+                   ); 
+     
+     function potDrawIn ()
+       instance        (xIn yIn widthIn heightIn val)
+                       (
+                          gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                          
+                          gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                          gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                          gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                          gfx_line(xIn,yIn,xIn+widthIn,yIn);
+           
+                          gfx_r = gfx_g = gfx_b = 0.75;
+                          gfx_x = xIn + widthIn/2-12;
+                          gfx_y = yIn+heightIn/2-5;
+                          gfx_drawnumber(val, 1);                   
+                       );
+     
+     function knob()
+       instance   (xOut yOut widthOut heightOut index frame val)
+                  (
+                   
+                    gfx_a=1;
+                    coords[0] = 0;
+                    coords[1] = frame * heightOut;
+                    coords[2] = coords[6] = widthOut;
+                    coords[3] = coords[7] = heightOut;
+                    coords[4] = xOut;
+                    coords[5] = yOut;
+                    gfx_blitext(index, coords, 0);
+                   );                                     
+     
+     function collision  ()
+       instance          (xIn yIn widthIn heightIn)
+                         (
+                          mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                         );
+     
+     function dragStart ()
+       instance          (dragging yOld default)
+                         (
+                          !ctrl ? (
+                          yOld = mouse_y;
+                          dragging = 1;
+                         ) : 
+                          this.potVal(default);
+                         );
+     
+     function dragStop()
+       instance        (dragging val valOld)
+                       (
+                        dragging = 0;
+                        valOld = val;
+                       );
+     
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+  
+   sat = rand(10)+10;
+   foo=sat/200*$pi;
+   bar = sin(sat/200*$pi);
+
+   
+ Lboost.potcfg  (0,0,18,.018);
+ Lcut.potcfg  (0,0,18,.018);
+ Hboost.potcfg  (0,0,18,.018);
+ Hcut.potcfg  (0,0,18,.018);
+ Q.potcfg  (0.7,0.2,2,.0018);
+ Lfreq.potcfg  (0,0,3,.003);
+ Pfreq.potcfg  (3,0,6,.006);
+ Hfreq.potcfg  (0,0,2,.002);
+ Outp.potcfg  (0,-12,12,.024);
+ 
+ knobsx = 65; knobsy = 40; 
+ Lboost.rectIn(knobsx, knobsy, 75, 75);
+ Lboost.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ knobsx += 90; 
+ Lcut.rectIn(knobsx, knobsy, 75, 75);
+ Lcut.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ Lfreq.rectIn(knobsx-35, knobsy+100, 70, 70);
+ Lfreq.rectOut(knobsx-35, knobsy+100, 70, 70, 4, 2); 
+ 
+ knobsx += 70;
+ Q.rectIn(knobsx, knobsy+100, 75, 75);
+ Q.rectOut(knobsx, knobsy+100, 75, 75, 61, 1);
+ knobsx+=70; 
+ Hboost.rectIn(knobsx, knobsy, 75, 75);
+ Hboost.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ Pfreq.rectIn(knobsx+35, knobsy+100, 70, 70);
+ Pfreq.rectOut(knobsx+35, knobsy+100, 70, 70, 7, 3);
+ 
+ knobsx += 100; 
+ Hcut.rectIn(knobsx, knobsy, 75, 75);
+ Hcut.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ knobsx+=90;
+ Hfreq.rectIn(knobsx, knobsy, 70, 80);
+ Hfreq.rectOut(knobsx, knobsy, 70, 80, 3, 4);
+ 
+ knobsx-=40; 
+ Outp.rectIn(knobsx, knobsy+100, 75, 75);
+ Outp.rectOut(knobsx, knobsy+100, 75, 75, 61, 1);
+ 
+ 
+ 
+ 
+ /*
+ slider1:1<0,3,1{20,30,60,100}>|------------- LSF (Hz)
+ slider2:0<0,18,0.1>Push (dB)
+ slider3:0<0,18,0.1>Pull (dB)
+ 
+ slider5:832<3000,16000,1>|----------- Peak (Hz)
+ slider6:0.7<0.2,2,0.05>Mid Q//0<0,1,1{dull,sharp}>Q Mode
+ slider7:0<0,18,0.1>Gain (dB)
+ 
+ slider9:2<0,2,1{5k,10k,20k,}>|------------- HSF (Hz)
+ slider10:0<0,18,0.1>Gain (dB)
+ 
+ slider12:0<-12,12,0.1>|---------- Output (dB)
+ 
+ slider13:3<0,6,1>Freq Peak
+ 
+ 
+ 
+ filename:0,EQTgui/EQTback.png
+ filename:1,EQTgui/Pultec.png
+ filename:2,EQTgui/PLF.png
+ filename:3,EQTgui/PHF.png
+ filename:4,EQTgui/pulchick.png
+ */
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+@slider
+         vslider13 = floor(slider13+0.5);
+          vslider6 = 2.2 - slider6;
+          
+          
+          
+          slider9 = floor(slider15+0.5);
+          slider1 = floor(slider14+0.5);
+          
+          vslider13 == 0 ? (slider5=3000);
+          vslider13 == 1 ? (slider5=4000);
+          vslider13 == 2 ? (slider5=5000);
+          vslider13 == 3 ? (slider5=8000);
+          vslider13 == 4 ? (slider5=10000);
+          vslider13 == 5 ? (slider5=12000);
+          vslider13 == 6 ? (slider5=16000);
+          
+          vslider3 = -1*slider3;
+          vslider10 = -1*slider10;
+          //LowPass A
+          freqA = (slider1 == 0 ? (400) : (slider1 == 1 ? (860) : (slider1 == 2 ? (1800) : (2560) )));
+          fA = 2*$pi * min(freqA, 0.49 * srate) / srate;
+          qA = 0.08 * (30-slider2)/18;
+          
+          w0A = fA;
+          cos_w0A = cos(w0A);
+          alphaA = sin(w0A) / (2*qA);
+          
+          b1A = 1 - cos_w0A;
+          b0A = b2A = 0.5 * b1A;
+          a0A = 1 + alphaA;
+          a1A = -2 * cos_w0A;
+          a2A = 1 - alphaA;
+          
+          a1A /= a0A;
+          a2A /= a0A;
+          b0A /= a0A;
+          b1A /= a0A;
+          b2A /= a0A;
+          
+          tempA = slider2*10/15;
+          tgt_wetA = slider2 <= 0 ? 0.0 : 10^(tempA/20);
+          
+          //LowPass B
+          freqB = (slider1 == 0 ? (3820) : (slider1 == 1 ? (6500) : (slider1 == 2 ? (11560) : (13640) )));
+          fB = 2*$pi * min(freqB, 0.49 * srate) / srate;
+          qB = 0.12 * (30-abs(vslider3))/18; //erste 0.04
+          
+          w0B = fB;
+          cos_w0B = cos(w0B);
+          alphaB = sin(w0B) / (2*qB);
+          
+          b1B = 1 - cos_w0B;
+          b0B = b2B = 0.5 * b1B;
+          a0B = 1 + alphaB;
+          a1B = -2 * cos_w0B;
+          a2B = 1 - alphaB;
+          
+          a1B /= a0B;
+          a2B /= a0B;
+          b0B /= a0B;
+          b1B /= a0B;
+          b2B /= a0B;
+          
+          tempB = (-7.5-vslider3*0.5);
+          tgt_wetB = vslider3 >= 0 ? 0.0 : 10^(tempB/20);
+          
+          dry = 1;
+          
+          //Peak
+          fC= 2*$pi * min(slider5, 0.49 * srate) / srate;
+          tmp = vslider6;//(slider6 == 0 ? 0.3 : 1.2);
+          qC = tmp;
+          dB_gainC = slider7;
+          
+          w0C = fC;
+          alphaC = sin(w0C) / (2*qC);
+          aC = 10^(db_gainC / 40);
+          
+          b0C = 1 + alphaC * aC;
+          b1C = a1C = -2 * cos(w0C);
+          b2C = 1 - alphaC * aC;
+          a0C = 1 + alphaC / aC;
+          a2C = 1 - alphaC / aC;
+          
+          a1C /= a0C;
+          a2C /= a0C;
+          b0C /= a0C;
+          b1C /= a0C;
+          b2C /= a0C;
+          
+          //HighShelf
+          freq2 = (slider9 == 0 ? 5000 : (slider9 == 1 ? 10000 : (slider9 == 2 ? 15500 :   6400 )));
+          freq2 /= 2;
+            
+          qD = (slider9 == 0 ? 0.5 : (slider9 == 1 ? 0.48 : (slider9 == 2 ? 0.46 :  0.46 )));
+          
+          fD = 2*$pi * min(freq2, 0.49 * srate) / srate;
+          
+          slider9 > 1 ? (
+          vslider10 >= 0 ? tmp2 = vslider10;
+          vslider10 < 0 ? tmp2 = vslider10*0.75;
+          ):(
+          tmp2 = vslider10;
+          );
+          dB_gainD = tmp2;
+          
+          w0D = fD;
+          cos_w0D = cos(w0D);
+          aD = 10^(db_gainD / 40);
+          
+          tmp0D = 2 * sqrt(aD) * sin(w0D) / (2 * qD);
+          tmp1D = (aD + 1) - (aD - 1) * cos_w0D;
+          tmp2D = (aD + 1) + (aD - 1) * cos_w0D;
+          
+          b0D = aD * (tmp2D + tmp0D);
+          b1D = -2 * aD * ((aD - 1) + (aD + 1) * cos_w0D);
+          b2D = aD * (tmp2D - tmp0D);
+          a0D = tmp1D + tmp0D;
+          a1D = 2 * ((aD - 1) - (aD + 1) * cos_w0D);
+          a2D = tmp1D - tmp0D;
+          
+          a1D /= a0D;
+          a2D /= a0D;
+          b0D /= a0D;
+          b1D /= a0D;
+          b2D /= a0D;
+          
+          //Output
+          outvol = 10^(slider12/20);
+          
+@block
+
+d_wetA = (tgt_wetA-src_wetA)/samplesblock;
+twetA = src_wetA;
+src_wetA = tgt_wetA;
+d_wetB = (tgt_wetB-src_wetB)/samplesblock;
+twetB = src_wetB;
+src_wetB = tgt_wetB;
+
+@sample
+
+twetA += d_wetA;
+wetA = twetA;
+
+twetB += d_wetB;
+wetB = twetB;
+
+inA = spl0;
+inB = spl1;
+
+//LowPass A
+//--Left
+x2AA = x1AA;
+x1AA = x0AA;
+x0AA = inA;
+
+y2AA = y1AA;
+y1AA = y0AA;
+y0AA = b0A*x0AA + b1A*x1AA + b2A*x2AA - a1A*y1AA - a2A*y2AA;
+
+//--Right
+x2BA = x1BA;
+x1BA = x0BA;
+x0BA = inB;
+
+y2BA = y1BA;
+y1BA = y0BA;
+y0BA = b0A*x0BA + b1A*x1BA + b2A*x2BA - a1A*y1BA - a2A*y2BA;
+
+//LowPass B
+//--Left
+x2AB = x1AB;
+x1AB = x0AB;
+x0AB = inA;
+
+y2AB = y1AB;
+y1AB = y0AB;
+y0AB = b0B*x0AB + b1B*x1AB + b2B*x2AB - a1B*y1AB - a2B*y2AB;
+
+//--Right
+x2BB = x1BB;
+x1BB = x0BB;
+x0BB = inB;
+
+y2BB = y1BB;
+y1BB = y0BB;
+y0BB = b0B*x0BB + b1B*x1BB + b2B*x2BB - a1B*y1BB - a2B*y2BB;
+
+//Push/Pull
+//LowPass A + LowPass B inverted + Dry input
+//--Output
+out0 = y0AA*wetA + y0AB*wetB*-1 + inA*dry;
+out1 = y0BA*wetA + y0BB*wetB*-1 + inB*dry;
+
+//Peak
+//--Left
+x2AC = x1AC;
+x1AC = x0AC;
+x0AC = out0;
+
+y2AC = y1AC;
+y1AC = y0AC;
+y0AC = b0C*x0AC + b1C*x1AC + b2C*x2AC - a1C*y1AC - a2C*y2AC;
+
+//--Right
+x2BC = x1BC;
+x1BC = x0BC;
+x0BC = out1;
+
+y2BC = y1BC;
+y1BC = y0BC;
+y0BC = b0C*x0BC + b1C*x1BC + b2C*x2BC - a1C*y1BC - a2C*y2BC;
+
+//--Output
+out2 = y0AC;
+out3 = y0BC;
+
+//HighShelf
+//--Left
+x2AD = x1AD;
+x1AD = x0AD;
+x0AD = out2;
+
+y2AD = y1AD;
+y1AD = y0AD;
+y0AD = b0D*x0AD + b1D*x1AD + b2D*x2AD - a1D*y1AD - a2D*y2AD;
+
+//--Right
+x2BD = x1BD;
+x1BD = x0BD;
+x0BD = out3;
+
+y2BD = y1BD;
+y1BD = y0BD;
+y0BD = b0D*x0BD + b1D*x1BD + b2D*x2BD - a1D*y1BD - a2D*y2BD;
+
+//--Output
+spl0 = y0AD;
+spl1 = y0BD;
+
+
+spl0 *= outvol;
+spl1 *= outvol;
+
+
+spl0 =sin(max(min(spl0,1),-1)*foo)/bar;
+spl1 =sin(max(min(spl1,1),-1)*foo)/bar;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 600 250
+ // gfx_w=600;gfx_h=250;
+  
+  gfx_clear = 0; // black
+  
+ knobsx = 65; knobsy = 40; 
+ Lboost.rectIn(knobsx, knobsy, 75, 75);
+ Lboost.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ knobsx += 90; 
+ Lcut.rectIn(knobsx, knobsy, 75, 75);
+ Lcut.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ Lfreq.rectIn(knobsx-35, knobsy+100, 70, 70);
+ Lfreq.rectOut(knobsx-35, knobsy+100, 70, 70, 4, 2); 
+ 
+ knobsx += 70;
+ Q.rectIn(knobsx, knobsy+100, 75, 75);
+ Q.rectOut(knobsx, knobsy+100, 75, 75, 61, 1);
+ knobsx+=70; 
+ Hboost.rectIn(knobsx, knobsy, 75, 75);
+ Hboost.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ Pfreq.rectIn(knobsx+35, knobsy+100, 70, 70);
+ Pfreq.rectOut(knobsx+35, knobsy+100, 70, 70, 7, 3);
+ 
+ knobsx += 100; 
+ Hcut.rectIn(knobsx, knobsy, 75, 75);
+ Hcut.rectOut(knobsx, knobsy, 75, 75, 61, 1);
+ 
+ knobsx+=90;
+ Hfreq.rectIn(knobsx, knobsy, 70, 80);
+ Hfreq.rectOut(knobsx, knobsy, 70, 80, 3, 4);
+ 
+ knobsx-=40; 
+ Outp.rectIn(knobsx, knobsy+100, 75, 75);
+ Outp.rectOut(knobsx, knobsy+100, 75, 75, 61, 1);
+ 
+  gfx_x=0;gfx_y=0;gfx_a=1;
+  gfx_blit(0,1,0);
+  initial == 0 ? (
+        Lboost=slider2;
+        Lboost.val=Lboost;
+        Lboost.potVal(Lboost.val);
+        Lcut=slider3;
+        Lcut.val=Lcut;
+        Lcut.potVal(Lcut.val);
+        Hboost=slider7;
+        Hboost.val=Hboost;
+        Hboost.potVal(Hboost.val);
+        Hcut=slider10;
+        Hcut.val=Hcut;
+        Hcut.potVal(Hcut.val);
+          Q=slider6;
+          Q.val=Q;
+          Q.potVal(Q.val);
+        Lfreq=slider14;
+        Lfreq.val=Lfreq;
+        Lfreq.potVal(Lfreq.val);
+        Pfreq=slider13;
+        Pfreq.val=Pfreq;
+        Pfreq.potVal(Pfreq.val);
+        Hfreq=slider15;
+        Hfreq.val=Hfreq;
+        Hfreq.potVal(Hfreq.val);
+          Outp=slider12;
+          Outp.val=Outp;
+          Outp.potVal(Outp.val);
+  initial = 1;
+  );
+  
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+  
+  
+  
+  gfx_ext_flags == 0 ? (
+  
+   
+      Lboost.knob();
+      Lcut.knob();
+      Hboost.knob();
+      Hcut.knob();
+      Q.knob();
+      Lfreq.knob();
+      Hfreq.knob();
+      Pfreq.knob();
+      Outp.knob();
+
+
+    /********************************* Mouse Control ******************************/
+    mouseClick == 1 ? 
+        (
+          Lboost.collision()   ? Lboost.dragStart();   
+          Lcut.collision()  ? Lcut.dragStart();  
+          Hboost.collision()    ? Hboost.dragStart();
+          Hcut.collision()  ? Hcut.dragStart();
+          Q.collision()  ? Q.dragStart();
+          Lfreq.collision()   ? Lfreq.dragStart();   
+          Pfreq.collision()  ? Pfreq.dragStart();  
+          Hfreq.collision()    ? Hfreq.dragStart();
+          Outp.collision()  ? Outp.dragStart();
+        ):
+    mouseClick == -1  ? 
+        (
+          Lboost.dragStop();
+          Lcut.dragStop();
+          Hboost.dragStop();
+          hcut.dragStop();
+          Q.dragStop();
+          Lfreq.dragStop();
+          Pfreq.dragStop();
+          Hfreq.dragStop();
+          Outp.dragStop();
+          
+                 
+        );
+    
+    mouse_wheel ? 
+        (
+          Lboost.collision()   ? Lboost.potWheel():
+          Lcut.collision()  ? Lcut.potWheel():
+          Hboost.collision()    ? Hboost.potWheel():
+          Hcut.collision()  ? Hcut.potWheel():
+          q.collision()  ? Q.potWheel():
+          Lfreq.collision()   ? Lfreq.potWheel():
+          Pfreq.collision()  ? Pfreq.potWheel():
+          Hfreq.collision()    ? Hfreq.potWheel():
+          Outp.collision()  ? Outp.potWheel():
+          mouse_wheel=0;
+        );
+    
+    
+    Lboost.dragging  ? Lboost.potDrag();
+    Lcut.dragging ? Lcut.potDrag();
+    Hboost.dragging   ? Hboost.potDrag();
+    Hcut.dragging ? Hcut.potDrag();
+    Q.dragging ? Q.potDrag();
+    Lfreq.dragging  ? Lfreq.potDrag();
+    Pfreq.dragging ? Pfreq.potDrag();
+    Hfreq.dragging   ? Hfreq.potDrag();
+    Outp.dragging ? Outp.potDrag();
+
+
+
+
+):( // ext flags
+gfx_x = 0; gfx_y = 0; gfx_a=1;
+gfx_blit(5,0.8,0);
+
+gfx_r = 0.5; gfx_b = 1; gfx_g = 0.6; gfx_a = 1;
+//gfx_rect(0,0,gfx_w, gfx_h);
+
+// 2 3 7 10
+gfx_r = 0; gfx_b = 0; gfx_g = 0; gfx_a = 0.3;
+gfx_rect(-1,gfx_h- (gfx_h * slider2/18), gfx_w / 4, gfx_h);
+gfx_r = 1; gfx_b = 1; gfx_g = 1; gfx_a = 0.3;
+gfx_rect((gfx_w/4),gfx_h- (gfx_h * slider3/18), gfx_w / 4, gfx_h);
+gfx_r = 0; gfx_b = 0; gfx_g = 0; gfx_a = 0.3;
+gfx_rect(2*(gfx_w/4),gfx_h- (gfx_h * slider7/18), gfx_w / 4, gfx_h);
+gfx_r = 1; gfx_b = 1; gfx_g = 1; gfx_a = 0.3;
+gfx_rect(3*(gfx_w/4),gfx_h- (gfx_h * slider10/18), gfx_w / 4, gfx_h);
+
+
+ knobsx = 0; knobsy = 0; 
+ Lboost.rectIn(knobsx, knobsy, gfx_w/4, gfx_h);
+ Lboost.rectOut(knobsx, knobsy, gfx_w/4, gfx_h, 61, 1);
+ knobsx += gfx_W/4; 
+ Lcut.rectIn(knobsx, knobsy, gfx_w/4, gfx_h);
+ Lcut.rectOut(knobsx, knobsy, gfx_w/4, gfx_h, 61, 1);
+ knobsx += gfx_W/4; 
+ Hboost.rectIn(knobsx, knobsy, gfx_w/4, gfx_h);
+ Hboost.rectOut(knobsx, knobsy, gfx_w/4, gfx_h, 61, 1);
+ knobsx += gfx_W/4; 
+ Hcut.rectIn(knobsx, knobsy, gfx_w/4, gfx_h);
+ Hcut.rectOut(knobsx, knobsy, gfx_w/4, gfx_h, 61, 1);
+ 
+  /********************************* Mouse Control ******************************/
+  mouseClick == 1 ? 
+      (
+        Lboost.collision()   ? Lboost.dragStart();   
+        Lcut.collision()  ? Lcut.dragStart();  
+        Hboost.collision()    ? Hboost.dragStart();
+        Hcut.collision()  ? Hcut.dragStart();
+        //Q.collision()  ? Q.dragStart();
+        //Lfreq.collision()   ? Lfreq.dragStart();   
+        //Pfreq.collision()  ? Pfreq.dragStart();  
+        //Hfreq.collision()    ? Hfreq.dragStart();
+        //Outp.collision()  ? Outp.dragStart();
+      ):
+  mouseClick == -1  ? 
+      (
+        Lboost.dragStop();
+        Lcut.dragStop();
+        Hboost.dragStop();
+        hcut.dragStop();
+        //Q.dragStop();
+        //Lfreq.dragStop();
+        //Pfreq.dragStop();
+        //Hfreq.dragStop();
+        //Outp.dragStop();
+        
+               
+      );
+  
+  mouse_wheel ? 
+      (
+        Lboost.collision()   ? Lboost.potWheel():
+        Lcut.collision()  ? Lcut.potWheel():
+        Hboost.collision()    ? Hboost.potWheel():
+        Hcut.collision()  ? Hcut.potWheel():
+        //q.collision()  ? Q.potWheel():
+        //Lfreq.collision()   ? Lfreq.potWheel():
+        //Pfreq.collision()  ? Pfreq.potWheel():
+        //Hfreq.collision()    ? Hfreq.potWheel():
+        //Outp.collision()  ? Outp.potWheel():
+        mouse_wheel=0;
+      );
+  
+  
+  Lboost.dragging  ? Lboost.potDrag();
+  Lcut.dragging ? Lcut.potDrag();
+  Hboost.dragging   ? Hboost.potDrag();
+  Hcut.dragging ? Hcut.potDrag();
+
+); // ext flags
+        
+    /******************************* Slider Knob Control **************************/
+    /*
+    slider1:1<0,3,1{20,30,60,100}>|------------- LSF (Hz)
+    slider2:0<0,18,0.1>Push (dB)
+    slider3:0<0,18,0.1>Pull (dB)
+    
+    slider5:832<3000,16000,1>|----------- Peak (Hz)
+    slider6:0.7<0.2,2,0.05>Mid Q//0<0,1,1{dull,sharp}>Q Mode
+    slider7:0<0,18,0.1>Gain (dB)
+    
+    slider9:2<0,2,1{5k,10k,20k,}>|------------- HSF (Hz)
+    slider10:0<0,18,0.1>Gain (dB)
+    
+    slider12:0<-12,12,0.1>|---------- Output (dB)
+    
+    slider13:3<0,6,1>Freq Peak
+    
+    
+    
+    filename:0,EQTgui/EQTback.png
+    filename:1,EQTgui/Pultec.png
+    filename:2,EQTgui/PLF.png
+    filename:3,EQTgui/PHF.png
+    filename:4,EQTgui/pulchick.png
+    */
+    change = 0;
+    Lboost!=Lboost.val?
+        (
+          Lboost=Lboost.val;
+          slider2=Lboost;
+          pot.potVal(Lboost.val);
+          change = 1;
+         ):
+    Lboost!=slider2?
+        (
+          Lboost=slider2;
+          Lboost.val=Lboost;
+          Lboost.potVal(Lboost.val);
+          Lboost.valOld=Lboost;
+          );
+    Lcut!=Lcut.val?
+        (
+          Lcut=Lcut.val;
+          slider3=Lcut;
+          pot.potVal(Lcut.val);
+          change = 1;
+         ):
+    Lcut!=slider3?
+        (
+          Lcut=slider3;
+          Lcut.val=Lcut;
+          Lcut.potVal(Lcut.val);
+          Lcut.valOld=Lcut;
+          );
+    Hboost!=Hboost.val?
+        (
+          Hboost=Hboost.val;
+          slider7=Hboost;
+          pot.potVal(Hboost.val);
+          change = 1;
+         ):
+    Hboost!=slider7?
+        (
+          Hboost=slider7;
+          Hboost.val=Hboost;
+          Hboost.potVal(Hboost.val);
+          Hboost.valOld=Hboost;
+          );
+    Hcut!=Hcut.val?
+        (
+          Hcut=Hcut.val;
+          slider10=Hcut;
+          pot.potVal(Hcut.val);
+          change = 1;
+         ):
+    Hcut!=slider10?
+        (
+          Hcut=slider10;
+          Hcut.val=Hcut;
+          Hcut.potVal(Hcut.val);
+          Hcut.valOld=Hcut;
+          );
+    
+      Q!=Q.val?
+          (
+            Q=Q.val;
+            slider6=Q;
+            pot.potVal(Q.val);
+            change = 1;
+           ):
+      Q!=slider6?
+          (
+            Q=slider6;
+            Q.val=Q;
+            Q.potVal(Q.val);
+            Q.valOld=Q;
+            );
+      
+    Lfreq!=Lfreq.val?
+        (
+          Lfreq=Lfreq.val;
+          slider14=Lfreq;
+          pot.potVal(Lfreq.val);
+          change = 1;
+         ):
+    Lfreq!=slider14?
+        (
+          Lfreq=slider14;
+          Lfreq.val=Lfreq;
+          Lfreq.potVal(Lfreq.val);
+          Lfreq.valOld=Lfreq;
+          );
+    Pfreq!=Pfreq.val?
+        (
+          Pfreq=Pfreq.val;
+          slider13=Pfreq;
+          pot.potVal(Pfreq.val);
+          change = 1;
+         ):
+    Pfreq!=slider13?
+        (
+          Pfreq=slider13;
+          Pfreq.val=Pfreq;
+          Pfreq.potVal(Pfreq.val);
+          Pfreq.valOld=Pfreq;
+          );
+    Hfreq!=Hfreq.val?
+        (
+          Hfreq=Hfreq.val;
+          slider15=Hfreq;
+          pot.potVal(Hfreq.val);
+          change = 1;
+         ):
+    Hfreq!=slider15?
+        (
+          Hfreq=slider15;
+          Hfreq.val=Hfreq;
+          Hfreq.potVal(Hfreq.val);
+          Hfreq.valOld=Hfreq;
+          );
+    
+      Outp!=Outp.val?
+          (
+            Outp=Outp.val;
+            slider12=Outp;
+            pot.potVal(Outp.val);
+            change = 1;
+           ):
+      Outp!=slider12?
+          (
+            Outp=slider12;
+            Outp.val=Outp;
+            Outp.potVal(Outp.val);
+            Outp.valOld=Outp;
+            );
+                  
+          //slider14:2<0,3,1>Freq L
+          //slider15:1<0,2,1>freq H
+          change == 1 ? ( 
+          vslider13 = floor(slider13+0.5);
+          vslider6 = 2.2 - slider6;
+          
+          
+          
+          slider9 = floor(slider15+0.5);
+          slider1 = floor(slider14+0.5);
+          
+          vslider13 == 0 ? (slider5=3000);
+          vslider13 == 1 ? (slider5=4000);
+          vslider13 == 2 ? (slider5=5000);
+          vslider13 == 3 ? (slider5=8000);
+          vslider13 == 4 ? (slider5=10000);
+          vslider13 == 5 ? (slider5=12000);
+          vslider13 == 6 ? (slider5=16000);
+          
+          vslider3 = -1*slider3;
+          vslider10 = -1*slider10;
+          //LowPass A
+          freqA = (slider1 == 0 ? (400) : (slider1 == 1 ? (860) : (slider1 == 2 ? (1800) : (2560) )));
+          fA = 2*$pi * min(freqA, 0.49 * srate) / srate;
+          qA = 0.08 * (30-slider2)/18;
+          
+          w0A = fA;
+          cos_w0A = cos(w0A);
+          alphaA = sin(w0A) / (2*qA);
+          
+          b1A = 1 - cos_w0A;
+          b0A = b2A = 0.5 * b1A;
+          a0A = 1 + alphaA;
+          a1A = -2 * cos_w0A;
+          a2A = 1 - alphaA;
+          
+          a1A /= a0A;
+          a2A /= a0A;
+          b0A /= a0A;
+          b1A /= a0A;
+          b2A /= a0A;
+          
+          tempA = slider2*10/15;
+          tgt_wetA = slider2 <= 0 ? 0.0 : 10^(tempA/20);
+          
+          //LowPass B
+          freqB = (slider1 == 0 ? (3820) : (slider1 == 1 ? (6500) : (slider1 == 2 ? (11560) : (13640) )));
+          fB = 2*$pi * min(freqB, 0.49 * srate) / srate;
+          qB = 0.12 * (30-abs(vslider3))/18; //erste 0.04
+          
+          w0B = fB;
+          cos_w0B = cos(w0B);
+          alphaB = sin(w0B) / (2*qB);
+          
+          b1B = 1 - cos_w0B;
+          b0B = b2B = 0.5 * b1B;
+          a0B = 1 + alphaB;
+          a1B = -2 * cos_w0B;
+          a2B = 1 - alphaB;
+          
+          a1B /= a0B;
+          a2B /= a0B;
+          b0B /= a0B;
+          b1B /= a0B;
+          b2B /= a0B;
+          
+          tempB = (-7.5-vslider3*0.5);
+          tgt_wetB = vslider3 >= 0 ? 0.0 : 10^(tempB/20);
+          
+          dry = 1;
+          
+          //Peak
+          fC= 2*$pi * min(slider5, 0.49 * srate) / srate;
+          tmp = vslider6;//(slider6 == 0 ? 0.3 : 1.2);
+          qC = tmp;
+          dB_gainC = slider7;
+          
+          w0C = fC;
+          alphaC = sin(w0C) / (2*qC);
+          aC = 10^(db_gainC / 40);
+          
+          b0C = 1 + alphaC * aC;
+          b1C = a1C = -2 * cos(w0C);
+          b2C = 1 - alphaC * aC;
+          a0C = 1 + alphaC / aC;
+          a2C = 1 - alphaC / aC;
+          
+          a1C /= a0C;
+          a2C /= a0C;
+          b0C /= a0C;
+          b1C /= a0C;
+          b2C /= a0C;
+          
+          //HighShelf
+          freq2 = (slider9 == 0 ? 5000 : (slider9 == 1 ? 10000 : (slider9 == 2 ? 15500 :   6400 )));
+          freq2 /= 2;
+            
+          qD = (slider9 == 0 ? 0.5 : (slider9 == 1 ? 0.48 : (slider9 == 2 ? 0.46 :  0.46 )));
+          
+          fD = 2*$pi * min(freq2, 0.49 * srate) / srate;
+          
+          slider9 > 1 ? (
+          vslider10 >= 0 ? tmp2 = vslider10;
+          vslider10 < 0 ? tmp2 = vslider10*0.75;
+          ):(
+          tmp2 = vslider10;
+          );
+          dB_gainD = tmp2;
+          
+          w0D = fD;
+          cos_w0D = cos(w0D);
+          aD = 10^(db_gainD / 40);
+          
+          tmp0D = 2 * sqrt(aD) * sin(w0D) / (2 * qD);
+          tmp1D = (aD + 1) - (aD - 1) * cos_w0D;
+          tmp2D = (aD + 1) + (aD - 1) * cos_w0D;
+          
+          b0D = aD * (tmp2D + tmp0D);
+          b1D = -2 * aD * ((aD - 1) + (aD + 1) * cos_w0D);
+          b2D = aD * (tmp2D - tmp0D);
+          a0D = tmp1D + tmp0D;
+          a1D = 2 * ((aD - 1) - (aD + 1) * cos_w0D);
+          a2D = tmp1D - tmp0D;
+          
+          a1D /= a0D;
+          a2D /= a0D;
+          b0D /= a0D;
+          b1D /= a0D;
+          b2D /= a0D;
+          
+          //Output
+          outvol = 10^(slider12/20);
+          
+        );
+  
+  
+  
