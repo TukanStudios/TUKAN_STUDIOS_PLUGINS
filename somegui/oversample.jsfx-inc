@@ -1,0 +1,134 @@
+desc:2x oversampler
+
+// Copyright (C) 2015-2020 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+/* Example
+
+   desc:Oversampled distortion
+
+   import Tale/oversample.jsfx-inc
+
+   @init
+
+   function tanh(x)
+   (
+     x = exp(2*x);
+     (x - 1) / (x + 1);
+   );
+
+   pdc_bot_ch = 0; pdc_top_ch = 2;
+   pdc_delay = 3;
+
+   @slider
+
+   drive = exp(log(10)/20 * slider1);
+   gain = sqrt(1/drive);
+
+   @sample
+
+   os.os_up2(0.5*(spl0 + spl1));
+
+   os.y1 = tanh(drive * os.y1);
+   os.y0 = tanh(drive * os.y0);
+
+   spl0 = spl1 = gain * os.os_down2();
+
+   Upsample/Downsample Functions
+
+    * os_up2(sample)
+      Example: os.os_up2(input);
+      Upsamples the signal 2x.
+
+    * os_os2()
+      Example: os.os_os2();
+      Skips upsampling, so you can generate a signal at 2x oversampling
+      rather than upsample a signal.
+
+    * os_down2()
+      Example: output = os.os_down2();
+      Downsamples the signal 2x, and returns the downsampled sample.
+
+   Miscellaneous Functions
+
+    * os_reset2()
+      Example: os.os_reset2();
+      Resets the oversampler filter state.
+
+   Instance Variables
+
+    * y1
+    * y0
+      Example: os.y1 = abs(os.y1);
+      Example: os.y0 = abs(os.y0);
+      The current (y1) and the next (y0) oversampled sample.
+
+*/
+
+@init
+
+function os_os2()
+  instance(y6, y5, y4, y3, y2, y1, y0)
+(
+  y6 = y4; y5 = y3; y4 = y2; y3 = y1; y2 = y0;
+);
+
+// Coefficients from "Antialiasing Oscillators in Subtractive Synthesis" by
+// Vesa Valimaki and Antti Huovilainen.
+
+// num_coeffs = 7;
+// mem_set_values(coeffs, -0.0228, 0, 0.275, 0.5, 0.275, 0, -0.0228);
+
+// sum_of_coeffs = 0;
+// i = 0;
+// loop(num_coeffs,
+  // sum_of_coeffs += coeffs[i];
+  // i += 1;
+// );
+
+function os_up2(sample)
+  instance(x3, x2, x1, x0, y1, y0)
+(
+  x3 = x2; x2 = x1; x1 = x0;
+  x0 = sample;
+
+  this.os_os2();
+
+  // y1 = 0;
+  // i = 0;
+  // loop((num_coeffs + 1) / 4,
+    // y1 += x[i] * coeffs[2*i];
+    // y1 += x[(num_coeffs - 1) / 2 - i] * coeffs[num_coeffs - 2*i - 1];
+    // i += 1;
+  // );
+  // y1 *= 2 / sum_of_coeffs;
+
+  // y0 = x[(num_coeffs + 1) / 4 - 1] * coeffs[(num_coeffs - 1) / 2];
+  // y0 *= 2 / sum_of_coeffs;
+
+  y1 = (x0 + x3) * -0.045400238948626045 + (x1 + x2) * 0.54759060135404221;
+  y0 = x1 * 0.99561927518916766;
+);
+
+function os_down2()
+  instance(y6, y4, y3, y2, y0)
+(
+  // sample = 0;
+  // i = 0;
+  // loop(num_coeffs,
+    // sample += y[i] * coeffs[i];
+    // i += 1;
+  // );
+  // sample *= 1 / sum_of_coeffs;
+
+  (y0 + y6) * -0.022700119474313023 + (y2 + y4) * 0.27379530067702111 + y3 * 0.49780963759458383;
+);
+
+function os_reset2()
+  instance(x2, x1, x0, y4, y3, y2, y1, y0)
+(
+  x2 = x1 = x0 =
+  y4 = y3 = y2 = y1 = y0 = 0;
+);
