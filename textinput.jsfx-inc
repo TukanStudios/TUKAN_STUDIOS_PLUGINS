@@ -1,0 +1,174 @@
+desc: textinput
+
+@init
+margin=20;
+
+function setcolor(hex)//(or packed integer)
+  ( gfx_r= ((hex>>16)&255)/255; gfx_g= ((hex>>8)&255)/255; gfx_b= (hex>>0&255)/255;  );
+
+function pack_rgb()
+  (!gfx_b?gfx_b+=.001;(((gfx_b*255)+(gfx_g*255)*256+(gfx_r*255)*65536)););
+
+function xymask(x,y)
+  ( x+y*max(gfx_w,gfx_h); ); //used in was_drag, etc
+
+function mouse_in_rect(x,y,w,h)//return 1 if yes, 0 if no
+  (  mouse_x > x && mouse_x < (x+w) && mouse_y > y && mouse_y < (y+h)  ? 1 : 0; );//  
+
+function mouse_click(cap)local(i) 
+  (mouse_cap == cap ? i+=1: i=0; i == 1 ? 1 : 0;);
+
+//set _was_clicked to -1 @init (in the rare case you want to have an object at 0,0).  
+function init_was_clicked() local(init)
+  (!init ? (was_clicked=-1; init=1); );  
+  
+function max_char(max_char)local(w,h)
+  (gfx_measurestr("0",w,h); w*max_char);  
+  
+function text_field1(pr,varstr,max_char,field_color)//text color is current color
+local(strw,strh,next,i,curoff,curoffw,strh,temp,rp,_1st_click,x,y,ww,text_color)
+instance(set, original)
+(
+  x=gfx_x; y=gfx_y; 
+  ww=max_char(max_char);
+  text_color=pack_rgb();//store current color for text
+  field_color >=0 ? (
+    setcolor(field_color);//set field color. -1 draws no box.
+    gfx_rect(x-2,y,ww+4,gfx_texth);
+  );
+  setcolor(text_color);  
+//Field ACTIVE  !!!
+//define temp strings  
+     temp=#; curoff=#; 
+//at click set next to strlen         
+    _1st_click == 0 ? (next=strlen(varstr); _1st_click=1);
+//*validate all characters except backspace, ENTER, and arrows           
+    //pr=gfx_getchar(0);                                                   
+     pr && (pr!=8 && pr!=1818584692 && pr!=1919379572 && pr!=13) ? ( 
+  //format input to temp  //append input to string  //reset next flag                         
+      sprintf(temp, "%c", pr);  strcat(varstr,temp); next=strlen(varstr);                                      
+    );    
+  /*backspace*/
+    pr == 8 ? ( 
+    //deincrement next //copy to self 
+      next=max(next-=1,0); strcpy_substr(varstr,varstr, 0, next);                
+    );       
+  /*left arrow*/
+    pr == 1818584692 ? (
+    //decrease next flag //copy string from next offset (last character) to (new)temp              
+      next=max(next-=1,0); strcpy_from(temp=#,varstr,next); 
+    //if cursor is already offset, append curoff to temp  //copy last character to curoff                            
+      strlen(curoff) ? strcat(temp,curoff); strcpy(curoff, temp); 
+    //copy string minus count back to self and reset next                                                                      
+      strcpy_substr(varstr,varstr, 0, next); next=strlen(varstr);         
+    ); 
+  /*right arrow*/
+    pr == 1919379572 ? ( 
+    //increment next (unless already at end of string)            
+      next=min(next+=1,strlen(varstr));
+    //if cursor is already offset, append 1st char of curoff to string    
+      strlen(curoff) ? strncat(varstr,curoff,1);
+    //if the string is not null, copy curroff to self minus 1st char                           
+      strlen(varstr) ? strcpy_from(curoff,curoff,1); 
+    //reset next             
+      next=strlen(varstr);
+    ); 
+  //measure string for cursor                                              
+    gfx_measurestr(varstr,strw,strh); strlen(varstr) == 0 ? strw=0;                            
+  //switching ~ every second, draw cursor     
+    i+=1; i == 30 ? i=0; i > 15 ? gfx_line(x+strw,y+2,x+strw,y+gfx_texth-2);
+  //print string                 
+    gfx_printf(varstr);
+  //and cursor offset string (if present)                                           
+    strlen(curoff) ? gfx_printf(curoff); 
+  /*ENTER*/  //exit on ENTER or click outside the box                      
+    pr == 13 || was_clicked!=xymask(x,y) || set ? (
+    //add curoffset string to string //clear the string
+      strcat(varstr,curoff); strncpy(curoff,curoff,0);   
+    //clear clicked values                             
+      _1st_click=0; was_clicked=-1;
+      set = 1;                              
+    );
+   !mouse_in_rect(x,y,ww,gfx_texth) && mouse_cap ?  (
+     set=1;
+     was_clicked==xymask(x,y) ? was_clicked=-1;
+   );        
+);//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+function text_field_init()
+instance(_1st_click, set) (
+  _1st_click = 0;
+  set = 0;
+);
+
+function text_field(pr,varstr,max_char,field_color)//text color is current color
+local(strw,strh,next,i,curoff,curoffw,strh,temp,rp,x,y,ww,text_color)
+instance(set, original, _1st_click)
+(
+  x=gfx_x; y=gfx_y; 
+  ww=max_char(max_char);
+  text_color=pack_rgb();//store current color for text
+  field_color >=0 ? (
+    setcolor(field_color);//set field color. -1 draws no box.
+    gfx_rect(x-2,y,ww+4,gfx_texth);
+  );
+  setcolor(text_color);  
+  (!mouse_in_rect(x,y,ww,gfx_texth)) && mouse_click(1) && _1st_click ? (
+    set = 1;
+  );
+
+//Field ACTIVE  !!!
+//define temp strings
+  set == 0 ? (  
+     temp=#; curoff=#; 
+//at click set next to strlen         
+    _1st_click == 0 ? (next=strlen(varstr); _1st_click=1);
+//*validate all characters except backspace, ENTER, and arrows           
+    //pr=gfx_getchar(0);                                                   
+     pr && (pr!=8 && pr!=1818584692 && pr!=1919379572 && pr!=13) ? ( 
+  //format input to temp  //append input to string  //reset next flag                         
+      sprintf(temp, "%c", pr);  strcat(varstr,temp); next=strlen(varstr);                                      
+    );    
+  /*backspace*/
+    pr == 8 ? ( 
+    //deincrement next //copy to self 
+      next=max(next-=1,0); strcpy_substr(varstr,varstr, 0, next);                
+    );       
+  /*left arrow*/
+    pr == 1818584692 ? (
+    //decrease next flag //copy string from next offset (last character) to (new)temp              
+      next=max(next-=1,0); strcpy_from(temp=#,varstr,next); 
+    //if cursor is already offset, append curoff to temp  //copy last character to curoff                            
+      strlen(curoff) ? strcat(temp,curoff); strcpy(curoff, temp); 
+    //copy string minus count back to self and reset next                                                                      
+      strcpy_substr(varstr,varstr, 0, next); next=strlen(varstr);         
+    ); 
+  /*right arrow*/
+    pr == 1919379572 ? ( 
+    //increment next (unless already at end of string)            
+      next=min(next+=1,strlen(varstr));
+    //if cursor is already offset, append 1st char of curoff to string    
+      strlen(curoff) ? strncat(varstr,curoff,1);
+    //if the string is not null, copy curroff to self minus 1st char                           
+      strlen(varstr) ? strcpy_from(curoff,curoff,1); 
+    //reset next             
+      next=strlen(varstr);
+    ); 
+  //measure string for cursor                                              
+    gfx_measurestr(varstr,strw,strh); strlen(varstr) == 0 ? strw=0;                            
+  //switching ~ every second, draw cursor     
+    i+=1; i == 30 ? i=0; i > 15 ? gfx_line(x+strw,y+2,x+strw,y+gfx_texth-2);
+  //print string                 
+    gfx_printf(varstr);
+  //and cursor offset string (if present)                                           
+    strlen(curoff) ? gfx_printf(curoff); 
+  /*ENTER*/  //exit on ENTER or click outside the box                      
+    pr == 13 || set ? (
+    //add curoffset string to string //clear the string
+      strcat(varstr,curoff); strncpy(curoff,curoff,0);   
+    //clear clicked values                             
+      _1st_click=0; was_clicked=-1;
+      set = 1;                              
+    );
+  );
+);//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
