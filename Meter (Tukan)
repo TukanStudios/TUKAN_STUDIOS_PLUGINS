@@ -1,10 +1,14 @@
 desc: MCP Meter (Tukan)
-// Veriosn 1.1
+// Veriosn 1.1.1
 
 filename:0,METER/VUMeter2.png
-
+filename:1,METER/6VUMeter2.png
+filename:2,METER/12VUMeter2.png
+filename:3,METER/18VUMeter2.png
+filename:4,METER/24VUMeter2.png
 
 slider1:0<0,1,1>-Stereo
+slider2:0<-24,0,6>-Scale
 
 options:no_meter
 
@@ -344,9 +348,14 @@ min_av = (tgt_min2+tgt_min3)/2;
 //==============================================================================
 
 
+orispl0 = spl0;
+orispl1 = spl1;
+corrector = 0.97;
 
+scaler = 10^(abs(slider2)/20);
 
-
+spl0 *= corrector*scaler;
+spl1 *= corrector*scaler;
 
 slider1 == 0 ? (gain = max(abs(spl0),abs(spl1)));
 slider1 == 1 ? (
@@ -394,8 +403,11 @@ gr2_meter2 < gr2_meter ? (
   );
 );
 
+
+spl0 = orispl0; spl1 = orispl1;
+
 //==============================================================================
-@gfx 700 300
+@gfx 700 340
 //==============================================================================
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
@@ -409,7 +421,11 @@ gr2_meter2 < gr2_meter ? (
  
       scale2 = 1.12;blitscale = gfx_w/190;
       gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
-      gfx_blit(0,scale2*blitscale,0);//5
+      slider2 == 0 ? gfx_blit(0,scale2*blitscale,0);//5
+      slider2 == -6 ? gfx_blit(1,scale2*blitscale,0);//5
+      slider2 == -12 ? gfx_blit(2,scale2*blitscale,0);//5
+      slider2 == -18 ? gfx_blit(3,scale2*blitscale,0);//5
+      slider2 == -24 ? gfx_blit(4,scale2*blitscale,0);//5
       
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
@@ -445,8 +461,13 @@ gfx_drawstr("ST");
 );
 );
 
-mouseClick == 1 ? (slider1 == 0 ? (slider1=1):(slider1=0); );
-
+mouseClick == 1 ? (
+shift ? (
+slider2 -= 6; slider2 < -24 ? (slider2 = 0);
+):(
+slider1 == 0 ? (slider1=1):(slider1=0); 
+);
+);
 //winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
 //winkel > -0.91 ? (
 //winkel = -0.91;
