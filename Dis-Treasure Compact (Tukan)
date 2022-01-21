@@ -1,8 +1,5 @@
-desc:Dis-Treasure (Tukan)
+desc:Dis-Treasure Compact (Tukan)
 // Version 1.0.1
-
-/////// OPTO MODE macht noch gain reduction bei input = 0 ... spl*ingain?
-//////// Blockschaltbild nochmal überprüfen...
 
 slider1:0<0,1,1>-01 HPF Det
 slider2:0<0,1,1>-02 HPF Audio
@@ -37,12 +34,13 @@ filename:3,treasuregui/rled.png
 filename:4,treasuregui/bled.png
 filename:5,treasuregui/treasure.png
 filename:6,treasuregui/treasure_button.png
-filename:7,treasuregui/treasureback.png
+filename:7,treasuregui/compacttreasureback.png
 filename:8,treasuregui/fwdtreasure.png
 filename:9,treasuregui/screw.png
 filename:10,treasuregui/bugtreasure.png
 
 @init
+a00 = 142/1053;
 ovrlgain = 1; 
 // Dist
 ext_nodenorm=1;
@@ -1205,9 +1203,6 @@ mydbin < Tlo ? (
 
   grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
 
-
-
-
 slider13 == 0 ? (
 spl0 *= inGain;
 spl1 *= inGain;
@@ -1273,7 +1268,7 @@ det1 = belly0B*0.3162277;
 
 );
 
-//tenospl0 = det0; tenospl1 = det1;
+tenospl0 = det0; tenospl1 = det1;
 //spl0 = det0;
 //spl1 = det1;
 
@@ -1880,7 +1875,7 @@ spl0 = orispl0; spl1 = orispl1;
 
 
 
-@gfx 1053 142 // request horizontal/vertical heights (0 means dont care)
+@gfx 601 261 // request horizontal/vertical heights (0 means dont care)
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
@@ -1925,40 +1920,12 @@ gfx_rect(0,0,gfx_w,gfx_h);
   meter_h=min(gfx_h,32);
   xscale=gfx_w*20/meter_bot;
 
-/*
-  gfx_y=0;
-  gfx_x=gfx_w + log10(gr_meter)*xscale;
-  gfx_rectto(gfx_w,meter_h);
 
-  gfx_r=gfx_g=gfx_b=1.0; gfx_a=0.6;
-
-  s2=sqrt(2)/2;
-  g = s2;
-  while(
-    gfx_x=gfx_w + log10(g)*xscale;
-    gfx_x >= 0 ? 
-    (
-      gfx_y=0;
-      gfx_lineto(gfx_x,meter_h,0);
-      gfx_y=meter_h-gfx_texth;
-      gfx_x+=2;
-      gfx_drawnumber(log10(g)*20,0);
-      gfx_drawchar($'d');
-      gfx_drawchar($'B');
-    );
-    g*=s2;
-    gfx_x >=0;
-  );
-  gfx_a=1;
-
-  gfx_x=0; gfx_y=meter_h/2 - gfx_texth/2;
-  gfx_drawnumber(log10(gr_meter)*20,1);
-  gfx_drawchar($'d');
-  gfx_drawchar($'B');
-  */
   
   
   gfx_ext_flags == 1 ? (
+
+  
   grdb = abs(log10(gr_meter)*20);
   gfx_h = gfx_w/7.4074074;
   scalegfx = gfx_h / 15;
@@ -1979,7 +1946,38 @@ gfx_rect(0,0,gfx_w,gfx_h);
   gfx_x = gfx_w+8*(-10*scalegfx)+(-50*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
   grdb >= 23 ? gfx_blit(3,scalegfx,0,0,35,35,35):gfx_blit(3,scalegfx,0,0,0,35,35); 
   
+  
+  
+  gfx_x = gfx_w+(-10*scalegfx)+(-15*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+  slider4 == 8 ? (gfx_blit(4,scalegfx,0,0,35,35,35)):(gfx_blit(4,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+2*(-10*scalegfx)+(-20*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 7 ? (gfx_blit(3,scalegfx,0,0,35,35,35)):(gfx_blit(3,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+3*(-10*scalegfx)+(-25*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 6 ? (gfx_blit(2,scalegfx,0,0,35,35,35)):(gfx_blit(2,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+4*(-10*scalegfx)+(-30*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 5 ? (gfx_blit(1,scalegfx,0,0,35,35,35)):(gfx_blit(1,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+5*(-10*scalegfx)+(-35*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 4 ? (gfx_blit(0,scalegfx,0,0,35,35,35)):(gfx_blit(0,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+6*(-10*scalegfx)+(-40*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 3 ? (gfx_blit(0,scalegfx,0,0,35,35,35)):(gfx_blit(0,scalegfx,0,0,0,35,35)); 
+ gfx_x = gfx_w+7*(-10*scalegfx)+(-45*scalegfx); gfx_y = 20*scalegfx; gfx_a = 1;
+ slider4 == 2 ? (gfx_blit(0,scalegfx,0,0,35,35,35)):(gfx_blit(0,scalegfx,0,0,0,35,35)); 
+  
+  
+  
   ):( // EXT FLAGS
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   gfx_h = 142; gfx_w = 1053;
   
   gfx_x = 0; gfx_y=0; gfx_a=1;
@@ -1995,16 +1993,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
   grdb >= 2 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
   gfx_x -= ledsdist;
   grdb >= 3 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
-  ///////////////// 1% + RedLine
-  /*
-  slider9 == 1 ? (
-  y0aa > 0.236 ? (yline = 1);
-  y0aa > 0.9048 ? (rline = 1;
-  ):slider9 == 2 ? (
-  y0aa > 0.27 ? (yline = 1);
-  y0aa > 0.932 ? (rline = 1;
-  );
-  */
+
+
   rline == 1 ? (yline = 0);
   gfx_y += 20;
   rline == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
@@ -2059,33 +2049,35 @@ gfx_rect(0,0,gfx_w,gfx_h);
   gfx_x -= ledsdist;
   grdb >= 26 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
   
+  
+  compactx = -515; compacty =120;
   slider15 == 0 ? (
     slider13 == 0 ? (
-  knopf(5,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+  knopf(5,compactx+70+ledsx+120,compacty+ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
        slider17 == 0 ? (
-  knopf(5,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
-  knopf(5,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(5,compactx+70+ledsx+220,compacty+ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(5,compactx+70+ledsx+320,compacty+ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
         ):(
-  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
-  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+220,compacty+ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+320,compacty+ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
         );
-  knopf(5,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+  knopf(5,compactx+70+ledsx+420,compacty+ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
     ):(
-  knopf(8,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+  knopf(8,compactx+70+ledsx+120,compacty+ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
   slider17 == 0 ? (
-  knopf(8,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
-  knopf(8,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(8,compactx+70+ledsx+220,compacty+ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(8,compactx+70+ledsx+320,compacty+ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
   ):(
-  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
-  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+220,compacty+ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+320,compacty+ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
   );
-  knopf(8,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+  knopf(8,compactx+70+ledsx+420,compacty+ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
   );
   ):(
-  knopf(10,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
-  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
-  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
-  knopf(10,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+120,compacty+ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+220,compacty+ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+320,compacty+ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,compactx+70+ledsx+420,compacty+ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
   );
   
   //
@@ -2093,10 +2085,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
     mouseclick ? (
     alt ? (
-    mouse_y > ledsy ? (
-    mouse_y < ledsy + 100 ? (
-    mouse_x > ledsx + 190 ? (
-    mouse_x < ledsx + 190 + 100 ? (
+    mouse_y > compacty+ledsy ? (
+    mouse_y < compacty+ledsy + 100 ? (
+    mouse_x > compactx+ledsx + 190 ? (
+    mouse_x < compactx+ledsx + 190 + 100 ? (
     thi1 =-100; slider13 == 0 ? (slider13 = 1):(slider13 = 0);
     info = 30;
     );
@@ -2104,10 +2096,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     );
     
-    mouse_y > ledsy ? (
-    mouse_y < ledsy + 100 ? (
-    mouse_x > ledsx + 290 ? (
-    mouse_x < ledsx + 290 + 100 ? (
+    mouse_y > compacty+ledsy ? (
+    mouse_y < compacty+ ledsy + 100 ? (
+    mouse_x > compactx+ledsx + 290 ? (
+    mouse_x < compactx+ledsx + 290 + 100 ? (
     thi1 =-100; slider17 == 0 ? (slider17 = 1):(slider17 = 0);
     info = 30;
     );
@@ -2285,6 +2277,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     );
    
+   
   mouse_y > ledsy + 50 ? ( // DETECTOR BUTTON
   mouse_y < ledsy + 50 + 20 ? (
   mouse_x > ledsx -22 + 70 ? (
@@ -2306,8 +2299,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   );
-  
-  mouse_y > ledsy + 50 ? (
+
+  mouse_y > ledsy + 50 ? ( // AUDIO BUTTON
   mouse_y < ledsy + 50 + 20 ? (
   mouse_x > ledsx -22 + 130 ? (
   mouse_x < ledsx - 22 + 130 + 45 ? (
@@ -2333,6 +2326,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   );
+ 
   
   mouse_y > ledsy + 50 ? (
   mouse_y < ledsy + 50 + 20 ? (
@@ -2460,20 +2454,20 @@ gfx_rect(0,0,gfx_w,gfx_h);
   knopf(9,ledsx-300,ledsy+45,61,10,-20,20,slider14); //img, x,y, frames, frameh, von, bis, wert SCREW
   
   gin.potcfg  (5,0,10,.01); //default. von, bis, step 9 bis 2 10 bis 24
-  gin.rectIn(70+ledsx+120,ledsy,100,100);//xpos,ypos,weite,höhe des img
-  gin.rectOut(70+ledsx+120,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  gin.rectIn(compactx+70+ledsx+120,compacty+ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gin.rectOut(compactx+70+ledsx+120,compacty+ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
   gout.potcfg  (5,0,10,.01); //default. von, bis, step 9 bis 2 10 bis 24
-  gout.rectIn(70+ledsx+420,ledsy,100,100);//xpos,ypos,weite,höhe des img
-  gout.rectOut(70+ledsx+420,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  gout.rectIn(compactx+70+ledsx+420,compacty+ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gout.rectOut(compactx+70+ledsx+420,compacty+ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
   gatt.potcfg  (15,0.05,30,.05); //default. von, bis, step 9 bis 2 10 bis 24
-  gatt.rectIn(70+ledsx+220,ledsy,100,100);//xpos,ypos,weite,höhe des img
-  gatt.rectOut(70+ledsx+220,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  gatt.rectIn(compactx+70+ledsx+220,compacty+ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gatt.rectOut(compactx+70+ledsx+220,compacty+ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
   grel.potcfg  (775,50,1500,3.45); //default. von, bis, step 9 bis 2 10 bis 24
-  grel.rectIn(70+ledsx+320,ledsy,100,100);//xpos,ypos,weite,höhe des img
-  grel.rectOut(70+ledsx+320,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  grel.rectIn(compactx+70+ledsx+320,compacty+ledsy,100,100);//xpos,ypos,weite,höhe des img
+  grel.rectOut(compactx+70+ledsx+320,compacty+ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
   gscrew.potcfg  (0,-20,20,0.1); //default. von, bis, step 9 bis 2 10 bis 24
   gscrew.rectIn(ledsx-300,ledsy+45,10,10);//xpos,ypos,weite,höhe des img
