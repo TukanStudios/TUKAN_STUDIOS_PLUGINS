@@ -1,0 +1,512 @@
+desc: MCP Meter (Tukan)
+// Veriosn 1.1.1
+
+filename:0,Meter/CVU2.png
+filename:1,Meter/led.png
+
+slider1:0<0,1,1>-Stereo
+slider2:0<-24,0,6>-Scale
+slider3:1.66<0.2,4.9,0.1>-Speed
+
+options:no_meter
+
+
+in_pin:left input
+in_pin:right input
+out_pin:left output  
+out_pin:right output
+
+//==============================================================================
+@init
+//==============================================================================
+  gfx_clear=1;
+  ext_noinit=1;
+  lastCap=1; 
+  mouse_wheel=1;
+player = 0;
+ initial = 0;
+ 
+ gr_meter2 = 0;
+ gr2_meter2 = 0;
+ meter_dif = 0.0005;
+
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 1 ? (val = 2):(val=1);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       val = valOld + (mouse_wheel/12)*step;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+  /*
+  slider10:100<0,100,1>-Input Att
+  slider11:0<0,100,1>-Service Old
+  slider12:0<0,100,1>-Denoiser
+  slider13:0<-100,100,2>-Output
+  */
+front.potcfg  (91,1,91,1);
+center.potcfg (51,1,51,1);
+back.potcfg   (100,0,100,1);
+four.potcfg (0,-100,100,1);
+five.potcfg (2,1,2,1);
+six.potcfg   (0,0,100,1);
+seven.potcfg   (0,0,100,1);
+//slider6:-.1<-6,0,.01
+knobsx = 45;
+knobsy = 230;
+front.rectIn(-70, -150, 400, 400);
+front.rectOut(-70, -150, 400, 400, 91, 1);
+
+center.rectIn(350, -150, 400, 400);
+center.rectOut(350, -150, 400, 400, 51, 2);
+
+knobsx = 480;
+knobsy = 360;
+back.rectIn(knobsx, knobsy, 75, 75); 
+back.rectOut(knobsx, knobsy, 75, 75, 61, 8);
+
+knobsx += 110;
+four.rectIn(knobsx, knobsy, 75, 75); 
+four.rectOut(knobsx, knobsy, 75, 75, 61, 8);
+
+//four.rectIn(knobsx, knobsy+7, 60, 60); 
+//four.rectOut(knobsx, knobsy+7, 60, 60, 61, 3);
+
+knobsx = 315;
+knobsy = 150;
+five.rectIn(knobsx, knobsy+15, 48, 60); 
+five.rectOut(knobsx, knobsy+15, 48, 60, 2, 10);
+
+knobsx = 40;
+knobsy = 410;
+six.rectIn(knobsx, knobsy+7, 60, 60); 
+six.rectOut(knobsx, knobsy+7, 60, 60, 61, 9);
+knobsx += 100;
+seven.rectIn(knobsx, knobsy+7, 60, 60); 
+seven.rectOut(knobsx, knobsy+7, 60, 60, 61, 9);
+
+
+front.potVal(front.val); 
+center.potVal(center.val);
+back.potVal(back.val);
+four.potval(four.val);
+five.potval(five.val);
+six.potval(five.val);
+seven.potval(five.val);
+
+
+
+//set limits
+n = 100000;
+n2 = 2*n;
+n3 = 3*n;
+n4 = 4*n;
+
+//push ar0
+i = 0;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar1
+i = n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar2
+i = 2*n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar3
+i = 3*n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//sys vars
+pi = 3.1415926535897932384626433832795;
+sr = srate;
+
+//lp coeff
+lpk0 = 0.121;
+lpk1 = -0.56; 
+
+//hp coeff
+// - at 30Hz
+hpk1 = exp(-188.49555921538759430775860299677/sr);
+hpk0 = 1 - hpk1;
+
+//nf coeff
+// - at 2000Hz
+nfk1 = exp(-12566.370614359172953850573533118/sr);
+nfk0 = 1 - nfk1;
+
+//ls coeff
+// - at 300Hz
+lsk0 =  exp(-1884.9555921538759430775860299677/sr);
+lsk1 = 0; //1 - lsk0;
+
+//begin
+pdc_delay = 2;
+pdc_bot_ch = 0;
+pdc_top_ch = 2;
+i = 0;
+
+//==============================================================================
+@slider
+//==============================================================================
+//drive
+drv = slider1/200+0.001;
+pidrv = pi*drv;
+sinpidrv = 1/sin(pidrv);
+
+//ranges
+r1 = slider2/300;
+r2 = 1/2^slider3;
+
+//outgain
+outgain = 10^(slider4/20);
+//slider5 == 1 ? outgain = -outgain;
+ meter_speed = slider3/srate;
+//==============================================================================
+@block
+//==============================================================================
+//average amplitude
+avs = (s0+s1)/2;
+
+//interpolate ar2 values
+tgt_min2 = avs*m[i+2*n]*r1;
+d_min2 = (tgt_min2-src_min2)/samplesblock;
+min2 = src_min2;
+src_min2 = tgt_min2;
+
+//interpolate ar3 values
+tgt_min3 = avs*m[i+3*n]*r1;
+d_min3 = (tgt_min3-src_min3)/samplesblock;
+min3 = src_min3;
+src_min3 = tgt_min3;
+
+//average for gfx
+min_av = (tgt_min2+tgt_min3)/2;
+
+//==============================================================================
+@sample
+//==============================================================================
+
+
+orispl0 = spl0;
+orispl1 = spl1;
+corrector = 0.97;
+
+scaler = 10^(abs(slider2)/20);
+
+spl0 *= corrector*scaler;
+spl1 *= corrector*scaler;
+
+slider1 == 0 ? (gain = max(abs(spl0),abs(spl1)));
+slider1 == 1 ? (
+gain = Abs(spl0);
+gain2 = abs(spl1);
+);
+
+gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed*8);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed;
+  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
+
+
+
+
+gain2 > gr2_meter ? gr2_meter=gain2 : (gr2_meter*=0.9999;  gr2_meter<0.1?gr2_meter=0; );
+gr2_meter2 < gr2_meter ? (
+
+
+
+
+  abs(gr2_meter2 - gr2_meter) > meter_dif ? (
+    gr2_meter2 = gr2_meter2 + (meter_speed*8);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr2_meter2 - gr2_meter) > meter_dif ? (
+    gr2_meter2 = gr2_meter2 - meter_speed;
+  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
+
+
+spl0 = orispl0; spl1 = orispl1;
+
+//==============================================================================
+@gfx 190 88
+//==============================================================================
+      mouseHold = mouse_cap & 1;
+      mouseHoldr = mouse_cap & 2;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      mouseClickr = mouseHoldr - lastCapr;      
+      
+      lastCap = mouseHold;
+      lastCapr = mouseHoldr;
+
+
+
+
+
+
+
+     gfx_mode=0; gfx_a = 1;
+ 
+      scale2 = 1.12 ;blitscale = gfx_w/190;
+      gfx_ext_flags == 0 ? (
+      blitscale=1;
+      gfx_w = 190; gfx_h = 88;
+      );
+      
+      
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(meter,scale2*blitscale,0);//5
+      slider11 == 0 ? (gfx_blit(17,scale2*blitscale,0));//5
+      
+      
+
+       
+       gfx_r=0;gfx_g=0;gfx_b=0;
+       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+       gr_meter3 = gr_meter2; //gr_meter3 = 10^(-3/20);
+       winkel = (-134*0.017453)+(66*(gr_meter3)*0.017453);
+             winkel > -0.75 ? (
+             winkel = -0.75;
+             );
+             slider1 == 1 ? (gfx_g = 0);
+       gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+
+
+
+       gfx_r=0;gfx_g=0;gfx_b=0;
+       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+       gr_meter3 = gr2_meter2; //gr_meter3 = 10^(-3/20);
+       winkel = (-134*0.017453)+(66*(gr_meter3)*0.017453);
+             winkel > -0.75 ? (
+             winkel = -0.75;
+             );
+             slider1 == 1 ? (
+             gfx_r = 1;
+       gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+          gfx_r = 0;
+          );
+
+
+
+     
+  gr_meter_decay = exp(1/(1*srate));
+
+
+
+
+
+
+
+
+      
+      gfx_x=1;gfx_y=1;
+
+fsz = min(gfx_h/5,12);
+gfx_setfont(1,"Arial",fsz);
+gfx_drawnumber(abs(slider2),0);
+
+mouseClick == 1 ? (
+shift ? (
+slider2 -= 6; slider2 < -24 ? (slider2 = 0);
+):(
+slider1 == 0 ? (slider1=1):(slider1=0); 
+);
+);
+
+mouseclickr == 2 ? (
+shift ? (
+slider3 == 0.7 ? (slider3 = 1.66; Speedinfo = 60):
+slider3 == 1.66 ? (slider3 = 3.2; Speedinfo = 60):
+slider3 == 3.2 ? (slider3 = 0.7; Speedinfo = 60);
+);
+);
+  
+  
+speedinfo > 0 ? (
+slider3 == 0.7 ? gfx_drawstr("   SLOW");
+slider3 == 1.66 ? gfx_drawstr("   REGULAR");
+slider3 == 3.2 ? gfx_drawstr("   FAST");
+speedinfo -= 1;
+);
+
+ meter_speed = slider3/srate;
+gfx_x = gfx_w-(gfx_w/6); gfx_y = gfx_h-(gfx_h/2); 
+gr_meter2 > 1.4 ? (gfx_blit(1,blitscale,0,0,35,35,35)):(gfx_blit(1,blitscale,0,0,0,35,35));
