@@ -1,21 +1,19 @@
 desc: MCP Meter (Tukan)
 // Veriosn 1.1.1
 
-filename:0,Meter/VUMeter2.png
-filename:1,Meter/6VUMeter2.png
-filename:2,Meter/12VUMeter2.png
-filename:3,Meter/18VUMeter2.png
-filename:4,Meter/24VUMeter2.png
+filename:0,Meter/CVU2.png
+filename:1,Meter/led.png
 
 slider1:0<0,1,1>-Stereo
 slider2:0<-24,0,6>-Scale
+slider3:1.66<0.2,4.9,0.1>-Speed
 
 options:no_meter
 
 
 in_pin:left input
 in_pin:right input
-out_pin:left output
+out_pin:left output  
 out_pin:right output
 
 //==============================================================================
@@ -23,15 +21,15 @@ out_pin:right output
 //==============================================================================
   gfx_clear=1;
   ext_noinit=1;
-  lastCap=1;
+  lastCap=1; 
   mouse_wheel=1;
 player = 0;
  initial = 0;
  
- meter_speed = 4.9/srate;
  gr_meter2 = 0;
  gr2_meter2 = 0;
  meter_dif = 0.0005;
+
 
       function limitgui(s low up)
                   ( min(max(s, low), up) );
@@ -321,7 +319,7 @@ r2 = 1/2^slider3;
 //outgain
 outgain = 10^(slider4/20);
 //slider5 == 1 ? outgain = -outgain;
-
+ meter_speed = slider3/srate;
 //==============================================================================
 @block
 //==============================================================================
@@ -407,59 +405,83 @@ gr2_meter2 < gr2_meter ? (
 spl0 = orispl0; spl1 = orispl1;
 
 //==============================================================================
-@gfx 700 340
+@gfx 190 88
 //==============================================================================
       mouseHold = mouse_cap & 1;
+      mouseHoldr = mouse_cap & 2;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
+      mouseClickr = mouseHoldr - lastCapr;      
+      
       lastCap = mouseHold;
-      
+      lastCapr = mouseHoldr;
 
 
-      gfx_mode=0; gfx_a = 1;
+
+
+
+
+
+     gfx_mode=0; gfx_a = 1;
  
-      scale2 = 1.12;blitscale = gfx_w/190;
+      scale2 = 1.12 ;blitscale = gfx_w/190;
+      gfx_ext_flags == 0 ? (
+      blitscale=1;
+      gfx_w = 190; gfx_h = 88;
+      );
+      
+      
       gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
-      slider2 == 0 ? gfx_blit(0,scale2*blitscale,0);//5
-      slider2 == -6 ? gfx_blit(1,scale2*blitscale,0);//5
-      slider2 == -12 ? gfx_blit(2,scale2*blitscale,0);//5
-      slider2 == -18 ? gfx_blit(3,scale2*blitscale,0);//5
-      slider2 == -24 ? gfx_blit(4,scale2*blitscale,0);//5
+      gfx_blit(meter,scale2*blitscale,0);//5
+      slider11 == 0 ? (gfx_blit(17,scale2*blitscale,0));//5
       
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr_meter2;
-      winkel = (-133*0.017453)+(1.08*61*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
       
+
+       
+       gfx_r=0;gfx_g=0;gfx_b=0;
+       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+       gr_meter3 = gr_meter2; //gr_meter3 = 10^(-3/20);
+       winkel = (-134*0.017453)+(66*(gr_meter3)*0.017453);
+             winkel > -0.75 ? (
+             winkel = -0.75;
+             );
+             slider1 == 1 ? (gfx_g = 0);
+       gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
 
 
 
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr2_meter2;
-      winkel = (-133*0.017453)+(1.08*61*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            gfx_r = 1; gfx_g=0;
-      slider1 == 1 ? (gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel))));
+       gfx_r=0;gfx_g=0;gfx_b=0;
+       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+       gr_meter3 = gr2_meter2; //gr_meter3 = 10^(-3/20);
+       winkel = (-134*0.017453)+(66*(gr_meter3)*0.017453);
+             winkel > -0.75 ? (
+             winkel = -0.75;
+             );
+             slider1 == 1 ? (
+             gfx_r = 1;
+       gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+          gfx_r = 0;
+          );
+
+
+
+     
+  gr_meter_decay = exp(1/(1*srate));
+
+
+
+
+
+
+
+
       
-      gfx_r = 0;
-      
-gfx_h > 50 ? (     
-gfx_x = 1; gfx_y = 1;
-slider1 == 0 ?(
-gfx_drawstr("M");
-):(
-gfx_drawstr("ST");
-);
-);
+      gfx_x=1;gfx_y=1;
+
+fsz = min(gfx_h/5,12);
+gfx_setfont(1,"Arial",fsz);
+gfx_drawnumber(abs(slider2),0);
 
 mouseClick == 1 ? (
 shift ? (
@@ -468,15 +490,23 @@ slider2 -= 6; slider2 < -24 ? (slider2 = 0);
 slider1 == 0 ? (slider1=1):(slider1=0); 
 );
 );
-//winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
-//winkel > -0.91 ? (
-//winkel = -0.91;
-//);
-//gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
-//gr_meter_old = gr_meter;
 
-
-     
-     
-  gr_meter_decay = exp(1/(1*srate));
+mouseclickr == 2 ? (
+shift ? (
+slider3 == 0.7 ? (slider3 = 1.66; Speedinfo = 60):
+slider3 == 1.66 ? (slider3 = 3.2; Speedinfo = 60):
+slider3 == 3.2 ? (slider3 = 0.7; Speedinfo = 60);
+);
+);
   
+  
+speedinfo > 0 ? (
+slider3 == 0.7 ? gfx_drawstr("   SLOW");
+slider3 == 1.66 ? gfx_drawstr("   REGULAR");
+slider3 == 3.2 ? gfx_drawstr("   FAST");
+speedinfo -= 1;
+);
+
+ meter_speed = slider3/srate;
+gfx_x = gfx_w-(gfx_w/6); gfx_y = gfx_h-(gfx_h/2); 
+gr_meter2 > 1.4 ? (gfx_blit(1,blitscale,0,0,35,35,35)):(gfx_blit(1,blitscale,0,0,0,35,35));

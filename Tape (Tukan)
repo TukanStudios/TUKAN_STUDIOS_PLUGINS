@@ -37,7 +37,7 @@ filename:7,TAPE/VUMeter.png
 filename:8,TAPE/APIBig.png
 filename:9,TAPE/APISmall.png
 filename:10,TAPE/switch.png
-filename:11,TAPE/VUMeter2.png
+filename:11,TAPE/CVU2.png
 
 slider1:100<0,100,0.01>-Saturation Amount (%)
 slider2:10<0,100,0.01>-Fluctuation Amount (%)
@@ -69,7 +69,7 @@ out_pin:right output
 player = 0;
  initial = 0;
  
- meter_speed = 4.9/srate;
+ meter_speed = 1.5/srate;
  gr_meter2 = 0;
  meter_dif = 0.0005;
 
@@ -391,6 +391,9 @@ min_av = (tgt_min2+tgt_min3)/2;
 lsk1 = slider9;
 s0 = spl0;
 s1 = spl1;
+
+gain = max(abs(spl0),abs(spl1));
+
 player = play_State;
 //seeds
 min0 = m[i]*r2;
@@ -426,26 +429,6 @@ s1=s1+noise*0.00125;
   wsoutr = sin(pidrv*inr)*(sinpidrv+min3d);
 );
 
-gain = max(abs(wsoutl),abs(wsoutr));
-
-
-gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
-gr_meter2 < gr_meter ? (
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
-
 
 //lp
 fs2l = fs1l;
@@ -478,6 +461,24 @@ spl0 = -1*fxoutl*outgain;
 spl1 = -1*fxoutr*outgain;
 
 
+scaler = 10^(abs(-6)/20);
+gain *= scaler;
+gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed*8);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed;
+  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
 
 
 
@@ -573,7 +574,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
       
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = gfx_w/2; gfx_y = gfx_w/3 + 125*blitscale;
-      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+      winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             winkel > -0.91 ? (
             winkel = -0.91;
             );
@@ -605,12 +606,12 @@ taperotr < 0 ? (taperotr = 2*$pi);
 meterx = 230;
 metery = 330;
 
-gfx_x = meterx; gfx_y = metery;
-gfx_blit(7,1,0);
+gfx_x = meterx+15; gfx_y = metery+15;
+gfx_blit(11,1,0);
 gfx_x = meterx+110;
 gfx_y = metery+125;
 // -71 = 0; -130 = -oo;
-winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
 winkel > -0.91 ? (
 winkel = -0.91;
 );

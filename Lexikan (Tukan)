@@ -40,7 +40,7 @@ filename:1,LEXgui/my480.png
 filename:2,LEXgui/my480button.png
 filename:3,LEXgui/LEXtex.png
 filename:4,LEXgui/myfdl.png
-
+filename:5,LEXgui/led.png
 
 import smoother.jsfx-inc
 
@@ -1431,6 +1431,26 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
       gfx_printf("Algorithm: ");
       gfx_printf(ALG);   
       
+      blinkdauer <= 0 ? (blinkt = 0):(blinkdauer -= 1);
+      blinkan = 0;
+      blinkzahl < 5 ? (blinkan=1);
+      blinkzahl += 1;
+      blinkzahl > 10 ? (blinkzahl = 0);
+      !blinkt ? (blinkan = 0);
+       gfx_x = 220; gfx_y = 150;
+       blinkan == 0 ? (
+       gfx_blit(5,0.8,0,0,0,35,35);
+       gfx_x+=25; gfx_y+=5;
+       gfx_r=1; gfx_a=0.5;
+       gfx_Drawstr("Press 'Recall'");
+       ):(
+       gfx_blit(5,0.8,0,0,35,35,35);
+       gfx_x+=25; gfx_y+=5;
+       gfx_r=1; gfx_a=1;
+       gfx_Drawstr("Press 'Recall'");
+       );                   
+      gfx_a=1;
+      
       bypass == 1 ?(gfx_printf("    <<<BYPASSED>>>"));
   
   
@@ -1556,8 +1576,6 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
   gfx_drawnumber(slider22,0);
   
   ); // ENDE EIMERKETTE
-  
-  
   
   
   
@@ -1737,6 +1755,7 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
               //slider26 = 4;
               //bypass = toggler(bypass);
               //k8c=toggler(k8c);
+              blinkt = 0;
               callprogram = 2;
               );
               );
@@ -2173,12 +2192,14 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
                Callprogram == 1 ? (
                curpreset = (slider28*5)+(slider29);
                namenext(curpreset);
+               blinkt = 1;
+               blinkdauer = 300;
+               callprogram = 0;
                );
+               
                                       
-                                      
-                                      
-                                      
-                                      
+                              
+                  
                                       
                                       
                                       
