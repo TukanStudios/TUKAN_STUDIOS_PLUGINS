@@ -9,30 +9,31 @@ slider4:3<1,150,0.1>-Attack (ms)
 slider5:100<2,1000,1>-Release (ms)
 slider6:0<-24,24,0.1>-Output (dB)
 slider7:0<0,1,1{Off,On}>-Delta
-slider8:1<0,1,1>-Feedback
+slider8:0<0,1,1>-Feedback
 slider9:0<0,1,1>-Sidechain
 slider10:0<0,1,1>-Metermode
 
-slider11:4.9<0,5,0.01>-Meterspeed
+slider11:3<0,5,0.01>-Meterspeed
+slider12:0<0,1,0.01>-Dry amount
 
 filename:0,TKCC2gui/TKCC2Back.png
 filename:1,TKCC2gui/APIBig.png
 filename:2,TKCC2gui/APIRED.png
 filename:3,TKCC2gui/APISmall.png
 filename:4,TKCC2gui/switch.png
-filename:5,TKCC2gui/VUMeter.png
+filename:5,TKCC2gui/CVU.png
 filename:6,TKCC2gui/screw.png
-filename:7,TKCC2gui/VUMeter2.png
+filename:7,TKCC2gui/CCVU2.png
 
 in_pin:L in
-in_pin:R in
+in_pin:R in 
 in_pin:Sidechain L
 in_pin:Sidechain R
 out_pin:L out
 out_pin:R out
 
 @init
-ext_noinit = 1;
+ext_noinit = 1; 
 
 ovrlgain = 1;
 
@@ -322,16 +323,20 @@ gr_meter2 > 1 ? gr_meter2 =1;
  gatt.potcfg   (20,0,150,1);
  grel.potcfg   (200,2,1000,1);
  goutgain.potcfg   (0,-24,24,.048);
- gfeedback.potcfg   (1,0,1,1);
+ gfeedback.potcfg   (0,0,1,1);
  Trick.potcfg   (0,0,1,1);
  SC.potcfg   (0,0,1,1);
- screw.potcfg   (5,0,5,.01);
- 
+ screw.potcfg   (3,0,5,.01);
+ gknee.potcfg   (0,0,100,.1);
+ gdry.potcfg   (0,0,1,.001);
  
  knobsx = 50; 
  knobsy = 50;
  gthresh.rectIn(knobsx,knobsy,75,75);//xpos,ypos,weite,höhe des img
  gthresh.rectOut(knobsx,knobsy, 75, 75, 61, 1); //Xpos,ypos,weite,höhe,Frames,bitmap
+
+ gknee.rectIn(knobsx+95,knobsy+75, 10, 10);
+ gknee.rectOut(knobsx+95,knobsy+75, 10, 10, 61, 6);
  
  gratio.rectIn(knobsx+120,knobsy, 75, 75);
  gratio.rectOut(knobsx+120,knobsy, 75, 75, 61, 2);
@@ -345,6 +350,9 @@ grel.rectOut(knobsx+127,knobsy+140, 60, 60, 61, 3);
 knobsx+=260; knobsy+=133;
 goutgain.rectIn(knobsx,knobsy, 75, 75); 
 goutgain.rectOut(knobsx,knobsy, 75, 75, 61, 2);
+
+gdry.rectIn(knobsx-18,knobsy+85, 10, 10); 
+gdry.rectOut(knobsx-18,knobsy+85, 10, 10, 61, 6);
 
 screw.rectIn(knobsx+324,knobsy-175, 10, 10); 
 screw.rectOut(knobsx+324,knobsy-175, 10, 10, 61, 6);
@@ -368,7 +376,182 @@ SC.rectOut(knobsx+120,knobsy, 48, 60, 2, 4);
 
 
 
-
+  
+  errcnt = 0;
+  tot_nbr_spl = 0;
+  scnt = 0;
+  
+  offset = 0.0074;//0.0074;
+  
+  nd_posL = nd_posR = 0.6800809;;
+  nd_speedL = nd_speedR = 0;
+  
+  dt = 10 / srate;
+  
+  mom = 0.00042;
+  
+  dbL = dbR = 0;
+  overL = overR = 0;
+  
+  fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+  wl   = 0;
+  damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+  
+  mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+  meterInL = spl0;
+  meterInR = spl1;
+  
+  function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+  (
+  tot_nbr_spl += 1;
+  
+  smpL = meterInL; 
+  smpR = meterInR;
+  
+  mnmode == 1 ? ( 
+    smpL = (meterInL + meterInR) * 0.5;
+    smpR = smpL;  
+  );
+  
+  mnmode >= 2 ? ( 
+    smpL = max(meterInL, meterInR);
+    smpR = smpL; 
+  );
+  
+  smpL = abs(smpL);
+  smpR = abs(smpR);
+  
+   
+  scnt += 1;
+  
+  scnt === 10 ? (
+      
+    // move left needle
+    
+      force = smpL * fact_up  -  (nd_posL * .1 + offset);
+      
+      nd_speedL += force * dt / mnmom;  
+      nd_speedL = nd_speedL * damp;
+      nd_posL += nd_speedL * dt;
+      nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+    
+      nd_posL = min(max(nd_posL,0),1);
+    
+      // move right needle
+  
+      force = smpR * fact_up  - (nd_posR * .1 + offset);
+      
+      nd_speedR += force * dt /mnmom;  
+      nd_speedR = nd_speedR * damp;
+      nd_posR += nd_speedR * dt;
+      nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+    
+      nd_posR = min(max(nd_posR,0),1);
+       
+      overL -= 10;
+      overR -= 10;
+  
+      scnt = 0;
+    
+  );
+  );
+  
+  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+  
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery;
+  
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+  gfx_blit(7,mnblitscale,0);
+  
+  
+  mnw1 = $pi * 16.5 / 180; 
+  mnw2 = $pi * 45 / 180;
+  
+  mnxw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  mnyw = 92*mnblitscale;//floor(mnxw / 1.5);
+  
+  mnr1 = 130*mnblitscale;//floor(mnyw * 0.85);
+  
+  
+  
+   mnxd = 10 + chan*(mnxw+10);
+    mode === 1 ? mnxd += floor(mnxw/2);
+    
+    mnyd = 10;
+  
+    mnxa = mnblitscale*190/2;//gfx_w/2;//floor(mnxd + mnxw / 2);
+    mnya = floor(mnyd + mnyw * 1.1);
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+  
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+    mnch == 2 ? (mnph= dbR);
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+    
+    );
 
 
 
@@ -399,6 +582,9 @@ listen = slider7;
 inL ? (oops = 0):(inL = spl0);
 inR ? (oops = 0):(inR = spl1);
 */
+clean0 = spl0;
+clean1 = spl1;
+
 slider8 == 1 ?(
 inL = feedL;//spl0;
 inR = feedR;// spl1;
@@ -421,13 +607,14 @@ cL = db2ratio(cG);
 feedL = spl0*cL; feedR=spl1*cL;
 
 listen == 0 ? (
-spl0 = spl0 * cL * output;
-spl1 = spl1 * cL * output;
+spl0 = clean0 * slider12 + spl0 * cL * output;
+spl1 = clean1 * slider12 + spl1 * cL * output;
 );
 listen == 1 ? (
-spl0 = ((spl0 * cL) - spl0)  * output;
-spl1 = ((spl1 * cL) - spl1)  * output;
+spl0 = clean0 * slider12 + ((spl0 * cL) - spl0)  * -output;
+spl1 = clean1 * slider12 + ((spl1 * cL) - spl1)  * -output;
 );
+
 
 gr = db2ratio(cL);
 grv = ratio2db(gr);
@@ -439,6 +626,11 @@ grmin = min( min(cG,cG) , grmin);
 meterspeed();
 meter_old = gr_meter;
 
+
+  mom = 0.0001 + 0.00032 * abs(100-slider11*20)^3 / 125000;
+  mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+ 
+ 
 // inMeter = db2
 inMeter > ginMeter ? ginMeter=inMeter : (ginMeter*=0.99997;  ginMeter<0.1?ginMeter=0; );
 
@@ -489,7 +681,7 @@ spl1 = (ovrlor * ovrltr * ovrlg);
 
 ovrlgain = ovrlg;
 
-
+ 
 
 
 
@@ -559,6 +751,10 @@ grmin = 0;
           screw.val=screw;
           screw.potVal(screw.val);
           screw.valOld=screw;
+          gdry=slider12;
+          gdry.val=gdry;
+          gdry.potVal(gdry.val);
+          gdry.valOld=gdry;
 );
   
 
@@ -617,17 +813,22 @@ ticker = 0;
 );
 
 gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=1;
-gfx_x = meterx + 145; gfx_y=metery+15;
+gfx_x = meterx + 145; gfx_y=metery+10;
 gfx_drawstr("Thresh:");
-gfx_x = meterx + 145; gfx_y=metery+25;
+gfx_x = meterx + 145; gfx_y=metery+20;
 gfx_drawnumber(slider1,1);//(grmin,1);
 gfx_drawstr(" dB");
 
-gfx_x = meterx + 145; gfx_y=metery+45;
+gfx_x = meterx + 145; gfx_y=metery+33;
 gfx_drawstr("Ratio:");
-gfx_x = meterx + 145; gfx_y=metery+55;
+gfx_x = meterx + 145; gfx_y=metery+43;
 gfx_drawnumber(slider3,1);//(grmin,1);
 gfx_drawstr(" : 1");
+
+gfx_x = meterx + 145; gfx_y=metery+56;
+gfx_drawstr("Knee:"); 
+gfx_x = meterx + 145; gfx_y=metery+66;
+gfx_drawnumber(slider2,0); gfx_drawstr(" %");
 
 gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
 gfx_x = meterx + 148; gfx_y=metery+80;
@@ -643,14 +844,18 @@ gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
 slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
 slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
 gfx_x = meterx+110;
-gfx_y = metery+125;
+gfx_y = metery+130;
 // -71 = 0; -130 = -oo;
-winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
-gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
+//gr_meter2 = 10^(-20/20);
+gfx_g = 0;
+winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
+//gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
+       mnmetergfx(1, meterx+15, metery+15, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
 );
 
 gfx_a=1; 
-gfx_x=0;gfx_y=0;gfx_blit(0,1,0);
+gfx_x=0;gfx_y=0; 
+gfx_blit(0,1,0);
 
 
   gthresh.knob();
@@ -662,6 +867,8 @@ gfx_x=0;gfx_y=0;gfx_blit(0,1,0);
   Trick.knob();
   SC.knob();
   screw.knob();
+  gknee.knob();
+  gdry.knob();
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
@@ -674,7 +881,8 @@ mouseClick == 1 ?
       Trick.collision()    ? Trick.potToggle();
       SC.collision()    ? SC.potToggle();
       screw.collision()    ? screw.dragstart();
- 
+      gknee.collision()    ? gknee.dragstart();
+      gdry.collision()    ? gdry.dragstart();     
       mouse_x > meterx ? (
       mouse_x < meterx + 110 ? (
       mouse_y > metery ? (
@@ -703,6 +911,8 @@ mouseClick == -1  ?
       gatt.dragStop();
       grel.dragStop();goutgain.dragStop();
       screw.dragstop();
+      gknee.dragstop();
+      gdry.dragstop();
      );
 
 mouse_wheel ? 
@@ -713,6 +923,8 @@ mouse_wheel ?
       grel.collision()    ? grel.potWheel(): 
       goutgain.collision()    ? goutgain.potWheel():
       screw.collision()    ? screw.potWheel():
+      gknee.collision()    ? gknee.potWheel():
+      gdry.collision()    ? gdry.potWheel():
      mouse_wheel=0;
     );
 
@@ -723,6 +935,8 @@ gatt.dragging   ? (gatt.potDrag();Changer = 1);
 grel.dragging   ? (grel.potDrag();Changer = 1);
 goutgain.dragging   ? (goutgain.potDrag();Changer = 1);
 screw.dragging   ? screw.potDrag();
+gknee.dragging   ? (gknee.potDrag();Changer = 1);
+gdry.dragging   ? (gdry.potDrag();Changer = 1);
 /******************************* Slider Knob Control **************************/
   
 gthresh!=gthresh.val?
@@ -848,7 +1062,33 @@ gfeedback!=slider8?
           screw.potVal(screw.val);
           screw.valOld=screw;
         );
+    gknee!=gknee.val?
+        (
+          gknee=gknee.val;
+          slider2=gknee;
+          pot.potVal(gknee.val);
+         ):
+    gknee!=slider2?
+        (
+          gknee=slider2;
+          gknee.val=gknee;
+          gknee.potVal(gknee.val);
+          gknee.valOld=gknee;
+        );
 
+    gdry!=gdry.val?
+        (
+          gdry=gdry.val;
+          slider12=gdry;
+          pot.potVal(gdry.val);
+         ):
+    gdry!=slider12?
+        (
+          gdry=slider12;
+          gdry.val=gdry;
+          gdry.potVal(gdry.val);
+          gdry.valOld=gdry;
+        );
 
 
 
@@ -969,11 +1209,12 @@ ax=0;
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
       winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+      winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             winkel > -0.91 ? (
             winkel = -0.91;
             );
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
-      
+      //gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      mnmetergfx(0, 0, 0, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
        gfx_x = 2; gfx_y = 1;
        gfx_setfont();
       gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("C2");

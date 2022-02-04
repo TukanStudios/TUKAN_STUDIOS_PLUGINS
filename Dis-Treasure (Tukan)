@@ -22,14 +22,17 @@ slider15:0<0,1,1>-15 Bug Version
 slider16:0<0,1,1>-Card Mode
 slider17:0<0,1,1>-Interact
 slider18:0<0,1,1>-SC Listen
+slider19:0<0,1,1>-19 side chain
 
 in_pin:L in
 in_pin:R in
+in_pin:Link L in
+in_pin:Link R in
 out_pin:L out
 out_pin:R out
 
 options:no_meter
- 
+
 filename:0,treasuregui/gled.png
 filename:1,treasuregui/yled.png
 filename:2,treasuregui/oled.png
@@ -311,23 +314,28 @@ thresh = -20+headroom;
   reltime = slider8 / 4000;
   );
   
-  ratio == 4 ? (
-  attime = slider7 / 8000;
-  reltime = slider8 / 4000;
-  );
-  
-  ratio == 6 ? (
+  ratio == 3 ? (
   attime = slider7 / 1000;
   reltime = slider8 / 4000;
   );
   
+  ratio == 4 ? (
+  attime = slider7 / 1000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 6 ? (
+  attime = slider7 / 800;
+  reltime = slider8 / 4000;
+  );
+  
   ratio == 20 ? (
-  attime = 2*slider7 / 1000;
+  attime = 2*slider7 / 500;
   reltime = (150+slider8) / 1000;
   );
   
   ratio == 70 ? ( /////////////////////// NOCH NICHT GESETZT
-  attime = 2*slider7 / 1000;
+  attime = 2*slider7 / 150;
   reltime = (150+slider8) / 1000;
   );
   
@@ -431,9 +439,9 @@ outgdb = 20*log10(outgain);
 
 slider15 == 0 ? (
   slider13 == 0 ? (
-  tenthresh = thresh-3;
-  ):(
   tenthresh = thresh;
+  ):(
+  tenthresh = thresh-3;
   );
   
   tenthreshv = exp(tenthresh * db2log);
@@ -454,17 +462,19 @@ slider15 == 0 ? (
   RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
   tenopto = 1;
 
-
+  atfaktor = 0.03*Abs((0.9*slider7/6))+0.01;
+  slider13 == 1 ? atfaktor=0.1*Abs((0.9*slider7/30));
   i=0;
   loop(
     120,
-    coords[i+10] = ((0.08924 / i) + (0.60755 / (i ^ 2)) - 0.00006);
+    coords[i+10] = atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006);
     i+=1;
   );
-  tenattime=0.005+slider7/4000;
-  tenreltime= (50+((slider8-50)))/1000;
+  tenattime=slider7/1000;
+  tenreltime= (50+((slider8-50)))/4000;
   tenatcoef=exp(-1/(tenattime * srate));
   tenrelcoef=exp(-1/(tenreltime * srate));
+
 // end opto slider
 
 ):(
@@ -493,7 +503,7 @@ slider15 == 0 ? (
 //  );
   tenopto = 0;
 
-
+  atfaktor = 100*(slider7/3)+0.1;
   i=0;
   loop(
     120,
@@ -914,12 +924,12 @@ orispl1 = spl1;
 
 //spl0 *= inGain;
 //spl1 *= inGain;
-
+/*
 slider13 == 1 ? (
 spl0 *= inGain;
 spl1 *= inGain;
 );
-
+*/
 //spl0 = det0;
 //spl1 = det1;
 
@@ -928,7 +938,7 @@ tenospl1 = det1;
 
 slider4 == 6 ? ( //ten?
 //optocomp
-slider13 == 0 ? (tenopto = 1):(tenopto=0);
+slider13 == 0 ? (tenopto = 1):(tenopto=1);
   tensidechain ? (
     tenaspl0 = abs(spl2);
     tenaspl1 = abs(spl3);
@@ -1116,8 +1126,8 @@ grv = ovrlg;
   aspl1 = abs(det1);
   rationew = (ratio*ratio)*(ratio*ratio);
   ):(
-  aspl0 = abs(spl0);
-  aspl1 = abs(spl1);
+  aspl0 = abs(det0);
+  aspl1 = abs(det1);
   rationew = ratio;
   );
   maxspl = max(aspl0, aspl1);
@@ -1213,8 +1223,24 @@ spl0 *= inGain;
 spl1 *= inGain;
 );
 
+slider13 == 1 ? (
+indetA = orispl0*ingain;
+indetb = orispl1*ingain;
+):(
 indetA = spl0;
-indetb = spl1;
+indetB = spl1;
+);
+
+slider19 == 1 ? (
+slider13 == 0 ? (
+indetA = ingain*spl2 * grv;
+indetB = ingain*spl3 * grv;
+):(
+indetA = ingain*spl2;
+indetB = ingain*spl3;
+);
+
+);
 
 //Left
 x2deta = x1deta;
@@ -1242,7 +1268,7 @@ hpfout1 = y0detb;
 slider1 == 1 ? (
 det0 = hpfout0; det1 = hpfout1;
 ):(
-det0 = spl0; det1 =spl1);
+det0 = indetA; det1 =indetb);
 
 slider3 == 1 ? (
 
@@ -2204,8 +2230,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
   gfx_y += 20;
   gdetpeakx = gfx_x; gdetpeaky = gfx_y;
   slider3 == 1 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
-  gfx_x += 35; gfx_y += 50;
+  gfx_y += 20;
+  gdetSCx = gfx_x; gdetSCy = gfx_y;
+  //slider19 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  slider15 == 1 ? (gfx_blit(3,1,0,0,0,35,35)):(slider19 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35));
+  
+  gfx_x += 35; gfx_y += 30;
   gfx_blit(6,0.75,0,0,0,90,37);
+  
+  
   gfx_x += 25; gfx_y -= 70;
   gsplhpfx = gfx_x; gsplhpfy = gfx_y;
   slider2 == 1 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
@@ -2225,6 +2258,18 @@ gfx_rect(0,0,gfx_w,gfx_h);
   //gfx_rect(ledsx-245, ledsy + 27, 43,18);
   mouseClick == 1 ? (
   schnork = 1;
+  slider15 == 0 ? (
+  mouse_y > gdetSCy + 11 ? (
+  mouse_y < gdetSCy + 23 ? (
+  mouse_x > gdetSCx + 11 ? (
+  mouse_x < gdetSCx + 23 ? (
+    slider19 == 1 ? (slider19 = 0):(slider19=1);
+  );
+  );
+  );
+  );
+  );
+  
   mouse_y > gdethpfy + 11 ? (
   mouse_y < gdethpfy + 23 ? (
   mouse_x > gdethpfx + 11 ? (

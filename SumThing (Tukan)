@@ -32,10 +32,10 @@ slider26:1<0,1,1>-26 CH Processing
 slider27:2<0,2,1>-27 Desk Select
 
 slider28:0<0,1,1>-28 Limiter
-slider29:1.6<0.1,4.9,0.1>-Meterspeed
+slider29:50<0.1,100,0.1>-Meterspeed
 slider30:0<-24,0,1>-30 Metercalibration
 
-options:no_meter
+//options:no_meter
 
 in_pin:L in
 in_pin:R in
@@ -43,8 +43,8 @@ out_pin:L out
 out_pin:R out
 
 filename:0,somegui/VUMeter1.png
-filename:1,somegui/CVU2.png
-filename:2,somegui/CVU3.png
+filename:1,somegui/CCVU2.png
+filename:2,somegui/CCVU3.png
 filename:3,somegui/minichick.png
 filename:4,somegui/minineve.png
 filename:5,somegui/minissl.png
@@ -353,6 +353,278 @@ histpos=0;
  
  
  
+ 
+ 
+ 
+ 
+ errcnt = 0;
+ tot_nbr_spl = 0;
+ scnt = 0;
+ 
+ offset = 0.0074;//0.0074;
+ 
+ nd_posL = nd_posR = 0;
+ nd_speedL = nd_speedR = 0;
+ 
+ dt = 10 / srate;
+ 
+ mom = 0.00042;
+ 
+ dbL = dbR = 0;
+ overL = overR = 0;
+ 
+ fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+ wl   = 0;
+ damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+ 
+ mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+ meterInL = spl0;
+ meterInR = spl1;
+ 
+ function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+ (
+ tot_nbr_spl += 1;
+ 
+ smpL = meterInL; 
+ smpR = meterInR;
+ 
+ mnmode == 1 ? ( 
+   smpL = (meterInL + meterInR) * 0.5;
+   smpR = smpL;  
+ );
+ 
+ mnmode >= 2 ? ( 
+   smpL = max(meterInL, meterInR);
+   smpR = smpL; 
+ );
+ 
+ smpL = abs(smpL);
+ smpR = abs(smpR);
+ 
+  
+ scnt += 1;
+ 
+ scnt === 10 ? (
+     
+   // move left needle
+   
+     force = smpL * fact_up  -  (nd_posL * .1 + offset);
+     
+     nd_speedL += force * dt / mnmom;  
+     nd_speedL = nd_speedL * damp;
+     nd_posL += nd_speedL * dt;
+     nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+   
+     nd_posL = min(max(nd_posL,0),1);
+   
+     // move right needle
+ 
+     force = smpR * fact_up  - (nd_posR * .1 + offset);
+     
+     nd_speedR += force * dt /mnmom;  
+     nd_speedR = nd_speedR * damp;
+     nd_posR += nd_speedR * dt;
+     nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+   
+     nd_posR = min(max(nd_posR,0),1);
+      
+     overL -= 10;
+     overR -= 10;
+ 
+     scnt = 0;
+   
+ );
+ );
+ 
+ function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch, meterimg) //(0=flexible, x,y,redneedle, channel 1or2)
+ (
+ tot_nbr_spl_g  = tot_nbr_spl;
+ 
+ overL_g = overL;
+ overR_g = overR;
+ nd_posL_g = nd_posL;
+ nd_posR_g = nd_posR;
+ 
+ tot_nbr_spl_g === tot_nbr_spl ? (
+ 
+   dbL = (nd_posL_g * 23) - 20;
+   dbR = (nd_posR_g * 23) - 20;
+   
+ ) : (
+   errcnt += 1; // thread collision
+ );
+ 
+ 
+ gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+ ;
+ mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+ gfx_blit(meterimg,mnblitscale,0);
+ 
+ 
+ w1 = $pi * 16.5 / 180; 
+ w2 = $pi * 45 / 180;
+ 
+ xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+ yw = 92*mnblitscale;//floor(xw / 1.5);
+ 
+ r1 = 130*mnblitscale;//floor(yw * 0.85);
+ 
+ 
+ 
+  xd = 10 + chan*(xw+10);
+   mode === 1 ? xd += floor(xw/2);
+   
+   yd = 10;
+ 
+   xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+   ya = floor(yd + yw * 1.1);
+ 
+ 
+ 
+ _global.desk > 1 ? (
+ 
+ 
+ twometer ? (
+   chan = 1;
+   chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+ 
+ 
+ 
+   ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+   aay = abs((90 - abs(ph))); 
+   r1 = mnblitscale*(80+aay/5);
+   
+   ph = ph * ($pi / 180);
+     
+   cosp = cos(ph);
+   sinp = sin(ph);
+     
+     ya = mnmetery+110*mnblitscale;
+     xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+   x1 = xa - cosp * r1 * 0.25;
+   y1 = ya - sinp * r1 * 0.25;
+ 
+   x2 = xa - cosp * r1 * 1.1;
+   y2 = ya - sinp * r1 * 1.1;
+ 
+   gfx_x = x1;
+   gfx_y = y1; 
+   gfx_lineto(x2, y2);
+  );
+   
+ chan = 0;
+ 
+   chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+   mnch == 2 ? (ph= dbR);
+   ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+   aay = abs((90 - abs(ph))); 
+   r1 = mnblitscale*(80+aay/5);
+   
+   ph = ph * ($pi / 180);
+     
+   cosp = cos(ph);
+   sinp = sin(ph);
+     
+     ya = mnmetery+110*mnblitscale;
+     xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+   x1 = xa - cosp * r1 * 0.25;
+   y1 = ya - sinp * r1 * 0.25;
+ 
+   x2 = xa - cosp * r1 * 1.1;
+   y2 = ya - sinp * r1 * 1.1;
+ 
+   gfx_x = x1;
+   gfx_y = y1; 
+   gfx_lineto(x2, y2);
+   
+   
+   
+   
+   
+   ):( //global meter
+   
+   twometer ? (
+     chan = 1;
+     chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+   
+   
+   
+     ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+     aay = abs((90 - abs(ph))); 
+     r1 = mnblitscale*(80+aay/5);
+     
+     ph = ph * ($pi / 180);
+       
+     cosp = cos(ph);
+     sinp = sin(ph);
+       
+       ya = mnmetery+55*mnblitscale;
+       xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+     x1 = xa - cosp * r1 * 0.25;
+     y1 = ya - sinp * r1 * 0.25;
+   
+     x2 = xa - cosp * r1 * 1.1;
+     y2 = ya - sinp * r1 * 1.1;
+   
+     gfx_x = x1;
+     gfx_y = y1; 
+    // gfx_lineto(x2, y2);
+    );
+     
+   chan = 0;
+   
+     chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+     mnch == 2 ? (ph= dbR);
+     ph = 43 + (ph+20)/23*88;//45 + (ph+20)/23*90; 
+     aay = abs((90 - abs(ph))); 
+     r1 = mnblitscale*(70+aay/5);
+     
+     ph = ph * ($pi / 180);
+       
+     cosp = cos(ph);
+     sinp = sin(ph);
+       
+       ya = mnmetery+95*mnblitscale;
+       xa= mnmeterx+2+(180*mnblitscale/2);//-(gfx_w/50);
+     x1 = xa - cosp * r1 * 0.25;
+     y1 = ya - sinp * r1 * 0.25;
+   
+     x2 = xa - cosp * r1 * 1.1;
+     y2 = ya - sinp * r1 * 1.1;
+   
+     gfx_x = x1;
+     gfx_y = y1; 
+     gfx_lineto(x2, y2);
+   );
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   );
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 function stattslider()
 (
 slider24 == 1 ? ( //Is master
@@ -360,13 +632,13 @@ slider27 == 0 ? (_global.desk = 1);
 slider27 == 1 ? (_global.desk = 2);
 slider27 == 2 ? (_global.desk = 3);
 _global.process = slider26;
- _global.meter_speed = slider29/srate;
+ _global.meter_speed = slider29;
  _global.meter_cal = slider30;
  
 );
-meter_speed = _global.meter_speed;
+meter_speed = abs(100 - _global.meter_speed);
 
-
+mom = 0.00010 + 0.00032 *  meter_speed^3 / 125000;  
 
 
 
@@ -758,34 +1030,10 @@ histpos >= histsize ? histpos=0;
 
 
 meter_speed = _global.meter_speed;
-
-gain = max(abs(spl0),abs(spl1));
-
-
-     metercal = 10^(abs(_global.meter_cal)/20);
-
-gain *= metercal;
-gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
-gr_meter2 < gr_meter ? (
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
+scaler = 10^(abs(_global.meter_cal)/20);
+mnmetersample(spl0*scaler,spl1*scaler,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
 
 
-          gr_meter2 = min(gr_meter2,1.43);
-          lgr_meter2 = min(lgr_meter2,1.43);
-          rgr_meter2 = min(rgr_meter2,1.43);
           
 ); // ENdE _global.process
 
@@ -905,7 +1153,10 @@ spl0 = spl0 + spl1 * 0.001;
 spl1 = spl1 + spl0 * 0.001;
 
 
-gain = max(abs(spl0),abs(spl1));
+
+scaler = 10^(abs(_global.meter_cal)/20);
+themode = mini;
+mnmetersample(spl0*scaler,spl1*scaler,themode,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
 
 // Limiter /////////////////////////////////
 
@@ -935,77 +1186,12 @@ spl1 = inR * cL * ceiling * limitoutput;
 
 ////////////// END LIMITER /////////////////////
 
-     metercal = 10^(abs(_global.meter_cal)/20);
-
-gain *= metercal;
-gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
-gr_meter2 < gr_meter ? (
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
-
-
-
-
-gain = abs(spl0);
-gain *= metercal;
-gain > lgr_meter ? lgr_meter=gain : (lgr_meter*=0.9999;  lgr_meter<0.1?lgr_meter=0; );
-lgr_meter2 < lgr_meter ? (
-
-  abs(lgr_meter2 - lgr_meter) > meter_dif ? (
-    lgr_meter2 = lgr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(lgr_meter2 - lgr_meter) > meter_dif ? (
-    lgr_meter2 = lgr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
-
-
-gain = abs(spl1);
-gain *= metercal;
-gain > rgr_meter ? rgr_meter=gain : (rgr_meter*=0.9999;  rgr_meter<0.1?rgr_meter=0; );
-rgr_meter2 < rgr_meter ? (
-
-  abs(rgr_meter2 - rgr_meter) > meter_dif ? (
-    rgr_meter2 = rgr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(rgr_meter2 - rgr_meter) > meter_dif ? (
-    rgr_meter2 = rgr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
 
 ); /// End master process
 
 ); /////////////// END MASTER
 
 
-
-          gr_meter2 = min(gr_meter2,1.43);
-          lgr_meter2 = min(lgr_meter2,1.43);
-          rgr_meter2 = min(rgr_meter2,1.43);
 
 
  spl0 *= deskfade; spl1 *= deskfade;
@@ -1189,65 +1375,14 @@ slider24 == 0 ? ( ///////// NOT MASTER
  
       scale2 = 1.12 ;blitscale = gfx_w/190;
       gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
-      gfx_blit(meter,scale2*blitscale,0);//5
+      //gfx_blit(meter,scale2*blitscale,0);//5
       slider11 == 0 ? (gfx_blit(17,scale2*blitscale,0));//5
       
       
-      /*
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr_meter2;
-      winkel = (-135*0.017453)+(1.08*66*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
-      
 
+      mnmetergfx(0, 0, 0, 0, 1, _global.desk - 1);
+       mini = 1;
 
-
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr2_meter2;
-      winkel = (-133*0.017453)+(1.08*61*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            gfx_r = 1; gfx_g=0;
-      slider1 == 1 ? (gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel))));
-      
-      gfx_r = 0;
-     
-     */
-     _global.desk > 1 ? (
-       
-       gfx_r=0;gfx_g=0;gfx_b=0;
-       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-       gr_meter3 = gr_meter2; //gr_meter3 = 10^(-3/20);
-       winkel = (-133*0.017453)+(62*(gr_meter3)*0.017453);
-             winkel > -0.75 ? (
-             winkel = -0.75;
-             );
-             slider1 == 1 ? (gfx_g = 0);
-       gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
-
-       
-       ):( //desk = 1
-       gfx_r=0;gfx_g=0;gfx_b=0;
-       gfx_x = gfx_w/2-(gfx_w/50); gfx_y = 100*blitscale; //+95 - +125
-       gr_meter3 = gr_meter2;
-       winkel = (-148*0.017453)+(75*(gr_meter3)*0.017453);
-             winkel > -0.75 ? (
-             winkel = -0.75;
-             );
-             slider1 == 1 ? (gfx_g = 0);
-       gfx_lineto(gfx_w/2-(gfx_w/50)+((80*blitscale)*(cos(winkel))),100*blitscale+((80*blitscale)*sin(winkel)));
-       
-       
-       );
-     
-     
      
      
   gr_meter_decay = exp(1/(1*srate));
@@ -1259,26 +1394,26 @@ slider24 == 0 ? ( ///////// NOT MASTER
   );
   
   
-  knopfimg = slider11 + 2;
+  knopfimg = _global.desk + 2;
   
   knscale = 0.4*gfx_w/40;
   
   
   gfx_x = 0; gfx_y = gfx_h-35*knscale; gfx_a = 1;
-  
+/*
   _global.desk == 1 ? (gfx_blit(14,1,0,0,260,gfx_w, gfx_h));
   _global.desk == 2 ? (gfx_blit(15,1,0,0,260,gfx_w, gfx_h));
-  _global.desk == 3 ? (gfx_blit(16,1,0,0,260,gfx_w, gfx_h));
-
+  _global.desk == 3 ? (gfx_blit(16,1,0,0,260,gfx_w, 150));
+*/
   
   
-  gfx_r=1; gfx_g=1; gfx_b=1; gfx_a=1;
+  gfx_r=0.4; gfx_g=0.4; gfx_b=0.4; gfx_a=1;
   
-  //gfx_rect(0,gfx_h-35*knscale,gfx_w, gfx_h);  
+  gfx_rect(0,gfx_h-39*knscale,gfx_w, gfx_h);  
   
-  miniknopf(knopfimg,0,gfx_h-(35*knscale),61,40,-24,24,slider10,knscale);
+  miniknopf(knopfimg,0,gfx_h-(38*knscale),61,40,-24,24,slider10,knscale);
   
-  miniknopf(knopfimg,(gfx_w) - (40*knscale),gfx_h-(35*knscale),61,40,0,2,slider9,knscale);
+  miniknopf(knopfimg,(gfx_w) - (40*knscale),gfx_h-(38*knscale),61,40,0,2,slider9,knscale);
   
 
   gamount.potcfg  (0,-24,24,.024); //default. von, bis, step 9 bis 2 10 bis 24
@@ -1292,78 +1427,24 @@ slider24 == 0 ? ( ///////// NOT MASTER
 
   ):( ////// MASTER
   
-     gfx_mode=0; gfx_a = 1;
+
   
-      scale2 = 1.12 ;blitscale = gfx_w/190;
-      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
-      gfx_blit(meter,scale2*blitscale,0);//5
-      
-      /*
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr_meter2;
-      winkel = (-135*0.017453)+(1.08*66*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
-      
-  
-  
-  
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      gr_meter3 = gr2_meter2;
-      winkel = (-133*0.017453)+(1.08*61*(gr_meter3-0.01)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            gfx_r = 1; gfx_g=0;
-      slider1 == 1 ? (gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel))));
-      
-      gfx_r = 0;
-     
-  gr_meter_decay = exp(1/(1*srate));
-  */
-  
-  _global.desk > 1 ? (
+
     
-    gfx_r=0;gfx_g=0;gfx_b=0;
-    gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-    gr_meter3 = gr_meter2; //gr_meter3 = 10^(-3/20);
-    winkel = (-133*0.017453)+(62*(gr_meter3)*0.017453);
-          winkel > -0.75 ? (
-          winkel = -0.75;
-          );
-          slider1 == 1 ? (gfx_g = 0);
-    gfx_lineto(gfX_W/2+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
-  
-    
-    ):( //desk = 1
-    gfx_r=0;gfx_g=0;gfx_b=0;
-    gfx_x = gfx_w/2-(gfx_w/50); gfx_y = 100*blitscale; //+95 - +125
-    gr_meter3 = gr_meter2;
-    winkel = (-148*0.017453)+(75*(gr_meter3)*0.017453);
-          winkel > -0.75 ? (
-          winkel = -0.75;
-          );
-          slider1 == 1 ? (gfx_g = 0);
-    gfx_lineto(gfx_w/2-(gfx_w/50)+((80*blitscale)*(cos(winkel))),100*blitscale+((80*blitscale)*sin(winkel)));
-    
-    
-    );
+      mnmetergfx(0, 0, 0, 0, 1, _global.desk - 1);
+       mini = 1;
+
   
   
   knopfimg = slider11 + 2;
   
   knscale = 0.4*gfx_w/40;
   
+ 
+  gfx_r=0.2; gfx_g=0.2; gfx_b=0.2; gfx_a=1;
   
-  gfx_r=0.4; gfx_g=0.4; gfx_b=0.4; gfx_a=1;
   
-  
-  gfx_rect(0,gfx_h-24*knscale,gfx_w, gfx_h);
+  gfx_rect(0,gfx_h-32*knscale,gfx_w, gfx_h);
   gfx_x = 0; gfx_y = gfx_h-24*knscale;
   gfx_blit(18,gfx_w/100,0);
 /*  
@@ -1385,6 +1466,33 @@ slider24 == 0 ? ( ///////// NOT MASTER
   
   ); ///////// END MASTER
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 ):( // EXT FLAGS
 
 slider24 == 0 ? (/// NOT MASTER
@@ -1399,7 +1507,7 @@ slider11 > 0 ? (
   gnoise.rectIn(160,100,75,75);//xpos,ypos,weite,höhe des img
   gnoise.rectOut(160,100, 75, 75, 61, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
 
-knopfimg = slider11 + 5;
+knopfimg = _global.desk + 5;
   
 
   gfx_r=.4; gfx_g=.4; gfx_b=.4; gfx_a=1;
@@ -1410,30 +1518,13 @@ knopfimg = slider11 + 5;
       gfx_x = 280; gfx_y = 90; 
       gfx_blit(meter,scale2*blitscale,0);//5
       
-    _global.desk > 1 ? (
+    
       
-      //_global.desk > 1 ? (
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = 375; gfx_y = 205;
-      gr_meter3 = gr_meter2; //gr_meter3 = 10^(-3/20);
-      winkel = (-133*0.017453)+(62*(gr_meter3)*0.017453);
-            winkel > -0.75 ? (
-            winkel = -0.75;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto(375+((100)*(cos(winkel))),205+((100*blitscale)*sin(winkel)));
-      /*):(
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = 370; gfx_y = 205;
-      gr_meter3 = gr_meter2; gr_meter3 = 10^(3/20);
-      winkel = (-133*0.017453)+(55*(gr_meter3)*0.017453);
-            winkel > -0.91 ? (
-            winkel = -0.91;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto(370+((100)*(cos(winkel))),205+((100*blitscale)*sin(winkel)));
-       );*/
+      mnmetergfx(1, 280, 90, 0, 1, _global.desk - 1);
+       mini = 0;
       
+      _global.desk > 1 ? (
+      nix = 0;
       ):( //desk = 1
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = 40 + 330; gfx_y = 40 + 140; //+95 - +125
@@ -1443,7 +1534,7 @@ knopfimg = slider11 + 5;
             winkel = -0.75;
             );
             slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto(40+330+((70)*(cos(winkel))),40+140+((70*blitscale)*sin(winkel)));
+      //gfx_lineto(40+330+((70)*(cos(winkel))),40+140+((70*blitscale)*sin(winkel)));
       
       
       );
@@ -1506,61 +1597,12 @@ gfx_drawstr("Waiting for master..");
       gfx_x = 40; gfx_y = 40; 
       gfx_blit(meter,scale2*blitscale,0);//5
       
-      _global.desk > 1 ? (
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = 40 + 95; gfx_y = 40 + 115; //+95 - +125
-      gr_meter3 = lgr_meter2;
-      winkel = (-133*0.017453)+(62*(gr_meter3)*0.017453);
-            winkel > -0.75 ? (
-            winkel = -0.75;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto(40+95+((100)*(cos(winkel))),40+115+((100*blitscale)*sin(winkel)));
+      mnmetergfx(1, 40, 40, 0, 1, _global.desk - 1);
+      mnmetergfx(1, 40+225, 40, 0, 2, _global.desk - 1);
+ mini = 0;
       
 
-     gfx_x = 210+55; gfx_y = 40; 
-      gfx_blit(meter,scale2*blitscale,0);//5
-      
-      gfx_r=0;gfx_g=0;gfx_b=0;
-      gfx_x = 210+55 + 95; gfx_y = 40 + 115; //+95 - +125
-      gr_meter3 = rgr_meter2;
-      winkel = (-133*0.017453)+(62*(gr_meter3)*0.017453);
-            winkel > -0.75 ? (
-            winkel = -0.75;
-            );
-            slider1 == 1 ? (gfx_g = 0);
-      gfx_lineto(210+55 +95+((100)*(cos(winkel))),40+115+((100*blitscale)*sin(winkel)));
-      
-      
-      
-      ):( // desk 1
-      
-      
-       gfx_r=0;gfx_g=0;gfx_b=0;
-       gfx_x = 40 + 90; gfx_y = 40 + 90; //+95 - +125
-       gr_meter3 = lgr_meter2;
-       winkel = (-148*0.017453)+(75*(gr_meter3)*0.017453);
-             winkel > -0.91 ? (
-             winkel = -0.91;
-             );
-             slider1 == 1 ? (gfx_g = 0);
-       gfx_lineto(40+90+((70)*(cos(winkel))),40+90+((70*blitscale)*sin(winkel)));
-       
-      
-      gfx_x = 210+55; gfx_y = 40; 
-       gfx_blit(meter,scale2*blitscale,0);//5
-       
-       gfx_r=0;gfx_g=0;gfx_b=0;
-       gfx_x = 210+55 + 90; gfx_y = 40 + 90; //+95 - +125
-       gr_meter3 = rgr_meter2;
-       winkel = (-148*0.017453)+(75*(gr_meter3)*0.017453);
-             winkel > -0.75 ? (
-             winkel = -0.75;
-             );
-             slider1 == 1 ? (gfx_g = 0);
-       gfx_lineto(210+55 +90+((70)*(cos(winkel))),40+90+((70*blitscale)*sin(winkel)));
-      );
-      
+
       
       
   slider25 == 0 ? (
@@ -1580,13 +1622,13 @@ slider27 == 0 ? (gfx_blit(12,1,0));
   
   
   
-  knopfimg = slider11 + 5;
+  knopfimg = _global.desk + 5;
     
     
     knopf(knopfimg,40,180,61,75,-15,15,slider21);
     knopf(knopfimg,160,180,61,75,-15,15,slider19);
     knopf(knopfimg,325,180,61,75,-12,12,slider20);
-    knopf(19,40+92,145,61,10,0.1,4.9,slider29);
+    knopf(19,40+92,145,61,10,0,100,slider29);
     knopf(19,265+92,145,61,10,-24,0,slider30);
   
 gfx_x = 0; gfx_y=190; //Lo select
@@ -1638,7 +1680,7 @@ slider27 == 2 ? (gfx_blit(11,0.8,0,0,0,30,30)):(gfx_blit(11,0.8,0,0,30,30,30)); 
   gout.rectIn(325,180,75,75);//xpos,ypos,weite,höhe des img
   gout.rectOut(325,180, 75, 75, 61, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
-  gspeed.potcfg  (0,0.1,4.9,.01); //default. von, bis, step 9 bis 2 10 bis 24
+  gspeed.potcfg  (50,0,100,0.1); //default. von, bis, step 9 bis 2 10 bis 24
   gspeed.rectIn(40+92,145,10,10);//xpos,ypos,weite,höhe des img
   gspeed.rectOut(40+92,145, 10, 10, 61, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
   
@@ -1856,7 +1898,7 @@ slider24 == 0 ? ( // NOT MASTER
             
             gspeed.dragging ? (
             gfx_x = 185; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;
-            gfx_drawstr("Meter speed: "); gfx_drawnumber(100*slider29/4.9,0); gfx_drawstr("%");
+            gfx_drawstr("Meter speed: "); gfx_drawnumber(slider29,0); gfx_drawstr("%");
             );
   gcal.dragging ? (
   gfx_x = 145; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;

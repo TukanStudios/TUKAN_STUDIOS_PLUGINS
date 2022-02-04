@@ -37,7 +37,7 @@ filename:7,TAPE/VUMeter.png
 filename:8,TAPE/APIBig.png
 filename:9,TAPE/APISmall.png
 filename:10,TAPE/switch.png
-filename:11,TAPE/CVU2.png
+filename:11,TAPE/CCVU2.png
 
 slider1:100<0,100,0.01>-Saturation Amount (%)
 slider2:10<0,100,0.01>-Fluctuation Amount (%)
@@ -69,7 +69,7 @@ out_pin:right output
 player = 0;
  initial = 0;
  
- meter_speed = 1.5/srate;
+ meter_speed = 4.9/srate;
  gr_meter2 = 0;
  meter_dif = 0.0005;
 
@@ -348,6 +348,195 @@ pdc_bot_ch = 0;
 pdc_top_ch = 2;
 i = 0;
 
+
+
+
+
+
+
+
+
+
+
+errcnt = 0;
+tot_nbr_spl = 0;
+scnt = 0;
+
+offset = 0.0074;//0.0074;
+
+nd_posL = nd_posR = 0;
+nd_speedL = nd_speedR = 0;
+
+dt = 10 / srate;
+
+mom = 0.00042;
+
+dbL = dbR = 0;
+overL = overR = 0;
+
+fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+wl   = 0;
+damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+
+mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+meterInL = spl0;
+meterInR = spl1;
+
+function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+(
+tot_nbr_spl += 1;
+
+smpL = meterInL; 
+smpR = meterInR;
+
+mnmode == 1 ? ( 
+  smpL = (meterInL + meterInR) * 0.5;
+  smpR = smpL;  
+);
+
+mnmode >= 2 ? ( 
+  smpL = max(meterInL, meterInR);
+  smpR = smpL; 
+);
+
+smpL = abs(smpL);
+smpR = abs(smpR);
+
+ 
+scnt += 1;
+
+scnt === 10 ? (
+    
+  // move left needle
+  
+    force = smpL * fact_up  -  (nd_posL * .1 + offset);
+    
+    nd_speedL += force * dt / mnmom;  
+    nd_speedL = nd_speedL * damp;
+    nd_posL += nd_speedL * dt;
+    nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+  
+    nd_posL = min(max(nd_posL,0),1);
+  
+    // move right needle
+
+    force = smpR * fact_up  - (nd_posR * .1 + offset);
+    
+    nd_speedR += force * dt /mnmom;  
+    nd_speedR = nd_speedR * damp;
+    nd_posR += nd_speedR * dt;
+    nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+  
+    nd_posR = min(max(nd_posR,0),1);
+     
+    overL -= 10;
+    overR -= 10;
+
+    scnt = 0;
+  
+);
+);
+
+  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+  
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery;
+  
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+  gfx_blit(11,mnblitscale,0);
+  
+  
+  mnw1 = $pi * 16.5 / 180; 
+  mnw2 = $pi * 45 / 180;
+  
+  mnxw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  mnyw = 92*mnblitscale;//floor(mnxw / 1.5);
+  
+  mnr1 = 130*mnblitscale;//floor(mnyw * 0.85);
+  
+  
+  
+   mnxd = 10 + chan*(mnxw+10);
+    mode === 1 ? mnxd += floor(mnxw/2);
+    
+    mnyd = 10;
+  
+    mnxa = mnblitscale*190/2;//gfx_w/2;//floor(mnxd + mnxw / 2);
+    mnya = floor(mnyd + mnyw * 1.1);
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+  
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+    mnch == 2 ? (mnph= dbR);
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+    
+    );
+    
+  
+  
+  
 //==============================================================================
 @slider
 //==============================================================================
@@ -391,9 +580,6 @@ min_av = (tgt_min2+tgt_min3)/2;
 lsk1 = slider9;
 s0 = spl0;
 s1 = spl1;
-
-gain = max(abs(spl0),abs(spl1));
-
 player = play_State;
 //seeds
 min0 = m[i]*r2;
@@ -408,6 +594,13 @@ min2d = min2*15;
 min3d = min3*15;
 
 play_state > 0 ? (
+mom = 0.00010 + 0.00032 *  50^3 / 125000;  
+scaler = 10^(abs(6)/20);
+
+mnmetersample(spl0*scaler,spl1*scaler,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+
+
+
 vn=2^(-90/6);
 noise=rand(2)-1;
 s0=s0+noise*0.00125; //eigentlich *vn
@@ -427,6 +620,26 @@ s1=s1+noise*0.00125;
   //waveshaper
   wsoutl = sin(pidrv*inl)*(sinpidrv+min2d);
   wsoutr = sin(pidrv*inr)*(sinpidrv+min3d);
+);
+
+gain = max(abs(wsoutl),abs(wsoutr));
+
+
+gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed*8);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed;
+  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
 );
 
 
@@ -461,24 +674,6 @@ spl0 = -1*fxoutl*outgain;
 spl1 = -1*fxoutr*outgain;
 
 
-scaler = 10^(abs(-6)/20);
-gain *= scaler;
-gain > gr_meter ? gr_meter=gain : (gr_meter*=0.9999;  gr_meter<0.1?gr_meter=0; );
-gr_meter2 < gr_meter ? (
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 + (meter_speed*8);
-    
-  );
-//gr_meter *= 1.1;
-
-):(
-
-  abs(gr_meter2 - gr_meter) > meter_dif ? (
-    gr_meter2 = gr_meter2 - meter_speed;
-  // gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
-  );
-);
 
 
 
@@ -570,15 +765,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
  
       scale2 = 1.12;blitscale = gfx_w/190;
       gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = gfx_w/3; 
-      gfx_blit(11,scale2*blitscale,0);//5
-      
+     // gfx_blit(11,scale2*blitscale,0);//5
+      mnmetergfx(0, 0, gfx_y, 0, 1);
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = gfx_w/2; gfx_y = gfx_w/3 + 125*blitscale;
-      winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
             winkel > -0.91 ? (
             winkel = -0.91;
             );
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),gfx_w/3 + 125*blitscale+((110*blitscale)*sin(winkel)));
+     // gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),gfx_w/3 + 125*blitscale+((110*blitscale)*sin(winkel)));
       
       gr_meter_old = gr_meter;
       
@@ -606,19 +801,19 @@ taperotr < 0 ? (taperotr = 2*$pi);
 meterx = 230;
 metery = 330;
 
-gfx_x = meterx+15; gfx_y = metery+15;
-gfx_blit(11,1,0);
+gfx_x = meterx; gfx_y = metery;
+//gfx_blit(7,1,0);
 gfx_x = meterx+110;
 gfx_y = metery+125;
 // -71 = 0; -130 = -oo;
-winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
+winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
 winkel > -0.91 ? (
 winkel = -0.91;
 );
-gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
+//gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
 gr_meter_old = gr_meter;
 
-
+mnmetergfx(1, meterx+15, metery+15, 0, 1);
 
                  gfx_a=1;
                  coords[0] = coords[4] = 0;

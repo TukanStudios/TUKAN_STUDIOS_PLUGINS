@@ -1,5 +1,5 @@
 desc:LA-1A (Tukan)
-// Version 1.1
+// Version 1.2
 
 // Copyright 2006, Thomas Scott Stillwell
 // All rights reserved.
@@ -30,12 +30,12 @@ desc:LA-1A (Tukan)
 //tags: dynamics compressor
 //author: Stillwell
 
-filename:0,LAgui/VUMeter.png
+filename:0,LAgui/CCVU2.png
 filename:1,LAgui/LABack.png
 filename:2,LAgui/machick.png
 filename:3,LAgui/switch.png
 filename:4,LAgui/screw.png
-filename:5,LAgui/VUMeter2.png
+filename:5,LAgui/CCVU2.png
 
 slider1:-40<-60,0,0.1>-Threshold (dB)
 slider2:4<1,20,0.1>-Ratio
@@ -47,7 +47,7 @@ slider7:0<0,1,1{Peak,RMS}>-Detection
 slider8:1<0,1,1{Feedforward,Feedback}>-Detection Source
 slider9:20<0,60,0.5>-Gain Reduct
 slider10:0<0,0,0>-EMPTY
-slider11:4.9<0,5,0.01>-Meterspeed
+slider11:5<0.1,10,0.01>-Meterspeed
 
 options:no_meter
 
@@ -64,11 +64,12 @@ out_pin:right output
   i=0;
   loop(
     120,
-    attimes[i] = ((0.08924 / i) + (0.60755 / (i ^ 2)) - 0.00006);
+    attimes[i] = 8*(((0.08924 / i) + (0.60755 / (i ^ 2)) - 0.00006)); //*0.1 
+    //attimes[i] /= 2;
     i+=1;
   );
-  attime=0.010;
-  reltime=0.100;
+  attime=0.001;//0.010;
+  reltime=1;
   maxover=0;
   ratio=4;
   cratio=4;
@@ -79,11 +80,48 @@ out_pin:right output
   atcoef=exp(-1/(attime * srate));
   relcoef=exp(-1/(reltime * srate));
   fbacoef=exp(-1000/(40 * srate)); // 2 msec. opto attack for feedback detection
-  fbrcoef=exp(-1000/(150 * srate)); // 200 msec. opto release for feedback detection
+  fbrcoef=exp(-1000/(200 * srate)); // 200 msec. opto release for feedback detection
   sidechain = 0;
   automakeup = 0;
   ospl0 = 0; ospl1=0;
   osplini = 0;
+  
+  dbc = 20/log(10);
+  function db2ratio(d) ( 10^(d/20); );
+  function ratio2db(r) ( log(abs(r))*dbc; );
+  
+  
+  
+  function stattslider() (
+  mom = 0.00010 + 0.00032 * abs(100-slider11*10)^3 / 125000; 
+  slider1 = -1*slider9;
+  sliderchange(slider1);
+    thresh = slider1/1.2;//-1*slider9;
+    threshv = exp(thresh * db2log);
+    ratio = slider2;
+    softknee = slider4&1;
+    capsc = (slider4&2) ? log2db : log2db * 2.08136898;
+    cthresh = (softknee ? (thresh -3) : thresh);
+    cthreshv = exp(cthresh * db2log);
+    sidechain = slider5;
+    automakeup = slider6;
+    automakeup ? (
+      autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
+    ) : (
+      autogain = 0;
+    );
+    makeup = slider3;
+    makeupv = exp((makeup+autogain) * db2log);
+    RMSdet = slider7;
+    RMSdet ? (
+      rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+    ) : (
+      rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
+      //rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+    );
+    opto = slider8; 
+  );
+  
   
   
   
@@ -329,7 +367,7 @@ out_pin:right output
   gReduct.potcfg (20,0,60,0.06);
   gRatio.potcfg   (4,4,8,4);
   gSidechain.potcfg (0,0,1,1);
- screw.potcfg   (5,0,5,.005);
+ screw.potcfg   (5,0.1,10,.005);
  
   knobsx = 165;
   knobsy = 130;
@@ -367,7 +405,181 @@ out_pin:right output
   
   
   
+  errcnt = 0;
+  tot_nbr_spl = 0;
+  scnt = 0;
   
+  offset = 0.0074;//0.0074;
+  
+  nd_posL = nd_posR = 0;
+  nd_speedL = nd_speedR = 0;
+  
+  dt = 10 / srate;
+  
+  mom = 0.00042;
+  
+  dbL = dbR = 0;
+  overL = overR = 0;
+  
+  fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+  wl   = 0;
+  damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+  
+  mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+  meterInL = spl0;
+  meterInR = spl1;
+  
+  function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+  (
+  tot_nbr_spl += 1;
+  
+  smpL = meterInL; 
+  smpR = meterInR;
+  
+  mnmode == 1 ? ( 
+    smpL = (meterInL + meterInR) * 0.5;
+    smpR = smpL;  
+  );
+  
+  mnmode >= 2 ? ( 
+    smpL = max(meterInL, meterInR);
+    smpR = smpL; 
+  );
+  
+  smpL = abs(smpL);
+  smpR = abs(smpR);
+  
+   
+  scnt += 1;
+  
+  scnt === 10 ? (
+      
+    // move left needle
+    
+      force = smpL * fact_up  -  (nd_posL * .1 + offset);
+      
+      nd_speedL += force * dt / mnmom;  
+      nd_speedL = nd_speedL * damp;
+      nd_posL += nd_speedL * dt;
+      nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+    
+      nd_posL = min(max(nd_posL,0),1);
+    
+      // move right needle
+  
+      force = smpR * fact_up  - (nd_posR * .1 + offset);
+      
+      nd_speedR += force * dt /mnmom;  
+      nd_speedR = nd_speedR * damp;
+      nd_posR += nd_speedR * dt;
+      nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+    
+      nd_posR = min(max(nd_posR,0),1);
+       
+      overL -= 10;
+      overR -= 10;
+  
+      scnt = 0;
+    
+  );
+  );
+  
+  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+  
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+  ;
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+  gfx_blit(0,mnblitscale,0);
+  
+  
+  w1 = $pi * 16.5 / 180; 
+  w2 = $pi * 45 / 180;
+  
+  xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  yw = 92*mnblitscale;//floor(xw / 1.5);
+  
+  r1 = 130*mnblitscale;//floor(yw * 0.85);
+  
+  
+  
+   xd = 10 + chan*(xw+10);
+    mode === 1 ? xd += floor(xw/2);
+    
+    yd = 10;
+  
+    xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+    ya = floor(yd + yw * 1.1);
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+  
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+    mnch == 2 ? (ph= dbR);
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+    
+    );
   
   
   
@@ -378,32 +590,25 @@ out_pin:right output
   
   
 @slider
-slider1 = -1*slider9;
-  thresh = slider1;
-  threshv = exp(thresh * db2log);
-  ratio = slider2;
-  softknee = slider4&1;
-  capsc = (slider4&2) ? log2db : log2db * 2.08136898;
-  cthresh = (softknee ? (thresh -3) : thresh);
-  cthreshv = exp(cthresh * db2log);
-  sidechain = slider5;
-  automakeup = slider6;
-  automakeup ? (
-    autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
-  ) : (
-    autogain = 0;
-  );
-  makeup = slider3;
-  makeupv = exp((makeup+autogain) * db2log);
-  RMSdet = slider7;
-  RMSdet ? (
-    rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
-  ) : (
-    rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
-  );
-  opto = slider8;
+stattslider();
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @sample
+  //  ospl0 = spl0;
+   // ospl1 = spl1;
+    opto = 0;
 osplini == 0 ? (
  aspl0 = abs(spl0*10);
  aspl1 = abs(spl1*10);
@@ -412,19 +617,25 @@ osplini == 0 ? (
 
   sidechain ? (
     opto ? (
+    
       ospl = ospl0 * ospl0 + ospl1 * ospl1;
       //osplini = 1;
+      
       ospl > runospl ? (
         runospl = ospl + atcoef * (runospl - ospl);
       ) : (
         runospl = ospl + relcoef * (runospl - ospl);
       );
+      
       ospl = sqrt(max(0,runospl));
 
       ospl *= 0.5;
 
+      
       aspl0 = abs(ospl);
       aspl1 = abs(ospl);
+      //aspl0 = abs(spl0*10);
+      //aspl1 = abs(spl1*10);
     ) : (
       aspl0 = abs(spl2);
       aspl1 = abs(spl3);
@@ -433,24 +644,25 @@ osplini == 0 ? (
     opto ? (
       ospl = ospl0 * ospl0 + ospl1 * ospl1;
       //osplini = 1;
+      
       ospl > runospl ? (
         runospl = ospl + atcoef * (runospl - ospl);
       ) : (
         runospl = ospl + relcoef * (runospl - ospl);
       );
       ospl = sqrt(max(0,runospl));
-      /*
+      
       runospl * 1000 > 0 ? (
       ospl = sqrt(runospl);
       
       );
-      */
+      
 ospl *= 0.5;
       aspl0 = abs(ospl);
       aspl1 = abs(ospl);
     ) : (
-      aspl0 = abs(spl0);
-      aspl1 = abs(spl1);
+      aspl0 = abs(ospl0);
+      aspl1 = abs(ospl1);
     );
   );
   /*
@@ -470,12 +682,60 @@ osplini == 0 ? (
     runave = maxspl + rmscoef * (runave - maxspl);
     det = sqrt(max(0,runave));
   );
-  overdb = log(det/cthreshv) * capsc;
+  
+  
+  
+//  overdb = log(det/cthreshv) * capsc;
+
+   det=max(det,0.0000000001);
+  mydbin = ratio2db(det);
+  thi1 < mydbin ? thi1 = mydbin;
+  
+  //Neu ich
+  //thresh = tenthresh;
+  
+  kneevalue = 10;
+  knee_width = abs(thresh*2*kneevalue*0.01);
+  Thi = (thresh + knee_width / 2);
+  Tlo = (thresh - knee_width / 2);
+  slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+  knee_factor = (abs(slope) / (knee_width * 2));
+  
+  //thi -= 10;
+  //tlo -= 10;
+  
+  mydbin < Tlo ? (
+    overdb = 0;
+    thi2 = 0;
+  ):(
+    mydbin >= Thi ? (
+      overdb = abs(slope)*(mydbin - thresh); // *slope
+      thi2 = 2;
+      ratior = ratio;
+    ):(
+      mydelta = mydbin - Tlo;
+      overdb = mydelta * mydelta * (knee_factor);
+      thi2 = 1;
+      ratior = ratio;
+    );
+  
+  );
+  //tenoverdb = overdb;
+  
+  // ende neu ich
+  
+  
+  
+  
+  
+  
+  
+  
   overdb > maxover ? (
     maxover = overdb;
     attime = attimes[max(0,floor(abs(overdb)))];   // attack time per formula
     atcoef = exp(-1/(attime * srate));
-    reltime = overdb / 125;                        // release at constant 125 dB/sec.
+    reltime = overdb / 30;                        // release at constant 125 dB/sec.
     relcoef = exp(-1/(reltime * srate));
   );
   overdb = max(0,overdb);
@@ -489,7 +749,7 @@ osplini == 0 ? (
 
   cratio = (softknee ? (1 + (ratio-1) * min(overdb, 6) / 6) : ratio);
   
-  gr = -overdb * (cratio-1)/cratio;
+  gr = -overdb*cratio *(cratio-1)/cratio;
   grv = exp(gr * db2log);
   
   runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
@@ -523,6 +783,11 @@ meterspeed();
   spl1 = Volcompdist*(1+foo)*spl1/(1+foo*abs(spl1));
   
   
+//  grv = 0.63;
+  mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+  
+  
+  
 @gfx 800 238 // request horizontal/vertical heights (0 means dont care)
     gr_meter *= exp(1/500); gr_meter>1?gr_meter=1; // decay meter here so if the audio processing stops it doesnt "stick"
     gfx_r=1; gfx_g=gfx_b=0; gfx_a=0.8;
@@ -549,19 +814,22 @@ gfx_ext_flags == 0 ? (
     metery = 70;
     
     gfx_x = meterx; gfx_y = metery;
-    gfx_blit(0,1,0);
+   // gfx_blit(0,1,0);
     gfx_x = meterx+110;
-    gfx_y = metery+125;
+    gfx_y = metery+130;
     // -71 = 0; -130 = -oo;
 gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
 slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
 slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
-winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
     winkel > -0.91 ? (
     winkel = -0.91;
     );
-    gfx_lineto(meterx+110+(90*(cos(winkel))),metery+125+(90*sin(winkel)));
+  //  gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
     gr_meter_old = gr_meter;
+  
+   mnmetergfx(1, meterx+15, metery+15, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+    
     
     
       gfx_x = 0; gfx_y = 0;
@@ -705,48 +973,23 @@ winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
             
             
             
-            
-            slider1 = -1*slider9;
-            sliderchange(slider1);
-              thresh = -1*slider9;
-              threshv = exp(thresh * db2log);
-              ratio = slider2;
-              softknee = slider4&1;
-              capsc = (slider4&2) ? log2db : log2db * 2.08136898;
-              cthresh = (softknee ? (thresh -3) : thresh);
-              cthreshv = exp(cthresh * db2log);
-              sidechain = slider5;
-              automakeup = slider6;
-              automakeup ? (
-                autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
-              ) : (
-                autogain = 0;
-              );
-              makeup = slider3;
-              makeupv = exp((makeup+autogain) * db2log);
-              RMSdet = slider7;
-              RMSdet ? (
-                rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
-              ) : (
-                rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
-                //rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
-              );
-              opto = slider8;
+     stattslider();       
               
      ):( // EXT FLAGS
       gfx_mode=0; gfx_a = 1;
- 
+ mnmetergfx(0, 0, 0, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
       scale2 = 1.12;blitscale = gfx_w/190;
       gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
-      gfx_blit(5,scale2*blitscale,0);//5
+     // gfx_blit(5,scale2*blitscale,0);//5
       
       gfx_r=0;gfx_g=0;gfx_b=0;
       gfx_x = gfx_w/2; gfx_y = 125*blitscale;
-      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+      //gr_meter2 = 10^(-20/20);
+      winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             winkel > -0.91 ? (
             winkel = -0.91;
             );
-      gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      //gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
       
        gfx_x = 2; gfx_y = 1;
       gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("LA");
