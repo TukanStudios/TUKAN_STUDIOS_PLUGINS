@@ -1,5 +1,5 @@
 desc: Delay Machine2 (Tukan)
-// version 1.1
+// version 1.1.1
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 
@@ -945,12 +945,12 @@ slider51 == 0 ? (
  slider34 == 1 ? (
  //timeitgl > 0 ? (DL1_In = ITGL.delay_output_linear(timeITGL * srate / 1000));
  DL1_Out = DL1_In + left.delay_output_linear(timeDL1 * srate / 1000);
- );
+ ):(DL1_out = CleanL);
  
  slider35 == 1 ? (
  //timeITGR > 0 ? (DL2_In = ITGR.delay_output_linear(timeITGR * srate / 1000));
  DL2_Out = DL2_In + right.delay_output_linear(timeDL2 * srate / 1000); 
- ); 
+ ):(DL2_out = CleanR);
   
 
   volcompdist1 = 1-(slider40/110);
