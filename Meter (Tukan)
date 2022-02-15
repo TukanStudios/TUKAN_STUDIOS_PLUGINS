@@ -1,5 +1,5 @@
 desc: MCP Meter (Tukan)
-// Veriosn 1.1.1
+// Veriosn 1.1.5
 
 filename:0,Meter/CCVU2.png
 filename:1,Meter/led.png
@@ -7,6 +7,7 @@ filename:1,Meter/led.png
 slider1:0<0,1,1>-Stereo
 slider2:0<-24,0,6>-Scale
 slider3:61<0,100,1>-Speed
+slider4:3<-24,24,1>Warn Level
 
 options:no_meter
 
@@ -383,7 +384,14 @@ scaler = 10^(abs(slider2)/20);
 mode = abs(slider1-1);
 mnmetersample(spl0*scaler,spl1*scaler,mode,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
 
-max(smpL,smpR) > 1.4 ? (ledon = 10);
+warnlevel = 10^(slider4/20);
+max(smpL,smpR) > warnlevel ? (ledon = 10);
+
+
+
+
+
+
 //==============================================================================
 @gfx 190 88
 //==============================================================================
@@ -391,6 +399,7 @@ max(smpL,smpR) > 1.4 ? (ledon = 10);
       mouseHoldr = mouse_cap & 2;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
       mouseClick = mouseHold - lastCap;
       mouseClickr = mouseHoldr - lastCapr;      
       
@@ -421,10 +430,21 @@ gfx_drawnumber(abs(slider2),0);
 
 mouseClick == 1 ? (
 shift ? (
-slider2 -= 6; slider2 < -24 ? (slider2 = 0);
+//slider2 -= 6; slider2 < -24 ? (slider2 = 0);
+
+slider2 > -6 ? (slider2 = -6):
+slider2 > -12 ? (slider2 = -12):
+slider2 > -18 ? (slider2 = -18):
+slider2 > -24 ? (slider2 = -24):
+slider2 <= -24 ? (slider2 = 0);
 ):(
-slider1 == 0 ? (slider1=1):(slider1=0); 
+slider1 == 0 ? (slider1=1):(slider1=0);
 );
+
+alt ? (
+slider2 -= 1; slider2 < -24 ? (slider2 = 0);
+);
+
 );
 
 mouseclickr == 2 ? (

@@ -1,5 +1,5 @@
 desc:Lexikan (Tukan)
-// Version 1.1
+// Version 1.1.3
 
 slider1:0<-48,12,0.1>-Dry (dB)
 slider2:-6<-48,12,0.1>-Wet (dB)
@@ -49,6 +49,8 @@ in_pin:L in
 in_pin:R in
 out_pin:L out
 out_pin:R out
+out_pin:SC L out
+out_pin:SC R out
 
 options:no_meter
 
@@ -917,7 +919,7 @@ Richtung = 0;
 
 @sample
     
-    
+    spl2 = spl0; spl3 = spl1;
 
 
                                      slider27 < 0.5 ? (
@@ -1105,7 +1107,7 @@ Rb12 = Rb11+Rl11;
 
 );
 
-@gfx //500 722 
+@gfx 500 722 
 /*
 gfx_r=0; gfx_g=0.9; gfx_b=0; gfx_a=1;
 gfx_setfont(1,"Arial", 16);

@@ -1,5 +1,5 @@
 desc:Dis-Treasure (Tukan)
-// Version 1.0.1
+// Version 1.0.4
 
 /////// OPTO MODE macht noch gain reduction bei input = 0 ... spl*ingain?
 //////// Blockschaltbild nochmal überprüfen...
@@ -467,7 +467,7 @@ slider15 == 0 ? (
   i=0;
   loop(
     120,
-    coords[i+10] = atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006);
+    coords[i+10] = (atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006));
     i+=1;
   );
   tenattime=slider7/1000;
@@ -475,6 +475,7 @@ slider15 == 0 ? (
   tenatcoef=exp(-1/(tenattime * srate));
   tenrelcoef=exp(-1/(tenreltime * srate));
 
+atf1 = coords[14];
 // end opto slider
 
 ):(
@@ -640,7 +641,7 @@ tenoverdb=0;
 //det=det1=det0=tendet=0;
 
 thresh -= ingdb;
-tenthesh -= ingdb;
+tenthresh -= ingdb;
 
 
 
@@ -1024,7 +1025,7 @@ tenoverdb = overdb;
   
   tenoverdb > tenmaxover ? (
     tenmaxover = tenoverdb;
-    tenattime =coords[10+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
     tenatcoef = exp(-1/(tenattime * srate));
     //tenreltime = (130+((slider8-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
     tenrelcoef = exp(-1/(tenreltime * srate));
@@ -1229,6 +1230,8 @@ indetb = orispl1*ingain;
 ):(
 indetA = spl0;
 indetB = spl1;
+//indetA = orispl0*ingain;
+//indetb = orispl1*ingain;
 );
 
 slider19 == 1 ? (
@@ -1869,7 +1872,6 @@ spl0 = orispl0; spl1 = orispl1;
 );
 
 ); /////////////////////// slider15
-
 
 
 

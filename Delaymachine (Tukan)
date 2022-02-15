@@ -1,7 +1,7 @@
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 desc: Delay Machine (Tukan)
-// version 1.1
+// version 1.1.1
 slider1:100<0,3000,1>-Delay (ms) (0=tempo sync)
 slider2:-5<-40,0,1>-Feedback (dB)
 slider3:0<-120,6,1>-Mix In (dB)
@@ -35,6 +35,8 @@ in_pin:left input
 in_pin:right input
 out_pin:left output
 out_pin:right output
+out_pin:SC left output
+out_pin:SC right output
 
 @init
   delaypos=0;
@@ -258,6 +260,10 @@ out_pin:right output
   gtape.potcfg(0,0,1,1);  
   ghpf.potcfg(0,0,1000,.01);  
   glpf.potcfg(14.2877123,9.96,14.2877123,.01);  
+  
+  
+ 
+  
   
 function potsupdate() (
 slider9 == 0 ? (
@@ -521,7 +527,26 @@ slider9 == 0 ? (
  b1_hs = -b1;
  b2_hs = -b2; 
   
+  
+
+  
+  
 @slider
+
+    slider10 > 0 ? (
+    slider10 == 5 ? slider1 = 1000*((60/4)/tempo):
+    slider10 == 4 ? slider1 = 1000*((60/2)/tempo):
+    slider10 == 3 ? slider1 = 1000*((60)/tempo):
+    slider10 == 2 ? slider1 = 1000*((120)/tempo):
+    slider10 == 1 ? slider1 = 1000*((240)/tempo);
+    
+    slider11 == 1 ? slider1 = slider1 * (2/3):
+    slider11 == 2 ? slider1 = slider1 * 1.5;
+  ); 
+  
+  
+  
+  
 slider13 = 2^slider14;
 slider13 < 1000 ? (slider13=1000);
 
@@ -603,6 +628,16 @@ slider13 < 1000 ? (slider13=1000);
   
   
   initial == 0 ?(
+    slider10 > 0 ? (
+    slider10 == 5 ? slider1 = 1000*((60/4)/tempo):
+    slider10 == 4 ? slider1 = 1000*((60/2)/tempo):
+    slider10 == 3 ? slider1 = 1000*((60)/tempo):
+    slider10 == 2 ? slider1 = 1000*((120)/tempo):
+    slider10 == 1 ? slider1 = 1000*((240)/tempo);
+    
+    slider11 == 1 ? slider1 = slider1 * (2/3):
+    slider11 == 2 ? slider1 = slider1 * 1.5;
+  ); 
    gdelay=slider1;
     gdelay.val=gdelay;
    gdelay.potVal(gdelay.val);
@@ -951,15 +986,19 @@ slider13 < 1000 ? (slider13=1000);
   glpf.dragging  ? glpf.potDrag();
   ghpf.dragging  ? ghpf.potDrag();
   
-        slider10 == 5 ? slider1 = 1000*((60/4)/tempo);
-        slider10 == 4 ? slider1 = 1000*((60/2)/tempo);
-        slider10 == 3 ? slider1 = 1000*((60)/tempo);
-        slider10 == 2 ? slider1 = 1000*((120)/tempo);
-        slider10 == 1 ? slider1 = 1000*((240)/tempo);
+        tempox = tempo;
+        
+        slider10 > 0 ? (
+        slider10 == 5 ? slider1 = 1000*((60/4)/tempox):
+        slider10 == 4 ? slider1 = 1000*((60/2)/tempox):
+        slider10 == 3 ? slider1 = 1000*((60)/tempox):
+        slider10 == 2 ? slider1 = 1000*((120)/tempox):
+        slider10 == 1 ? slider1 = 1000*((240)/tempox);
+        
+        slider11 == 1 ? slider1 = slider1 * (2/3):
+        slider11 == 2 ? slider1 = slider1 * 1.5;
 
-        slider11 == 1 ? slider1 = slider1 * (2/3);
-        slider11 == 2 ? slider1 = slider1 * 1.5;     
-     
+      );  
      
      
      
@@ -1159,6 +1198,20 @@ sliderchange(slider4);
 
 
 /*
+    slider10 > 0 ? (
+    slider10 == 5 ? slider1 = 1000*((60/4)/tempo):
+    slider10 == 4 ? slider1 = 1000*((60/2)/tempo):
+    slider10 == 3 ? slider1 = 1000*((60)/tempo):
+    slider10 == 2 ? slider1 = 1000*((120)/tempo):
+    slider10 == 1 ? slider1 = 1000*((240)/tempo);
+    
+    slider11 == 1 ? slider1 = slider1 * (2/3):
+    slider11 == 2 ? slider1 = slider1 * 1.5;
+  ); 
+
+*/
+
+/*
 odelay != delaylen ? (
   odelay > delaylen ? (
       // resample down delay buffer, heh
@@ -1254,7 +1307,7 @@ odelay != delaylen ? (
     
 @sample
 slider13 < 1000 ? (slider13=1000);
-
+spl2 = spl0; spl3 = spl1;
   
   os = (spl0 + spl1) / 2;
  // slider1==0 ? (

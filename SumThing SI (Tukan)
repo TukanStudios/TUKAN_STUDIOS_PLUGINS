@@ -35,7 +35,7 @@ slider28:0<0,1,1>-28 Limiter
 slider29:50<0.1,100,0.1>-Meterspeed
 slider30:0<-24,0,1>-30 Metercalibration
 
-options:no_meter
+//options:no_meter
 
 in_pin:L in
 in_pin:R in
@@ -64,7 +64,7 @@ filename:18,somegui/arrows.png
 filename:19,somegui/screw.png
 
 @init
-version = "Beta 0.7.0";
+version = "Beta 0.8.0";
 /*
 function tanh(x)
 (
@@ -776,15 +776,15 @@ glbl_desk > 1 ? (
      
      ya = mnmetery+110*mnblitscale;
      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-   x1 = xa - cosp * r1 * 0.25;
-   y1 = ya - sinp * r1 * 0.25;
+   mnx1 = xa - cosp * r1 * 0.25;
+   mny1 = ya - sinp * r1 * 0.25;
  
-   x2 = xa - cosp * r1 * 1.1;
-   y2 = ya - sinp * r1 * 1.1;
+   mnx2 = xa - cosp * r1 * 1.1;
+   mny2 = ya - sinp * r1 * 1.1;
  
-   gfx_x = x1;
-   gfx_y = y1; 
-   gfx_lineto(x2, y2);
+   gfx_x = mnx1;
+   gfx_y = mny1; 
+   gfx_lineto(mnx2,mny2);
   );
    
  chan = 0;
@@ -802,15 +802,15 @@ glbl_desk > 1 ? (
      
      ya = mnmetery+110*mnblitscale;
      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-   x1 = xa - cosp * r1 * 0.25;
-   y1 = ya - sinp * r1 * 0.25;
+   mnx1 = xa - cosp * r1 * 0.25;
+   mny1 = ya - sinp * r1 * 0.25;
  
-   x2 = xa - cosp * r1 * 1.1;
-   y2 = ya - sinp * r1 * 1.1;
+   mnx2 = xa - cosp * r1 * 1.1;
+   mny2 = ya - sinp * r1 * 1.1;
  
-   gfx_x = x1;
-   gfx_y = y1; 
-   gfx_lineto(x2, y2);
+   gfx_x = mnx1;
+   gfx_y = mny1; 
+   gfx_lineto(mnx2, mny2);
    
    
    
@@ -835,15 +835,15 @@ glbl_desk > 1 ? (
        
        ya = mnmetery+55*mnblitscale;
        xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-     x1 = xa - cosp * r1 * 0.25;
+     mnx1 = xa - cosp * r1 * 0.25;
      y1 = ya - sinp * r1 * 0.25;
    
-     x2 = xa - cosp * r1 * 1.1;
-     y2 = ya - sinp * r1 * 1.1;
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
    
-     gfx_x = x1;
-     gfx_y = y1; 
-    // gfx_lineto(x2, y2);
+     gfx_x = mnx1;
+     gfx_y = mny1; 
+    // gfx_lineto(mnx2, mny2);
     );
      
    chan = 0;
@@ -861,15 +861,15 @@ glbl_desk > 1 ? (
        
        ya = mnmetery+95*mnblitscale;
        xa= mnmeterx+2+(180*mnblitscale/2);//-(gfx_w/50);
-     x1 = xa - cosp * r1 * 0.25;
-     y1 = ya - sinp * r1 * 0.25;
+     mnx1 = xa - cosp * r1 * 0.25;
+     mny1 = ya - sinp * r1 * 0.25;
    
-     x2 = xa - cosp * r1 * 1.1;
-     y2 = ya - sinp * r1 * 1.1;
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
    
-     gfx_x = x1;
-     gfx_y = y1; 
-     gfx_lineto(x2, y2);
+     gfx_x = mnx1;
+     gfx_y = mny1; 
+     gfx_lineto(mnx2,mny2);
    );
    
    
@@ -1309,7 +1309,7 @@ rgr_meter2 < rgr_meter ? (
 
 
 
-@gfx 380 428// 380 ??
+@gfx //380 428// 380 ??
 
 
 

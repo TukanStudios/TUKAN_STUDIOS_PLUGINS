@@ -1,5 +1,7 @@
 desc:EQT-1A (Tukan)
-// Version 1.1
+// Version 1.1.1
+// RECALIBRATED!!
+
 slider1:1<0,3,1{20,30,60,100}>-|------------- LSF (Hz)
 slider2:0<0,18,0.1>-Push (dB)
 slider3:0<0,18,0.1>-Pull (dB)
@@ -300,7 +302,138 @@ initial = 0;
  
  
  
+ function stattslider() (
+ vslider13 = floor(slider13+0.5);
+ vslider6 = 2.2 - slider6;
  
+ 
+ 
+ slider9 = floor(slider15+0.5);
+ slider1 = floor(slider14+0.5);
+ 
+ vslider13 == 0 ? (slider5=3000);
+ vslider13 == 1 ? (slider5=4000);
+ vslider13 == 2 ? (slider5=5000);
+ vslider13 == 3 ? (slider5=8000);
+ vslider13 == 4 ? (slider5=10000);
+ vslider13 == 5 ? (slider5=12000);
+ vslider13 == 6 ? (slider5=16000);
+ 
+ vslider3 = -1*slider3;
+ vslider10 = -1*slider10;
+ //LowPass A
+ freqA = (slider1 == 0 ? (3000) : (slider1 == 1 ? (6000) : (slider1 == 2 ? (12000) : (20000) )));
+ fA = (3/max(slider2,4))*2*$pi * min(freqA, 0.49 * srate) / srate;
+qA = 0.08 * (36-slider2)/18;
+
+ 
+ w0A = fA;
+ cos_w0A = cos(w0A);
+ alphaA = sin(w0A) / (2*qA);
+ 
+ b1A = 1 - cos_w0A;
+ b0A = b2A = 0.5 * b1A;
+ a0A = 1 + alphaA;
+ a1A = -2 * cos_w0A;
+ a2A = 1 - alphaA;
+ 
+ a1A /= a0A;
+ a2A /= a0A;
+ b0A /= a0A;
+ b1A /= a0A;
+ b2A /= a0A;
+ 
+ tempA = 0.9*slider2;
+ tgt_wetA = 10^(tempA/20)-1;//slider2 <= 0 ? 0.0 : 10^(tempA/20);
+ 
+ //LowPass B
+ freqB = (slider1 == 0 ? (4500) : (slider1 == 1 ? (6500) : (slider1 == 2 ? (11560) : (13640) )));
+ fB = 2*$pi * min(freqB, 0.49 * srate) / srate;
+ qB = 0.12 * (36-abs(vslider3))/18; //erste 0.04
+ 
+ w0B = fB;
+ cos_w0B = cos(w0B);
+ alphaB = sin(w0B) / (2*qB);
+ 
+ b1B = 1 - cos_w0B;
+ b0B = b2B = 0.5 * b1B;
+ a0B = 1 + alphaB;
+ a1B = -2 * cos_w0B;
+ a2B = 1 - alphaB;
+ 
+ a1B /= a0B;
+ a2B /= a0B;
+ b0B /= a0B;
+ b1B /= a0B;
+ b2B /= a0B;
+ 
+ tempB =  slider3;// 18.8 (-3/(slider3+1))+(-(12-(11.25*slider3/18)));
+ tgt_wetB = 0.885*log(1+slider3)/2.9;//10^(tempB/20); //vslider3 >= 0 ? 0.0 : 10^(tempB/20);
+ 
+ dry = 1;
+ 
+ //Peak
+ fC= 2*$pi * min(slider5, 0.49 * srate) / srate;
+ tmp = 0.3+((vslider6-0.2)*0.3);//(slider6 == 0 ? 0.3 : 1.2);
+ qC = tmp;
+ dB_gainC = slider7;
+ 
+ w0C = fC;
+ alphaC = sin(w0C) / (2*qC);
+ aC = 10^(db_gainC / 40);
+ 
+ b0C = 1 + alphaC * aC;
+ b1C = a1C = -2 * cos(w0C);
+ b2C = 1 - alphaC * aC;
+ a0C = 1 + alphaC / aC;
+ a2C = 1 - alphaC / aC;
+ 
+ a1C /= a0C;
+ a2C /= a0C;
+ b0C /= a0C;
+ b1C /= a0C;
+ b2C /= a0C;
+ 
+ //HighShelf
+ freq2 = (slider9 == 0 ? 3000 : (slider9 == 1 ? 5000 : (slider9 == 2 ? 9000 :   6400 )));
+ freq2 /= 2;
+   
+ qD = (slider9 == 0 ? 0.5 : (slider9 == 1 ? 0.48 : (slider9 == 2 ? 0.46 :  0.46 )));
+ 
+ fD = 2*$pi * min(freq2, 0.49 * srate) / srate;
+ 
+ slider9 > 1 ? (
+ vslider10 >= 0 ? tmp2 = vslider10;
+ vslider10 < 0 ? tmp2 = vslider10*0.75;
+ ):(
+ tmp2 = vslider10;
+ );
+ dB_gainD = tmp2;
+ 
+ w0D = fD;
+ cos_w0D = cos(w0D);
+ aD = 10^(db_gainD / 40);
+ 
+ tmp0D = 2 * sqrt(aD) * sin(w0D) / (2 * qD);
+ tmp1D = (aD + 1) - (aD - 1) * cos_w0D;
+ tmp2D = (aD + 1) + (aD - 1) * cos_w0D;
+ 
+ b0D = aD * (tmp2D + tmp0D);
+ b1D = -2 * aD * ((aD - 1) + (aD + 1) * cos_w0D);
+ b2D = aD * (tmp2D - tmp0D);
+ a0D = tmp1D + tmp0D;
+ a1D = 2 * ((aD - 1) - (aD + 1) * cos_w0D);
+ a2D = tmp1D - tmp0D;
+ 
+ a1D /= a0D;
+ a2D /= a0D;
+ b0D /= a0D;
+ b1D /= a0D;
+ b2D /= a0D;
+ 
+ //Output
+ outvol = 10^(slider12/20);
+ );
  
  
  
@@ -312,135 +445,7 @@ initial = 0;
  
  
 @slider
-         vslider13 = floor(slider13+0.5);
-          vslider6 = 2.2 - slider6;
-          
-          
-          
-          slider9 = floor(slider15+0.5);
-          slider1 = floor(slider14+0.5);
-          
-          vslider13 == 0 ? (slider5=3000);
-          vslider13 == 1 ? (slider5=4000);
-          vslider13 == 2 ? (slider5=5000);
-          vslider13 == 3 ? (slider5=8000);
-          vslider13 == 4 ? (slider5=10000);
-          vslider13 == 5 ? (slider5=12000);
-          vslider13 == 6 ? (slider5=16000);
-          
-          vslider3 = -1*slider3;
-          vslider10 = -1*slider10;
-          //LowPass A
-          freqA = (slider1 == 0 ? (400) : (slider1 == 1 ? (860) : (slider1 == 2 ? (1800) : (2560) )));
-          fA = 2*$pi * min(freqA, 0.49 * srate) / srate;
-          qA = 0.08 * (30-slider2)/18;
-          
-          w0A = fA;
-          cos_w0A = cos(w0A);
-          alphaA = sin(w0A) / (2*qA);
-          
-          b1A = 1 - cos_w0A;
-          b0A = b2A = 0.5 * b1A;
-          a0A = 1 + alphaA;
-          a1A = -2 * cos_w0A;
-          a2A = 1 - alphaA;
-          
-          a1A /= a0A;
-          a2A /= a0A;
-          b0A /= a0A;
-          b1A /= a0A;
-          b2A /= a0A;
-          
-          tempA = slider2*10/15;
-          tgt_wetA = slider2 <= 0 ? 0.0 : 10^(tempA/20);
-          
-          //LowPass B
-          freqB = (slider1 == 0 ? (3820) : (slider1 == 1 ? (6500) : (slider1 == 2 ? (11560) : (13640) )));
-          fB = 2*$pi * min(freqB, 0.49 * srate) / srate;
-          qB = 0.12 * (30-abs(vslider3))/18; //erste 0.04
-          
-          w0B = fB;
-          cos_w0B = cos(w0B);
-          alphaB = sin(w0B) / (2*qB);
-          
-          b1B = 1 - cos_w0B;
-          b0B = b2B = 0.5 * b1B;
-          a0B = 1 + alphaB;
-          a1B = -2 * cos_w0B;
-          a2B = 1 - alphaB;
-          
-          a1B /= a0B;
-          a2B /= a0B;
-          b0B /= a0B;
-          b1B /= a0B;
-          b2B /= a0B;
-          
-          tempB = (-7.5-vslider3*0.5);
-          tgt_wetB = vslider3 >= 0 ? 0.0 : 10^(tempB/20);
-          
-          dry = 1;
-          
-          //Peak
-          fC= 2*$pi * min(slider5, 0.49 * srate) / srate;
-          tmp = vslider6;//(slider6 == 0 ? 0.3 : 1.2);
-          qC = tmp;
-          dB_gainC = slider7;
-          
-          w0C = fC;
-          alphaC = sin(w0C) / (2*qC);
-          aC = 10^(db_gainC / 40);
-          
-          b0C = 1 + alphaC * aC;
-          b1C = a1C = -2 * cos(w0C);
-          b2C = 1 - alphaC * aC;
-          a0C = 1 + alphaC / aC;
-          a2C = 1 - alphaC / aC;
-          
-          a1C /= a0C;
-          a2C /= a0C;
-          b0C /= a0C;
-          b1C /= a0C;
-          b2C /= a0C;
-          
-          //HighShelf
-          freq2 = (slider9 == 0 ? 5000 : (slider9 == 1 ? 10000 : (slider9 == 2 ? 15500 :   6400 )));
-          freq2 /= 2;
-            
-          qD = (slider9 == 0 ? 0.5 : (slider9 == 1 ? 0.48 : (slider9 == 2 ? 0.46 :  0.46 )));
-          
-          fD = 2*$pi * min(freq2, 0.49 * srate) / srate;
-          
-          slider9 > 1 ? (
-          vslider10 >= 0 ? tmp2 = vslider10;
-          vslider10 < 0 ? tmp2 = vslider10*0.75;
-          ):(
-          tmp2 = vslider10;
-          );
-          dB_gainD = tmp2;
-          
-          w0D = fD;
-          cos_w0D = cos(w0D);
-          aD = 10^(db_gainD / 40);
-          
-          tmp0D = 2 * sqrt(aD) * sin(w0D) / (2 * qD);
-          tmp1D = (aD + 1) - (aD - 1) * cos_w0D;
-          tmp2D = (aD + 1) + (aD - 1) * cos_w0D;
-          
-          b0D = aD * (tmp2D + tmp0D);
-          b1D = -2 * aD * ((aD - 1) + (aD + 1) * cos_w0D);
-          b2D = aD * (tmp2D - tmp0D);
-          a0D = tmp1D + tmp0D;
-          a1D = 2 * ((aD - 1) - (aD + 1) * cos_w0D);
-          a2D = tmp1D - tmp0D;
-          
-          a1D /= a0D;
-          a2D /= a0D;
-          b0D /= a0D;
-          b1D /= a0D;
-          b2D /= a0D;
-          
-          //Output
-          outvol = 10^(slider12/20);
+  stattslider();
           
 @block
 
@@ -981,137 +986,8 @@ gfx_rect(3*(gfx_w/4),gfx_h- (gfx_h * slider10/18), gfx_w / 4, gfx_h);
           //slider14:2<0,3,1>Freq L
           //slider15:1<0,2,1>freq H
           change == 1 ? ( 
-          vslider13 = floor(slider13+0.5);
-          vslider6 = 2.2 - slider6;
-          
-          
-          
-          slider9 = floor(slider15+0.5);
-          slider1 = floor(slider14+0.5);
-          
-          vslider13 == 0 ? (slider5=3000);
-          vslider13 == 1 ? (slider5=4000);
-          vslider13 == 2 ? (slider5=5000);
-          vslider13 == 3 ? (slider5=8000);
-          vslider13 == 4 ? (slider5=10000);
-          vslider13 == 5 ? (slider5=12000);
-          vslider13 == 6 ? (slider5=16000);
-          
-          vslider3 = -1*slider3;
-          vslider10 = -1*slider10;
-          //LowPass A
-          freqA = (slider1 == 0 ? (400) : (slider1 == 1 ? (860) : (slider1 == 2 ? (1800) : (2560) )));
-          fA = 2*$pi * min(freqA, 0.49 * srate) / srate;
-          qA = 0.08 * (30-slider2)/18;
-          
-          w0A = fA;
-          cos_w0A = cos(w0A);
-          alphaA = sin(w0A) / (2*qA);
-          
-          b1A = 1 - cos_w0A;
-          b0A = b2A = 0.5 * b1A;
-          a0A = 1 + alphaA;
-          a1A = -2 * cos_w0A;
-          a2A = 1 - alphaA;
-          
-          a1A /= a0A;
-          a2A /= a0A;
-          b0A /= a0A;
-          b1A /= a0A;
-          b2A /= a0A;
-          
-          tempA = slider2*10/15;
-          tgt_wetA = slider2 <= 0 ? 0.0 : 10^(tempA/20);
-          
-          //LowPass B
-          freqB = (slider1 == 0 ? (3820) : (slider1 == 1 ? (6500) : (slider1 == 2 ? (11560) : (13640) )));
-          fB = 2*$pi * min(freqB, 0.49 * srate) / srate;
-          qB = 0.12 * (30-abs(vslider3))/18; //erste 0.04
-          
-          w0B = fB;
-          cos_w0B = cos(w0B);
-          alphaB = sin(w0B) / (2*qB);
-          
-          b1B = 1 - cos_w0B;
-          b0B = b2B = 0.5 * b1B;
-          a0B = 1 + alphaB;
-          a1B = -2 * cos_w0B;
-          a2B = 1 - alphaB;
-          
-          a1B /= a0B;
-          a2B /= a0B;
-          b0B /= a0B;
-          b1B /= a0B;
-          b2B /= a0B;
-          
-          tempB = (-7.5-vslider3*0.5);
-          tgt_wetB = vslider3 >= 0 ? 0.0 : 10^(tempB/20);
-          
-          dry = 1;
-          
-          //Peak
-          fC= 2*$pi * min(slider5, 0.49 * srate) / srate;
-          tmp = vslider6;//(slider6 == 0 ? 0.3 : 1.2);
-          qC = tmp;
-          dB_gainC = slider7;
-          
-          w0C = fC;
-          alphaC = sin(w0C) / (2*qC);
-          aC = 10^(db_gainC / 40);
-          
-          b0C = 1 + alphaC * aC;
-          b1C = a1C = -2 * cos(w0C);
-          b2C = 1 - alphaC * aC;
-          a0C = 1 + alphaC / aC;
-          a2C = 1 - alphaC / aC;
-          
-          a1C /= a0C;
-          a2C /= a0C;
-          b0C /= a0C;
-          b1C /= a0C;
-          b2C /= a0C;
-          
-          //HighShelf
-          freq2 = (slider9 == 0 ? 5000 : (slider9 == 1 ? 10000 : (slider9 == 2 ? 15500 :   6400 )));
-          freq2 /= 2;
-            
-          qD = (slider9 == 0 ? 0.5 : (slider9 == 1 ? 0.48 : (slider9 == 2 ? 0.46 :  0.46 )));
-          
-          fD = 2*$pi * min(freq2, 0.49 * srate) / srate;
-          
-          slider9 > 1 ? (
-          vslider10 >= 0 ? tmp2 = vslider10;
-          vslider10 < 0 ? tmp2 = vslider10*0.75;
-          ):(
-          tmp2 = vslider10;
+          stattslider();
           );
-          dB_gainD = tmp2;
-          
-          w0D = fD;
-          cos_w0D = cos(w0D);
-          aD = 10^(db_gainD / 40);
-          
-          tmp0D = 2 * sqrt(aD) * sin(w0D) / (2 * qD);
-          tmp1D = (aD + 1) - (aD - 1) * cos_w0D;
-          tmp2D = (aD + 1) + (aD - 1) * cos_w0D;
-          
-          b0D = aD * (tmp2D + tmp0D);
-          b1D = -2 * aD * ((aD - 1) + (aD + 1) * cos_w0D);
-          b2D = aD * (tmp2D - tmp0D);
-          a0D = tmp1D + tmp0D;
-          a1D = 2 * ((aD - 1) - (aD + 1) * cos_w0D);
-          a2D = tmp1D - tmp0D;
-          
-          a1D /= a0D;
-          a2D /= a0D;
-          b0D /= a0D;
-          b1D /= a0D;
-          b2D /= a0D;
-          
-          //Output
-          outvol = 10^(slider12/20);
-          
-        );
   
   
   

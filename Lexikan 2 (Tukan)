@@ -1,11 +1,15 @@
 desc:Lexikan 2 (Tukan)
-// Version 1.1
+// Version 1.1.3
 //This plugin contains code by Geraint Luff. THANK YOU!
 
 in_pin:Ch1
 in_pin:Ch2
 out_pin:Ch1
 out_pin:Ch2
+
+out_pin:SC Ch1
+out_pin:SC Ch2
+
 //out_pin:AuxL
 //out_pin:AuxR
 
@@ -917,6 +921,8 @@ smoothing = smoother_block(wet) + smoother_block(dry)
 
 DRYspl0 = spl0;
 DRYspl1 = spl1;
+
+spl2 = spl0; spl3 = spl1;
 
 EQspl0 = spl0; EQspl1 = spl1;
 //////////////////////////////// PRE EQ ////////////////////////////////////////

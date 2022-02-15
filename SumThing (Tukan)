@@ -64,7 +64,7 @@ filename:18,somegui/arrows.png
 filename:19,somegui/screw.png
 
 @init
-version = "Beta 0.7.0";
+version = "Beta 0.8.0";
 /*
 function tanh(x)
 (
@@ -501,15 +501,15 @@ histpos=0;
      
      ya = mnmetery+110*mnblitscale;
      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-   x1 = xa - cosp * r1 * 0.25;
-   y1 = ya - sinp * r1 * 0.25;
+   mnx1 = xa - cosp * r1 * 0.25;
+   mny1 = ya - sinp * r1 * 0.25;
  
-   x2 = xa - cosp * r1 * 1.1;
-   y2 = ya - sinp * r1 * 1.1;
+   mnx2 = xa - cosp * r1 * 1.1;
+   mny2 = ya - sinp * r1 * 1.1;
  
-   gfx_x = x1;
-   gfx_y = y1; 
-   gfx_lineto(x2, y2);
+   gfx_x = mnx1;
+   gfx_y = mny1; 
+   gfx_lineto(mnx2, mny2);
   );
    
  chan = 0;
@@ -527,15 +527,15 @@ histpos=0;
      
      ya = mnmetery+110*mnblitscale;
      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-   x1 = xa - cosp * r1 * 0.25;
-   y1 = ya - sinp * r1 * 0.25;
+   mnx1 = xa - cosp * r1 * 0.25;
+   mny1 = ya - sinp * r1 * 0.25;
  
-   x2 = xa - cosp * r1 * 1.1;
-   y2 = ya - sinp * r1 * 1.1;
+   mnx2 = xa - cosp * r1 * 1.1;
+   mny2 = ya - sinp * r1 * 1.1;
  
-   gfx_x = x1;
-   gfx_y = y1; 
-   gfx_lineto(x2, y2);
+   gfx_x = mnx1;
+   gfx_y = mny1; 
+   gfx_lineto(mnx2, mny2);
    
    
    
@@ -560,14 +560,14 @@ histpos=0;
        
        ya = mnmetery+55*mnblitscale;
        xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-     x1 = xa - cosp * r1 * 0.25;
-     y1 = ya - sinp * r1 * 0.25;
+     mnx1 = xa - cosp * r1 * 0.25;
+     mny1 = ya - sinp * r1 * 0.25;
    
-     x2 = xa - cosp * r1 * 1.1;
-     y2 = ya - sinp * r1 * 1.1;
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
    
-     gfx_x = x1;
-     gfx_y = y1; 
+     gfx_x = mnx1;
+     gfx_y = mny1; 
     // gfx_lineto(x2, y2);
     );
      
@@ -586,15 +586,15 @@ histpos=0;
        
        ya = mnmetery+95*mnblitscale;
        xa= mnmeterx+2+(180*mnblitscale/2);//-(gfx_w/50);
-     x1 = xa - cosp * r1 * 0.25;
-     y1 = ya - sinp * r1 * 0.25;
+     mnx1 = xa - cosp * r1 * 0.25;
+     mny1 = ya - sinp * r1 * 0.25;
    
-     x2 = xa - cosp * r1 * 1.1;
-     y2 = ya - sinp * r1 * 1.1;
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
    
-     gfx_x = x1;
-     gfx_y = y1; 
-     gfx_lineto(x2, y2);
+     gfx_x = mnx1;
+     gfx_y = mny1; 
+     gfx_lineto(mnx2,mny2);
    );
    
    
@@ -1230,7 +1230,9 @@ spl1 = inR * cL * ceiling * limitoutput;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
 
+meter_speed = abs(100 - _global.meter_speed);
 
+mom = 0.00010 + 0.00032 *  meter_speed^3 / 125000;  
 
 
 
