@@ -1,7 +1,7 @@
 // License: GPL - http://www.gnu.org/licenses/gpl.html
 
 desc: Delay Machine (Tukan)
-// version 1.1.1
+// version 1.1.2 FIXED NO DELAYS ON SYNCED PLAYBACK
 slider1:100<0,3000,1>-Delay (ms) (0=tempo sync)
 slider2:-5<-40,0,1>-Feedback (dB)
 slider3:0<-120,6,1>-Mix In (dB)
@@ -39,10 +39,25 @@ out_pin:SC left output
 out_pin:SC right output
 
 @init
+
+ext_noinit=1;
+
   delaypos=0;
   pongloc=0;
 
+        tempox = tempo;
+        
+        slider10 > 0 ? (
+        slider10 == 5 ? slider1 = 1000*((60/4)/tempox):
+        slider10 == 4 ? slider1 = 1000*((60/2)/tempox):
+        slider10 == 3 ? slider1 = 1000*((60)/tempox):
+        slider10 == 2 ? slider1 = 1000*((120)/tempox):
+        slider10 == 1 ? slider1 = 1000*((240)/tempox);
+        
+        slider11 == 1 ? slider1 = slider1 * (2/3):
+        slider11 == 2 ? slider1 = slider1 * 1.5;
 
+      );
 
   /*
   ##################### MEINE INIT ###################################
@@ -1304,6 +1319,38 @@ odelay != delaylen ? (
 */
     delaylen != delaylen_old ? (emptybuffer(););
     delaylen_old = delaylen;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 @sample
 slider13 < 1000 ? (slider13=1000);

@@ -471,3 +471,13 @@ ledon ? (gfx_blit(1,blitscale,0,0,35,35,35)):(gfx_blit(1,blitscale,0,0,0,35,35))
 ledon ? (ledon-=1);
 
 mom = 0.00010 + 0.00032 *  slider3^3 / 125000; 
+
+gfx_r=gfx_g=gfx_b=1;
+gfx_x = 200; gfx_y = 4;
+gfx_Drawstr("Needle not moving?...");
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Shift+Left-Click = adjust 'VU 0dB' to x dBFS");
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Alt+Left-Click = adjust 'VU 0dB' to x dBFS (fine)");
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Shift+Right-Click = adjust meter speed  ");
