@@ -1,0 +1,670 @@
+desc:Peak Needle (Tukan)
+
+filename:0,Meter/led.png
+filename:1,Meter/APIBig.png
+filename:2,Meter/APIRED.png
+filename:3,Meter/APISmall.png
+filename:4,Meter/switch.png
+filename:5,Meter/PNMeterback.png
+filename:6,Meter/PPNBack.png
+
+slider1:-60<-90,-20,1>-scale bottom
+slider2:0<-40,0,1>-calibration
+slider3:0<0,1,1>-Stereo
+slider4:0.87<0.5,1,0.01>-Meter decay
+
+
+
+@init
+
+
+initial = 1;
+
+
+
+
+
+
+
+  gfx_clear=0;
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+  
+    function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+ 
+ function xy(x y)
+            ( gfx_x = x; gfx_y = y; );
+ 
+ function rgb(r g b)
+             ( gfx_r = r; gfx_g = g; gfx_b = b; );
+ 
+ function rectIn  (xIn_ yIn_ wIn hIn)
+   instance       (xIn yIn widthIn heightIn)
+                  (
+                   xIn = xIn_;
+                   yIn = yIn_;
+                   widthIn = wIn;
+                   heightIn = hIn;
+                   );
+                 
+ function rectOut  (xOut_ yOut_ wOut hOut c i)
+   instance        (xOut yOut widthOut heightOut count index)
+                   (
+                    xOut = xOut_;
+                    yOut = yOut_;
+                    widthOut = wOut;
+                    heightOut = hOut;
+                    count = c;
+                    index = i;
+                    );                
+ 
+ function potVal(v)
+   instance      (frame val minVal maxVal count heightOut)
+                 (
+                  val = v;
+                  frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                  frame |= 0;
+                 );
+ 
+ function potCfg  (default_ minVal_ maxVal_ step_)
+   instance        (default minVal maxVal step)
+                   (
+                    default = default_;
+                    minVal = minVal_;
+                    maxVal = maxVal_;
+                    step    = step_;
+                    this.potVal(default);
+                   );
+ 
+ function bkg(wImg hImg indImg)
+              (
+                gfx_a=1;
+                coords[0] = coords[4] = 0;
+                coords[1] = coords[5] = 0;;
+                coords[2] = coords[6] = wImg;
+                coords[3] = coords[7] = hImg;
+                gfx_blitext(indImg, coords, 0);
+               ); 
+ 
+ function potDrawIn ()
+   instance        (xIn yIn widthIn heightIn val)
+                   (
+                      gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                      
+                      gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                      gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn,yIn,xIn+widthIn,yIn);
+       
+                      gfx_r = gfx_g = gfx_b = 0.75;
+                      gfx_x = xIn + widthIn/2-12;
+                      gfx_y = yIn+heightIn/2-5;
+                      gfx_drawnumber(val, 1);                   
+                   );
+ 
+ function knob()
+   instance   (xOut yOut widthOut heightOut index frame val)
+              (
+               
+                gfx_a=1;
+                coords[0] = 0;
+                coords[1] = frame * heightOut;
+                coords[2] = coords[6] = widthOut;
+                coords[3] = coords[7] = heightOut;
+                coords[4] = xOut;
+                coords[5] = yOut;
+                gfx_blitext(index, coords, 0);
+               );                                     
+ 
+ function collision  ()
+   instance          (xIn yIn widthIn heightIn)
+                     (
+                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                     );
+ 
+ function dragStart ()
+   instance          (dragging yOld default)
+                     (
+                      !ctrl ? (
+                      yOld = mouse_y;
+                      dragging = 1;
+                     ) : 
+                      this.potVal(default);
+                     );
+ 
+ function dragStop()
+   instance        (dragging val valOld)
+                   (
+                    dragging = 0;
+                    valOld = val;
+                   );
+ 
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+ /*
+ slider1:-60<-90,-20,1>scale bottom
+ slider2:0<-40,0,1>calibration
+ slider3:0<0,1,1>Stereo
+ slider4:0.87<0.5,1,0.01>Meter decay
+ */
+   
+ gscale.potcfg  (-60,-90,-20,.1); //default. von, bis, step
+ gcalib.potcfg (0,-40,0,.04);
+ //gstereo.potcfg   (20,0,150,1);
+ gdecay.potcfg   (0.87,0.5,1,.01);
+ /*
+ goutgain.potcfg   (0,-24,24,.048);
+ gfeedback.potcfg   (0,0,1,1);
+ Trick.potcfg   (0,0,1,1);
+ SC.potcfg   (0,0,1,1);
+ screw.potcfg   (3,0,5,.01);
+ gknee.potcfg   (0,0,100,.1);
+ gdry.potcfg   (0,0,1,.001);
+ */
+ 
+ knobsx = 60; 
+ knobsy = 170;
+ gscale.rectIn(knobsx,knobsy,75,75);//xpos,ypos,weite,höhe des img
+ gscale.rectOut(knobsx,knobsy, 75, 75, 61, 1); //Xpos,ypos,weite,höhe,Frames,bitmap
+
+ gcalib.rectIn(knobsx+120,knobsy, 75, 75);
+ gcalib.rectOut(knobsx+120,knobsy, 75, 75, 61, 1);
+ 
+ gdecay.rectIn(knobsx+7,knobsy+140, 60, 60); 
+ gdecay.rectOut(knobsx+7,knobsy+140, 60, 60, 61, 3);
+ 
+
+
+
+
+
+
+
+
+function stattslider() (
+
+calib = slider2;
+scalebottom = abs(slider1);
+Stereo = slider3;
+Meter_decay = slider4;
+
+);
+
+
+@slider
+stattslider();
+
+
+
+
+
+
+
+@sample
+
+stereo == 0 ? (
+cor=20*log10(-20);
+level = max(max(abs(spl0),abs(spl1)),0.0000001);
+inputlevel < level ? (inputlevel = level; fallback = 0):(fallback=1);
+):(
+level = max(abs(spl0),0.0000001);
+levelR = max(abs(spl1),0.0000001);
+inputlevel < level ? (inputlevel = level; fallback = 0):(fallback=1);
+inputlevelR < levelR ? (inputlevelR = levelR; fallbackR = 0):(fallbackR=1);
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 314 418
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      
+     
+      
+ initial == 1 ? (     
+      gscale=slider1;
+      gscale.val=gscale;
+      gscale.potVal(gscale.val);
+      gscale.valOld=gscale;
+      
+      gcalib=slider2;
+      gcalib.val=gcalib;
+      gcalib.potVal(gcalib.val);
+      gcalib.valOld=gcalib;
+      
+      gdecay=slider4;
+      gdecay.val=gdecay;
+      gdecay.potVal(gdecay.val);
+      gdecay.valOld=gdecay;
+      
+      initial = 0;
+  );
+      
+      
+
+gfx_ext_flags == 0 ? (
+
+gsize = 1.2;
+versatzx = 130;
+versatzy = 140;
+
+//    gfx_r= 1; gfx_g= 1; gfx_b=1; // pink 
+//  gfx_rect(0,0,260*gsize,350*gsize);
+gfx_x = (versatzx-100)*gsize;
+gfx_y = versatzy*gsize - (115*gsize);
+gfx_blit(5,1,0);
+  
+ //   gfx_r= 0.9; gfx_g= 0.8; gfx_b= 0.2; // pink 
+ // gfx_rect(versatzx*gsize-100*gsize,versatzy*gsize-115*gsize,200*gsize,95*gsize);
+  
+  
+    gfx_r= 0; gfx_g= 0; gfx_b= 0; 
+    gfx_arc(versatzx*gsize, versatzy*gsize, 90*gsize, -50*($pi/180), 39*($pi/180), 1);
+    gfx_arc(versatzx*gsize, versatzy*gsize, 89*gsize, -50*($pi/180), 39*($pi/180), 1);
+    gfx_arc(versatzx*gsize, versatzy*gsize, 86*gsize, -50*($pi/180), 39*($pi/180), 1);
+    
+//    gfx_lineto(120*gsize - 100*gsize * (cos(-90)*($pi/180)*0),120*gsize - 100*gsize * sin(-90)*($pi/180));
+   zeiger = 100;
+   scalebottom_meter = 90/scalebottom;
+   
+   gfx_setfont(1,"Arial",8*gsize,0);
+   postmp = 0;
+   loop(10,
+    postmp <= scalebottom ? (
+    winkel = 130 + -postmp*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+    gfx_x = versatzx*gsize-86*gsize*cos(-winkel*($pi/180)); gfx_y = versatzy*gsize-86*gsize*sin(winkel*($pi/180));
+    gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+   postmp += 10;
+   
+   gfx_x = -3*gsize+versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180))*1.1;
+   gfx_y = versatzy*gsize-(zeiger+10)*gsize*sin(winkel*($pi/180));
+   gsize >= 0.8 ? gfx_drawnumber(-(postmp-10),0);
+   );
+   );
+   postmp = 0;
+   loop(20,
+    postmp <= scalebottom ? (
+    winkel = 130 + -postmp*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+    gfx_x = versatzx*gsize-90*gsize*cos(-winkel*($pi/180)); gfx_y = versatzy*gsize-90*gsize*sin(winkel*($pi/180));
+    gfx_lineto(versatzx*gsize-94*gsize*cos(-winkel*($pi/180)),versatzy*gsize-94*gsize*sin(winkel*($pi/180)));
+   postmp += 5;
+   );
+   );
+   
+   
+   
+   fallback == 1 ? (
+   inputlevel*=meter_decay;
+   );
+   
+   gfx_x = versatzx*gsize; gfx_y = (versatzx-15)*gsize;
+   
+   winkel = 130 + abs(calib)*scalebottom_meter+2*scalebottom_meter+20*log10(inputlevel)*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+   winkel = max(40,winkel);
+   winkel > 130 ? (
+   winkel = 130;
+   warn = 1;
+   ledon = 8;
+   ):(
+   warn = 0;
+   );
+   gfx_x = versatzx*gsize-32*gsize*cos(-winkel*($pi/180));
+   gfx_y = versatzy*gsize+32*gsize*sin(-winkel*($pi/180));
+    gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+    
+    
+    stereo == 1 ? (
+    fallbackR == 1 ? (
+    inputlevelR*=meter_decay;
+    );
+    
+    gfx_x = versatzx*gsize; gfx_y = (versatzx-15)*gsize;
+    
+    winkel = 130 + abs(calib)*scalebottom_meter+2*scalebottom_meter+20*log10(inputlevelR)*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+    winkel = max(40,winkel);
+    winkel > 130 ? (
+    winkel = 130;
+    warn = 1;
+    ledon = 8;
+    ):(
+    warn = 0;
+    );
+    gfx_x = versatzx*gsize-32*gsize*cos(-winkel*($pi/180));
+    gfx_y = versatzy*gsize+32*gsize*sin(-winkel*($pi/180)); gfx_r=1;
+     gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+     );
+     
+     
+    warn == 1 ? (gfx_x = 0; gfx_y = 0; gfx_drawstr("WARN!!!"));
+    
+    gfx_x = (versatzx+70)*gsize; gfx_y = (versatzy-115)*gsize;
+    ledon ? (gfx_blit(0,gsize*0.8,0,0,35,35,35)):(gfx_blit(0,gsize*0.8,0,0,0,35,35));
+    
+    ledon ? (ledon-=1);
+
+gfx_r=gfx_g=gfx_b=0.2;
+gfx_circle(versatzx*gsize,versatzy*gsize,40,1);
+
+gfx_x=gfx_y=0;
+gfx_blit(6,1,0); 
+
+
+    gscale.knob();
+    gcalib.knob();
+    gdecay.knob();
+    
+    
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+      gscale.collision()   ? gscale.dragStart();   
+      gcalib.collision()   ? gcalib.dragStart();
+      gdecay.collision()   ? gdecay.dragStart();
+      //gfx_r=gfx_g=gfx_b=0;
+      //gfx_rect(knobsx+110,knobsy+140,30,55);
+      mouse_x > knobsx+110 ? (
+      mouse_x < knobsx+110+30 ? (
+      mouse_y > knobsy+140 ? (
+      mouse_y < knobsy+140+55 ? (
+      slider3 == 0 ? (slider3=1):(slider3=0);
+      );
+      );
+      );
+      );
+    ):    
+    
+mouseClick == -1  ? 
+    (
+      gscale.dragStop();
+      gcalib.dragStop();
+      gdecay.dragStop();
+    );
+    
+mouse_wheel ? 
+    (
+      gscale.collision()   ? gscale.potWheel():
+      gcalib.collision()    ? gcalib.potWheel(): 
+      gdecay.collision()    ? gdecay.potWheel():
+      mouse_wheel=0;
+    );    
+    
+gscale.dragging  ? (gscale.potDrag();Changer = 1); 
+gcalib.dragging  ? (gcalib.potDrag();Changer = 1);
+gdecay.dragging  ? (gdecay.potDrag();Changer = 1);
+    
+    
+    
+    
+    
+    gscale!=gscale.val?
+        (
+          gscale=gscale.val;
+          slider1=gscale;
+          pot.potVal(gscale.val);
+         ):
+    gscale!=slider1?
+        (
+          gscale=slider1;
+          gscale.val=gscale;
+          gscale.potVal(gscale.val);
+          gscale.valOld=gscale;
+        );
+      
+    gcalib!=gcalib.val?
+        (
+          gcalib=gcalib.val;
+          slider2=gcalib;
+          pot.potVal(gcalib.val);
+         ):
+    gcalib!=slider2?
+        (
+          gcalib=slider2;
+          gcalib.val=gcalib;
+          gcalib.potVal(gcalib.val);
+          gcalib.valOld=gcalib;
+        );  
+      
+    gdecay!=gdecay.val?
+        (
+          gdecay=gdecay.val;
+          slider4=gdecay;
+          pot.potVal(gdecay.val);
+         ):
+    gdecay!=slider4?
+        (
+          gdecay=slider4;
+          gdecay.val=gdecay;
+          gdecay.potVal(gdecay.val);
+          gdecay.valOld=gdecay;
+        );
+        
+        stattslider();
+        gfx_setfont(1,"Arial",12*gsize,0);
+        
+        
+        
+        gfx_r=gfx_g=gfx_b=0;
+        gfx_rect(knobsx,knobsy+80,75,15);
+        gfx_r=gfx_g=gfx_b=1;
+        gfx_x = knobsx+10; gfx_y = knobsy+80;
+        gfx_drawnumber(slider1,1);
+        gfx_drawstr(" dB");
+        
+        gfx_r=gfx_g=gfx_b=0;
+        gfx_rect(knobsx+120,knobsy+80,75,15);
+        gfx_r=gfx_g=gfx_b=1;
+        gfx_x = knobsx+130; gfx_y = knobsy+80;
+        gfx_drawnumber(slider2,1);
+        gfx_drawstr(" dB");
+        gfx_x = knobsx+100; gfx_y = knobsy+140;
+        slider3 == 0 ? (gfx_blit(4,1,0,0,0,40,60)):(gfx_blit(4,1,0,0,60,40,60));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+):( //GFX EXT FLAGS
+
+gsize = (gfx_w/240)*1.2;
+versatzx = 100;
+versatzy = 120;
+
+//    gfx_r= 1; gfx_g= 1; gfx_b=1; // pink 
+//  gfx_rect(0,0,260*gsize,350*gsize);
+gfx_x = (versatzx-100)*gsize;
+gfx_y = versatzy*gsize - (115*gsize);
+gfx_blit(5,gsize/1.2,0);
+  
+ //   gfx_r= 0.9; gfx_g= 0.8; gfx_b= 0.2; // pink 
+ // gfx_rect(versatzx*gsize-100*gsize,versatzy*gsize-115*gsize,200*gsize,95*gsize);
+  
+  
+    gfx_r= 0; gfx_g= 0; gfx_b= 0; 
+    gfx_arc(versatzx*gsize, versatzy*gsize, 90*gsize, -50*($pi/180), 39*($pi/180), 1);
+    // gfx_arc(versatzx*gsize, versatzy*gsize, 89*gsize, -50*($pi/180), 39*($pi/180), 1);
+   // gfx_arc(versatzx*gsize, versatzy*gsize, 86*gsize, -50*($pi/180), 39*($pi/180), 1);
+    
+//    gfx_lineto(120*gsize - 100*gsize * (cos(-90)*($pi/180)*0),120*gsize - 100*gsize * sin(-90)*($pi/180));
+   zeiger = 100;
+   scalebottom_meter = 90/scalebottom;
+   
+   gfx_setfont(1,"Arial",8*gsize,0);
+   postmp = 0;
+   loop(10,
+    postmp <= scalebottom ? (
+    winkel = 130 + -postmp*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+    gfx_x = versatzx*gsize-90*gsize*cos(-winkel*($pi/180)); gfx_y = versatzy*gsize-90*gsize*sin(winkel*($pi/180));
+    gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+   postmp += 10;
+   
+   gfx_x = -3*gsize+versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180))*1.1;
+   gfx_y = versatzy*gsize-(zeiger+10)*gsize*sin(winkel*($pi/180));
+   gsize >= 0.1 ? gfx_drawnumber(-(postmp-10),0);
+   );
+   );
+ 
+
+   
+   
+   
+   fallback == 1 ? (
+   inputlevel*=meter_decay;
+   );
+   
+   gfx_x = versatzx*gsize; gfx_y = (versatzx-15)*gsize;
+   
+   winkel = 130 + abs(calib)*scalebottom_meter+2*scalebottom_meter+20*log10(inputlevel)*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+   winkel = max(40,winkel);
+   winkel > 130 ? (
+   winkel = 130;
+   warn = 1;
+   ledon = 8;
+   ):(
+   warn = 0;
+   );
+   gfx_x = versatzx*gsize-32*gsize*cos(-winkel*($pi/180));
+   gfx_y = versatzy*gsize+32*gsize*sin(-winkel*($pi/180));
+    gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+    
+    
+    stereo == 1 ? (
+    fallbackR == 1 ? (
+    inputlevelR*=meter_decay;
+    );
+    
+    gfx_x = versatzx*gsize; gfx_y = (versatzx-15)*gsize;
+    
+    winkel = 130 + abs(calib)*scalebottom_meter+2*scalebottom_meter+20*log10(inputlevelR)*scalebottom_meter; // 40 = start - 100 = strecke bis vollausschlag
+    winkel = max(40,winkel);
+    winkel > 130 ? (
+    winkel = 130;
+    warn = 1;
+    ledon = 8;
+    ):(
+    warn = 0;
+    );
+    gfx_x = versatzx*gsize-32*gsize*cos(-winkel*($pi/180));
+    gfx_y = versatzy*gsize+32*gsize*sin(-winkel*($pi/180)); gfx_r=1;
+     gfx_lineto(versatzx*gsize-zeiger*gsize*cos(-winkel*($pi/180)),versatzy*gsize-zeiger*gsize*sin(winkel*($pi/180)));
+     );
+     
+     
+    warn == 1 ? (gfx_x = 0; gfx_y = 0; gfx_drawstr("WARN!!!"));
+    
+    gfx_x = (versatzx+70)*gsize; gfx_y = (versatzy-115)*gsize;
+    ledon ? (gfx_blit(0,gsize*0.8,0,0,35,35,35)):(gfx_blit(0,gsize*0.8,0,0,0,35,35));
+    
+    ledon ? (ledon-=1);
+
+gfx_r=gfx_g=gfx_b=0;
+gfx_circle(versatzx*gsize,versatzy*gsize,30*gsize,1);
+
+
+
+
+); // GFX_EXT_FLAGS
