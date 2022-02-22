@@ -1,0 +1,836 @@
+// https://youtu.be/mnr3udsFZO0
+// https://youtu.be/IhFqOe29X90
+// https://youtu.be/f12dXQ6Rx_8
+// https://youtu.be/H-yOsOZKC-k
+
+slider1:window_size_ms=50<0,1000,.1>-Window size (ms)
+
+slider3:rms_db_definitional=0<-62,6,.1>-RMS Definitional (dB)
+slider4:rms_db_optimized=0<-62,6,.1>-RMS Optimized (dB)
+slider5:rms_db_approximated=0<-62,6,.1>-RMS Approximated (dB)
+
+slider6:0<0,1,1>-measure noise 6
+slider7:0<0,1,1>-measure signal 7
+slider8:0<0,1,1>-RESET 8
+slider9:0<0,1,1>-RESET SIG 9
+
+slider10:60<20,120,1>-BAD!
+slider11:65<20,120,1>-POOR
+slider12:70<20,120,1>-FAIR
+slider13:85<20,120,1>-GOOD
+slider14:90<20,120,1>-EXCELLENT!
+slider15:3<0.5,20,0.5>-Live decay
+
+
+filename:0,Meter/SNRBack.png
+
+@init
+ext_noinit = 1;
+
+signalvalid = 0;
+curspl_gfx = -140;
+rms_db_approximated_gfx = -140;
+rms_db_definitional = -140;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function stattslider () (
+window_size_samples = max(1, srate * window_size_ms / 1000);
+
+window_pointer = -1;
+
+free_address = 0;
+
+// Definitional
+windows_definitional = free_address; free_address += num_ch;
+channel = -1; loop(num_ch, channel += 1;
+  windows_definitional[channel] = free_address; free_address += window_size_samples;
+);
+
+// Optimized
+window_optimized = free_address; free_address += window_size_samples;
+window_sum_optimized = 0;
+
+freembuf(free_address + 1);
+
+// Approximated
+moving_average_approximated = 0;
+moving_average_coefficient_approximated = 1 - exp(-1/window_size_samples);
+
+slider8 == 1 ? ( //RESET
+funsumnoiserms = 0;
+funsumnoisermscount = 0;
+funnoiserms = 0;
+
+funsignoiserms2 = 0;
+funsignoisermscount2 = 0;
+funnoiserms2 = 0;
+noisemeasured = 0;
+maxspl = -200;
+funsignoiserms2 = 0;
+funsignoisermscount2 = 0;
+funnoiserms2 = 0;
+signalmeasured = 0;
+signalvalid = 0;
+maxspl = -200;
+slider8 = 0;
+);
+
+slider9 == 1 ? ( //RESET SIG
+funsignoiserms2 = 0;
+funsignoisermscount2 = 0;
+funnoiserms2 = 0;
+signalmeasured = 0;
+signalvalid = 0;
+maxspl = -200;
+slider9 = 0;
+);
+
+
+
+ rating1 != slider14 ? slider14 = max(slider13+3,slider14);
+ rating1 != slider14 ? slider14 = min(120,slider14);
+
+ rating2 != slider13 ? slider13 = max(slider12+3,slider13);
+ rating2 != slider13 ? slider13 = min(slider14-3,slider13);
+ 
+ rating3 != slider12 ? slider12 = max(slider11+3,slider12);
+ rating3 != slider12 ? slider12 = min(slider13-3,slider12);
+ 
+ rating4 != slider11 ? slider11 = max(3,slider11);
+ rating4 != slider11 ? slider11 = min(slider12-3,slider11);
+
+
+Rating1 = slider14; //52; //Excellent
+Rating2 = slider13; //45; //Very good
+Rating3 = slider12; //; //OK
+Rating4 = slider11; //27; //Poor
+rating5 = slider10; //; //Very poor
+
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@serialize
+
+1;
+
+@slider
+stattslider();
+
+
+
+
+
+
+@block
+meterdecay=slider15;
+
+
+funrunrms = funsumsmpl / funsumsmplcount;
+funsumsmplcount = 0;
+funsumsmpl = 0;
+
+funrunrms2 = funsumsmpl2 / funsumsmplcount2;
+funsumsmplcount2 = 0;
+funsumsmpl2 = 0;
+
+
+
+
+
+slider6 == 1 ? (
+
+funsumnoiserms += funrunrms;
+funsumnoisermscount += 1;
+funnoiserms = funsumnoiserms / funsumnoisermscount;
+noisemeasured = 1;
+);
+
+slider7 == 1 ? (
+funrunrms > funnoiserms+20 ? (
+signalvalid = 1;
+funsignoiserms2 += funrunrms2;
+funsignoisermscount2 += 1;
+funnoiserms2 = funsignoiserms2 / funsignoisermscount2;
+signalmeasured = 1;
+sigspl = maxspl;
+);
+);
+
+
+//gfxsumsmpl += rms_db_definitional;
+//gfxsumsmplcount +=1;
+gfxrms = gfxsumsmpl / gfxsumsmplcount;
+gfxsumsmplcount = 0;
+gfxsumsmpl = 0;
+
+abs(gfxrms)- abs(rms_db_approximated_gfx) > 20 ? (
+rms_db_approximated_gfx = max(gfxrms,-140);
+):(
+rms_db_approximated_gfx = max(rms_db_approximated_gfx,max(gfxrms,-140));
+);
+
+signalvalid == 0 ? (
+signalmeasured = 0;
+maxspl = -200;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+cleanL = spl0;
+cleanR = spl1;
+
+//spl0 = max(spl0,0.00000001);
+//spl1 = max(spl1,0.00000001);
+
+window_pointer += 1; window_pointer == window_size_samples ? window_pointer -= window_size_samples;
+
+// Mean squares channels
+mean_squares_channels = 0;
+channel = -1; loop(num_ch, channel += 1;
+  mean_squares_channels += sqr(spl(channel));
+);
+mean_squares_channels /= num_ch;
+
+// Definitional
+channel = -1; loop(num_ch, channel += 1;
+  windows_definitional[channel][window_pointer] = spl(channel);
+);
+
+// Optimized
+window_sum_optimized -= window_optimized[window_pointer];
+window_sum_optimized += window_optimized[window_pointer] = mean_squares_channels;
+rms_amplitude_optimized = sqrt(window_sum_optimized / window_size_samples);
+rms_db_optimized = 20 * log10(rms_amplitude_optimized);
+sliderchange(slider4);
+
+// Approximated
+moving_average_approximated += moving_average_coefficient_approximated * (mean_squares_channels - moving_average_approximated);
+rms_amplitude_approximated = sqrt(moving_average_approximated);
+rms_db_approximated = 20 * log10(rms_amplitude_approximated);
+//rms_db_approximated = max(rms_db_approximated,0.000001);
+sliderchange(slider5);
+
+
+funsumsmpl += rms_db_definitional;
+funsumsmplcount +=1;
+
+funsumsmpl2 += rms_db_definitional;
+funsumsmplcount2 +=1;
+
+curspl=20*log10(max(max(abs(spl0),abs(spl1)),0.0000001));
+slider7 == 1 ? maxspl < curspl ? maxspl = curspl;
+
+
+rms_db_definitional > 0 ? rms_db_definitional = aaay;
+//rms_db_definitional - aaay > 20 ? (rms_db_definitional = aaay;rms_db_definitional2 = rms_db_definitional);
+//abs(rms_db_definitional - rms_db_definitional2) < 5 ? rms_db_definitional = rms_db_definitional2;
+
+aaay =rms_db_definitional;
+
+
+
+
+gfxsumsmpl += rms_db_definitional;
+gfxsumsmplcount +=1;
+
+
+
+curspl_gfx > curspl ? 
+(
+
+curspl_gfx - curspl > 20 ? (
+bigstep += 1;
+bigstep > srate/10 ? (
+curspl_gfx -= (curspl_gfx - curspl)/20;
+);
+):(
+curspl_gfx-=meterdecay/100000;
+bigstep =0;
+);
+
+):(curspl_gfx = curspl);
+
+//curspl <= -140 ? curspl_gfx = -140;
+
+
+
+//rms_db_approximated_gfx == 0 ? rms_db_approximated_gfx = -140;
+//rms_db_approximated == 0 ? rms_db_approximated = -140;
+rms_db_approximated_gfx > rms_db_definitional ? (
+
+  rms_db_approximated_gfx - rms_db_definitional > 10 ? (
+    rmsbigstep += 1;
+    rmsbigstep > srate/4 ? (
+      //rms_db_approximated_gfx -= (rms_db_approximated_gfx - rms_db_definitional)/20;
+    blub=1;
+    );
+  ):(
+    rms_db_approximated_gfx -= meterdecay/100000;
+    rmsbigstep = 0;
+  );
+
+
+):(
+  //rms_db_approximated_gfx = max(rms_db_definitional,-140);
+blub=1;
+);
+
+
+
+
+
+spl0 = cleanL;
+spl1 = cleanR;
+
+
+
+
+
+
+
+
+
+
+@gfx 563 578
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+// Definitional
+windows_sum_definitional = 0;
+gfx_channel = -1; loop(num_ch, gfx_channel += 1;
+  window_index_definitional = -1; loop(window_size_samples, window_index_definitional += 1;
+    windows_sum_definitional += sqr(windows_definitional[gfx_channel][window_index_definitional]);
+  );
+);
+rms_amplitude_definitional = sqrt(windows_sum_definitional / window_size_samples / num_ch);
+rms_db_definitional = 20 * log10(rms_amplitude_definitional);
+sliderchange(slider3);
+
+/*gfx_x=gfx_y=0;
+gfx_drawnumber(funnoiserms,2);
+
+gfx_x=0;gfx_y=20;
+gfx_drawnumber(funnoiserms2,2);
+*/
+
+//slider10 == 1 ? (
+SIGMIN = -30;
+//);
+
+funsignalrunl < SIGMIN ? (Lsig = "LOW"):(Lsig = "OK");
+funsignalrunr < SIGMIN ? (Rsig = "LOW"):(Rsig = "OK");
+LSIG == "LOW" ? (LFLOOR = "LOW SIG"):(LFLOOR="");
+RSIG == "LOW" ? (RFLOOR = "LOW SIG"):(RFLOOR="");
+snrrmsl >= Rating5 ? (ratingL = 5; ratinglstr = " Very poor!");
+snrrmsl >= Rating4 ? (ratingL = 4; ratinglstr = " Poor");
+snrrmsl >= Rating3 ? (ratingL = 3; ratinglstr = " OK");
+snrrmsl >= Rating2 ? (ratingL = 2; ratinglstr = " Very Good");
+snrrmsl >= Rating1 ? (ratingL = 1; ratinglstr = " Excellent!");
+
+snrrmsr >= Rating5 ? (ratingR = 5; ratingrstr = " Very poor!");
+snrrmsr >= Rating4 ? (ratingR = 4; ratingrstr = " Poor");
+snrrmsr >= Rating3 ? (ratingR = 3; ratingrstr = " OK");
+snrrmsr >= Rating2 ? (ratingR = 2; ratingrstr = " Very Good");
+snrrmsr >= Rating1 ? (ratingR = 1; ratingrstr = " Excellent!");
+
+
+funnoiserunrmsl=funnoiserms;
+funsignalrunl=funnoiserms2;
+
+
+gfx_R = gfx_g = gfx_b = .1;
+gfx_rect(0,0,600,700);
+
+gfx_R = gfx_g = gfx_b = 1;
+
+gfx_texth = 20;
+gfx_setfont(1,"Arial",20);
+
+gfx_x = 0; gfx_y=40;
+gfx_drawstr("Noise floor: ");
+gfx_x = 300; gfx_drawnumber(funnoiserunrmsl,1);
+
+gfx_R = gfx_g = gfx_b = 1;
+//signalmeasured == 1 ? (
+gfx_y += 35;gfx_x = 0; 
+LSIG = "OK" ? (
+gfx_g = 1; gfx_r = gfx_b = 0;
+gfx_drawstr("Signal: ");
+gfx_x = 300; signalvalid ? (gfx_drawnumber(funsignalrunl,1)):(gfx_drawstr("invalid"));
+):(
+gfx_r = 1; gfx_g = gfx_b = 0;
+gfx_drawstr("Signal: ");
+gfx_drawstr(LSIG);
+);
+
+gfx_y += 30;gfx_x = 0;
+gfx_drawstr("Max. Sig Peak: ");
+gfx_x = 300; signalvalid ? (gfx_drawnumber(sigspl,1)):(gfx_drawstr("invalid"));
+
+snrrmsl = abs(funnoiserunrmsl) - abs(funsignalrunl);
+gfx_y += 35;gfx_x = 0;
+ratingL == 1 ? (gfx_r=0; gfx_g = 1; gfx_b = 0;);
+ratingL == 2 ? (gfx_r=0.7; gfx_g = 1; gfx_b = 0;);
+ratingL == 3 ? (gfx_r=1; gfx_g = 1; gfx_b = 0;);
+ratingL == 4 ? (gfx_r=1; gfx_g = 0.4; gfx_b = 0;);
+ratingL == 5 ? (gfx_r=1; gfx_g =01; gfx_b = 0;);
+gfx_drawstr("SNR: ");
+gfx_x = 300; signalvalid ? (gfx_drawnumber(snrrmsl,1)):(gfx_drawstr("invalid"));
+// signalvalid ? gfx_drawstr(ratingLStr);
+
+gfx_y += 30;gfx_x = 0;
+gfx_drawstr("Dynamic range: ");
+DynRange = abs(funnoiserunrmsl) - abs(maxspl);
+gfx_x = 300; signalvalid ? (gfx_drawnumber(DynRange,1)):(gfx_drawstr("invalid"));
+
+//);
+
+
+
+gfx_g = gfx_r = gfx_b = 0;
+gfx_rect(178,528,74,27);
+gfx_y = 530; gfx_x = 180;
+gfx_g = gfx_r = gfx_b = 1;
+//gfx_drawstr("Live RMS: "); 
+rms_db_approximated_gfx > -140 ? (gfx_drawnumber(rms_db_approximated_gfx,2)):(gfx_drawstr("      - -"));
+
+
+gfx_g = gfx_r = gfx_b = 0;
+gfx_rect(398,528,74,27);
+gfx_x = 400;
+
+gfx_g = gfx_r = gfx_b = 1;
+//gfx_drawstr("Live PEAK: "); 
+curspl_gfx > -140 ? (gfx_drawnumber(curspl_gfx,1)):(gfx_drawstr("      - -"));
+
+
+
+
+
+
+
+
+
+
+//////////////////// SNR BEWERTUNG
+gratingx = 40; gratingy = 300; gratingscale = 4;
+gfx_r=0; gfx_g = 0; gfx_b = 0;
+gfx_rect(gratingx-4, gratingy-32, 8+120*gratingscale, 64);
+
+gfx_setfont(1,"Arial",12);
+gfx_R = gfx_g = gfx_b = 0.7;
+gfx_line(gratingx+120*gratingscale,gratingy-15,gratingx+120*gratingscale,gratingy+15);
+//gfx_y = gratingy-60; gfx_x = -55+gratingx+120*gratingscale; gfx_drawstr("Excellent");
+gfx_line(gratingx+rating1*gratingscale,gratingy-15,gratingx+rating1*gratingscale,gratingy+15);
+gfx_line(gratingx+rating2*gratingscale,gratingy-15,gratingx+rating2*gratingscale,gratingy+15);
+gfx_line(gratingx+rating3*gratingscale,gratingy-15,gratingx+rating3*gratingscale,gratingy+15);
+gfx_line(gratingx+rating4*gratingscale,gratingy-15,gratingx+rating4*gratingscale,gratingy+15);
+gfx_line(gratingx,gratingy-15,gratingx,gratingy+15);
+
+
+ratingL == 1 ? (gfx_r=0; gfx_g = 1; gfx_b = 0;);
+ratingL == 2 ? (gfx_r=0.7; gfx_g = 1; gfx_b = 0;);
+ratingL == 3 ? (gfx_r=1; gfx_g = 1; gfx_b = 0;);
+ratingL == 4 ? (gfx_r=1; gfx_g = 0.4; gfx_b = 0;);
+ratingL == 5 ? (gfx_r=1; gfx_g =01; gfx_b = 0;);
+//gfx_R = 1; gfx_g = 1; gfx_b = 0.3;
+signalvalid == 1 ? (
+gfx_line(gratingx+snrrmsl*gratingscale,gratingy-30,gratingx+snrrmsl*gratingscale,gratingy);
+gfx_x = gratingx+snrrmsl*gratingscale + 5; gfx_y=gratingy-30;
+gfx_drawstr(ratingLstr);
+);
+
+gfx_r=0; gfx_g = 1; gfx_b = 0;
+gfx_line(gratingx+rating1*gratingscale,gratingy,gratingx+120*gratingscale,gratingy);
+gfx_r=0.7; gfx_g = 1; gfx_b = 0;
+gfx_line(gratingx+rating2*gratingscale,gratingy,gratingx-1+rating1*gratingscale,gratingy);
+gfx_r=1; gfx_g = 1; gfx_b = 0;
+gfx_line(gratingx+rating3*gratingscale,gratingy,gratingx-1+rating2*gratingscale,gratingy);
+gfx_r=1; gfx_g = 0.4; gfx_b = 0;
+gfx_line(gratingx+rating4*gratingscale,gratingy,gratingx-1+rating3*gratingscale,gratingy);
+gfx_r=1; gfx_g = 0; gfx_b = 0;
+gfx_line(gratingx,gratingy,gratingx-1+rating4*gratingscale,gratingy);
+
+//////////////////// SNR BEWERTUNG
+
+xm = mouse_x; // X position lesen
+ym = mouse_y; // Y position lesen
+
+mouse_cap == 1 ? (
+
+
+mhold == 0 ? (
+
+xm_alt = xm;
+s10 = slider10;
+s11 = slider11;
+s12 = slider12;
+s13 = slider13;
+s14 = slider14;
+
+  mouse_x > -3+gratingx+rating1*gratingscale ? (
+  mouse_x < 3+gratingx+rating1*gratingscale ? (
+  mouse_y > gratingy-15 ? (
+  mouse_y < gratingy+15 ? (
+  sm14 = 1;
+  );
+  );
+  );
+  );
+  
+  mouse_x > -3+gratingx+rating2*gratingscale ? (
+  mouse_x < 3+gratingx+rating2*gratingscale ? (
+  mouse_y > gratingy-15 ? (
+  mouse_y < gratingy+15 ? (
+  sm13 = 1;
+  );
+  );
+  );
+  );
+  
+  mouse_x > -3+gratingx+rating3*gratingscale ? (
+  mouse_x < 3+gratingx+rating3*gratingscale ? (
+  mouse_y > gratingy-15 ? (
+  mouse_y < gratingy+15 ? (
+  sm12 = 1;
+  );
+  );
+  );
+  );
+  
+  mouse_x > -3+gratingx+rating4*gratingscale ? (
+  mouse_x < 3+gratingx+rating4*gratingscale ? (
+  mouse_y > gratingy-15 ? (
+  mouse_y < gratingy+15 ? (
+  sm11 = 1;
+  );
+  );
+  );
+  );
+); // setzt ym_alt als ausgangspunkt
+
+
+mhold = 1; // damit ym_alt nicht immer neu gesetzt wird solange die maus gedrückt bleibt
+diff = (xm-xm_alt);
+//ym_alt = ym;
+
+
+
+):(
+diff = 0;
+mhold = 0;
+sm10 = 0;
+sm11 = 0;
+sm12 = 0;
+sm13 = 0;
+sm14 = 0;
+); // diff ausleeren, mhold = 0 bedeutet maus wird nicht gedrückt
+
+mhold == 1 ? (
+Rating1 = slider14; //52; //Excellent
+Rating2 = slider13; //45; //Very good
+Rating3 = slider12; //; //OK
+Rating4 = slider11; //27; //Poor
+rating5 = slider10; //; //Very poor
+
+
+ sm14 ? slider14 = s14 + diff/gratingscale;
+ sm13 ? slider13 = s13 + diff/gratingscale;
+ sm12 ? slider12 = s12 + diff/gratingscale;
+ sm11 ? slider11 = s11 + diff/gratingscale;
+
+ sm14 ? slider14 = max(slider13+3,slider14);
+ sm14 ? slider14 = min(120,slider14);
+
+ sm13 ? slider13 = max(slider12+3,slider13);
+ sm13 ? slider13 = min(slider14-3,slider13);
+ 
+ sm12 ? slider12 = max(slider11+3,slider12);
+ sm12 ? slider12 = min(slider13-3,slider12);
+ 
+ sm11 ? slider11 = max(3,slider11);
+ sm11 ? slider11 = min(slider12-3,slider11);
+
+);
+
+
+
+mouseclick == 1 ? (
+//ctrl ? (
+  mouse_x > settingsx ? (
+  mouse_x < settingsx+120*gratingscale ? (
+  mouse_y > settingsy-15 ? (
+  mouse_y < settingsy+15 ? (
+slider_show(slider14,-1);
+slider_show(slider13,-1);
+slider_show(slider12,-1);
+slider_show(slider11,-1);
+slider_show(slider1,-1);
+slider_show(slider15,-1);
+//);
+);
+);
+);
+);
+);
+
+////////////// ANDERE METERS
+meterstep = 90;
+
+gfx_r=0.7; gfx_g = 1; gfx_b = 1;
+gratingy += meterstep;
+gfx_r=0; gfx_g = 0; gfx_b = 0;
+gfx_rect(gratingx-4, gratingy-32, 8+120*gratingscale, 64);
+
+gfx_r=0.7; gfx_g = 1; gfx_b = 1;
+
+gfx_line(gratingx,gratingy,gratingx+120*gratingscale,gratingy);
+nn = 0;
+loop(13,
+gfx_line(gratingx+120*gratingscale-nn*gratingscale,gratingy-15,gratingx+120*gratingscale-nn*gratingscale,gratingy+15);
+nn+=10;
+gfx_x = 2 + gratingx+120*gratingscale-nn*gratingscale; gfx_y= gratingy+2;
+nn < 130 ? gfx_drawnumber(120-nn,0);
+);
+
+gfx_r=1; gfx_g = 1; gfx_b = 1;
+gfx_line(gratingx+DynRange*gratingscale,gratingy,gratingx+DynRange*gratingscale,gratingy+30);
+gfx_x = 5 + gratingx+DynRange*gratingscale; gfx_y= gratingy+18;
+gfx_drawnumber(DynRange,2);
+gfx_x = -40 + gratingx+DynRange*gratingscale; gfx_y= gratingy+18;
+gfx_drawstr("Range");
+gfx_line(gratingx+snrrmsl*gratingscale,gratingy,gratingx+snrrmsl*gratingscale,gratingy-30);
+gfx_x = 5 + gratingx+snrrmsl*gratingscale; gfx_y= gratingy-30;
+gfx_drawnumber(snrrmsl,2);
+gfx_x = -30 + gratingx+snrrmsl*gratingscale; gfx_y= gratingy-30;
+gfx_drawstr("SNR");
+
+
+
+
+
+
+
+gfx_r=0.7; gfx_g = 1; gfx_b = 1;
+gratingy += meterstep;
+gfx_r=0; gfx_g = 0; gfx_b = 0;
+gfx_rect(gratingx-4, gratingy-32, 8+120*gratingscale, 64);
+
+gfx_r=0.7; gfx_g = 1; gfx_b = 1;
+
+gfx_line(gratingx,gratingy,gratingx+120*gratingscale,gratingy);
+nn = 0;
+loop(13,
+gfx_line(gratingx+120*gratingscale-nn*gratingscale,gratingy-15,gratingx+120*gratingscale-nn*gratingscale,gratingy+15);
+nn+=10;
+gfx_x = 2 + gratingx+120*gratingscale-nn*gratingscale; gfx_y= gratingy+6;
+nn < 130 ? gfx_drawnumber(-nn,0);
+);
+
+gfx_r=1; gfx_g = 1; gfx_b = 1;
+gfx_line(gratingx+120*gratingscale+rms_db_approximated_gfx*gratingscale,gratingy,gratingx+120*gratingscale+rms_db_approximated_gfx*gratingscale,gratingy-30);
+gfx_x=gratingx; gfx_y=gratingy-1;
+gfx_rectto(gratingx+120*gratingscale+rms_db_approximated_gfx*gratingscale,gratingy-4);
+gfx_x=-30+gratingx+120*gratingscale+rms_db_approximated_gfx*gratingscale; gfx_y = gratingy - 30;
+gfx_drawstr("RMS");
+gfx_x=3+gratingx+120*gratingscale+rms_db_approximated_gfx*gratingscale; gfx_y = gratingy - 30;
+gfx_drawnumber(rms_db_approximated_gfx,2);
+
+gfx_line(gratingx+120*gratingscale+curspl_gfx*gratingscale,gratingy,gratingx+120*gratingscale+curspl_gfx*gratingscale,gratingy+30);
+gfx_x=gratingx; gfx_y=gratingy+1;
+gfx_rectto(gratingx+120*gratingscale+curspl_gfx*gratingscale,gratingy+4);
+gfx_x=-37+gratingx+120*gratingscale+curspl_gfx*gratingscale; gfx_y = gratingy + 18;
+gfx_drawstr("PEAK");
+gfx_x=3+gratingx+120*gratingscale+curspl_gfx*gratingscale; gfx_y = gratingy + 18;
+gfx_drawnumber(curspl_gfx,2);
+
+
+
+
+button_w = 60; button_h=20;
+Measure_noisex = 400;
+Measure_noisey = 42;
+
+Measure_sigx = 400;
+Measure_sigy = 77;
+
+resetsigx = 480;
+resetsigy = 77;
+
+resetallx = 480;
+resetally = 42;
+
+slider6 == 0 ? (gfx_r=0;gfx_g=1;gfx_b=0):(gfx_r=1;gfx_g=0;gfx_b=0);
+gfx_roundrect(Measure_noisex,Measure_noisey,button_w,button_h,10);
+//gfx_r=gfx_g=gfx_b=0; 
+gfx_x = measure_noisex+10; gfx_y=measure_noisey+4;
+slider6 == 0 ? (gfx_drawstr("START")):(gfx_drawstr("STOP"));
+
+
+noisemeasured ? (slider7 == 0 ? (gfx_r=0;gfx_g=1;gfx_b=0):(gfx_r=1;gfx_g=0;gfx_b=0)):(gfx_r=0.6;gfx_g=0.6;gfx_b=0.6);
+gfx_roundrect(Measure_sigx,Measure_sigy,button_w,button_h,10);
+//gfx_r=gfx_g=gfx_b=0; 
+gfx_x = measure_sigx+10; gfx_y=measure_sigy+4;
+slider7 == 0 ? (gfx_drawstr("START")):(gfx_drawstr("STOP"));
+
+gfx_r=1;gfx_g=0.4;gfx_b=0.4;
+gfx_roundrect(resetsigx,resetsigy,button_w,button_h,10);
+//gfx_r=gfx_g=gfx_b=0; 
+gfx_x = resetsigx+10; gfx_y=resetsigy+4;
+gfx_drawstr("SIGNAL");
+
+
+gfx_r=1;gfx_g=0;gfx_b=0;
+gfx_roundrect(resetallx,resetally,button_w,button_h,10);
+//gfx_r=gfx_g=gfx_b=0; 
+gfx_x = resetallx+18; gfx_y=resetally+4;
+gfx_drawstr("ALL");
+
+mouseclick == 1 ? (
+mouse_x > measure_noisex ? (
+mouse_x < measure_noisex + button_w ? (
+mouse_y > measure_noisey ? (
+mouse_y < measure_noisey + button_h ? (
+slider6 == 1 ? (slider6 = 0):(slider6 = 1;slider8 = 1; slider9 = 1);
+);
+);
+);
+);
+
+noisemeasured ? (
+mouse_x > measure_sigx ? (
+mouse_x < measure_sigx + button_w ? (
+mouse_y > measure_sigy ? (
+mouse_y < measure_sigy + button_h ? (
+slider7 == 1 ? (slider7 = 0):(slider7 = 1; slider9 = 1);
+);
+);
+);
+);
+);
+
+mouse_x > resetsigx ? (
+mouse_x < resetsigx + button_w ? (
+mouse_y > resetsigy ? (
+mouse_y < resetsigy + button_h ? (
+slider9 = 1; slider8 = 0;
+);
+);
+);
+);
+
+mouse_x > resetallx ? (
+mouse_x < resetallx + button_w ? (
+mouse_y > resetally ? (
+mouse_y < resetally + button_h ? (
+slider8 = 1;
+);
+);
+);
+);
+
+
+mouse_x > 178 ? (
+mouse_x < 178+74 ? (
+mouse_y > 528 ? (
+mouse_y < 528+27 ? (
+rms_db_approximated_gfx = -140;
+curspl_gfx = -140;
+);
+);
+);
+);
+
+mouse_x > 398 ? (
+mouse_x < 398+74 ? (
+mouse_y > 528 ? (
+mouse_y < 528+27 ? (
+rms_db_approximated_gfx = -140;
+curspl_gfx = -140;
+);
+);
+);
+);
+
+);
+
+stattslider();
+
+gfx_x = 0; gfx_y= 0;
+gfx_blit(0,1,0);
+
+
+gfx_r=0.7; gfx_g = 1; gfx_b = 1;
+settingsx = 430; settingsy = 165;
+gfx_roundrect(settingsx,settingsy,button_w+20,button_h,10);
+//gfx_r=gfx_g=gfx_b=0; 
+gfx_x = settingsx+10; gfx_y=settingsy+4;
+gfx_drawstr("SETTINGS");
+
+
+
+/*
+
+gfx_rect(178,528,74,27);
+gfx_y = 530; gfx_x = 180;
+gfx_g = gfx_r = gfx_b = 1;
+//gfx_drawstr("Live RMS: "); 
+rms_db_approximated_gfx > -140 ? (gfx_drawnumber(rms_db_approximated_gfx,2)):(gfx_drawstr("      - -"));
+
+
+gfx_g = gfx_r = gfx_b = 0;
+gfx_rect(398,528,74,27);
+gfx_x = 400;
+
+gfx_g = gfx_r = gfx_b = 1;
+//gfx_drawstr("Live PEAK: "); 
+curspl_gfx > -140 ? (gfx_drawnumber(curspl_gfx,1)):(gfx_drawstr("      - -"));
+
+
+
+
