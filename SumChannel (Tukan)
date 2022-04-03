@@ -40,7 +40,8 @@ slider29:0<-24,24,0.1>-29 Comp Output (dB)
 slider30:0<0,1,1{Off,On}>-30 Delta
 slider31:0<0,1,1>-31 Feedback
 slider32:0<0,1,1>-32 Sidechain
-slider33:0<0,1,1>-Metermode
+slider33:0<0,1,1>-Metermode 
+33 recylcled// dark mode
 
 slider34:3<0,5,0.01>-Meterspeed
 slider35:0<0,1,0.01>-35 Dry amount
@@ -84,7 +85,7 @@ slider64:0.5<0,1,0.1>-38 Balance
 
 filename:0,sumchan/screw.png
 filename:1,sumchan/chick60.png
-filename:2,sumchan/neve60.png
+filename:2,sumchan/Neve60.png
 filename:3,sumchan/ssl60.png
 filename:4,sumchan/switch.png
 filename:5,sumchan/VUMeter1.png
@@ -111,8 +112,20 @@ filename:23,sumchan/sslg60.png
 filename:24,sumchan/sslb60.png
 filename:25,sumchan/ssll60.png
 
-filename:26,sumchan/neveb60.png
-filename:27,sumchan/never60.png
+filename:26,sumchan/Neveb60.png
+filename:27,sumchan/Never60.png
+
+filename:28,sumchan/bC3B.png
+filename:29,sumchan/bC2B.png
+filename:30,sumchan/bC1B.png
+filename:31,sumchan/bGateB.png
+filename:32,sumchan/bE4B.png
+filename:33,sumchan/bE3B.png
+filename:34,sumchan/bE2B.png
+filename:35,sumchan/bE1B.png
+filename:36,sumchan/bInB.png
+filename:37,sumchan/bOutB.png
+filename:38,sumchan/bOut1B.png
 
 options:No_meter
 
@@ -133,6 +146,7 @@ out_pin:R out
 
 @init
 ext_noinit = 1; 
+black = 0;
 
 STPresent = 0;
 
@@ -428,7 +442,7 @@ STPresent = 0;
  glbl_desk == 1 ? (
  slider49 = -0.22; slider50 = 0.21; 
  slider51 = 0;
- input = 10^((slider51 + slider56)/20); //preoutput = 10^(-(7+slider56/1.1)/20);
+ sumth_input = 10^((slider51 + slider56)/20); //preoutput = 10^(-(7+slider56/1.1)/20);
  preoutput = 10^(-(slider51+slider56)/20);
  noisewp = 0; noisedesk = -88;
  noisech = slider55;
@@ -440,7 +454,7 @@ STPresent = 0;
  glbl_desk == 2 ? (
  slider49 = -0.0; slider50 = 0.0; 
  slider51 = -37;
- input = 10^((slider51 + slider56)/20);
+ sumth_input = 10^((slider51 + slider56)/20);
  preoutput = 10^(-(slider51+slider56)/20);
   noisewp = 1; noisedesk = -119;
  noisech = slider55;
@@ -452,7 +466,7 @@ STPresent = 0;
  glbl_desk == 3 ? (
  slider49 = 0; slider50 = 1; 
  slider51 = -26;
- input = 10^((slider51 + slider56)/20);
+ sumth_input = 10^((slider51 + slider56)/20);
  preoutput = 10^(-(slider51+slider56)/20);
   noisewp = 0; noisedesk = -106;
  noisech = slider55;
@@ -460,16 +474,16 @@ STPresent = 0;
  
  );
  
- a=slider49;
- b=slider50;
+ sumth_a=slider49;
+ sumth_b=slider50;
  
- k1=a^2;
- k2=1+2*a;
- k3=b^2;
- k4=1-2*b;
+ sumth_k1=sumth_a^2;
+ sumth_k2=1+2*sumth_a;
+ sumth_k3=sumth_b^2;
+ sumth_k4=1-2*sumth_b;
  
- input=10^(slider51/20);
- output=10^(slider52/20);
+ //sumth_input=10^(slider51/20);
+ //preoutput=10^(slider52/20);
  
  mode=slider53;
  
@@ -1102,7 +1116,7 @@ input = 10^((slider51 + slider56)/20);output = 10^(-(slider51+slider56)/20);mete
 glbl_desk == 1 ? (
 slider49 = -0.22; slider50 = 0.21; 
 slider51 = 0;
-input = 10^((slider51 + slider56)/20); preoutput = 10^(-(0+slider56/1)/20);
+sumth_input = 10^((slider51 + slider56)/20); preoutput = 10^(-(0+slider56/1)/20);
 noisewp = 0; noisedesk = -88;
 noisech = slider55;
 meter = 0;
@@ -1113,7 +1127,7 @@ meter = 0;
 glbl_desk == 2 ? (
 slider49 = -0.0; slider50 = 0.0; 
 slider51 = -37;
-input = 10^((slider51 + slider56)/20);
+sumth_input = 10^((slider51 + slider56)/20);
 preoutput = 10^(-(slider51+slider56)/20);
  noisewp = 1; noisedesk = -119;
 noisech = slider55;
@@ -1125,7 +1139,7 @@ meter = 2;
 glbl_desk == 3 ? (
 slider49 = 0; slider50 = 1; 
 slider51 = -26;
-input = 10^((slider51 + slider56)/20);
+sumth_input = 10^((slider51 + slider56)/20);
 preoutput = 10^(-(slider51+slider56)/20);
  noisewp = 0; noisedesk = -106;
 noisech = slider55;
@@ -1133,6 +1147,23 @@ meter = 1;
 
 );
 
+
+ sumth_a=slider49;
+ sumth_b=slider50;
+ 
+sumth_k1=sumth_a^2;
+sumth_k2=1+2*sumth_a;
+sumth_k3=sumth_b^2;
+sumth_k4=1-2*sumth_b;
+ 
+ //input=10^(slider51/20);
+ //preoutput=10^(slider52/20);
+ 
+ mode=slider53;
+ 
+ size=slider54;
+ histsize=size/1000*srate|0;
+ 
 // ENDE SUMT
 
 
@@ -1753,28 +1784,27 @@ noise=(noise*noiselevel*noisech);
 
 
 
+sumth_x0=spl0*sumth_input;
+sumth_x1=spl1*sumth_input;
 
-x0=spl0*input;
-x1=spl1*input;
-
-x0<a?(
-y0=(k1+x0)/(k2-x0);
+sumth_x0<sumth_a?(
+sumth_y0=(sumth_k1+sumth_x0)/(sumth_k2-sumth_x0);
 );
-(a<=x0)&&(x0<=b)?(
-y0=x0;
+(sumth_a<=sumth_x0)&&(sumth_x0<=sumth_b)?(
+sumth_y0=sumth_x0;
 );
-x0>b?(
-y0=(x0-k3)/(x0+k4);
+sumth_x0>sumth_b?(
+sumth_y0=(sumth_x0-sumth_k3)/(sumth_x0+sumth_k4);
 );
 
-x1<a?(
-y1=(k1+x1)/(k2-x1);
+sumth_x1<sumth_a?(
+sumth_y1=(sumth_k1+sumth_x1)/(sumth_k2-sumth_x1);
 );
-(a<=x1)&&(x1<=b)?(
-y1=x1;
+(sumth_a<=sumth_x1)&&(sumth_x1<=sumth_b)?(
+sumth_y1=sumth_x1;
 );
-x1>b?(
-y1=(x1-k3)/(x1+k4);
+sumth_x1>sumth_b?(
+sumth_y1=(sumth_x1-sumth_k3)/(sumth_x1+sumth_k4);
 );
 
 //spl0=tanh(y0);
@@ -1787,12 +1817,14 @@ inon = 1;
       );
       );
       
+            
 inon == 1 ? (
-spl0=y0*preoutput+noise;
-spl1=y1*preoutput+noise;
+spl0=sumth_y0*preoutput+noise;
+spl1=sumth_y1*preoutput+noise;
 otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
 otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
 );
+
 
 histbuf[histpos]=spl0;
 histbuf[histpos+histsize]=spl1;
@@ -2247,7 +2279,110 @@ mnmetersample(0.00001+spl0*scaler,0.00001+spl1*scaler,themode,mom); // mode = (0
  spl0 *= deskfade; spl1 *= deskfade;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+  /// LIMITER ///////////////
+  ovrlParam1=1.3; //ovrlthresh
+  ovrlParam2=0.5; //output
+  ovrlParam3=0.2;//.5+0*0.5; //ovrlattack
+  ovrlParam4=0.2;//.5+0*0.5; //ovrlrelease
+  ovrlParam5=0; //softknee
+  
+  //hard knee
+  ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+  
+  ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+  ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+  ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+  
+  
+  ovrlth = ovrlthresh;
+  ovrlg = ovrlgain;
+  ovrlat = ovrlatt;
+  ovrlre = ovrlrel;
+  ovrltr = ovrltrim;
+  
+  ovrlol = spl0;
+  ovrlor = spl1;
+  
+  //ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+ ovrllev = ovrlg * max(abs(ovrlol),abs(ovrlor)); 
+  (ovrllev > ovrlth) ?
+  (
+  ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+  )
+  : //below ovrlthreshold
+  (
+  ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+  );
+  
+  spl0 = max(10,(ovrlol * ovrltr * ovrlg));
+  spl1 = min(0,(ovrlor * ovrltr * ovrlg));
+  
+  ovrlgain = ovrlg;
+*/
+spl0 < -4 ? spl0 = -4;
+spl0 > 4 ? spl0 = 4;
+
+spl1 < -4 ? spl1 = -4;
+spl1 > 4 ? spl1 = 4;
+
+
 sample_on = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2300,6 +2435,7 @@ sample_on = 0;
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
 
@@ -2358,6 +2494,10 @@ gfx_rect(reduct_mini,gfx_h-(gfx_h/8),gfx_w,gfx_h);
 
 ):( //////////////// EXT FLAGS
 
+slider33 == 0 ? (black=0):(black = 17);
+
+
+
 
 offsetx = 120;
 
@@ -2374,10 +2514,11 @@ gfx_r=gfx_g=gfx_b=0.3;
 gfx_rect(eqx, eqy, eqw, eqh);
  
 gfx_x = eqx; gfx_y=eqy;
-slider21 == 3 ? gfx_blit(15,1,0,2,0,296,550);
-slider21 == 2 ? gfx_blit(16,1,0,2,0,296,550);
-slider21 == 1 ? gfx_blit(17,1,0,2,0,296,550);
-slider21 == 0 ? gfx_blit(18,1,0,2,0,296,550);
+
+slider21 == 3 ? gfx_blit(15+black,1,0,2,0,296,550);
+slider21 == 2 ? gfx_blit(16+black,1,0,2,0,296,550);
+slider21 == 1 ? gfx_blit(17+black,1,0,2,0,296,550);
+slider21 == 0 ? gfx_blit(18+black,1,0,2,0,296,550);
 
   knopfimg = glbl_desk;
   
@@ -2567,9 +2708,9 @@ slider46 == 2 ? cmpx = offsetx + 416;
 gfx_r=gfx_g=gfx_b=0.35;
 //gfx_rect(cmpx, cmpy, cmpw, cmph);
 
-slider36 == 2 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(11,1,0,2,0,296,550));
-slider36 == 1 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(12,1,0,2,0,296,550));
-slider36 == 0 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(13,1,0,2,0,296,550));
+slider36 == 2 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(11+black,1,0,2,0,296,550));
+slider36 == 1 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(12+black,1,0,2,0,296,550));
+slider36 == 0 ? (gfx_x=cmpx; gfx_y=cmpy; gfx_blit(13+black,1,0,2,0,296,550));
 
 cmpx -= 2;
 
@@ -2719,7 +2860,7 @@ slider45 == 2 ? gatex = offsetx + 592;
 gfx_r=gfx_g=gfx_b=0.45;
 gfx_rect(gatex, gatey, gatew, gateh);
 gfx_x = gatex; gfx_y=gatey;
-gfx_blit(14,1,0);
+gfx_blit(14+black,1,0);
    
    glbl_desk == 3 ? knopfimg += 21;
    glbl_desk == 2 ? knopfimg += 24;
@@ -2890,7 +3031,7 @@ slider39 == 0 ? ggate_det= 0;
            
            gfx_x = goutx;
            gfx_y = gouty;
-           glbl_desk > 1 ? (gfx_blit(20,1,0)):(gfx_blit(21,1,0));
+           glbl_desk > 1 ? (gfx_blit(20+black,1,0)):(gfx_blit(21+black,1,0));
            
         miniknopf(knopfimg,goutx+80,gouty+220,61,60,0,1,slider64,1); // OUT Balance
         
@@ -2914,7 +3055,7 @@ slider39 == 0 ? ggate_det= 0;
    gfx_rect(0,0,120, 550); 
    gfx_x = 0;
    gfx_y = 0;
-   gfx_blit(19,1,0);
+   gfx_blit(19+black,1,0);
   
   glbl_desk == 3 ? knopfimg += 21;
   glbl_desk == 2 ? knopfimg += 24; 
@@ -3063,6 +3204,10 @@ slider39 == 0 ? ggate_det= 0;
 //  gfx_rect(eqx+260, eqy+430,17,50);
 mouseClick == 1 ? 
     (
+    alt ? (
+    slider33 == 1 ? (slider33=0):(slider33=1);
+    );
+    
     
   clickstart == 0 ? (
   clickstart = 1;
@@ -4029,7 +4174,9 @@ gfx_drawnumber(slider26,1);
 
 ); 
 */
-
+gfx_r=0.7; gfx_g=gfx_b=0;
+gfx_x=950; gfx_y=525;
+gfx_drawstr("BUGFIX #1");
 
 ); /////// EXT FLAGS
 
