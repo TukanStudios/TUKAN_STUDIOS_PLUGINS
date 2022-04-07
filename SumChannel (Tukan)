@@ -69,10 +69,10 @@ slider53:1<0,1,1{mono,stereo}>-mode
 slider54:25<20,250,5>-scope size (ms)
 slider55:0.5<0,2,0.01>-Desk Noise
 slider56:0<-24,24,0.1>-Amount offset
-slider57:1<0,3,1>-Desk Model
+slider57:1<0,3,1>-57 Desk Model
 
 slider58:1<0,1,1>-26 CH Processing
-slider59:2<0,3,1>-27 Desk Select
+slider59:2<0,3,1>-59 Desk Select
 
 slider60:50<0.1,100,0.1>-60 Meterspeed
 slider61:-12<-24,0,1>-61 Metercalibration
@@ -127,6 +127,8 @@ filename:36,sumchan/bInB.png
 filename:37,sumchan/bOutB.png
 filename:38,sumchan/bOut1B.png
 
+//import sumchan/smoother.jsfx-inc
+
 options:No_meter
 
 in_pin:L in
@@ -147,6 +149,8 @@ out_pin:R out
 @init
 ext_noinit = 1; 
 black = 0;
+
+spikecount = 0;
 
 STPresent = 0;
 
@@ -264,6 +268,7 @@ STPresent = 0;
                       dragging = 1;
                      ) : 
                       this.potVal(default);
+                      changer = 1;
                      );
  
  function dragStop()
@@ -328,72 +333,8 @@ STPresent = 0;
                        mouse_wheel=0;
                         );
  
- /* EQ Pult:
- Hsh:
- Gain +-15
- Freq 63
- Q 0.4
- 
- Lsh:
- Gain +-15
- Freq 38
- Q 0.4
- 
- LPK:
- Gain +-15
- Freq 16 - 63
- Q 0.7
- 
- LPK:
- Gain +-15
- Freq 49 - 98
- Q 0.7 -> 0.2 Nach oben breiter werden...
- */
- 
- 
- /* EQ 3 Band:
- Hsh:
- Gain +-12
- Freq 83
- Q 0.5
- 
- Lsh:
- Gain +-10
- Freq 51
- Q 0.6
- 
- PK:
- Gain +-13
- Freq 80
- Q 0.5
- */
- 
- /* EQ SSL:
- Hsh:
- Gain +-15
- Freq 40 -76
- Q 0.5
- 
- Lsh:
- Gain +-15
- Freq 32 - 65
- Q 0.4
- 
- LPK:
- Gain +-15
- Freq 16 - 63
- Q 0.7
- 
- Peak High:
- Gain +-15
- Freq 51.2 - 90
- Q 0.3 oder 1.5
- 
- Peak low:
- Gain +-15
- Freq 28 - 66.5
- Q 0.3 oder 1.5
- */
+
+
  ggatethresh.potcfg   (0,-50,0,.02);
  ggateattack.potcfg   (2,0.01,10,.01);
  ggatehold.potcfg   (50,10,1000,.01);
@@ -429,14 +370,8 @@ STPresent = 0;
   mnyR = 0;
 
   histbuf=1000000;
-  histpos=0;
-  
-  p1_ospl0 = 0;
-  p1_ospl1 = 0;
-  p2eak_ospl0 = 0;
-  p2eak_ospl1 = 0;
-  p3eak_ospl0 = 0;
-  p3eak_ospl1 = 0;
+  histpos=1000000;
+
 );
  
  glbl_desk == 1 ? (
@@ -774,9 +709,53 @@ STPresent = 0;
  
  
  
+ function RESET_EQ () (
+  slider21 == 3 ? (
+  slider3 = 23; // LS F
+  slider4 = 0; //LS G
+  slider11 = 0.5; // LS Q
+  slider5 = 67; // HS F
+  slider6 = 0; // HS G
+  slider12 = 0.5; // HS Q
+  slider7 = 33; // LPK F
+  slider8 = 0; // LPK G
+  slider9 = 0.7; // LPK Q
+  slider13 = 56; // MPK F
+  slider14 = 0; // MPK G
+  slider15 = 0.7; // MPK Q
+  slider16 = 80; // HPK F
+  slider17 = 0; // hPK G
+  slider18 = 0.7; // HPK Q
+ );
  
+  slider21 == 2 ? (
+  slider3 = 35; // LS F
+  slider4 = 0; //LS G
+  slider5 = 67; // HS F
+  slider6 = 0; // HS G
+  slider7 = 33; // LPK F
+  slider8 = 0; // LPK G
+  slider13 = 56; // MPK F
+  slider14 = 0; // MPK G
+  slider19 = 0;
+  slider20 = 0;
+ );
  
+  slider21 == 1 ? (
+  slider4 = 0; //LS G
+  slider6 = 0; // HS G
+  slider7 = 33; // LPK F
+  slider8 = 0; // LPK G
+  slider13 = 56; // MPK F
+  slider14 = 0; // MPK G
+ );
  
+  slider21 == 0 ? (
+  slider4 = 0; //LS G
+  slider6 = 0; // HS G
+  slider8 = 0; // LPK G
+  );
+ );
  
  
  
@@ -786,7 +765,7 @@ STPresent = 0;
  
  
  function EQPOTCFG () (
- 
+
  glshf.potcfg   (23,16,60,.01); // 1500 - 20000
  glshg.potcfg   (0,-24,24,.024); // 2000 - 20000
  glshq.potcfg   (0.5,0.4,0.9,0.0005);
@@ -803,26 +782,10 @@ STPresent = 0;
  ghpeakg.potcfg   (0,-24,24,0.024);
  ghpeakq.potcfg   (0.7,0.2,10,.0038);
  
- 
+
  
  
  slider21 == 3 ? (
- slider3 = 23; // LS F
- slider4 = 0; //LS G
- slider11 = 0.5; // LS Q
- slider5 = 67; // HS F
- slider6 = 0; // HS G
- slider12 = 0.5; // HS Q
- slider7 = 33; // LPK F
- slider8 = 0; // LPK G
- slider9 = 0.7; // LPK Q
- slider13 = 56; // MPK F
- slider14 = 0; // MPK G
- slider15 = 0.7; // MPK Q
- slider16 = 80; // HPK F
- slider17 = 0; // hPK G
- slider18 = 0.7; // HPK Q
-  
  glshf.potcfg   (23,16,60,.01); // 1500 - 20000
  glshg.potcfg   (0,-24,24,.024); // 2000 - 20000
  glshq.potcfg   (0.5,0.4,0.9,0.0005);
@@ -841,174 +804,48 @@ STPresent = 0;
  );
  
  slider21 == 2 ? (
- slider3 = 35; // LS F
- slider4 = 0; //LS G
- slider11 = 0.4; // LS Q
- slider5 = 67; // HS F
- slider6 = 0; // HS G
- slider12 = 0.5; // HS Q
- slider7 = 33; // LPK F
- slider8 = 0; // LPK G
- slider9 = 0.3; // LPK Q
- slider13 = 56; // MPK F
- slider14 = 0; // MPK G
- slider15 = 0.3; // MPK Q
- slider16 = 80; // HPK F
- slider17 = 0; // hPK G
- slider18 = 0.3; // HPK Q
- slider19 = 0;
- slider20 = 0;
  glshf.potcfg   (35,32,65,.01); // 1500 - 20000
  glshg.potcfg   (0,-15,15,.024); // 2000 - 20000
-       // glshq.potcfg   (0.4,0.4,0.9,0.0005);
+
  ghshf.potcfg   (67,40,76,.01);
  ghshg.potcfg   (0,-15,15,0.024);
-      //  ghshq.potcfg   (0.4,0.4,0.9,0.0005);
+
  glpeakf.potcfg   (33,28,66.5,0.01);
  glpeakg.potcfg   (0,-15,15,0.024);
-      //  glpeakq.potcfg   (0.7,0.2,10,.0038);
+
  gmpeakf.potcfg   (56,51.2,90,0.01);
  gmpeakg.potcfg   (0,-15,15,0.024);
-     //   gmpeakq.potcfg   (0.7,0.2,10,.0038);
-     //   ghpeakf.potcfg   (80,15,92,0.01);
-     //   ghpeakg.potcfg   (0,-15,15,0.024);
-     //   ghpeakq.potcfg   (0.7,0.2,10,.0038);
  );
 
  slider21 == 1 ? (
- slider3 = 38; // LS F
- slider4 = 0; //LS G
- slider11 = 0.4; // LS Q
- slider5 = 63; // HS F
- slider6 = 0; // HS G
- slider12 = 0.4; // HS Q
- slider7 = 33; // LPK F
- slider8 = 0; // LPK G
- slider9 = 0.7; // LPK Q
- slider13 = 56; // MPK F
- slider14 = 0; // MPK G
- slider15 = 0.7; // MPK Q
- slider16 = 80; // HPK F
- slider17 = 0; // hPK G
- slider18 = 0.7; // HPK Q
-        // glshf.potcfg   (23,16,60,.01); // 1500 - 20000
+
  glshg.potcfg   (0,-15,15,.024); // 2000 - 20000
-        // glshq.potcfg   (0.5,0.4,0.9,0.0005);
-        // ghshf.potcfg   (67,41,84,.01);
+
  ghshg.potcfg   (0,-15,15,0.024);
-        // ghshq.potcfg   (0.5,0.4,0.9,0.0005);
+
  glpeakf.potcfg   (33,16,63,0.01);
  glpeakg.potcfg   (0,-15,15,0.024);
-        // glpeakq.potcfg   (0.7,0.2,10,.0038);
+
  gmpeakf.potcfg   (56,49,98,0.01);
  gmpeakg.potcfg   (0,-15,15,0.024);
-        // gmpeakq.potcfg   (0.7,0.2,10,.0038);
-        // ghpeakf.potcfg   (80,15,92,0.01);
-        // ghpeakg.potcfg   (0,-15,15,0.024);
-        // ghpeakq.potcfg   (0.7,0.2,10,.0038);
+
  );
  
  slider21 == 0 ? (
- slider3 = 40; // LS F
- slider4 = 0; //LS G
- slider11 = 0.6; // LS Q
- slider5 = 83; // HS F
- slider6 = 0; // HS G
- slider12 = 0.5; // HS Q
- slider7 = 60; // LPK F
- slider8 = 0; // LPK G
- slider9 = 0.5; // LPK Q
- slider13 = 56; // MPK F
- slider14 = 0; // MPK G
- slider15 = 0.7; // MPK Q
- slider16 = 70; // HPK F
- slider17 = 0; // hPK G
- slider18 = 0.7; // HPK Q
-
-         glshf.potcfg   (23,16,60,.01); // 1500 - 20000
  glshg.potcfg   (0,-10,10,.024); // 2000 - 20000
-         glshq.potcfg   (0.5,0.4,0.9,0.0005);
-         ghshf.potcfg   (67,41,84,.01);
  ghshg.potcfg   (0,-12,12,0.024);
-         ghshq.potcfg   (0.5,0.4,0.9,0.0005);
-         glpeakf.potcfg   (33,16,63,0.01);
  glpeakg.potcfg   (0,-13,13,0.024);
-         glpeakq.potcfg   (0.7,0.2,10,.0038);
-         gmpeakf.potcfg   (56,49,98,0.01);
-         gmpeakg.potcfg   (0,-15,15,0.024);
-         gmpeakq.potcfg   (0.7,0.2,10,.0038);
-         ghpeakf.potcfg   (80,15,92,0.01);
-         ghpeakg.potcfg   (0,-24,24,0.024);
-         ghpeakq.potcfg   (0.7,0.2,10,.0038);
  );
  
  );
  
+ EQPOTCFG ();
  
  ghp.potcfg  (0,0,100,0.1); //default. von, bis, step
  glp.potcfg (100,0,100,0.1);
- 
- 
  goutput.potcfg   (0,-24,24,0.024);
- //gdry.potcfg   (0,0,1,.001);
- 
- /*
- knobsx = 50; 
- knobsy = 60;
- ghp.rectIn(knobsx,knobsy,75,75);//xpos,ypos,weite,höhe des img
- ghp.rectOut(knobsx,knobsy, 75, 75, 61, 2); //Xpos,ypos,weite,höhe,Frames,bitmap
-
- 
- glp.rectIn(knobsx+120,knobsy, 75, 75);
- glp.rectOut(knobsx+120,knobsy, 75, 75, 61, 2);
- 
- goutput.rectIn(knobsx+300,knobsy, 75, 75);
- goutput.rectOut(knobsx+300,knobsy, 75, 75, 61, 1);
- 
- knobsy += 140; knobsx -= 240;
- glshf.rectIn(knobsx+240,knobsy+7, 60, 60); 
- glshf.rectOut(knobsx+240,knobsy+7, 60, 60, 61, 3);
- 
- glshg.rectIn(knobsx+340,knobsy+7, 60, 60); 
- glshg.rectOut(knobsx+340,knobsy+7, 60, 60, 61, 3);
-
-knobsx += 20;
- ghshf.rectIn(knobsx+440,knobsy+7, 60, 60); 
- ghshf.rectOut(knobsx+440,knobsy+7, 60, 60, 61, 3);
- 
- ghshg.rectIn(knobsx+540,knobsy+7, 60, 60); 
- ghshg.rectOut(knobsx+540,knobsy+7, 60, 60, 61, 3);
- 
-knobsx -= 20; 
-knobsy += 140; 
- gpeakq.rectIn(knobsx+240,knobsy+7, 60, 60); 
- gpeakq.rectOut(knobsx+240,knobsy+7, 60, 60, 61, 3);
-
- gpeakf.rectIn(knobsx+340,knobsy+7, 60, 60); 
- gpeakf.rectOut(knobsx+340,knobsy+7, 60, 60, 61, 3);
-
- gpeakg.rectIn(knobsx+440,knobsy+7, 60, 60); 
- gpeakg.rectOut(knobsx+440,knobsy+7, 60, 60, 61, 3);
-
-//knobsx+=260; knobsy+=133;
- 
-
-//gdry.rectIn(knobsx-18,knobsy+85, 10, 10); 
-//gdry.rectOut(knobsx-18,knobsy+85, 10, 10, 61, 6);
-
-//gpeakq.rectIn(knobsx+324,knobsy-175, 10, 10); 
-//gpeakq.rectOut(knobsx+324,knobsy-175, 10, 10, 61, 6);
-
-//gpeakf.rectIn(knobsx+280,knobsy+7, 48, 60); 
-//gpeakf.rectOut(knobsx+280,knobsy+7, 48, 60, 2, 4);
-
-//gpeakg.rectIn(knobsx+120,knobsy, 48, 60); 
-//gpeakg.rectOut(knobsx+120,knobsy, 48, 60, 2, 4);
 
 
-*/
-
-EQPOTCFG ();
 
 ///////////////////// GATE
 Gate_gain = 1;
@@ -1078,10 +915,453 @@ CFIXgr_CFIXMeter_decay = exp(1/(1*srate));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function EQ_Slider () (
+///////////////////////////// EQ SLIDER ////////////////////////////////////////
+/*
+//Peak_LMF_x0A = 10^-30;;
+//Peak_LMF_x1A = 10^-30;;
+//Peak_LMF_x2A = 10^-30;;
+Peak_LMF_y0A = 10^-30;;
+Peak_LMF_y1A = 10^-30;;
+Peak_LMF_y2A = 10^-30;;
+
+//Peak_mMF_x0A = 10^-30;;
+//Peak_mMF_x1A = 10^-30;;
+//Peak_mMF_x2A = 10^-30;;
+Peak_mMF_y0A = 10^-30;;
+Peak_mMF_y1A = 10^-30;;
+Peak_mMF_y2A = 10^-30;;
+
+//Peak_hMF_x0A = 10^-30;;
+//Peak_hMF_x1A = 10^-30;;
+//Peak_hMF_x2A = 10^-30;;
+Peak_hMF_y0A = 10^-30;;
+Peak_hMF_y1A = 10^-30;;
+Peak_hMF_y2A = 10^-30;;
+
+//LSH_x0A = 10^-30;;
+//LSH_x1A = 10^-30;;
+//LSH_x2A = 10^-30;;
+LSH_y0A = 10^-30;;
+LSH_y1A = 10^-30;;
+LSH_y2A = 10^-30;;
+
+//HSH_x0A = 10^-30;;
+//HSH_x1A = 10^-30;;
+//HSH_x2A = 10^-30;;
+HSH_y0A = 10^-30;;
+HSH_y1A = 10^-30;;
+HSH_y2A = 10^-30;;
+
+//Peak_LMF_x0b = 10^-30;;
+//Peak_LMF_x1b = 10^-30;;
+//Peak_LMF_x2b = 10^-30;;
+Peak_LMF_y0b = 10^-30;;
+Peak_LMF_y1b = 10^-30;;
+Peak_LMF_y2b = 10^-30;;
+
+//Peak_mMF_x0b = 10^-30;;
+//Peak_mMF_x1b = 10^-30;;
+//Peak_mMF_x2b = 10^-30;;
+Peak_mMF_y0b = 10^-30;;
+Peak_mMF_y1b = 10^-30;;
+Peak_mMF_y2b = 10^-30;;
+
+//Peak_hMF_x0b = 10^-30;;
+//Peak_hMF_x1b = 10^-30;;
+//Peak_hMF_x2b = 10^-30;;
+Peak_hMF_y0b = 10^-30;;
+Peak_hMF_y1b = 10^-30;;
+Peak_hMF_y2b = 10^-30;;
+
+//LSH_x0b = 10^-30;;
+//LSH_x1b = 10^-30;;
+//LSH_x2b = 10^-30;;
+LSH_y0b = 10^-30;;
+LSH_y1b = 10^-30;;
+LSH_y2b = 10^-30;;
+
+//HSH_x0b = 10^-30;;
+//HSH_x1b = 10^-30;;
+//HSH_x2b = 10^-30;;
+HSH_y0b = 10^-30;;
+HSH_y1b = 10^-30;;
+HSH_y2b = 10^-30;;
+
+*/
+
+
+slider21 == 3 ? (
+EQ_vslider3 = slider3;
+EQ_vslider3 = min(EQ_vslider3, 60);
+EQ_vslider3 = max(EQ_vslider3, 16);
+EQ_vslider4 = slider4;
+EQ_vslider5 = slider5;
+EQ_vslider5 = min(EQ_vslider5, 84);
+EQ_vslider5 = max(EQ_vslider5, 41);
+EQ_vslider6 = slider6;
+EQ_vslider7 = slider7;
+EQ_vslider7 = min(EQ_vslider7, 92);
+EQ_vslider7 = max(EQ_vslider7, 15);
+EQ_vslider8 = slider8;
+EQ_vslider9 = slider9;
+EQ_vslider11= slider11;
+EQ_vslider12= slider12;
+EQ_vslider13= slider13;
+EQ_vslider13 = min(EQ_vslider13, 92);
+EQ_vslider13 = max(EQ_vslider13, 15);
+EQ_vslider14= slider14;
+EQ_vslider15= slider15;
+EQ_vslider16= slider16;
+EQ_vslider16 = min(EQ_vslider16, 92);
+EQ_vslider16 = max(EQ_vslider16, 15);
+EQ_vslider17= slider17;
+EQ_vslider18= slider18;
+);
+
+slider21 == 2 ? (
+EQ_vslider3 = slider3;
+EQ_vslider3 = min(EQ_vslider3, 65);
+EQ_vslider3 = max(EQ_vslider3, 32);
+EQ_vslider4 = slider4;
+EQ_vslider4 = min(EQ_vslider4, 15);
+EQ_vslider4 = max(EQ_vslider4, -15);
+EQ_vslider5 = slider5;
+EQ_vslider5 = min(EQ_vslider5, 76);
+EQ_vslider5 = max(EQ_vslider5, 40);
+EQ_vslider6 = slider6;
+EQ_vslider6 = min(EQ_vslider6, 15);
+EQ_vslider6 = max(EQ_vslider6, -15);
+EQ_vslider7 = slider7;
+EQ_vslider7 = min(EQ_vslider7, 66.5);
+EQ_vslider7 = max(EQ_vslider7, 28);
+EQ_vslider8 = slider8;
+EQ_vslider8 = min(EQ_vslider8, 15);
+EQ_vslider8 = max(EQ_vslider8, -15);
+
+EQ_vslider11= 0.4;
+EQ_vslider12= 0.5;
+EQ_vslider13= slider13;
+EQ_vslider13 = min(EQ_vslider13, 90);
+EQ_vslider13 = max(EQ_vslider13, 51.2);
+
+EQ_vslider14= slider14;
+
+EQ_vslider14 = min(EQ_vslider14, 15);
+EQ_vslider14 = max(EQ_vslider14, -15);
+
+EQ_vslider16= slider16;
+EQ_vslider17= slider17;
+EQ_vslider18= slider18;
+
+slider19 == 0 ? (EQ_vslider9=0.3):(EQ_vslider9=1.5);
+slider20 == 0 ? (EQ_vslider15=0.3):(EQ_vslider15=1.5);
+);
+
+
+slider21 == 1 ? (
+  EQ_vslider3 = 38;
+
+EQ_vslider4 = slider4;
+EQ_vslider4 = min(EQ_vslider4, 15);
+EQ_vslider4 = max(EQ_vslider4, -15);
+  EQ_vslider5 = 63;
+
+EQ_vslider6 = slider6;
+EQ_vslider6 = min(EQ_vslider6, 15);
+EQ_vslider6 = max(EQ_vslider6, -15);
+EQ_vslider7 = slider7;
+EQ_vslider7 = min(EQ_vslider7, 63);
+EQ_vslider7 = max(EQ_vslider7, 16);
+EQ_vslider8 = slider8;
+EQ_vslider8 = min(EQ_vslider8, 15);
+EQ_vslider8 = max(EQ_vslider8, -15);
+
+EQ_vslider11= 0.4;
+EQ_vslider12= 0.4;
+EQ_vslider13= slider13;
+EQ_vslider13 = min(EQ_vslider13, 98);
+EQ_vslider13 = max(EQ_vslider13, 49);
+EQ_vslider14= slider14;
+EQ_vslider14 = min(EQ_vslider14, 15);
+EQ_vslider14 = max(EQ_vslider14, -15);
+
+EQ_vslider16= slider16;
+EQ_vslider17= slider17;
+EQ_vslider18= slider18;
+
+EQ_vslider9=0.7;
+EQ_vslider15 = 0.7-((slider13 - 49)/98);
+);
+
+
+slider21 == 0 ? (
+  EQ_vslider3 = 40;
+
+EQ_vslider4 = slider4;
+EQ_vslider4 = min(EQ_vslider4, 10);
+EQ_vslider4 = max(EQ_vslider4, -10);
+  EQ_vslider5 = 83;
+
+EQ_vslider6 = slider6;
+EQ_vslider6 = min(EQ_vslider6, 12);
+EQ_vslider6 = max(EQ_vslider6, -12);
+
+EQ_vslider7 = 60;
+EQ_vslider8 = slider8;
+EQ_vslider8 = min(EQ_vslider8, 13);
+EQ_vslider8 = max(EQ_vslider8, -13);
+
+EQ_vslider11= 0.6;
+EQ_vslider12= 0.5;
+EQ_vslider13= slider13;
+EQ_vslider13 = min(EQ_vslider13, 49);
+EQ_vslider13 = max(EQ_vslider13, 98);
+EQ_vslider14= 0;
+EQ_vslider14 = min(EQ_vslider14, 15);
+EQ_vslider14 = max(EQ_vslider14, -15);
+
+EQ_vslider16= slider16;
+EQ_vslider17= slider17;
+EQ_vslider18= slider18;
+
+EQ_vslider9=0.5;
+EQ_vslider15 = 0.7-((slider13 - 49)/98);
+);
+
+// frequency EQ_vslider scaling
+LSH_tmpx = 16+EQ_vslider3*1.20103; // EQ_vslider fuer frequenz
+LSH_tmpy = floor(exp(LSH_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+LSH_omega = 2*$pi*LSH_tmpy/srate;
+
+LSH_K = tan(LSH_omega/2);
+
+LSH_Q = max(min(EQ_vslider11,4),0.2);
+LSH_V = 10^(-EQ_vslider4/20);
+
+//boost:
+LSH_b0 = 1 + sqrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
+LSH_b1 = 2*(LSH_V*LSH_K^2 - 1);
+LSH_b2 = 1 - sqrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
+LSH_a0 = 1 + LSH_K/LSH_Q + LSH_K^2;
+LSH_a1 = 2*(LSH_K^2 - 1);
+LSH_a2 = 1 - LSH_K/LSH_Q + LSH_K^2;
+
+//cut:
+LSH_b0 = 1 + LSH_K/LSH_Q + LSH_K^2;
+LSH_b1 = 2*(LSH_K^2 - 1);
+LSH_b2 = 1 - LSH_K/LSH_Q + LSH_K^2;
+LSH_a0 = 1 + sqrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
+LSH_a1 = 2*(LSH_V*LSH_K^2 - 1);
+LSH_a2 = 1 - sqrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
+
+LSH_a1 /= LSH_a0;
+LSH_a2 /= LSH_a0;
+LSH_b0 /= LSH_a0;
+LSH_b1 /= LSH_a0;
+LSH_b2 /= LSH_a0;
+
+
+
+// frequency EQ_vslider scaling
+HSH_tmpx = 16+EQ_vslider5*1.20103;
+HSH_tmpy = floor(exp(HSH_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+HSH_omega = 2*$pi*HSH_tmpy/srate;
+
+HSH_K = tan(($pi-HSH_omega)/2); //HSF only
+
+HSH_Q = max(min(EQ_vslider12,4),0.2);
+HSH_V = 10^(-EQ_vslider6/20);
+
+
+//boost:
+HSH_b0 = 1 + sqrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_b1 = -2*(HSH_V*HSH_K^2 - 1);
+HSH_b1 = 1 - sqrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_a0 = 1 + HSH_K/HSH_Q + HSH_K^2;
+HSH_a1 = -2*(HSH_K^2 - 1);
+HSH_a2 = 1 - HSH_K/HSH_Q + HSH_K^2;
+
+//cut:
+HSH_b0 = 1 + HSH_K/HSH_Q + HSH_K^2;
+HSH_b1 = -2*(HSH_K^2 - 1);
+HSH_b2 = 1 - HSH_K/HSH_Q + HSH_K^2;
+HSH_a0 = 1 + sqrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_a1 = -2*(HSH_V*HSH_K^2 - 1);
+HSH_a2 = 1 - sqrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+
+HSH_a1 /= HSH_a0;
+HSH_a2 /= HSH_a0;
+HSH_b0 /= HSH_a0;
+HSH_b1 /= HSH_a0;
+HSH_b2 /= HSH_a0;
+
+
+
+
+
+// frequency EQ_vslider scaling
+Peak_LMF_tmpx = 16+EQ_vslider7*1.20103;
+Peak_LMF_tmpy = floor(exp(Peak_LMF_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+Peak_LMF_omega = 2*$pi*Peak_LMF_tmpy/srate;
+
+Peak_LMF_K = tan(Peak_LMF_omega/2);
+
+Peak_LMF_Q = max(min(EQ_vslider9,4),0.2);
+Peak_LMF_V = 10^(-EQ_vslider8/20);
+
+Peak_LMF_b0 = 1 + Peak_LMF_V*Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_b1 = 2*(Peak_LMF_K^2 - 1);
+Peak_LMF_b2 = 1 - Peak_LMF_V*Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_a0 = 1 + Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_a1 = 2*(Peak_LMF_K^2 - 1);
+Peak_LMF_a2 = 1 - Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+
+//cut:
+Peak_LMF_b0 = 1 + Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_b1 = 2*(Peak_LMF_K^2 - 1);
+Peak_LMF_b2 = 1 - Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_a0 = 1 + Peak_LMF_V*Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+Peak_LMF_a1 = 2*(Peak_LMF_K^2 - 1);
+Peak_LMF_a2 = 1 - Peak_LMF_V*Peak_LMF_K/Peak_LMF_Q + Peak_LMF_K^2;
+
+Peak_LMF_a1 /= Peak_LMF_a0;
+Peak_LMF_a2 /= Peak_LMF_a0;
+Peak_LMF_b0 /= Peak_LMF_a0;
+Peak_LMF_b1 /= Peak_LMF_a0;
+Peak_LMF_b2 /= Peak_LMF_a0;
+
+
+
+Peak_MMF_tmpx = 16+EQ_vslider13*1.20103;
+Peak_MMF_tmpy = floor(exp(Peak_MMF_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+Peak_MMF_omega = 2*$pi*Peak_MMF_tmpy/srate;
+
+Peak_MMF_K = tan(Peak_MMF_omega/2);
+
+Peak_MMF_Q = max(min(EQ_vslider15,4),0.2);
+Peak_MMF_V = 10^(-EQ_vslider14/20);
+
+//boost:
+Peak_MMF_b0 = 1 + Peak_MMF_V*Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_b1 = 2*(Peak_MMF_K^2 - 1);
+Peak_MMF_b2 = 1 - Peak_MMF_V*Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_a0 = 1 + Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_a1 = 2*(Peak_MMF_K^2 - 1);
+Peak_MMF_a2 = 1 - Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+
+//cut:
+Peak_MMF_b0 = 1 + Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_b1 = 2*(Peak_MMF_K^2 - 1);
+Peak_MMF_b2 = 1 - Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_a0 = 1 + Peak_MMF_V*Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+Peak_MMF_a1 = 2*(Peak_MMF_K^2 - 1);
+Peak_MMF_a2 = 1 - Peak_MMF_V*Peak_MMF_K/Peak_MMF_Q + Peak_MMF_K^2;
+
+Peak_MMF_a1 /= Peak_MMF_a0;
+Peak_MMF_a2 /= Peak_MMF_a0;
+Peak_MMF_b0 /= Peak_MMF_a0;
+Peak_MMF_b1 /= Peak_MMF_a0;
+Peak_MMF_b2 /= Peak_MMF_a0;
+
+
+
+// frequency EQ_vslider scaling
+Peak_HMF_tmpx = 16+EQ_vslider16*1.20103;
+Peak_HMF_tmpy = floor(exp(Peak_HMF_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+Peak_HMF_omega = 2*$pi*Peak_HMF_tmpy/srate;
+
+Peak_HMF_K = tan(Peak_HMF_omega/2);
+
+Peak_HMF_Q = max(min(EQ_vslider18,4),0.2);
+Peak_HMF_V = 10^(-EQ_vslider17/20);
+
+
+//boost:
+Peak_HMF_b0 = 1 + Peak_HMF_V*Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_b1 = 2*(Peak_HMF_K^2 - 1);
+Peak_HMF_b2 = 1 - Peak_HMF_V*Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_a0 = 1 + Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_a1 = 2*(Peak_HMF_K^2 - 1);
+Peak_HMF_a2 = 1 - Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+
+//cut:
+Peak_HMF_b0 = 1 + Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_b1 = 2*(Peak_HMF_K^2 - 1);
+Peak_HMF_b2 = 1 - Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_a0 = 1 + Peak_HMF_V*Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+Peak_HMF_a1 = 2*(Peak_HMF_K^2 - 1);
+Peak_HMF_a2 = 1 - Peak_HMF_V*Peak_HMF_K/Peak_HMF_Q + Peak_HMF_K^2;
+
+Peak_HMF_a1 /= Peak_HMF_a0;
+Peak_HMF_a2 /= Peak_HMF_a0;
+Peak_HMF_b0 /= Peak_HMF_a0;
+Peak_HMF_b1 /= Peak_HMF_a0;
+Peak_HMF_b2 /= Peak_HMF_a0;
+
+///////////////////////////// ENDE EQ SLIDER ////////////////////////////////////////
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function stattslider () (
 
 
-
+//sample_on == 0 ? (
+stattslider_on = 1;
 //SUMTHING
 
 slider59 > 0 ? (
@@ -1159,10 +1439,10 @@ sumth_k4=1-2*sumth_b;
  //input=10^(slider51/20);
  //preoutput=10^(slider52/20);
  
- mode=slider53;
+ //mode=slider53;
  
- size=slider54;
- histsize=size/1000*srate|0;
+ //size=slider54;
+ //histsize=size/1000*srate|0;
  
 // ENDE SUMT
 
@@ -1170,22 +1450,10 @@ sumth_k4=1-2*sumth_b;
 
 
 
-slider21 != slider21_old ? EQPOTCFG();
+slider21 != slider21_old ? (EQPOTCFG(););
 slider21_old = slider21;
 
 
-slider21 == 1 ? (
-slider15 = 0.7-((slider13 - 49)/98);
-);
-
-slider21 == 2 ? (
-slider19 == 0 ? (slider9=0.3):(slider9=1.5);
-slider20 == 0 ? (slider15=0.3):(slider15=1.5);
-);
-
-
-sample_on == 0 ? (
-stattslider_on = 1;
 
 //****************************
 //hp
@@ -1196,16 +1464,16 @@ CHLP_cx_hp = floor(exp(CHLP_sx*log(1.059))*8.17742);
 cutoff_hp = 2*CHLP_cx_hp/srate;
 res_hp = 10^(0.05*(-0/n_hp+1.5));
 
-k = 0.55*res_hp*sin($pi*cutoff_hp);
-CHLP_c1 = 0.5*(1-k)/(1+k);
-CHLP_c2 = (0.5+CHLP_c1)*cos($pi*cutoff_hp);
-CHLP_c3 = (0.5+CHLP_c1+CHLP_c2)*0.25;
+k_hp = 0.55*res_hp*sin($pi*cutoff_hp);
+CHLP_c1_hp = 0.5*(1-k_hp)/(1+k_hp);
+CHLP_c2_hp = (0.5+CHLP_c1_hp)*cos($pi*cutoff_hp);
+CHLP_c3_hp = (0.5+CHLP_c1_hp+CHLP_c2_hp)*0.25;
 
-CHLP_a0_hp = 2*CHLP_c3;
-CHLP_a1_hp = -4*CHLP_c3;
-CHLP_a2_hp = 2*CHLP_c3;
-CHLP_b1_hp = -2*CHLP_c2;
-CHLP_b2_hp = 2*CHLP_c1;
+CHLP_a0_hp = 2*CHLP_c3_hp;
+CHLP_a1_hp = -4*CHLP_c3_hp;
+CHLP_a2_hp = 2*CHLP_c3_hp;
+CHLP_b1_hp = -2*CHLP_c2_hp;
+CHLP_b2_hp = 2*CHLP_c1_hp;
 
 //****************************
 //lp
@@ -1216,212 +1484,26 @@ CHLP_cx_lp = floor(exp(CHLP_sx*log(1.059))*8.17742);
 cutoff_lp = 2*CHLP_cx_lp/srate;
 res_lp = 10^(0.05*(-5/n_lp+1.5));
 
-k = 0.62*res_lp*sin($pi*cutoff_lp);
-CHLP_c1 = 0.5*(1-k)/(1+k);
-CHLP_c2 = (0.5+CHLP_c1)*cos($pi*cutoff_lp);
-CHLP_c3 = (0.5+CHLP_c1-CHLP_c2)*0.25;
+k_lp = 0.62*res_lp*sin($pi*cutoff_lp);
+CHLP_c1_lp = 0.5*(1-k_lp)/(1+k_lp);
+CHLP_c2_lp = (0.5+CHLP_c1_lp)*cos($pi*cutoff_lp);
+CHLP_c3_lp = (0.5+CHLP_c1_lp-CHLP_c2_lp)*0.25;
 
-CHLP_a0_lp = 2*CHLP_c3;
-CHLP_a1_lp = 4*CHLP_c3;
-CHLP_a2_lp = 2*CHLP_c3;
-CHLP_b1_lp = -2*CHLP_c2;
-CHLP_b2_lp = 2*CHLP_c1;
-
-
+CHLP_a0_lp = 2*CHLP_c3_lp;
+CHLP_a1_lp = 4*CHLP_c3_lp;
+CHLP_a2_lp = 2*CHLP_c3_lp;
+CHLP_b1_lp = -2*CHLP_c2_lp;
+CHLP_b2_lp = 2*CHLP_c1_lp;
 
 
 
 
 
 
-// LOWSHELV
-LSH_tmpx = 16+slider3*1.20103;
-LSH_tmpy = floor(exp(LSH_tmpx*log(1.059))*8.17742);
+EQ_Slider();
 
-// filter calculation
-LSH_omega = 2*$pi*LSH_tmpy/srate;
-
-
-LSH_K = tan(LSH_omega/2);
-
-lsq=slider11;
-LSH_Q = max(min(lsq,4),0.2);
-LSH_V = 10^(-slider4/20);
-
-
-//LSH:
-//boost:
-
-LSH_b0 = 1 + sQrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
-LSH_b1 = 2*(LSH_V*LSH_K^2 - 1);
-LSH_b2 = 1 - sQrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
-LSH_a0 = 1 + LSH_K/LSH_Q + LSH_K^2;
-LSH_a1 = 2*(LSH_K^2 - 1);
-LSH_a2 = 1 - LSH_K/LSH_Q + LSH_K^2;
-
-//cut:
-LSH_b0 = 1 + LSH_K/LSH_Q + LSH_K^2;
-LSH_b1 = 2*(LSH_K^2 - 1);
-LSH_b2 = 1 - LSH_K/LSH_Q + LSH_K^2;
-LSH_a0 = 1 + sQrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
-LSH_a1 = 2*(LSH_V*LSH_K^2 - 1);
-LSH_a2 = 1 - sQrt(LSH_V)*LSH_K/LSH_Q + LSH_V*LSH_K^2;
-
-
-LSH_a1 /= LSH_a0;
-LSH_a2 /= LSH_a0;
-LSH_b0 /= LSH_a0;
-LSH_b1 /= LSH_a0;
-LSH_b2 /= LSH_a0;
-
-
-
-
-
-
-// freHSH_Quency slider scaling
-HSH_tmpx = 16+slider5*1.20103;
-HSH_tmpy = floor(exp(HSH_tmpx*log(1.059))*8.17742);
-
-// filter calculation
-HSH_omega = 2*$pi*HSH_tmpy/srate;
-
-HSH_K = tan(($pi-HSH_omega)/2); //HSF only
-
-HSH_Q = slider12; // max(min(0.7,4),0.2);
-HSH_V = 10^(-slider6/20);
-
-
-//HSH:
-//boost:
-HSH_b0 = 1 + sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
-HSH_b1 = -2*(HSH_V*HSH_K^2 - 1);
-HSH_b1 = 1 - sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
-HSH_a0 = 1 + HSH_K/HSH_Q + HSH_K^2;
-HSH_a1 = -2*(HSH_K^2 - 1);
-HSH_a2 = 1 - HSH_K/HSH_Q + HSH_K^2;
-
-//cut:
-HSH_b0 = 1 + HSH_K/HSH_Q + HSH_K^2;
-HSH_b1 = -2*(HSH_K^2 - 1);
-HSH_b2 = 1 - HSH_K/HSH_Q + HSH_K^2;
-HSH_a0 = 1 + sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
-HSH_a1 = -2*(HSH_V*HSH_K^2 - 1);
-HSH_a2 = 1 - sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
-
-
-HSH_a1 /= HSH_a0;
-HSH_a2 /= HSH_a0;
-HSH_b0 /= HSH_a0;
-HSH_b1 /= HSH_a0;
-HSH_b2 /= HSH_a0;
-
-
-
-
-
-
-// frePEAK_Quency slider scaling
-PEAK_tmpx = 16+slider7*1.20103;
-PEAK_tmpy = floor(exp(PEAK_tmpx*log(1.059))*8.17742);
-
-// filter calculation
-PEAK_omega = 2*$pi*PEAK_tmpy/srate;
-
-PEAK_K = tan(PEAK_omega/2);
-
-PEAK_Q = max(min(slider9,4),0.2);
-PEAK_V = 10^(-0.5*slider8/20);
-
-
-  PEAK_a5 = (10^(0.5*slider8/20));
-  PEAK_q5 = slider9;
-  PEAK_w05 = 2 * $pi * PEAK_tmpy/srate;
-  PEAK_cosw05 = cos(PEAK_w05);
-  PEAK_sinw05 = sin(PEAK_w05);
-  alphPEAK_a5 = PEAK_sinw05 / (2 * PEAK_q5);
-
-  PEAK_b05 = 1 + alphPEAK_a5 * PEAK_a5;
-  PEAK_b15 = -2 * PEAK_cosw05;
-  PEAK_b25 = 1 - alphPEAK_a5 * PEAK_a5;
-  PEAK_a05 = 1 + alphPEAK_a5 / PEAK_a5;
-  PEAK_a15 = -2 * PEAK_cosw05;
-  PEAK_a25 = 1 - alphPEAK_a5 / PEAK_a5;
-  PEAK_b05 /= PEAK_a05;
-  PEAK_b15 /= PEAK_a05;
-  PEAK_b25 /= PEAK_a05;
-  PEAK_a15 /= PEAK_a05;
-  PEAK_a25 /= PEAK_a05;
-
-
-
-// freP2EAK_Quency slider scaling
-P2EAK_tmpx = 16+slider13*1.20103;
-P2EAK_tmpy = floor(exp(P2EAK_tmpx*log(1.059))*8.17742);
-
-// filter calculation
-P2EAK_omega = 2*$pi*P2EAK_tmpy/srate;
-
-P2EAK_K = tan(P2EAK_omega/2);
-
-P2EAK_Q = max(min(slider15,4),0.2);
-P2EAK_V = (10^(-0.5*slider14/0));
-
-
-  p2eak_a5 = (10^(0.5*slider14/20));
-  p2eak_q5 = slider15;
-p2eak_w05 = 2 * $pi * P2EAK_tmpy/srate;
-  p2eak_cosw05 = cos(p2eak_w05);
-  p2eak_sinw05 = sin(p2eak_w05);
-  alphp2eak_a5 = p2eak_sinw05 / (2 * p2eak_q5);
-
-  p2eak_b05 = 1 + alphp2eak_a5 * p2eak_a5;
-  p2eak_b15 = -2 * p2eak_cosw05;
-  p2eak_b25 = 1 - alphp2eak_a5 * p2eak_a5;
-  p2eak_a05 = 1 + alphp2eak_a5 / p2eak_a5;
-  p2eak_a15 = -2 * p2eak_cosw05;
-  p2eak_a25 = 1 - alphp2eak_a5 / p2eak_a5;
-  p2eak_b05 /= p2eak_a05;
-  p2eak_b15 /= p2eak_a05;
-  p2eak_b25 /= p2eak_a05;
-  p2eak_a15 /= p2eak_a05;
-  p2eak_a25 /= p2eak_a05;
   
   
-  
-  
-
-// frep3eak_Quency slider scaling
-p3eak_tmpx = 16+slider16*1.20103;
-p3eak_tmpy = floor(exp(p3eak_tmpx*log(1.059))*8.17742);
-
-// filter calculation
-p3eak_omega = 2*$pi*p3eak_tmpy/srate;
-
-p3eak_K = tan(p3eak_omega/2);
-
-p3eak_Q = max(min(slider18,4),0.2);
-p3eak_V = (10^(-0.5*slider17/0));
-
-
-  p3eak_a5 = (10^(0.5*slider17/20));
-  p3eak_q5 = slider18;
-p3eak_w05 = 2 * $pi * p3eak_tmpy/srate;
-  p3eak_cosw05 = cos(p3eak_w05);
-  p3eak_sinw05 = sin(p3eak_w05);
-  alphp3eak_a5 = p3eak_sinw05 / (2 * p3eak_q5);
-
-  p3eak_b05 = 1 + alphp3eak_a5 * p3eak_a5;
-  p3eak_b15 = -2 * p3eak_cosw05;
-  p3eak_b25 = 1 - alphp3eak_a5 * p3eak_a5;
-  p3eak_a05 = 1 + alphp3eak_a5 / p3eak_a5;
-  p3eak_a15 = -2 * p3eak_cosw05;
-  p3eak_a25 = 1 - alphp3eak_a5 / p3eak_a5;
-  p3eak_b05 /= p3eak_a05;
-  p3eak_b15 /= p3eak_a05;
-  p3eak_b25 /= p3eak_a05;
-  p3eak_a15 /= p3eak_a05;
-  p3eak_a25 /= p3eak_a05;
   
   
 
@@ -1476,12 +1558,24 @@ compoutput = 10^(slider29/20);
 CFICFIXxListen = slider30;
 ///////////////////////////// COMPRESSOR ENDE SLIDER
 
-
-
-stattslider_on = 0;
-); // Sample_on
+ofset = 2000000;
+snmb = 1;
+loop(64,
+//changer == 1 ? (
+  slider(snmb) != ofset[snmb] ? (
+    smurf = 0;
+    slider_automate(2^(snmb-1));
+  );
+//);
+ofset[snmb] = slider(snmb);
+snmb += 1;
 );
 
+aaa = ofset[7];
+changer = 0;
+stattslider_on = 0;
+//); // Sample_on
+);
 
 
 
@@ -1622,65 +1716,9 @@ initthings();
 
 @slider
 
-stattslider();/*
+stattslider();
 
 
-        ghp=slider1;
-        ghp.val=ghp;
-        ghp.potVal(ghp.val);
-        ghp.valOld=ghp;
-   
-    
-
-
-        glp=slider2;
-        glp.val=glp;
-        glp.potVal(glp.val);
-        glp.valOld=glp;
-       
-    
-
-        glshf=slider3;
-        glshf.val=glshf;
-        glshf.potVal(glshf.val);
-        glshf.valOld=glshf;
-
-        glshg.val=glshg;
-        glshg.potVal(glshg.val);
-        glshg.valOld=glshg;
-   
- 
-        ghshf=slider5;
-        ghshf.val=ghshf;
-        ghshf.potVal(ghshf.val);
-        ghshf.valOld=ghshf;
-
-        ghshg=slider6;
-        ghshg.val=ghshg;
-        ghshg.potVal(ghshg.val);
-        ghshg.valOld=ghshg;
-   
-            gpeakf=slider7;
-            gpeakf.val=gpeakf;
-            gpeakf.potVal(gpeakf.val);
-            gpeakf.valOld=gpeakf;
-
-            gpeakg=slider8;
-            gpeakg.val=gpeakg;
-            gpeakg.potVal(gpeakg.val);
-            gpeakg.valOld=gpeakg;
-
-            gpeakq=slider9;
-            gpeakq.val=gpeakq;
-            gpeakq.potVal(gpeakq.val);
-            gpeakq.valOld=gpeakq;
-
-            goutput=slider10;
-            goutput.val=goutput;
-            goutput.potVal(goutput.val);
-            goutput.valOld=goutput;
- 
-*/
 
 
 
@@ -1706,12 +1744,24 @@ d_wetB = (tgt_wetB-src_wetB)/samplesblock;
 twetB = src_wetB;
 src_wetB = tgt_wetB;
 
-
+slider59 == 0 ? (
+slider57 != _global.desk ? ( 
+slider57 = _global.desk;
+glbl_desk = slider57;
+slider57 == 1 ? (desk1(););
+slider57 == 2 ? (desk2(););
+slider57 == 3 ? (desk3(););
+stattslider();
+);
+);
 
       slider59 == 0 ? (
       _global.desk > 0 ? (
       slider61 = _global.meter_cal;
       slider60 = _global.meter_speed;
+       glbl_meter_speed = slider60;
+       glbl_meter_cal = slider61;
+       meter_speed = abs(100 - slider60);
       );
       );
 
@@ -1721,14 +1771,25 @@ src_wetB = tgt_wetB;
 
 
 @sample
+
+
+changer > 0 ? (
+stattslider_on == 0 ? (
+stattslider();
+//changer = 0;
+);
+);
+
+
 sample_on = 1;
 
-slider59 == 0 ? glbl_desk != _global.desk ? stattslider();
+
+
 //old_desk = glbl_desk;
 
 
 
-
+/*
 slider57 != glbl_desk ? //(deskswitch = 1);
 (
 slider57 = glbl_desk;
@@ -1736,6 +1797,7 @@ slider57 == 1 ? (desk1(););
 slider57 == 2 ? (desk2(););
 slider57 == 3 ? (desk3(););
 );
+*/
 
 
 
@@ -1817,7 +1879,11 @@ inon = 1;
       );
       );
       
-            
+
+          
+          
+          
+          
 inon == 1 ? (
 spl0=sumth_y0*preoutput+noise;
 spl1=sumth_y1*preoutput+noise;
@@ -1826,43 +1892,19 @@ otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
 );
 
 
+
+
+
+/*
 histbuf[histpos]=spl0;
 histbuf[histpos+histsize]=spl1;
 
 histpos+=1;
-histpos >= histsize ? histpos=0;
+histpos >= histsize+1000000 ? histpos=1000000;
+*/
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-slider47 > 0 ? ( // EQ nicht auf Pos1
-slider45 == 0 ? slider39 == 1 ? gate_do();
-slider46 == 0 ? compressor_do();
-);
-slider47 == 2 ? ( // EQ nicht auf Pos1
-slider45 == 1 ? slider39 == 1 ? gate_do();
-slider46 == 1 ? compressor_do();
-);
 
 
 CleanL = spl0;
@@ -2065,16 +2107,40 @@ spl1 = CHLP_out_lp_r;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+slider47 > 0 ? ( // EQ nicht auf Pos0
+slider45 == 0 ? slider39 == 1 ? gate_do();
+slider46 == 0 ? compressor_do();
+);
+slider47 == 2 ? ( // EQ nicht auf Pos1
+slider45 == 1 ? slider39 == 1 ? gate_do();
+slider46 == 1 ? compressor_do();
+);
+
+
+
+
 slider22 == 1 ? ( //EQ ON
 
-slider4 != 0 ? (
-LSH_inA = spl0;
-LSH_inB = spl1;
+
+inA = spl0;
+inB = spl1;
 
 //Left
 LSH_x2A = LSH_x1A;
 LSH_x1A = LSH_x0A;
-LSH_x0A = LSH_inA;
+LSH_x0A = inA;
 
 LSH_y2A = LSH_y1A;
 LSH_y1A = LSH_y0A;
@@ -2083,7 +2149,7 @@ LSH_y0A = LSH_b0*LSH_x0A + LSH_b1*LSH_x1A + LSH_b2*LSH_x2A - LSH_a1*LSH_y1A - LS
 //Right
 LSH_x2B = LSH_x1B;
 LSH_x1B = LSH_x0B;
-LSH_x0B = LSH_inB;
+LSH_x0B = inB;
 
 LSH_y2B = LSH_y1B;
 LSH_y1B = LSH_y0B;
@@ -2092,18 +2158,16 @@ LSH_y0B = LSH_b0*LSH_x0B + LSH_b1*LSH_x1B + LSH_b2*LSH_x2B - LSH_a1*LSH_y1B - LS
 //Output
 spl0 = LSH_y0A;
 spl1 = LSH_y0B;
-);
 
 
 
-slider6 != 0 ? (
-HSH_inA = spl0;
-HSH_inB = spl1;
+inA = spl0;
+inB = spl1;
 
 //Left
 HSH_x2A = HSH_x1A;
 HSH_x1A = HSH_x0A;
-HSH_x0A = HSH_inA;
+HSH_x0A = inA;
 
 HSH_y2A = HSH_y1A;
 HSH_y1A = HSH_y0A;
@@ -2112,7 +2176,7 @@ HSH_y0A = HSH_b0*HSH_x0A + HSH_b1*HSH_x1A + HSH_b2*HSH_x2A - HSH_a1*HSH_y1A - HS
 //Right
 HSH_x2B = HSH_x1B;
 HSH_x1B = HSH_x0B;
-HSH_x0B = HSH_inB;
+HSH_x0B = inB;
 
 HSH_y2B = HSH_y1B;
 HSH_y1B = HSH_y0B;
@@ -2121,60 +2185,92 @@ HSH_y0B = HSH_b0*HSH_x0B + HSH_b1*HSH_x1B + HSH_b2*HSH_x2B - HSH_a1*HSH_y1B - HS
 //Output
 spl0 = HSH_y0A;
 spl1 = HSH_y0B;
+
+
+inA = spl0;
+inB = spl1;
+
+//Left
+Peak_LMF_x2A = Peak_LMF_x1A;
+Peak_LMF_x1A = Peak_LMF_x0A;
+Peak_LMF_x0A = inA;
+
+Peak_LMF_y2A = Peak_LMF_y1A;
+Peak_LMF_y1A = Peak_LMF_y0A;
+Peak_LMF_y0A = Peak_LMF_b0*Peak_LMF_x0A + Peak_LMF_b1*Peak_LMF_x1A + Peak_LMF_b2*Peak_LMF_x2A - Peak_LMF_a1*Peak_LMF_y1A - Peak_LMF_a2*Peak_LMF_y2A;
+
+//Right
+Peak_LMF_x2B = Peak_LMF_x1B;
+Peak_LMF_x1B = Peak_LMF_x0B;
+Peak_LMF_x0B = inB;
+
+Peak_LMF_y2B = Peak_LMF_y1B;
+Peak_LMF_y1B = Peak_LMF_y0B;
+Peak_LMF_y0B = Peak_LMF_b0*Peak_LMF_x0B + Peak_LMF_b1*Peak_LMF_x1B + Peak_LMF_b2*Peak_LMF_x2B - Peak_LMF_a1*Peak_LMF_y1B - Peak_LMF_a2*Peak_LMF_y2B;
+
+//Output
+spl0 = Peak_LMF_y0A;
+spl1 = Peak_LMF_y0B;
+
+
+
+
+inA = spl0;
+inB = spl1;
+
+//Left
+Peak_MMF_x2A = Peak_MMF_x1A;
+Peak_MMF_x1A = Peak_MMF_x0A;
+Peak_MMF_x0A = inA;
+
+Peak_MMF_y2A = Peak_MMF_y1A;
+Peak_MMF_y1A = Peak_MMF_y0A;
+Peak_MMF_y0A = Peak_MMF_b0*Peak_MMF_x0A + Peak_MMF_b1*Peak_MMF_x1A + Peak_MMF_b2*Peak_MMF_x2A - Peak_MMF_a1*Peak_MMF_y1A - Peak_MMF_a2*Peak_MMF_y2A;
+
+//Right
+Peak_MMF_x2B = Peak_MMF_x1B;
+Peak_MMF_x1B = Peak_MMF_x0B;
+Peak_MMF_x0B = inB;
+
+Peak_MMF_y2B = Peak_MMF_y1B;
+Peak_MMF_y1B = Peak_MMF_y0B;
+Peak_MMF_y0B = Peak_MMF_b0*Peak_MMF_x0B + Peak_MMF_b1*Peak_MMF_x1B + Peak_MMF_b2*Peak_MMF_x2B - Peak_MMF_a1*Peak_MMF_y1B - Peak_MMF_a2*Peak_MMF_y2B;
+
+//Output
+spl0 = Peak_MMF_y0A;
+spl1 = Peak_MMF_y0B;
+
+
+
+
+slider21 == 3 ? (
+inA = spl0;
+inB = spl1;
+
+//Left
+Peak_HMF_x2A = Peak_HMF_x1A;
+Peak_HMF_x1A = Peak_HMF_x0A;
+Peak_HMF_x0A = inA;
+
+Peak_HMF_y2A = Peak_HMF_y1A;
+Peak_HMF_y1A = Peak_HMF_y0A;
+Peak_HMF_y0A = Peak_HMF_b0*Peak_HMF_x0A + Peak_HMF_b1*Peak_HMF_x1A + Peak_HMF_b2*Peak_HMF_x2A - Peak_HMF_a1*Peak_HMF_y1A - Peak_HMF_a2*Peak_HMF_y2A;
+
+//Right
+Peak_HMF_x2B = Peak_HMF_x1B;
+Peak_HMF_x1B = Peak_HMF_x0B;
+Peak_HMF_x0B = inB;
+
+Peak_HMF_y2B = Peak_HMF_y1B;
+Peak_HMF_y1B = Peak_HMF_y0B;
+Peak_HMF_y0B = Peak_HMF_b0*Peak_HMF_x0B + Peak_HMF_b1*Peak_HMF_x1B + Peak_HMF_b2*Peak_HMF_x2B - Peak_HMF_a1*Peak_HMF_y1B - Peak_HMF_a2*Peak_HMF_y2B;
+
+//Output
+spl0 = Peak_HMF_y0A;
+spl1 = Peak_HMF_y0B;
 );
 
 
-
-slider8 != 0 ? (
-  PEAK_ospl0 = spl0;
-  spl0 = PEAK_b05 * spl0 + PEAK_b15 * PEAK_xl15 + PEAK_b25 * PEAK_xl25 - PEAK_a15 * PEAK_yl15 - PEAK_a25 * PEAK_yl25;
-  PEAK_xl25 = PEAK_xl15;
-  PEAK_xl15 = PEAK_ospl0;
-  PEAK_yl25 = PEAK_yl15;
-  PEAK_yl15 = spl0;
-  
-  PEAK_ospl1 = spl1;
-  spl1 = PEAK_b05 * spl1 + PEAK_b15 * PEAK_xr15 + PEAK_b25 * PEAK_xr25 - PEAK_a15 * PEAK_yr15 - PEAK_a25 * PEAK_yr25;
-  PEAK_xr25 = PEAK_xr15;
-  PEAK_xr15 = PEAK_ospl1;
-  PEAK_yr25 = PEAK_yr15;
-  PEAK_yr15 = spl1;
-);
-
-  
-slider14 != 0 ? ( 
-  p2eak_ospl0 = spl0;
-  spl0 = p2eak_b05 * spl0 + p2eak_b15 * p2eak_xl15 + p2eak_b25 * p2eak_xl25 - p2eak_a15 * p2eak_yl15 - p2eak_a25 * p2eak_yl25;
-  p2eak_xl25 = p2eak_xl15;
-  p2eak_xl15 = p2eak_ospl0;
-  p2eak_yl25 = p2eak_yl15;
-  p2eak_yl15 = spl0;
-  
-  p2eak_ospl1 = spl1;
-  spl1 = p2eak_b05 * spl1 + p2eak_b15 * p2eak_xr15 + p2eak_b25 * p2eak_xr25 - p2eak_a15 * p2eak_yr15 - p2eak_a25 * p2eak_yr25;
-  p2eak_xr25 = p2eak_xr15;
-  p2eak_xr15 = p2eak_ospl1;
-  p2eak_yr25 = p2eak_yr15;
-  p2eak_yr15 = spl1;
- ); 
- 
-  
-  
-slider17 != 0 ? (  
-  p3eak_ospl0 = spl0;
-  spl0 = p3eak_b05 * spl0 + p3eak_b15 * p3eak_xl15 + p3eak_b25 * p3eak_xl25 - p3eak_a15 * p3eak_yl15 - p3eak_a25 * p3eak_yl25;
-  p3eak_xl25 = p3eak_xl15;
-  p3eak_xl15 = p3eak_ospl0;
-  p3eak_yl25 = p3eak_yl15;
-  p3eak_yl15 = spl0;
-  
-  p3eak_ospl1 = spl1;
-  spl1 = p3eak_b05 * spl1 + p3eak_b15 * p3eak_xr15 + p3eak_b25 * p3eak_xr25 - p3eak_a15 * p3eak_yr15 - p3eak_a25 * p3eak_yr25;
-  p3eak_xr25 = p3eak_xr15;
-  p3eak_xr15 = p3eak_ospl1;
-  p3eak_yr25 = p3eak_yr15;
-  p3eak_yr15 = spl1;
-);
 
 ); // EQ ON
 
@@ -2185,7 +2281,7 @@ slider17 != 0 ? (
   
   
   
-  
+
 slider47 < 2 ? (
 slider45 == 1 ? slider39 == 1 ? gate_do();
 slider46 == 1 ? compressor_do();
@@ -2193,6 +2289,7 @@ slider46 == 1 ? compressor_do();
 slider45 == 2 ? slider39 == 1 ? gate_do();
 slider46 == 2 ? compressor_do();
 );
+ 
   
   
   
@@ -2213,12 +2310,14 @@ slider46 == 2 ? compressor_do();
   
   
   
-  
-  
+/*
 slider10 != 0 ? (
 spl0 *= 10^(slider10/20);
 spl1 *= 10^(slider10/20);
 );
+*/
+
+
 
 /*
 spl1 > 9 ? spl1 = 9;
@@ -2226,7 +2325,6 @@ spl0 > 9 ? spl0 = 9;
 spl1 < -9 ? spl1 = -9;
 spl0 < -9 ? spl0 = -9;
 */
-
 
 
 
@@ -2276,7 +2374,7 @@ mnmetersample(0.00001+spl0*scaler,0.00001+spl1*scaler,themode,mom); // mode = (0
 
 
 
- spl0 *= deskfade; spl1 *= deskfade;
+// spl0 *= deskfade; spl1 *= deskfade;
 
 
 
@@ -2338,11 +2436,11 @@ mnmetersample(0.00001+spl0*scaler,0.00001+spl1*scaler,themode,mom); // mode = (0
   
   ovrlgain = ovrlg;
 */
-spl0 < -4 ? spl0 = -4;
-spl0 > 4 ? spl0 = 4;
+spl0 < -4 ? (spl0 = -4;spikecount += 1);
+spl0 > 4 ? (spl0 = 4;spikecount += 1);
 
-spl1 < -4 ? spl1 = -4;
-spl1 > 4 ? spl1 = 4;
+spl1 < -4 ? spl1 = (-4;spikecount += 1);
+spl1 > 4 ? spl1 = (4;spikecount += 1);
 
 
 sample_on = 0;
@@ -2473,7 +2571,9 @@ gfx_rect(reduct_mini,gfx_h-(gfx_h/8),gfx_w,gfx_h);
 
 
 
-
+gfx_x = 2; gfx_y=2;
+gfx_r=0;gfx_b=0;gfx_g=0;
+//gfx_drawnumber(spikecount,0);
 
 
 
@@ -2524,31 +2624,31 @@ slider21 == 0 ? gfx_blit(18+black,1,0,2,0,296,550);
   
   slider21 == 3 ? (
   glbl_desk == 3 ? knopfimg += 19;
-  miniknopf(knopfimg,eqx+50,20+eqy+40,61,60,41,84,slider5,0.8); // HSH FRQ
-  miniknopf(knopfimg,eqx+120,20+eqy+35,61,60,-24,24,slider6,1); // HSH FRQ
-  miniknopf(knopfimg,eqx+200,20+eqy+40,61,60,0.4,0.9,slider12,0.8); // HSH Q
+  miniknopf(knopfimg,eqx+50,20+eqy+40,61,60,41,84,EQ_vslider5,0.8); // HSH FRQ
+  miniknopf(knopfimg,eqx+120,20+eqy+35,61,60,-24,24,EQ_vslider6,1); // HSH FRQ
+  miniknopf(knopfimg,eqx+200,20+eqy+40,61,60,0.4,0.9,EQ_vslider12,0.8); // HSH Q
   glbl_desk == 3 ? knopfimg -= 19;
   
   glbl_desk == 3 ? knopfimg += 20; 
-  miniknopf(knopfimg,eqx+50,15+eqy+40+100,61,60,15,92,slider16,0.8); // HPK FRQ
-  miniknopf(knopfimg,eqx+120,15+eqy+35+100,61,60,-24,24,slider17,1); // HPK FRQ
-  miniknopf(knopfimg,eqx+200,15+eqy+40+100,61,60,0.2,10,slider18,0.8); // HPK Q
+  miniknopf(knopfimg,eqx+50,15+eqy+40+100,61,60,15,92,EQ_vslider16,0.8); // HPK FRQ
+  miniknopf(knopfimg,eqx+120,15+eqy+35+100,61,60,-24,24,EQ_vslider17,1); // HPK FRQ
+  miniknopf(knopfimg,eqx+200,15+eqy+40+100,61,60,0.2,10,EQ_vslider18,0.8); // HPK Q
   glbl_desk == 3 ? knopfimg -= 20;
   
   glbl_desk == 3 ? knopfimg += 22;
-  miniknopf(knopfimg,eqx+50,15+eqy+40+180,61,60,15,92,slider13,0.8); // HPK FRQ
-  miniknopf(knopfimg,eqx+120,15+eqy+35+180,61,60,-24,24,slider14,1); // HPK FRQ
-  miniknopf(knopfimg,eqx+200,15+eqy+40+180,61,60,0.2,10,slider15,0.8); // HPK Q
+  miniknopf(knopfimg,eqx+50,15+eqy+40+180,61,60,15,92,EQ_vslider13,0.8); // HPK FRQ
+  miniknopf(knopfimg,eqx+120,15+eqy+35+180,61,60,-24,24,EQ_vslider14,1); // HPK FRQ
+  miniknopf(knopfimg,eqx+200,15+eqy+40+180,61,60,0.2,10,EQ_vslider15,0.8); // HPK Q
   glbl_desk == 3 ? knopfimg -= 22;
   
-  miniknopf(knopfimg,eqx+50,15+eqy+40+260,61,60,15,92,slider7,0.8); // HPK FRQ
-  miniknopf(knopfimg,eqx+120,15+eqy+35+260,61,60,-24,24,slider8,1); // HPK FRQ
-  miniknopf(knopfimg,eqx+200,15+eqy+40+260,61,60,0.2,10,slider9,0.8); // HPK Q
+  miniknopf(knopfimg,eqx+50,15+eqy+40+260,61,60,15,92,EQ_vslider7,0.8); // HPK FRQ
+  miniknopf(knopfimg,eqx+120,15+eqy+35+260,61,60,-24,24,EQ_vslider8,1); // HPK FRQ
+  miniknopf(knopfimg,eqx+200,15+eqy+40+260,61,60,0.2,10,EQ_vslider9,0.8); // HPK Q
   
   glbl_desk == 3 ? knopfimg += 21;
-  miniknopf(knopfimg,eqx+50,10+eqy+40+360,61,60,16,60,slider3,0.8); // LSH FRQ
-  miniknopf(knopfimg,eqx+120,10+eqy+35+360,61,60,-24,24,slider4,1); // LSH FRQ
-  miniknopf(knopfimg,eqx+200,10+eqy+40+360,61,60,0.4,0.9,slider11,0.8); // LSH Q
+  miniknopf(knopfimg,eqx+50,10+eqy+40+360,61,60,16,60,EQ_vslider3,0.8); // LSH FRQ
+  miniknopf(knopfimg,eqx+120,10+eqy+35+360,61,60,-24,24,EQ_vslider4,1); // LSH FRQ
+  miniknopf(knopfimg,eqx+200,10+eqy+40+360,61,60,0.4,0.9,EQ_vslider11,0.8); // LSH Q
   glbl_desk == 3 ? knopfimg -= 21;
   
   ghshf.rectIn(eqx+50,20+eqy+40, 60*0.8, 60*0.8); 
@@ -2589,25 +2689,25 @@ slider21 == 0 ? gfx_blit(18+black,1,0,2,0,296,550);
   
   slider21 == 2 ? (
   glbl_desk == 3 ? knopfimg += 19;
-  miniknopf(knopfimg,eqx+50,50+eqy+40,61,60,40,76,slider5,0.8); // HSH FRQ
-  miniknopf(knopfimg,eqx+120,50+eqy+35,61,60,-15,15,slider6,1); // HSH FRQ
+  miniknopf(knopfimg,eqx+50,50+eqy+40,61,60,40,76,EQ_vslider5,0.8); // HSH FRQ
+  miniknopf(knopfimg,eqx+120,50+eqy+35,61,60,-15,15,EQ_vslider6,1); // HSH FRQ
   glbl_desk == 3 ? knopfimg -= 19;
   
   glbl_desk == 3 ? knopfimg += 20;
-  miniknopf(knopfimg,eqx+50,50+eqy+40+100,61,60,51.2,90,slider13,0.8); // HPK FRQ
-  miniknopf(knopfimg,eqx+120,50+eqy+35+100,61,60,-15,15,slider14,1); // HPK FRQ
+  miniknopf(knopfimg,eqx+50,50+eqy+40+100,61,60,51.2,90,EQ_vslider13,0.8); // HPK FRQ
+  miniknopf(knopfimg,eqx+120,50+eqy+35+100,61,60,-15,15,EQ_vslider14,1); // HPK FRQ
   glbl_desk == 3 ? knopfimg -= 20;
   gfx_x = eqx+200; gfx_y = 50+eqy+40+100;
   slider20 == 1 ? (gfx_blit(4,0.8,0,0,0,48,60)):(gfx_blit(4,0.8,0,0,60,48,60));
   
-  miniknopf(knopfimg,eqx+50,50+eqy+40+180,61,60,28,66.5,slider7,0.8); // HPK FRQ
-  miniknopf(knopfimg,eqx+120,50+eqy+35+180,61,60,-15,15,slider8,1); // HPK FRQ
+  miniknopf(knopfimg,eqx+50,50+eqy+40+180,61,60,28,66.5,EQ_vslider7,0.8); // HPK FRQ
+  miniknopf(knopfimg,eqx+120,50+eqy+35+180,61,60,-15,15,EQ_vslider8,1); // HPK FRQ
   gfx_x = eqx+200; gfx_y = 50+eqy+40+180;
   slider19 == 1 ? (gfx_blit(4,0.8,0,0,0,48,60)):(gfx_blit(4,0.8,0,0,60,48,60));
   
   glbl_desk == 3 ? knopfimg += 21;
-  miniknopf(knopfimg,eqx+50,50+eqy+40+280,61,60,32,65,slider3,0.8); // LSH FRQ
-  miniknopf(knopfimg,eqx+120,50+eqy+35+280,61,60,-15,15,slider4,1); // LSH FRQ
+  miniknopf(knopfimg,eqx+50,50+eqy+40+280,61,60,32,65,EQ_vslider3,0.8); // LSH FRQ
+  miniknopf(knopfimg,eqx+120,50+eqy+35+280,61,60,-15,15,EQ_vslider4,1); // LSH FRQ
   glbl_desk == 3 ? knopfimg -= 21;
   
   ghshf.rectIn(eqx+50,50+eqy+40, 60*0.8, 60*0.8); 
@@ -2634,19 +2734,19 @@ slider21 == 0 ? gfx_blit(18+black,1,0,2,0,296,550);
    
    slider21 == 1 ? (
    glbl_desk == 3 ? knopfimg += 19;
-   miniknopf(knopfimg,eqx+100,50+eqy+35,61,60,-15,15,slider6,1); // HSH FRQ
+   miniknopf(knopfimg,eqx+100,50+eqy+35,61,60,-15,15,EQ_vslider6,1); // HSH FRQ
    glbl_desk == 3 ? knopfimg -= 19;
    
    glbl_desk == 3 ? knopfimg += 20;
-   miniknopf(knopfimg,80+eqx+105,80+eqy+40+100,61,60,49,98,slider13,0.8); // HPK FRQ
-   miniknopf(knopfimg,eqx+100,70+eqy+20+100,61,60,-15,15,slider14,1); // HPK FRQ
+   miniknopf(knopfimg,80+eqx+105,80+eqy+40+100,61,60,49,98,EQ_vslider13,0.8); // HPK FRQ
+   miniknopf(knopfimg,eqx+100,70+eqy+20+100,61,60,-15,15,EQ_vslider14,1); // HPK FRQ
    glbl_desk == 3 ? knopfimg -= 20;
    
-   miniknopf(knopfimg,80+eqx+105,90+eqy+40+180,61,60,16,63,slider7,0.8); // HPK FRQ
-   miniknopf(knopfimg,eqx+100,20+45+eqy+35+180,61,60,-15,15,slider8,1); // HPK FRQ
+   miniknopf(knopfimg,80+eqx+105,90+eqy+40+180,61,60,16,63,EQ_vslider7,0.8); // HPK FRQ
+   miniknopf(knopfimg,eqx+100,20+45+eqy+35+180,61,60,-15,15,EQ_vslider8,1); // HPK FRQ
   
    glbl_desk == 3 ? knopfimg += 21;   
-   miniknopf(knopfimg,eqx+100,75+eqy+35+280,61,60,-15,15,slider4,1); // LSH FRQ
+   miniknopf(knopfimg,eqx+100,75+eqy+35+280,61,60,-15,15,EQ_vslider4,1); // LSH FRQ
    glbl_desk == 3 ? knopfimg -= 21; 
    
    
@@ -2668,11 +2768,11 @@ slider21 == 0 ? gfx_blit(18+black,1,0,2,0,296,550);
     );
  
    slider21 == 0 ? (
-   miniknopf(knopfimg,eqx+120,100+eqy+35,61,60,-12,12,slider6,1); // HSH FRQ
+   miniknopf(knopfimg,eqx+120,100+eqy+35,61,60,-12,12,EQ_vslider6,1); // HSH FRQ
    
-   miniknopf(knopfimg,eqx+120,90+eqy+35+100,61,60,-13,13,slider8,1); // HPK FRQ
+   miniknopf(knopfimg,eqx+120,90+eqy+35+100,61,60,-13,13,EQ_vslider8,1); // HPK FRQ
 
-   miniknopf(knopfimg,eqx+120,eqy+35+280,61,60,-10,10,slider4,1); // LSH FRQ
+   miniknopf(knopfimg,eqx+120,eqy+35+280,61,60,-10,10,EQ_vslider4,1); // LSH FRQ
    
    ghshg.rectIn(eqx+120,eqy+135, 60, 60); 
    ghshg.rectOut(eqx+120,eqy+135, 60, 60, 61, 3);
@@ -2802,48 +2902,47 @@ slider36 == 0 ? (
   slider23 == 0 ? (gfx_blit(4,0.8,0,0,0,48,60)):(gfx_blit(4,0.8,0,0,60,48,60));
 
     
-  grv = CFIXgrv;
-  slider23 == 0 ? grv = 1;
+
+
+  gLEDS_grv = CFIXgrv;
+  slider23 == 0 ? gLEDS_grv = 1;
   
   gfx_x = cmpx + 240; gfx_y = cmpy + 60;
-  ratio2db(grv) <= -1 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -1 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 80;
-  ratio2db(grv) <= -2 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -2 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 100;
-  ratio2db(grv) <= -3 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -3 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 120;
-  ratio2db(grv) <= -4 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -4 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 140;
-  ratio2db(grv) <= -5 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -5 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 160;
-  ratio2db(grv) <= -6 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -6 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 180;
-  ratio2db(grv) <= -7 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -7 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 200;
-  ratio2db(grv) <= -8 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -8 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 220;
-  ratio2db(grv) <= -9 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -9 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 240;
-  ratio2db(grv) <= -10 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -10 ? (gfx_blit(8,1,0,0,35,35,35)):(gfx_blit(8,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 260;
-  ratio2db(grv) <= -11 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -11 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 280;
-  ratio2db(grv) <= -12 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -12 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 300;
-  ratio2db(grv) <= -13 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -13 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 320;
-  ratio2db(grv) <= -14 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -14 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 340;
-  ratio2db(grv) <= -15 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -15 ? (gfx_blit(9,1,0,0,35,35,35)):(gfx_blit(9,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 360;
-  ratio2db(grv) <= -16 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -16 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 380;
-  ratio2db(grv) <= -17 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
+  ratio2db(gLEDS_grv) <= -17 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
   gfx_x = cmpx + 240; gfx_y = cmpy + 400;
-  ratio2db(grv) <= -18 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
-
-
-
+  ratio2db(gLEDS_grv) <= -18 ? (gfx_blit(10,1,0,0,35,35,35)):(gfx_blit(10,1,0,0,0,35,35));
 
 
 
@@ -3219,17 +3318,17 @@ mouseClick == 1 ?
     mouse_x < 100 ? (
       mouse_y > 350+70 ? (
       mouse_y < 350+70+20 ? (
-        slider59 = 1;
+        slider59 = 1;    changer = 1;
       );
       );
       mouse_y > 380+70 ? (
       mouse_y < 380+70+20 ? (
-        slider59 = 2;
+        slider59 = 2;    changer = 1;
       );
       );
       mouse_y > 410+70 ? (
       mouse_y < 410+70+20 ? (
-        slider59 = 3;
+        slider59 = 3;    changer = 1;
       );
       );
     );
@@ -3240,7 +3339,7 @@ mouseClick == 1 ?
     mouse_x < 100 ? (
     mouse_y > 440+70 ? (
     mouse_y < 440+70+20 ? (
-      slider59 == 0 ? (slider59 = slider57):(slider59 = 0);
+      slider59 == 0 ? (slider59 = slider57):(slider59 = 0);    changer = 1;
     );
     );
     );
@@ -3265,6 +3364,7 @@ mouseClick == 1 ?
           slider45 == 1 ? slider45 = 0;
           slider46 == 1 ? slider46 = 0;
         );
+        changer = 1;
       );
       );
       mouse_x > right_changer - 20 ? (
@@ -3284,6 +3384,7 @@ mouseClick == 1 ?
           slider45 == 2 ? slider45 = 1;
           slider46 == 2 ? slider46 = 1;
         );
+        changer = 1;
       );
       );
     );
@@ -3295,21 +3396,25 @@ mouseClick == 1 ?
        mouse_x > eqx + 270 ? (
        mouse_x < eqx + 270 + 16 ? (
          slider22 == 1 ? (slider22 = 0):(slider22 = 1); // EQ ON
+         changer = 1;
        );
        );
        mouse_x > cmpx + 270 ? (
        mouse_x < cmpx + 270 + 16 ? (
          slider23 == 1 ? (slider23 = 0):(slider23 = 1); // COMP ON
+         changer = 1;
        );
        );
        mouse_x > gatex + 90 ? (
        mouse_x < gatex + 90 + 16 ? (
          slider39 == 1 ? (slider39 = 0):(slider39 = 1); // GATE ON
+         changer = 1;
        );
        );
        mouse_x > gatex + 30 ? (
        mouse_x < gatex + 30 + 16 ? (
          slider48 == 1 ? (slider48 = 0):(slider48 = 1); // GATE SC
+         changer = 1;
        );
        );
      );
@@ -3320,11 +3425,13 @@ mouseClick == 1 ?
        mouse_x > cmpx + 170 ? (
        mouse_x < cmpx + 170 + 16 ? (
          slider36 > 0 ? slider32 == 1 ? (slider32 = 0):(slider32 = 1); // COMP SC
+         changer = 1;
        );
        );
        mouse_x > cmpx + 145 ? (
        mouse_x < cmpx + 145 + 16 ? (
          slider36 == 0 ? slider32 == 1 ? (slider32 = 0):(slider32 = 1); // COMP SC
+         changer = 1;
        );
        );
      );
@@ -3335,11 +3442,13 @@ mouseClick == 1 ?
        mouse_x > cmpx + 150 ? (
        mouse_x < cmpx + 150 + 16 ? (
          slider36 == 1 ? slider37 == 1 ? (slider37 = 0):(slider37 = 1); // COMP ATT
+         changer = 1;
        );
        );
        mouse_x > cmpx + 200 ? (
        mouse_x < cmpx + 200 + 16 ? (
          slider36 == 1 ? slider38 == 1 ? (slider38 = 0):(slider38 = 1); // COMP REL
+         changer = 1;
        );
        );
     );
@@ -3350,17 +3459,17 @@ mouseClick == 1 ?
     mouse_x < cmpx+220 ? (
       mouse_y > cmpy+455 ? (
       mouse_y < cmpy+475 ? (
-        slider36 = 0;
+        slider36 = 0;    changer = 1;
       );
       );
       mouse_y > cmpy+455+30 ? (
       mouse_y < cmpy+475+30 ? (
-        slider36 = 1;
+        slider36 = 1;    changer = 1;
       );
       );
       mouse_y > cmpy+455+60 ? (
       mouse_y < cmpy+475+60 ? (
-        slider36 = 2;
+        slider36 = 2;    changer = 1;
       );
       );
     );
@@ -3370,12 +3479,14 @@ mouseClick == 1 ?
     mouse_x < eqx+110 ? (
       mouse_y > eqy + 485 ? (
       mouse_y < eqy + 505 ? (
-        slider21 = 0;
+        slider21 = 0;    changer = 1;
+        RESET_EQ();
       );
       );
       mouse_y > eqy + 515 ? (
       mouse_y < eqy + 535 ? (
-        slider21 = 2;
+        slider21 = 2;    changer = 1;
+        RESET_EQ();
       );
       );
     );
@@ -3384,12 +3495,14 @@ mouseClick == 1 ?
     mouse_x < eqx+210 ? (
       mouse_y > eqy + 485 ? (
       mouse_y < eqy + 505 ? (
-        slider21 = 1;
+        slider21 = 1;    changer = 1;
+        RESET_EQ();
       );
       );
       mouse_y > eqy + 515 ? (
       mouse_y < eqy + 535 ? (
-        slider21 = 3;
+        slider21 = 3;    changer = 1;
+        RESET_EQ();
       );
       );
     );
@@ -3401,7 +3514,7 @@ mouseClick == 1 ?
     mouse_x < goutx+200 ? (
       mouse_y > gouty + 60 ? (
       mouse_y < gouty + 160 ? (
-        slider62 == 1 ? (slider62 = 0):(slider62=1);
+        slider62 == 1 ? (slider62 = 0):(slider62=1);    changer = 1;
       );
       );
     );
@@ -3463,6 +3576,7 @@ mouseClick == 1 ?
         mouse_y > eqy + 430 ? (
         mouse_y < eqy + 430 + 50 ? (
          slider22 == 0 ? (slider22 = 1):(slider22 = 0);
+         changer = 1;
       );
       );
       );
@@ -3474,11 +3588,13 @@ mouseClick == 1 ?
         mouse_y > eqy + 190 ? (
         mouse_y < eqy + 190 + 50 ? (
           slider20 == 0 ? (slider20 = 1):(slider20=0);
+          changer = 2;
         );
         );
         mouse_y > 80+eqy + 190 ? (
         mouse_y < 80+eqy + 190 + 50 ? (
           slider19 == 0 ? (slider19 = 1):(slider19=0);
+          changer = 2;
         );
         );
       );
@@ -3581,23 +3697,23 @@ mouse_wheel ?
 ROFreq = 0;
 
 
-    gcompthresh.dragging   ? gcompthresh.potDrag();
-    gcompratio.dragging   ? gcompratio.potDrag();
-    gcompattack.dragging   ? gcompattack.potDrag();
-    gcomprelease.dragging   ? gcomprelease.potDrag();
-    gcompout.dragging   ? gcompout.potDrag();
-    gcompdry.dragging   ? gcompdry.potDrag();
-    gcompknee.dragging   ? gcompknee.potDrag();
-    ggatethresh.dragging   ? ggatethresh.potDrag();
-    ggateattack.dragging   ? ggateattack.potDrag();
-    ggatehold.dragging   ? ggatehold.potDrag();
-    ggaterelease.dragging   ? ggaterelease.potDrag();
+    gcompthresh.dragging   ? (gcompthresh.potDrag();Changer = 1);
+    gcompratio.dragging   ? (gcompratio.potDrag();Changer = 1);
+    gcompattack.dragging   ? (gcompattack.potDrag();Changer = 1);
+    gcomprelease.dragging   ? (gcomprelease.potDrag();Changer = 1);
+    gcompout.dragging   ? (gcompout.potDrag();Changer = 1);
+    gcompdry.dragging   ? (gcompdry.potDrag();Changer = 1);
+    gcompknee.dragging   ? (gcompknee.potDrag();Changer = 1);
+    ggatethresh.dragging   ? (ggatethresh.potDrag();Changer = 1);
+    ggateattack.dragging   ? (ggateattack.potDrag();Changer = 1);
+    ggatehold.dragging   ? (ggatehold.potDrag();Changer = 1);
+    ggaterelease.dragging   ? (ggaterelease.potDrag();Changer = 1);
 ghp.dragging  ? (ROFreq = 1;ghp.potDrag();Changer = 1);
 glp.dragging ? (ROFreq = 1;glp.potDrag();Changer = 1);
 glshf.dragging   ? (ROFreq = 1;glshf.potDrag();Changer = 1);
 glshg.dragging   ? (glshg.potDrag();Changer = 1);
 ghshf.dragging   ? (ROFreq = 1;ghshf.potDrag();Changer = 1);
-ghshg.dragging   ? (ghshg.potDrag();Changer = 1);
+ghshg.dragging   ? (ghshg.potDrag();Changer =1);
 glpeakq.dragging   ? (glpeakq.potDrag();Changer = 1);
 glpeakf.dragging   ? (ROFreq = 1;glpeakf.potDrag();Changer = 1);
 glpeakg.dragging   ? (glpeakg.potDrag();Changer = 1);
@@ -3617,7 +3733,7 @@ ghpf.dragging   ? (ROFreq = 1;ghpf.potDrag();Changer = 1);
 glpf.dragging   ? (ROFreq = 1;glpf.potDrag();Changer = 1);
 gmetercal.dragging   ? (gmetercal.potDrag();Changer = 1);
 gmeterspeed.dragging   ? (gmeterspeed.potDrag();Changer = 1);
-glpeakq.dragging   ? (glpeakq.potDrag();Changer = 1);
+//glpeakq.dragging   ? (glpeakq.potDrag();Changer = 2);
 goutbal.dragging   ? (goutbal.potDrag();Changer = 1);
 gouttrim.dragging   ? (gouttrim.potDrag();Changer = 1);
 //gdry.dragging   ? (gdry.potDrag();Changer = 1);
@@ -3806,6 +3922,7 @@ gouttrim.dragging   ? (gouttrim.potDrag();Changer = 1);
           (
             gmpeakg=gmpeakg.val;
             slider14=gmpeakg;
+            //slider_automate(2^(13-1) );
             pot.potVal(gmpeakg.val);
            ):
       gmpeakg!=slider14?
@@ -4174,17 +4291,18 @@ gfx_drawnumber(slider26,1);
 
 ); 
 */
-gfx_r=0.7; gfx_g=gfx_b=0;
-gfx_x=950; gfx_y=525;
-gfx_drawstr("BUGFIX #1");
+gfx_r=0.3; gfx_g=0.5; gfx_b=1;
+gfx_x=930; gfx_y=525;
+gfx_drawstr("BUGFIX #2 ");
+gfx_drawnumber(spikecount,0);
 
 ); /////// EXT FLAGS
 
 
 
-stattslider();
 //changer == 1 ? stattslider();
-changer = 0;
+//changer == 2 ? (stattslider(); //EQ_slider();
+//changer = 0;
 
 
 
