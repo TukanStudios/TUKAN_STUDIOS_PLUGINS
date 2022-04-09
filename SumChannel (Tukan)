@@ -1,6 +1,6 @@
 desc:SUM CHANNEL (Tukan)
 //author: Tukan
-//version 0.9
+//version 1.3
 slider1:0<0,100,1>-HP
 slider2:100<0,100,1>-LP
 slider3:23<0,98,1>-3 LSH FREQ
@@ -44,6 +44,7 @@ slider33:0<0,1,1>-Metermode
 33 recylcled// dark mode
 
 slider34:3<0,5,0.01>-Meterspeed
+//34 cab be recycled for clean gate amount
 slider35:0<0,1,0.01>-35 Dry amount
 slider36:1<0,2,1>-36 Compressor Type
 slider37:0<0,1,1>-37 Slow Attack
@@ -3277,6 +3278,8 @@ slider39 == 0 ? ggate_det= 0;
       slider57 == 3 ? (gfx_x = 15; gfx_y =70+405);
       gfx_blit(10,0.8,0,0,35,35,35);
       ); 
+      
+
       ////////////////////////////////////// ENDE STATUS LEDS //////////////////////////7
   /*
       gfx_rect(20,350+70,80,20);
@@ -3339,7 +3342,11 @@ mouseClick == 1 ?
     mouse_x < 100 ? (
     mouse_y > 440+70 ? (
     mouse_y < 440+70+20 ? (
+      _global.desk != 0 ? (
       slider59 == 0 ? (slider59 = slider57):(slider59 = 0);    changer = 1;
+      ):(
+      noglbldesk = 30;
+      );
     );
     );
     );
@@ -4291,10 +4298,22 @@ gfx_drawnumber(slider26,1);
 
 ); 
 */
-gfx_r=0.3; gfx_g=0.5; gfx_b=1;
-gfx_x=930; gfx_y=525;
-gfx_drawstr("BUGFIX #2 ");
-gfx_drawnumber(spikecount,0);
+gfx_r=1; gfx_g=0; gfx_b=0.6;
+gfx_x=920; gfx_y=525;
+gfx_drawstr("BUGFIX #3 v1.3");
+//gfx_drawnumber(spikecount,0);
+
+noglbldesk > 0 ? (
+gfx_r=0; gfx_g=0; gfx_b=0;
+gfx_rect(30,470,500,40);
+gfx_r=1; gfx_g=0.5; gfx_b=0.5;
+gfx_x=40; gfx_y=470+7;
+gfx_drawstr("FEATURE NOT AVAILABLE: NO SUMTHING IN MASTERMODE PRESENT...");
+gfx_x=40; gfx_y=490+5;
+gfx_drawstr("SEE INSTRUCTIONAL VIDEOS ABOUT SUMTHING FOR DETAILS");
+noglbldesk -= .4;
+);
+
 
 ); /////// EXT FLAGS
 
