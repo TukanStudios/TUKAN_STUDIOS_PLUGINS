@@ -1,87 +1,87 @@
 desc:SUM CHANNEL (Tukan)
 //author: Tukan
-//version 1.3
-slider1:0<0,100,1>-HP
-slider2:100<0,100,1>-LP
+//version 1.4
+slider1:0<0,100,1>-1 HPF
+slider2:100<0,100,1>-2 LPF
 slider3:23<0,98,1>-3 LSH FREQ
 slider4:0<-24,24,0.24>-4 LSH GAIN
 slider5:83<2,100,1>-5 HSH FREQ
 slider6:0<-24,24,0.24>-6 HSH GAIN
-slider7:66.44<0,100,1>-7 PEAK FREQ
-slider8:0<-24,24,0.24>-8 PEAK GAIN
-slider9:0.7<0.2,10,0.1>-9 PEAK Q
-slider10:0<-24,24,0.24>-Output
+slider7:66.44<0,100,1>-7 PEAK 1 FREQ
+slider8:0<-24,24,0.24>-8 PEAK 1 GAIN
+slider9:0.7<0.2,10,0.1>-9 PEAK 1 Q
+slider10:0<-24,24,0.24>-10 DONT Output (unused?)
 
 slider11:0.7<0.4,0.9,0.1>-11 LSH Q
 slider12:0.7<0.4,0.9,0.1>-12 HSH Q
 
-slider13:66.44<0,100,1>-13 PEAK FREQ
-slider14:0<-24,24,0.24>-14 PEAK GAIN
-slider15:0.7<0.2,10,0.1>-15 PEAK Q
+slider13:66.44<0,100,1>-13 PEAK 2 FREQ
+slider14:0<-24,24,0.24>-14 PEAK 2 GAIN
+slider15:0.7<0.2,10,0.1>-15 PEAK 2 Q
 
-slider16:66.44<0,100,1>-16 PEAK FREQ
-slider17:0<-24,24,0.24>-17 PEAK GAIN
-slider18:0.7<0.2,10,0.1>-18 PEAK Q
+slider16:66.44<0,100,1>-16 PEAK 3 FREQ
+slider17:0<-24,24,0.24>-17 PEAK 3 GAIN
+slider18:0.7<0.2,10,0.1>-18 PEAK 3 Q
 
-slider19:0<0,1,1>-LPEAK narrow
-slider20:0<0,1,1>-HPEAK narrow
+slider19:0<0,1,1>-19 PEAK 1 narrow
+slider20:0<0,1,1>-20 PEAK 2 narrow
 
-slider21:2<0,3,1>-EQTyp
+slider21:2<0,3,1>-21 DONT EQTyp
 slider22:1<0,1,1>-22 EQ ON
 
 slider23:1<0,1,1>-23 Compressor ON
 
-slider24:-16<-32,0,0.1>-24 Threshold (dB)
-slider25:0<0,100,1>-25 Knee (%)
-slider26:4<1,17,0.1>-26 Ratio
-slider27:3<0.001,150,0.1>-27 Attack (ms)
-slider28:100<0.001,1000,1>-28 Release (ms)
+slider24:-16<-32,0,0.1>-24 Comp Threshold (dB)
+slider25:0<0,100,1>-25 Comp Knee (%)
+slider26:4<1,17,0.1>-26 Comp Ratio
+slider27:3<0.001,150,0.1>-27 Comp Attack (ms)
+slider28:100<0.001,1000,1>-28 Comp Release (ms)
 slider29:0<-24,24,0.1>-29 Comp Output (dB)
-slider30:0<0,1,1{Off,On}>-30 Delta
-slider31:0<0,1,1>-31 Feedback
-slider32:0<0,1,1>-32 Sidechain
-slider33:0<0,1,1>-Metermode 
+slider30:0<0,1,1{Off,On}>-30 DONT Delta (unused?)
+slider31:0<0,1,1>-31 DONT Feedback (unused?)
+slider32:0<0,1,1>-32 Comp Sidechain
+slider33:0<0,1,1>-33 DONT Dark mode 
 33 recylcled// dark mode
 
-slider34:3<0,5,0.01>-Meterspeed
+slider34:3<0,5,0.01>-34 DONT Meterspeed (unused?)
 //34 cab be recycled for clean gate amount
-slider35:0<0,1,0.01>-35 Dry amount
-slider36:1<0,2,1>-36 Compressor Type
-slider37:0<0,1,1>-37 Slow Attack
-slider38:0<0,1,1>-38 Slow Release
+slider35:0<0,1,0.01>-35 Comp Dry amount
+slider36:1<0,2,1>-36 DONT Compressor Type
+slider37:0<0,1,1>-37 Comp Slow Attack
+slider38:0<0,1,1>-38 Comp Slow Release
 
 slider39:1<0,1,1>-39 Gate On
-slider40:-50<-120,0,0.1>-Gate_threshold (dB)
-slider41:0.01<0.01,10,0.01>-Gate_attack (ms)
-slider42:50<20,200,1>-Gate_release (ms)
-slider43:50<10,1000,1>-Gate_env Decay (ms)
-slider44:0<-24,24,0.1>-Output (dB)
+slider40:-50<-120,0,0.1>-40 Gate Threshold (dB)
+slider41:0.01<0.01,10,0.01>-41 Gate Attack (ms)
+slider42:50<20,200,1>-42 Gate Release (ms)
+slider43:50<10,1000,1>-43 Gate Decay (ms)
+slider44:0<-24,24,0.1>-44 DONT Output (dB) (unused?)
 
-slider45:0<0,2,1>-45 Gate Pos
-slider46:1<0,2,1>-46 Comp Pos
-slider47:2<0,2,1>-47 EQ Pos
-slider48:0<0,1,1>-48 Gate SC On
+slider45:0<0,2,1>-45 DONT Gate Pos
+slider46:1<0,2,1>-46 DONT Comp Pos
+slider47:2<0,2,1>-47 DONT EQ Pos
+slider48:0<0,1,1>-48 DONT Gate SC On
 
-slider49:-1<-1,0,0.01>-negative
-slider50:1<0,1,0.01>-positive
-slider51:0 <-60,60,0.1>-input (dB)
-slider52:0<-60,60,1>-output (db)
-slider53:1<0,1,1{mono,stereo}>-mode
-slider54:25<20,250,5>-scope size (ms)
-slider55:0.5<0,2,0.01>-Desk Noise
-slider56:0<-24,24,0.1>-Amount offset
-slider57:1<0,3,1>-57 Desk Model
+slider49:-1<-1,0,0.01>-49 DONT negative
+slider50:1<0,1,0.01>-50 DONT positive
+slider51:0 <-60,60,0.1>-51 DONT input (dB)
+slider52:0<-60,60,1>-52 DONT output (db)
+slider53:1<0,1,1{mono,stereo}>-53 DONT mode (unused?)
+slider54:25<20,250,5>-54 DONT scope size (ms) (unused?)
+slider55:0.5<0,2,0.01>-55 Desk Noise
+slider56:0<-24,24,0.1>-56 Amount offset
+slider57:1<0,3,1>-57 DONT Desk Model
 
-slider58:1<0,1,1>-26 CH Processing
-slider59:2<0,3,1>-59 Desk Select
+slider58:1<0,1,1>-58 DONT CH Processing
+slider59:2<0,3,1>-59 DONT Desk Select
 
 slider60:50<0.1,100,0.1>-60 Meterspeed
 slider61:-12<-24,0,1>-61 Metercalibration
 
-slider62:0<0,1,1>-31 Twoneedle
+slider62:0<0,1,1>-62 Twoneedle
 
-slider63:0<-24,24>-32 General Out gain
-slider64:0.5<0,1,0.1>-38 Balance
+slider63:0<-24,24>-63 General Out gain
+slider64:0.5<0,1,0.1>-64 Balance
 
 
 filename:0,sumchan/screw.png
@@ -1558,25 +1558,35 @@ compoutput = 10^(slider29/20);
 
 CFICFIXxListen = slider30;
 ///////////////////////////// COMPRESSOR ENDE SLIDER
-
-ofset = 2000000;
-snmb = 1;
-loop(64,
-//changer == 1 ? (
-  slider(snmb) != ofset[snmb] ? (
-    smurf = 0;
-    slider_automate(2^(snmb-1));
-  );
-//);
-ofset[snmb] = slider(snmb);
-snmb += 1;
-);
-
-aaa = ofset[7];
 changer = 0;
 stattslider_on = 0;
 //); // Sample_on
 );
+
+
+
+
+
+
+function param_move () (
+ofset = 2000000;
+snmb = 1;
+loop(64,
+  //snmb != 57 && // EXCLUDES
+  //snmb != 58 &&// und ..6
+  //snmb != 59 ?(
+  slider(snmb) != ofset[snmb] ? (
+    smurf = 0;
+    slider_automate(2^(snmb-1));
+    //sliderchange(snmb);
+  );
+  //); // exclude
+ofset[snmb] = slider(snmb);
+snmb += 1;
+);
+);
+
+
 
 
 
@@ -1671,7 +1681,7 @@ slider497 = 2;
 slider502 == 1 ? (slider492 = 3):(slider492 = 2);
 slider503 == 1 ? (slider498 = 2):(slider498 = 1);
 initthings();
-stattslider();
+changer = 1;
 );
 
 function desk2() // Nevish
@@ -1689,7 +1699,7 @@ slider497 = -2;
 slider502 == 1 ? (slider492 = 3):(slider492 = 1);
 slider503 == 1 ? (slider498 = 2):(slider498 = 1);
 initthings();
-stattslider();
+changer = 1;
 );
 
 function desk3() // VCA
@@ -1707,7 +1717,7 @@ slider497 = -1.2;
 slider502 == 1 ? (slider492 = 3):(slider492 = 2);
 slider503 == 1 ? (slider498 = 3):(slider498 = 2);
 initthings();
-stattslider();
+changer = 1;
 );
 
 deskfade = 1;
@@ -1717,9 +1727,12 @@ initthings();
 
 @slider
 
+changer == 0 ? (
+stattslider_on == 0 ? (
 stattslider();
-
-
+);
+);
+changefromslider = 1;
 
 
 
@@ -1777,6 +1790,8 @@ stattslider();
 changer > 0 ? (
 stattslider_on == 0 ? (
 stattslider();
+param_move();
+changefromslider = 0;
 //changer = 0;
 );
 );
@@ -3540,11 +3555,11 @@ mouseClick == 1 ?
     */
     gcompthresh.collision()   ? gcompthresh.dragStart();
     gcompratio.collision()   ? gcompratio.dragStart();
-    gcompattack.collision()   ? gcompattack.dragStart();
-    gcomprelease.collision()   ? gcomprelease.dragStart();
+    slider36 == 2 ? gcompattack.collision()   ? gcompattack.dragStart();
+    slider36 == 2 ? gcomprelease.collision()   ? gcomprelease.dragStart();
     gcompout.collision()   ? gcompout.dragStart();
-    gcompdry.collision()   ? gcompdry.dragStart();
-    gcompknee.collision()   ? gcompknee.dragStart();
+    slider36 == 2 ? gcompdry.collision()   ? gcompdry.dragStart();
+    slider36 == 2 ? gcompknee.collision()   ? gcompknee.dragStart();
     ggatethresh.collision()   ? ggatethresh.dragStart();
     ggateattack.collision()   ? ggateattack.dragStart();
     ggatehold.collision()   ? ggatehold.dragStart();
@@ -3552,22 +3567,22 @@ mouseClick == 1 ?
     
       ghp.collision()   ? ghp.dragStart();   
       glp.collision()  ? glp.dragStart();  
-      glshf.collision()    ? glshf.dragStart(); 
+      slider21 > 1 ? glshf.collision()    ? glshf.dragStart(); 
       glshg.collision()    ? glshg.dragStart();
-      ghshf.collision()    ? ghshf.dragStart();
+      slider21 > 1 ? ghshf.collision()    ? ghshf.dragStart();
       ghshg.collision()    ? ghshg.dragStart();
-      glpeakf.collision()    ? glpeakf.dragStart();
+      slider21 > 0 ? glpeakf.collision()    ? glpeakf.dragStart();
       glpeakg.collision()    ? glpeakg.dragStart();
-      glpeakq.collision()    ? glpeakq.dragstart();
+      slider21 == 3 ? glpeakq.collision()    ? glpeakq.dragstart();
       goutput.collision()    ? goutput.dragstart();
-      gmpeakf.collision()    ? gmpeakf.dragStart();
-      gmpeakg.collision()    ? gmpeakg.dragStart();
-      gmpeakq.collision()    ? gmpeakq.dragstart();
-      ghpeakf.collision()    ? ghpeakf.dragStart();
-      ghpeakg.collision()    ? ghpeakg.dragStart();
-      ghpeakq.collision()    ? ghpeakq.dragstart();
-      glshq.collision()    ? glshq.dragStart();
-      ghshq.collision()    ? ghshq.dragStart();
+      slider21 > 0 ? gmpeakf.collision()    ? gmpeakf.dragStart();
+      slider21 > 0 ? gmpeakg.collision()    ? gmpeakg.dragStart();
+      slider21 == 3 ? gmpeakq.collision()    ? gmpeakq.dragstart();
+      slider21 == 3 ? ghpeakf.collision()    ? ghpeakf.dragStart();
+      slider21 == 3 ? ghpeakg.collision()    ? ghpeakg.dragStart();
+      slider21 == 3 ? ghpeakq.collision()    ? ghpeakq.dragstart();
+      slider21 == 3 ? glshq.collision()    ? glshq.dragStart();
+      slider21 == 3 ? ghshq.collision()    ? ghshq.dragStart();
       
       gamount.collision()   ? gamount.dragStart();   
       gnoise.collision()  ? gnoise.dragStart();  
@@ -4298,9 +4313,9 @@ gfx_drawnumber(slider26,1);
 
 ); 
 */
-gfx_r=1; gfx_g=0; gfx_b=0.6;
+gfx_r=0; gfx_g=0.4; gfx_b=0.6;
 gfx_x=920; gfx_y=525;
-gfx_drawstr("BUGFIX #3 v1.3");
+gfx_drawstr("BUGFIX #4 v1.4");
 //gfx_drawnumber(spikecount,0);
 
 noglbldesk > 0 ? (

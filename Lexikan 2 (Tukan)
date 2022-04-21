@@ -1569,8 +1569,13 @@ gfx_r=0.72/18;gfx_g=13.5/18;gfx_b=1;gfx_a=0.8; //LEXIBLUE
 
 /////////////////////////////////////// ENDE DISPLAY
 
-
+//slider8:23<0,100,1>detuning (cents)
+slider8 != 0 ? (
 ggfx_r=0.8*0.72/18;gfx_g=0.8*13.5/18;gfx_b=0.8*1;gfx_a=1; //0.8
+):(
+ggfx_r=0.8*0.72/18;gfx_g=0.8*13.5/18;gfx_b=1;gfx_a=1; //0.8
+);
+
 gfx_rect(displayx+displayw,sknobsy +30,kndistance*6+360,50);
 
 gfx_x = 0; gfx_y = 0; gfx_a=1;
@@ -1717,7 +1722,7 @@ gKnob10.knob();
 gKnob1.knob();
 */
 
-
+//gfx_rect(390,25,20,20);
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
@@ -1750,6 +1755,17 @@ gKnob1.collision()    ? gKnob1.dragStart();
  mouse_x < 390 ? (
  //slider30 == 0 ? (slider30 = 1):(slider30=0);
  FDLDISP == 0 ? (FDLDISP = 1):(FDLDISP=0);
+ );
+ );
+ );
+ );
+ 
+ mouse_y > 25 ? (
+ mouse_y < 45 ? (
+ mouse_x > 390 ? (
+ mouse_x < 410 ? (
+ //slider30 == 0 ? (slider30 = 1):(slider30=0);
+ slider8 == 0 ? (slider8 =23):(slider8=0);
  );
  );
  );

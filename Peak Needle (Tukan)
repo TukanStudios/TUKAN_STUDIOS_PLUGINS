@@ -502,7 +502,7 @@ UI_SLIDER_MASK=(1<<15)-1;
 
 ext_noinit=1;
 ext_nodenorm=1;
-gfx_ext_retina=max(gfx_ext_retina,1);
+//gfx_ext_retina=max(gfx_ext_retina,1);
 
 sliders_showing=0;
 
@@ -560,7 +560,7 @@ function init(chidx)
   this.ch_lufs_sum=this.ch_rms_sum=0;
 
   this.h00 = this.h01 = this.h02 = this.h03 = this.h04 = this.h05 = this.h06 = this.h07 =
-  this.h08 = this.h09 = this.h10 = this.h11 = this.h12 = this.h13 = this.h14 = this.h15 = -140; // was ist das? War 0 ;)
+  this.h08 = this.h09 = this.h10 = this.h11 = this.h12 = this.h13 = this.h14 = this.h15 = 0;//-140; // was ist das? War 0 ;)
 );
 
 function decay()
@@ -727,6 +727,7 @@ function Reset()
   num_ch > 56 ? ( ch56.init(56); ch57.init(57); ch58.init(58); ch59.init(59); ch60.init(60); ch61.init(61); ch62.init(62); ch63.init(63);
   ))))))))))));
   
+
   ch0.pkval = -150;
   ch1.pkval = -150;
   ch0.hipkval = -150;
@@ -737,6 +738,7 @@ function Reset()
   needle2_is = -140;
   needle_is_max = -140;
   needle2_is_max = -140;
+
 );
 
 Reset();
@@ -843,8 +845,8 @@ cleanL = spl0;
 cleanR = spl1;
 
 slider41 < 4 ? (
-spl0 = max(abs(spl0), 0.0000001);
-spl1 = max(abs(spl1), 0.0000001);
+spl0 == 0 ? spl0 = 0.0000001;// max(abs(spl0), 0.0000001);
+spl1 == 0 ? spl1 = 0.0000001;// max(abs(spl1), 0.0000001);
 );
 
 
@@ -1468,7 +1470,7 @@ gfx_ext_flags == 0 ? (
 
 mouseClick == 1 ? (
 
-// !alt ? (
+!alt ? (
 mouse_x > awknobx ? (
 mouse_x < awknobx + 33 ? (
 mouse_y > awknoby + 9 ? (
@@ -1503,10 +1505,7 @@ mouse_x > awknobx+awknobdist*2 ? (
 mouse_x < awknobx+awknobdist*2 + 33 ? (
 mouse_y > awknoby + 9 ? (
 mouse_y < awknoby + 25 ? (
-slider41 == 0 ? (slider41 = 2):
-slider41 == 1 ? (slider41 = 3):
-slider41 == 2 ? (slider41 = 0):
-slider41 == 3 ? (slider41 = 1);
+cfg_peak == 1 ? (cfg_peak=3):(cfg_peak=1);
 );
 );
 );
@@ -1631,7 +1630,7 @@ slider44 == 0 ? (slider44 = 1):(slider44 = 0);
 
 
 
-//):( // ALT PRESSED 
+):( // ALT PRESSED 
 
 mouse_x > awknobx ? (
 mouse_x < awknobx + 33 ? (
@@ -1663,18 +1662,17 @@ slider45 != 3 ? slider45 = 1;
 );
 );
 
+
 mouse_x > awknobx+awknobdist*2 ? (
 mouse_x < awknobx+awknobdist*2 + 33 ? (
 mouse_y > awknoby + 9 ? (
 mouse_y < awknoby + 25 ? (
-slider45 == 0 ? (slider45 = 2):
-slider45 == 1 ? (slider45 = 3):
-slider45 == 2 ? (slider45 = 0):
-slider45 == 3 ? (slider45 = 1);
+cfg_peak == 1 ? (cfg_peak=3):(cfg_peak=1);
 );
 );
 );
 );
+
 
 mouse_x > awknobx ? (
 mouse_x < awknobx + 33 ? (
@@ -1726,20 +1724,48 @@ slider45 = 5;
 );
 );
 
-//); // ALT
+); // ALT
 
 
 
 
 );
 
+//slider45 == 0 ? cfg_peak == 1 ? slider45 = 2:
+//slider45 == 1 ? cfg_peak == 1 ? slider45 = 3:
+//slider45 == 2 ? cfg_peak == 3 ? slider45 = 0:
+//slider45 == 3 ? cfg_peak == 3 ? sl  ider45 = 1;
+/*
+slider41 == 0 ? (slider41 = 2):
+slider41 == 1 ? (slider41 = 3):
+slider41 == 2 ? (slider41 = 0):
+slider41 == 3 ? (slider41 = 1);
+
+slider41 == 2 ? (cfg_peak = 1);
+slider41 == 3 ? (cfg_peak = 1);
+slider41 == 0 ? (cfg_peak = 3);
+slider41 == 1 ? (cfg_peak = 3);
+*/
 
 
+cfg_peak == 1 ? (
+slider45 < 2 ? slider45 += 2;
+slider41 < 2 ? slider41 += 2;
+);
+cfg_peak == 3 ? (
+slider45 == 2 ? slider45 = 0;
+slider45 == 3 ? slider45 = 1;
+slider41 == 2 ? slider41 = 0;
+slider41 == 3 ? slider41 = 1;
+);
+//slider45 == 0 ? (slider45 = 2):
+//slider45 == 1 ? (slider45 = 3):
+//slider45 == 2 ? (slider45 = 0):
+//slider45 == 3 ? (slider45 = 1);
 
 
-
-slider41 == 9 ? slider45 = 2;
-slider41 == 10 ? slider45 = 3;
+//slider41 == 9 ? slider45 = 2;
+//slider41 == 10 ? slider45 = 3;
 
 
 
@@ -1747,10 +1773,10 @@ slider41 == 10 ? slider45 = 3;
 
 //slider41:0<0,8,1{One Peak, Two Peaks, One TPeak, Two TPeak, RMS, LRA, LUFS S, LUFS M, LUFS I}>Needle
 needle2_is = 0;
-slider41 == 0 ? (slider1 = 3;needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "PEAK");
-slider41 == 1 ? (slider1 = 3;needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval);it_is = "ST PEAK");
-slider41 == 2 ? (slider1 = 1;needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "TPEAK");
-slider41 == 3 ? (slider1 = 1;needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval); it_is = "ST TPEAK");
+slider41 == 0 ? (needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "PEAK");
+slider41 == 1 ? (needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval);it_is = "ST PEAK");
+slider41 == 2 ? (needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "TPEAK");
+slider41 == 3 ? (needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval); it_is = "ST TPEAK");
 slider41 == 4 ? (needle_is = rms_m_db;it_is = "RMS");
 slider41 == 5 ? (needle_is = - lra_db_diff;it_is = "RANGE LU");
 slider41 == 6 ? (needle_is = lufs_s_db;slider38 == 0 ? (it_is = "LUFS S"):(it_is = "LU S"););
@@ -2097,27 +2123,44 @@ needle_is_max_gfx = 20*log10(ch0.pkval);
 needle2_is_max_gfx = 20*log10(ch1.pkval);
 
 needle2_is_max_gfx = 0;
+
 slider44 == 0 ? (
-slider45 == 0 ? (slider1 = 3;needle_is_max_gfx = max(20*log10(ch0.hipkval),20*log10(ch1.hipkval)));
-slider45 == 1 ? (slider1 = 3;needle_is_max_gfx = 20*log10(ch0.hipkval);needle2_is_max_gfx = 20*log10(ch1.hipkval););
-slider45 == 2 ? (slider1 = 1;needle_is_max_gfx = max(20*log10(ch0.hipkval),20*log10(ch1.hipkval)));
-slider45 == 3 ? (slider1 = 1;needle_is_max_gfx = 20*log10(ch0.hipkval);needle2_is_max_gfx = 20*log10(ch1.hipkval););
+slider45 == 0 ? (needle_is_max_gfx = max(20*log10(ch0.hipkval),20*log10(ch1.hipkval)));
+slider45 == 1 ? (needle_is_max_gfx = 20*log10(ch0.hipkval);needle2_is_max_gfx = 20*log10(ch1.hipkval););
+slider45 == 2 ? (needle_is_max_gfx = max(20*log10(ch0.hipkval),20*log10(ch1.hipkval)));
+slider45 == 3 ? (needle_is_max_gfx = 20*log10(ch0.hipkval);needle2_is_max_gfx = 20*log10(ch1.hipkval););
 slider45 == 4 ? (needle_is_max_gfx = rms_m_db_max;);
 slider45 == 5 ? (needle_is_max_gfx = 0;); // LRA not live, ...makes no sense...
 slider45 == 6 ? (needle_is_max_gfx = -0.691+log(lufs_s_sum_max)*10/log(10););
 slider45 == 7 ? (needle_is_max_gfx = -0.691+log(lufs_m_sum_max)*10/log(10););
 slider45 == 8 ? (needle_is_max_gfx = -300); // Integrated max makes no sense...
 ):(
-slider45 == 0 ? (slider1 = 3;needle_is_max_gfx = needle_is);
-slider45 == 1 ? (slider1 = 3;needle_is_max_gfx = needle_is;needle2_is_max_gfx = needle2_is);
-slider45 == 2 ? (slider1 = 1;needle_is_max_gfx = needle_is);
-slider45 == 3 ? (slider1 = 1;needle_is_max_gfx = needle_is;needle2_is_max_gfx = needle2_is);
+slider45 == 0 ? (needle_is_max_gfx = max(20*log10(ch0.pkval),20*log10(ch1.pkval)));
+slider45 == 1 ? (needle_is_max_gfx = 20*log10(ch0.pkval);needle2_is_max_gfx = 20*log10(ch1.pkval));
+slider45 == 2 ? (needle_is_max_gfx = max(20*log10(ch0.pkval),20*log10(ch1.pkval)));
+slider45 == 3 ? (needle_is_max_gfx = 20*log10(ch0.pkval);needle2_is_max_gfx = 20*log10(ch1.pkval));
 slider45 == 4 ? (needle_is_max_gfx = rms_m_db);
 slider45 == 5 ? (needle_is_max_gfx = lra_db_diff;);
 slider45 == 6 ? (needle_is_max_gfx = lufs_s_db);
 slider45 == 7 ? (needle_is_max_gfx = lufs_m_db);
 slider45 == 8 ? (needle_is_max_gfx = lufs_i_db;);
 );
+
+/*
+slider41 == 0 ? (slider1 = 3;needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "PEAK");
+slider41 == 1 ? (slider1 = 3;needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval);it_is = "ST PEAK");
+slider41 == 2 ? (slider1 = 1;needle_is = max(20*log10(ch0.pkval),20*log10(ch1.pkval)); it_is = "TPEAK");
+slider41 == 3 ? (slider1 = 1;needle_is = 20*log10(ch0.pkval);needle2_is = 20*log10(ch1.pkval); it_is = "ST TPEAK");
+slider41 == 4 ? (needle_is = rms_m_db;it_is = "RMS");
+slider41 == 5 ? (needle_is = - lra_db_diff;it_is = "RANGE LU");
+slider41 == 6 ? (needle_is = lufs_s_db;slider38 == 0 ? (it_is = "LUFS S"):(it_is = "LU S"););
+slider41 == 7 ? (needle_is = lufs_m_db;slider38 == 0 ? (it_is = "LUFS M"):(it_is = "LU M"););
+slider41 == 8 ? (needle_is = lufs_i_db;slider38 == 0 ? (it_is = "LUFS I"):(it_is = "LU I"););
+slider41 == 9 ? (needle_is = (dbl+dbr)/2; it_is = "VU"); // ist das richtig ??
+slider41 == 10 ? (needle_is = dbl; needle2_is = dbr; it_is = "VU ST");
+*/
+
+
 
 slider42 == 0 ? (
   slider45 != 5 ? ( //makes no sense: scaling for LRA
@@ -2126,9 +2169,23 @@ needle2_is_max_gfx -= calib;
   );
 );
 
+slider45 < 4 ?(
 needle_is_max_gfx < -scalebottom ? (needle_is_max_gfx = -150);
 needle2_is_max_gfx < -scalebottom ? (needle2_is_max_gfx = -150);
-
+);
+slider45 == 4 ? (
+needle_is_max_gfx < -120 ? (needle_is_max_gfx = -150);
+needle2_is_max_gfx < -120 ? (needle2_is_max_gfx = -150);
+);
+slider45 > 4 ? (
+slider45 < 9 ? (
+needle_is_max_gfx < -90 ? (needle_is_max_gfx = -150);
+needle2_is_max_gfx < -90 ? (needle2_is_max_gfx = -150);
+):(
+needle_is_max_gfx < -120 ? (needle_is_max_gfx = -150);
+needle2_is_max_gfx < -120 ? (needle2_is_max_gfx = -150);
+);
+);
 
 slider39 == 1 ? (
 gfx_r=gfx_g=gfx_b=0;
@@ -2879,7 +2936,7 @@ gfx_blit(5,gsize,0);
 
 //gfx_rect(35,30,250,115);
 
-mnmetergfx(gsize, versatzx*gsize-35, versatzy*gsize-30, 1, 1); // SCALE, X, Y, 1 Needle / 2 Needle, CHANNELS
+mnmetergfx(gsize*10, versatzx*gsize-35, versatzy*gsize-30, 1, 1); // SCALE, X, Y, 1 Needle / 2 Needle, CHANNELS
 
 
 

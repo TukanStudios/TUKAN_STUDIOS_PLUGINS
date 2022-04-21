@@ -35,6 +35,8 @@ slider31:1<0,1,0.01>-Shape
 slider32:0<0,4,1>-Loaded Bank
 slider33:0<0,4,1>-Loaded Program
 
+slider34:0<0,1,1>-White text
+
 filename:0,LEXgui/LEXBack.png
 filename:1,LEXgui/my480.png
 filename:2,LEXgui/my480button.png
@@ -1169,6 +1171,7 @@ gfx_x =120; gfx_y =230;  gfx_printf("+y 10");
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
       
@@ -1211,6 +1214,29 @@ n+=1;
 );
 
 gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     ):( // EXT FLAGS    
       initial == 0 ? (
@@ -1342,14 +1368,23 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
        //eimerkette = 1; 
   eimerkette == 0 ? (
         loop(16,
-  
+        slider34 == 0 ? (
         gfx_r=1; gfx_g=0;gfx_b=0; gfx_a=.2;
+        ):(
+        gfx_r=1; gfx_g=1;gfx_b=1; gfx_a=.2;
+        );
+        
         gfx_circle(300+(10*n), 72-10, 2 ,1);
         gfx_circle(300+(10*n), 90-13, 2 ,1);
         gfx_circle(300+(10*n), 100, 2 ,1);
         gfx_circle(300+(10*n), 115, 2 ,1);
         
+        slider34 == 0 ? (
         gfx_r=1; gfx_g=0;gfx_b=0; gfx_a=1;
+        ):(
+        gfx_r=1; gfx_g=1;gfx_b=1; gfx_a=1;        
+        );
+        
         300+(10*n) < ginL ? (
         gfx_circle(300+(10*n), 72-10, 2 ,1);
         );
@@ -1396,7 +1431,12 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
       slider32 == 4 ? (lBALG="Plates");
       
       
+      slider34 == 0 ? (
       gfx_r=.8; gfx_g=0; gfx_b=0; gfx_a=1;
+      ):(
+      gfx_r=gfx_g=gfx_b=0.7; gfx_a=1;
+      );
+      
       gfx_setfont(1,"Avenir", 14);
       gfxstart = 60;
       gfx_x = gfxstart; gfx_y=65;
@@ -1408,7 +1448,12 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
       gfx_printf(" - ");
       gfx_printf(nextname);
       
+      slider34 == 0 ? (
       gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=1;
+      ):(
+      gfx_r=gfx_g=gfx_b=0.9; gfx_a=1;
+      );
+      
       gfx_x = gfxstart; gfx_y=100;
       //loadedprogramname
       
@@ -1428,7 +1473,12 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
       );
       
       
+      slider34 == 0 ? (
       gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=1;
+      ):(
+      gfx_r=gfx_g=gfx_b=0.9; gfx_a=1;
+      );
+      
       gfx_x = gfxstart; gfx_y=155;
       gfx_printf("Algorithm: ");
       gfx_printf(ALG);   
@@ -1456,7 +1506,12 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
       bypass == 1 ?(gfx_printf("    <<<BYPASSED>>>"));
   
   
-  gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=1;
+      slider34 == 0 ? (
+      gfx_r=1; gfx_g=0; gfx_b=0; gfx_a=1;
+      ):(
+      gfx_r=gfx_g=gfx_b=0.9; gfx_a=1;
+      );
+      
   gfx_setfont(1,"Avenir", 14);
   gfxstart = 50;
   gfx_x = gfxstart; gfx_y=430;
@@ -1655,6 +1710,9 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
         knopf(1,gLPFx,gLPFy,61,200,1000,10000,slider6); 
         knopf(1,gWidex,gWidey,61,200,0,100,slider25);         
         knopf(1,gMixx,gMixy,61,200,0,1,slider27); 
+        
+        //gfx_rect(40,420,420,60);
+        
          /********************************* Mouse Control ******************************/
          mouseClick == 1 ? 
              (
@@ -1682,6 +1740,17 @@ gfx_rect((gfx_w/2)-1 ,gfx_h/2, 3, gfx_h/2);
               
               //);
               //gfx_rect(52,235,18,18);
+              
+              mouse_x > 40 ? (
+              mouse_x < 460 ? (
+              mouse_y > 420 ? (
+              mouse_y < 480 ? (
+                alt ? slider34 == 1 ? (slider34=0):(slider34=1);
+              );
+              );
+              );
+              );
+              
               mouse_x > 52 ? (
               mouse_x < 70 ? (
               mouse_y > 235 ? (
