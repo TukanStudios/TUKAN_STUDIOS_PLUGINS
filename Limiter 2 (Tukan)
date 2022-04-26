@@ -2,16 +2,18 @@ desc:Limiter 2 (Tukan)
 // Version 1.1
 
 slider1:0<-32,0,0.1>-Threshold (dB)
-slider2:0<0,100,1>-Knee (%)
+slider2:0<0,100,1>-DONT Knee (%)
 slider3:30<0,800,1>-Release (ms)
 slider4:-0.1<-16 ,0,0.1>-Ceiling (dB)
 slider5:1<0,1,1>-MeterInOut
+slider6:0<0,1,1>-LinkedInOut
 
 filename:0,TKLimgui/Lim2Back.png
 filename:1,TKLimgui/VUMeter.png
 filename:2,TKLimgui/APIBig.png
 filename:3,TKLimgui/APISmall.png
 filename:4,TKLimgui/switch.png
+filename:5,TKLimgui/menu.png
 
 in_pin:L in
 in_pin:R in
@@ -28,7 +30,7 @@ function db2ratio(d) ( 10^(d/20); );
 function ratio2db(r) ( log(abs(r))*dbc; );
 
 threshold = slider1;
-knee_width = abs(slider1*2*slider2*0.01);
+knee_width = abs(slider1*2*0*0.01);
 ceiling = 1/(db2ratio(threshold));
 slope = -1;
 
@@ -224,6 +226,22 @@ player = 0;
                       );
                      );
                      
+    function doublepotDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep*2;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step*2;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );     
+                     
     function potToggle()
           local      (val)
             instance   (valOld minVal maxVal yOld step)
@@ -313,7 +331,7 @@ gOut.rectOut(knobsx, knobsy, 75, 75, 61, 2);
 
 @slider
 threshold = slider1;
-knee_width = abs(slider1*2*slider2*0.01);
+knee_width = abs(slider1*2*0*0.01);
 ceiling = 1/(db2ratio(threshold));
 slope = -1;
 
@@ -325,6 +343,35 @@ Thi = (threshold + knee_width / 2);
 knee_factor = (slope / (knee_width * 2));
 
 output = 10^(slider4/20);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @sample
 inL = spl0;
@@ -375,6 +422,7 @@ ginRm < ginR ? (ginRm = ginR);
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
                  
@@ -697,13 +745,105 @@ gRel.knob();
 gOut.knob();
 gMeter.knob();
 
+
+
+
+
+
+
+
+
+
+
+
+      
+      
+        ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+        last_clicked_item = -1;
+        Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+        menu_x = 7; menu_y =7;
+        gfx_x=menu_x;gfx_y=menu_y;
+        gfx_blit(5,1,0);
+      //  gfx_drawnumber(last_clicked_item, 0); 
+        mouseClick ? (
+        //helpshow ? helpshow = 0;
+        mouse_x > menu_x ? (
+        mouse_x < menu_x + 20 ? (
+        mouse_y > menu_y ? (
+        mouse_y < menu_y + 20 ? (
+          gfx_x = menu_x;
+          gfx_y = menu_y+20;
+          slider6 == 1 ? (#item1 = "!Link Thresh+Out||"):(#item1 = "Link Thresh+Out||"); 
+           #allitems = #item1;
+          #item2 = "Show Info/Help";    #allitems += #item2;
+          last_clicked_item = gfx_showmenu(#allitems);
+        );
+        );
+        );
+        );
+        );
+        
+        
+        last_clicked_item == 1 ? (slider6 == 0 ? (slider6 = 1):(slider6=0); slider_automate(slider6););
+        last_clicked_item == 2 ? helpshow = 1;
+        
+        screw.collision()    ? (
+        gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
+        gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Meter speed")
+        );
+        
+        
+        helpshow == 1 ? (
+        gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+        gfx_rect(menu_x+20,menu_y+0,300,80);
+        gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+        gfx_x = menu_x+23; gfx_y = menu_y+3;
+        gfx_drawstr("Tip: Qicklink Thresh+Out with alt.");
+        gfx_x = menu_x+23; gfx_y += 26;
+        gfx_drawstr("This plugin can be automated.");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(Fine tune knobs with shift)");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(Reset knobs with ctrl/cmd)");
+        );
+        
+        
+        ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+LinkInOut = slider6;
+
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
-      gThresh.collision()   ? gThresh.dragStart();   
-      gRel.collision()  ? gRel.dragStart();  
-      gOut.collision()    ? gOut.dragStart(); 
-      gMeter.collision()    ? gMeter.pottoggle();
+    alt ? (tmplinkInOut = 1):(tmplinkInOut = 0);
+      gThresh.collision() ? gThresh.dragStart();
+      tmplinkinout ? linkinout = 1;
+      linkInOut ? gThresh.collision() ? (gThresh.dragStart();gOut.dragStart(););
+      
+      gRel.collision() ? gRel.dragStart();  
+      gOut.collision() ? gOut.dragStart(); 
+      gMeter.collision() ? gMeter.pottoggle();
       //gfx_rect(meterx+meterw,metery+3,50,30);
       mouse_x > meterx+meterw ? (
       mouse_x < meterx+meterw+50 ? (
@@ -737,7 +877,8 @@ mouse_wheel ?
 
 gThresh.dragging  ? gThresh.potDrag();
 gRel.dragging ? gRel.potDrag();
-gOut.dragging   ? gOut.potDrag();
+      tmplinkinout ? linkinout = 1;
+linkInOut ? (gOut.dragging   ? gOut.doublepotDrag();):(gOut.dragging   ? gOut.potDrag(););
 gMeter.dragging   ? gMeter.potDrag();
 /******************************* Slider Knob Control **************************/
   gThresh!=gThresh.val?
@@ -745,6 +886,7 @@ gMeter.dragging   ? gMeter.potDrag();
       gThresh=gThresh.val;
       slider1=gThresh;
       pot.potVal(gThresh.val);
+      slider_automate(slider1);
      ):
 gThresh!=slider1?
     (
@@ -759,6 +901,7 @@ gRel!=gRel.val?
       gRel=gRel.val;
       slider3=gRel;
       pot.potVal(gRel.val);
+      slider_automate(slider3);
      ):
 gRel!=slider3?
     (
@@ -773,6 +916,7 @@ gOut!=gOut.val?
       gOut=gOut.val;
       slider4=gOut;
       pot.potVal(gOut.val);
+      slider_automate(slider4);
      ): 
 gOut!=slider4?
     (
@@ -786,6 +930,11 @@ gMeter!=gMeter.val?
       gMeter=gMeter.val;
       slider5=gMeter;
       pot.potVal(gMeter.val);
+      slider_automate(slider5);
+      grmin=0;
+      ginLm = 0;
+      ginRm = 0;
+      grminx = 1;
      ):
 gMeter!=slider5?
     (
@@ -793,12 +942,16 @@ gMeter!=slider5?
       gMeter.val=gMeter;
       gMeter.potVal(gMeter.val);
       gMeter.valOld=gMeter;
+      grmin=0;
+      ginLm = 0;
+      ginRm = 0;
+      grminx = 1;
     );
     
     
     
     threshold = slider1;
-    knee_width = abs(slider1*2*slider2*0.01);
+    knee_width = abs(slider1*2*0*0.01);
     ceiling = 1/(db2ratio(threshold));
     slope = -1;
     

@@ -48,19 +48,19 @@ filename:4,GATEgui/APIRED.png
 filename:5,GATEgui/switch.png
 filename:6,GATEgui/overLED.png
 filename:7,GATEgui/greenyellowled.png
+filename:8,GATEgui/menu.png
 
-
-slider1:0<0,1,1>-Operation
+slider1:0<0,1,1>-01 Exp/Gate
 slider2:-20<-60,0,0.1>-Threshold (dB)
 slider3:0.5<0,1,0.001>-Ratio
 slider5:2<0.1,50,0.1>-Attack (ms)
 slider6:200<10,1000,2>-Release (ms)
-slider4:50<0,100,1>-Env Decay (ms)
+slider4:50<0,100,1>-Hold (ms)
 slider11:0<-12,12,0.1>-Output (dB)
-slider7:linkAmount=100<0,100,1>-Stereo Link [%]
-slider8:scFreq=10<10,350,1>-SC High Pass [Hz]
-slider9:routing=0<0,1,1>-Routing
-slider10:0<0,1,1>-Invert
+slider7:100<0,100,1>-DONT 07 Stereo Link [%]
+slider8:10<10,350,1>-08 SC HPF [Hz]
+slider9:0<0,1,1>-09 Sidechain
+slider10:0<0,1,1>-10 Invert
 
 
 
@@ -308,13 +308,10 @@ outg.rectOut(knobsx, knobsy+113, 75, 75, 61, 2);
 
 
 
+scFreq=slider8;
+routing=slider9;
 
-
-
-
-
-
-
+linkAmount=100;
 
 
 
@@ -746,6 +743,7 @@ gfx_rect(0,0,gfx_w, gfx_h);
         front=front.val;
        slider2=front;
         pot.potVal(front.val);
+        slider_automate(slider2);
        ):
   front!=slider2?
       (
@@ -795,6 +793,85 @@ knobsy = 50;
 
 front.rectIn(knobsx, knobsy, 75, 75);
 front.rectOut(knobsx, knobsy, 75, 75, 61, 4);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 3; menu_y = 3;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(8,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_x > menu_x ? (
+   mouse_x < menu_x + 20 ? (
+   mouse_y > menu_y ? (
+   mouse_y < menu_y + 20 ? (
+     gfx_x = menu_x;
+     gfx_y = menu_y+20;
+
+     #item2 = "Show Info/Help";    #allitems = "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   last_clicked_item == 1 ? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x+20,menu_y+0,300,60);
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+23; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /********************************* Mouse Control ******************************/
@@ -857,6 +934,7 @@ outg.dragging   ? outg.potDrag();
         front=front.val;
        slider2=front;
         pot.potVal(front.val);
+        slider_automate(slider2);
        ):
   front!=slider2?
       (
@@ -871,6 +949,7 @@ outg.dragging   ? outg.potDrag();
         center=center.val;
         slider4=center;
         pot.potVal(center.val);
+        slider_automate(slider4);
        ):
   center!=slider4?
       (
@@ -885,6 +964,7 @@ outg.dragging   ? outg.potDrag();
         back=back.val;
         slider5=back;
         pot.potVal(back.val);
+        slider_automate(slider5);
        ):
   
   back!=slider5?
@@ -901,6 +981,7 @@ outg.dragging   ? outg.potDrag();
         four=four.val;
         slider6=four;
         pot.potVal(four.val);
+        slider_automate(slider6);
        ):
   four!=slider6?
       (
@@ -915,6 +996,7 @@ outg.dragging   ? outg.potDrag();
         five=five.val;
         slider1=five;
         pot.potVal(five.val);
+        slider_automate(slider1);
        ):
   five!=slider1?
       (
@@ -930,6 +1012,7 @@ outg.dragging   ? outg.potDrag();
          lmfg=lmfg.val;
          slider3=lmfg;
          pot.potVal(lmfg.val);
+         slider_automate(slider3);
         ):
    lmfg!=slider3?
        (
@@ -945,6 +1028,7 @@ outg.dragging   ? outg.potDrag();
          slider8=lmff;
          scFreq=lmff;
          pot.potVal(lmff.val);
+         slider_automate(slider8);
         ):
    lmff!=scFreq?
        (
@@ -958,6 +1042,7 @@ outg.dragging   ? outg.potDrag();
        (
          lmfq=lmfq.val;
          slider9=lmfq;
+         slider_automate(slider9);
          routing=lmfq;
          pot.potVal(lmfq.val);
         ):
@@ -977,6 +1062,7 @@ outg.dragging   ? outg.potDrag();
          hmfg=hmfg.val;
          slider10=hmfg;
          pot.potVal(hmfg.val);
+         slider_automate(slider10);
         ):
    hmfg!=slider10?
        (
@@ -991,6 +1077,7 @@ outg.dragging   ? outg.potDrag();
        outg=outg.val;
        slider11=outg;
         pot.potVal(outg.val);
+        slider_automate(slider11);
       ):
  outg!=slider11?
      (
@@ -1037,8 +1124,7 @@ filterR.eqHP(scFreq, 1.5);
 
 
 
-
-
+linkAmount=100;
 
 threshold = 10^(slider2/20);
 slider1 == 1 ?(
@@ -1091,7 +1177,7 @@ vol = 10^(slider11/20);
 
 @slider
 
-
+linkAmount=100;
 // Just passing UI values into the configuration method
 
 gateL.gateSetup(gateAttack, gateRelease, gateThresh, gateRange, gateHyst);

@@ -12,7 +12,7 @@ slider7:66.44<0,100,1>-PEAK FREQ
 slider8:0<-24,24,0.24>-PEAK GAIN
 slider9:0.7<0.2,10,0.1>-PEAK Q
 slider10:0<-24,24,0.24>-Output
-slider11:0<0,1,1>-SC OUTPUT ON
+slider11:0<0,1,1>-To SC
 
 
 
@@ -27,7 +27,7 @@ filename:7,TKCC2gui/CCVU2.png
 filename:8,TKCC2gui/gled.png
 filename:9,TKCC2gui/oled.png
 filename:10,TKCC2gui/rled.png
-
+filename:11,TKCC2gui/menu.png
 //options:No_meter
 
 in_pin:L in
@@ -1243,6 +1243,83 @@ slider11 == 0 ? (gfx_blit(4,1,0,0,0,48,60)):(gfx_blit(4,1,0,0,60,48,60));
   goutput.knob();
  // gdry.knob();
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 445; menu_y =25;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(11,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_x > menu_x ? (
+   mouse_x < menu_x + 20 ? (
+   mouse_y > menu_y ? (
+   mouse_y < menu_y + 20 ? (
+     gfx_x = menu_x;
+     gfx_y = menu_y+20;
+
+     #allitems = "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   
+   last_clicked_item == 1 ? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x-350,menu_y+0,350,120);
+   menu_x -= 370;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+23; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can send the filtered signal");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("to the sidechain (to SC), ");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("leaving the original signal untouched.");
+   gfx_x = menu_x+23; gfx_y += 26;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 //********************************* Mouse Control ******************************
 
 mouseClick == 1 ? 
@@ -1252,6 +1329,7 @@ mouseClick == 1 ?
     mouse_y > 70 ? (
     mouse_y < 130 ? (
     slider11 == 0 ? (slider11=1):(slider11=0);
+    slider_automate(slider11);
     ););););
       ghp.collision()   ? ghp.dragStart();   
       glp.collision()  ? glp.dragStart();  
@@ -1316,6 +1394,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         ghp=ghp.val;
         slider1=ghp;
         pot.potVal(ghp.val);
+        slider_automate(slider1);
        ):
   ghp!=slider1?
       (
@@ -1330,6 +1409,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         glp=glp.val;
         slider2=glp;
         pot.potVal(glp.val);
+        slider_automate(slider2);
        ):
   glp!=slider2?
       (
@@ -1345,6 +1425,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         slider3=glshf;
        // slider3 >= slider5 ? (slider5 = slider3+1):
         pot.potVal(glshf.val);
+        slider_automate(slider3);
        ):
   glshf!=slider3?
       (
@@ -1359,6 +1440,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         glshg=glshg.val;
         slider4=glshg;
         pot.potVal(glshg.val);
+        slider_automate(slider4);
        ):
   glshg!=slider4?
       (
@@ -1374,6 +1456,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         slider5=ghshf;
       //s  slider5 <= slider3 ? (slider3 = slider5-1);
         pot.potVal(ghshf.val);
+        slider_automate(slider5);
        ):
   ghshf!=slider5?
       (
@@ -1388,6 +1471,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
         ghshg=ghshg.val;
         slider6=ghshg;
         pot.potVal(ghshg.val);
+        slider_automate(slider6);
        ):
   ghshg!=slider6?
       (
@@ -1401,6 +1485,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
             gpeakf=gpeakf.val;
             slider7=gpeakf;
             pot.potVal(gpeakf.val);
+            slider_automate(slider7);
            ):
       gpeakf!=slider7?
           (
@@ -1415,6 +1500,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
             gpeakg=gpeakg.val;
             slider8=gpeakg;
             pot.potVal(gpeakg.val);
+            slider_automate(slider8);
            ):
       gpeakg!=slider8?
           (
@@ -1428,6 +1514,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
             gpeakq=gpeakq.val;
             slider9=gpeakq;
             pot.potVal(gpeakq.val);
+            slider_automate(slider9);
            ):
       gpeakq!=slider9?
           (
@@ -1441,6 +1528,7 @@ goutput.dragging   ? (goutput.potDrag();Changer = 1);
             goutput=goutput.val;
             slider10=goutput;
             pot.potVal(goutput.val);
+            slider_automate(slider10);
            ):
       goutput!=slider10?
           (

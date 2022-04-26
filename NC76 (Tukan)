@@ -29,18 +29,18 @@ desc:NC76 (Tukan)
 //tags: dynamics compressor
 //author: Stillwell
 
-slider1:0<-60,0,0.1>-Threshold (dB)
+slider1:0<-60,0,0.1>-DONT !Threshold (dB)
 slider2:5<0,9,1{Blown Capacitor 4 (Deprecated),Blown Capacitor 8 (Deprecated),Blown Capacitor 12 (Deprecated),Blown Capacitor 20 (Deprecated),Blown Capacitor All (Deprecated),4,8,12,20,All}>-Ratio
-slider3:-10<-60,17,0.1>-Gain (dB)
+slider3:-10<-60,17,0.1>-OUT Gain (dB)
 slider4:100<20,800,10>-Attack (uS)
 slider5:250<10,1100,1>-Release (mS)
-slider6:100<0,100,0.1>-Mix (%)
+slider6:100<0,100,0.1>-DONT Mix (%)
 slider7:0.77<0,4,0.01>-IN GAIN
 slider8:0<0,1,1>-Punch
-slider9:0<0,1,1>-SC
-slider10:0<0,1>-Trick
+slider9:0<0,1,1>-SC-KEY
+slider10:0<0,1>-TRICK
 slider11:4.9<0,5,0.01>-Meterspeed
-slider12:0<0,1,1>-Peak needle when 1
+slider12:0<0,1,1>-DONT Peak needle when 1
  
 filename:0,76gui/CVU.png
 filename:1,76gui/76Back.png
@@ -49,6 +49,8 @@ filename:3,76gui/MY1176small.png
 filename:4,76gui/1176button.png
 filename:5,76gui/screw.png
 filename:6,76gui/CCVU2.png
+filename:7,76gui/menu.png
+
 options:no_meter
 
 
@@ -330,7 +332,7 @@ ovrlgain = 1;
   mom = 0.00010 + 0.00032 * abs(100-slider11*20)^3 / 125000; 
   
   
-  thresh = slider1;
+  thresh = 0;
   threshv = exp(thresh * db2log);
   
   capsc = log2db;
@@ -342,13 +344,13 @@ ovrlgain = 1;
   //rpos == 4 ? (allin=1; cratio=24;) : (allin=0; cratio = ratio;);
   
   //rpos == 0 ? (ratio = 2);
-  
+  slider2 = floor(slider2);
   slider2 == 5 ? (ratio = 4);
   slider2 == 6 ? (ratio = 8);
   slider2 == 7 ? (ratio = 12);
   slider2 == 8 ? (ratio = 20);
   slider2 == 9 ? (allin=1; cratio=12;) : (allin=0; cratio = ratio;);
-  slider2 == 0 ? (ratio=2);
+  slider2 < 5 ? (ratio=2);
   
   cthresh = (softknee ? (thresh -3) : thresh);
   cthreshv = exp(cthresh * db2log);
@@ -359,8 +361,21 @@ ovrlgain = 1;
    reltime = slider5 / 1000; allin == 1 ? (reltime=slider5/10000);
   atcoef=exp(-1/(attime * srate));
   relcoef=exp(-1/(reltime * srate));
-  mix=slider6/100;
+  mix=1;//slider6/100;
   ingain=exp(db2log*12)*slider7;
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
   );
   
   
@@ -835,6 +850,96 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
       gAtt.knob();
       gRel.knob();
       screw.knob();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+        ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+        last_clicked_item = -1;
+        Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+        menu_x = 0; menu_y = 0;
+        gfx_x=menu_x;gfx_y=menu_y;
+        gfx_blit(7,1,0);
+      //  gfx_drawnumber(last_clicked_item, 0); 
+        mouseClick ? (
+        //helpshow ? helpshow = 0;
+        mouse_x > menu_x ? (
+        mouse_x < menu_x + 20 ? (
+        mouse_y > menu_y ? (
+        mouse_y < menu_y + 20 ? (
+          gfx_x = menu_x;
+          gfx_y = menu_y+20;
+          slider2 == 0 ? (#item1 = "!Ratio 2:1 (All out)||"):(#item1 = "Ratio 2:1 (All out)||"); 
+           #allitems = #item1;
+          #item2 = "Show Info/Help";    #allitems += #item2;
+          last_clicked_item = gfx_showmenu(#allitems);
+        );
+        );
+        );
+        );
+        );
+        
+        
+        last_clicked_item == 1 ? (slider2 = 2; slider_automate(slider2););
+        last_clicked_item == 2 ? helpshow = 1;
+        
+        screw.collision()    ? (
+        gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
+        gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Meter speed")
+        );
+        
+        
+        helpshow == 1 ? (
+        gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+        gfx_rect(menu_x+20,menu_y+0,300,80);
+        gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+        gfx_x = menu_x+23; gfx_y = menu_y+3;
+        gfx_drawstr("- Screw above Tukan logo: Meter speed");
+        gfx_x = menu_x+23; gfx_y += 26;
+        gfx_drawstr("This plugin can be automated.");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(Fine tune knobs with shift)");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(Reset knobs with ctrl/cmd)");
+        );
+        
+        
+        ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+        
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       /********************************* Mouse Control ******************************/
       mouseClick == 1 ? 
           (
@@ -849,6 +954,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             mouse_y < ksy + 35 ?(
             slider2 = 8;
             alt ? (slider2 = 0);
+            slider_automate(slider2);
             changer =1;
             );
             );
@@ -861,6 +967,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             mouse_y < ksy + 35 ?(
             slider2 = 7;
             alt ? (slider2 = 0);
+            slider_automate(slider2);
             changer =1;
             );
             );
@@ -872,6 +979,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             mouse_y < ksy + 35 ?(
             slider2 = 6;
             alt ? (slider2 = 0);
+            slider_automate(slider2);
             changer =1;
             );
             );
@@ -883,6 +991,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             mouse_y < ksy + 35 ?(
             slider2 = 5;
             alt ? (slider2 = 0);
+            slider_automate(slider2);
             changer =1;
             );
             );
@@ -893,6 +1002,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider8 = toggles(slider8);
+                   slider_automate(slider8);
                    changer =1;
                    );
                    );
@@ -904,6 +1014,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider9 = toggles(slider9);
+                   slider_automate(slider9);
                    changer =1;
                    );
                    );
@@ -914,6 +1025,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    mouse_y > tksy ?(
                    mouse_y < tksy + 35 ?(
                    slider10 = toggles(slider10);
+                   slider_automate(slider10);
                    changer =1;
                    );
                    );
@@ -927,6 +1039,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    changer =1;
                    slider2 = 9;
                    alt ? (slider2 = 0);
+                   slider_automate(slider2);
                    );
                    );
                    );
@@ -963,6 +1076,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             gInGain=gInGain.val;
             slider7=gInGain;
             pot.potVal(gInGain.val);
+            slider_automate(slider7);
             changer =1;
            ):
       gInGain!=slider7?
@@ -979,6 +1093,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                 gOutGain=gOutGain.val;
                 slider3=gOutGain;
                 pot.potVal(gOutGain.val);
+                slider_automate(slider3);
                 changer =1;
                ):
           gOutGain!=slider3?
@@ -996,6 +1111,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                gAtt=gAtt.val;
                slider4=820-gAtt;
                pot.potVal(gAtt.val);
+               slider_automate(slider4);
                changer =1;
               ):
          gAtt!=820-slider4?
@@ -1012,6 +1128,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
               gRel=gRel.val;
               Slider5=1150-gRel;
               pot.potVal(gRel.val);
+              slider_automate(slider5);
               changer =1;
              ):
         gRel!=1150-slider5?
@@ -1027,6 +1144,8 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
               screw=screw.val;
               slider11=screw;
               pot.potVal(screw.val);
+              slider_automate(slider11);
+              changer = 1;
              ):
         screw!=slider11?
             (
@@ -1034,49 +1153,17 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
               screw.val=screw;
               screw.potVal(screw.val);
               screw.valOld=screw;
+              changer = 1;
             );
         
         
-            
-            //gfx_rect(200,140,40,60);
-            mouse_x > 200 ? (
-            mouse_x < 240 ? (
-            mouse_y > 140 ? (
-            mouse_y < 200 ? (
-            gfx_x = 1; gfx_y = 2;gfx_r=1;
-            gfx_drawstr("Screw right from input: Meterspeed; Alt+Ratiobutton: 2:1-Mode (all out)");
-            );
-            );
-            );
-            ); 
-            
             
             
             
             changer == 1 ? (
             stattslider();
-            /*
-            thresh = slider1;
-            threshv = exp(thresh * db2log);
-            
-            capsc = log2db;
-            (rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898;  broken capacitor  );
-            ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
-            rpos == 4 ? (allin=1; cratio=20;) : (allin=0; cratio = ratio;);
-            cthresh = (softknee ? (thresh -3) : thresh);
-            cthreshv = exp(cthresh * db2log);
-            makeup = slider3;
-            makeupv = exp((makeup+autogain) * db2log);
-            attime = slider4 / 1000000;
-            slider8==1?(attime+=0.008);
-             reltime = slider5 / 1000;
-            atcoef=exp(-1/(attime * srate));
-            relcoef=exp(-1/(reltime * srate));
-            mix=slider6/100;
-            ingain=exp(db2log*12)*slider7;
-            */
             );
-            
+    
             
             
   ):( // EXT FLAGS
@@ -1105,6 +1192,7 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
     slider12 == 1 ? (
     gfx_drawstr(" P");
     );  
+  
   
   ); // EXT FLAgs
             

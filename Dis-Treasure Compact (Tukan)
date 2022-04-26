@@ -44,6 +44,7 @@ filename:7,treasuregui/compacttreasureback.png
 filename:8,treasuregui/fwdtreasure.png
 filename:9,treasuregui/screw.png
 filename:10,treasuregui/bugtreasure.png
+filename:11,treasuregui/menu.png
 
 @init
 ovrlgain = 1; 
@@ -2266,16 +2267,19 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouse_x > gdetSCx + 11 ? (
   mouse_x < gdetSCx + 23 ? (
     slider19 == 1 ? (slider19 = 0):(slider19=1);
+    slider_automate(slider19);
   );
   );
   );
   );
   );
+  
   mouse_y > gdethpfy + 11 ? (
   mouse_y < gdethpfy + 23 ? (
   mouse_x > gdethpfx + 11 ? (
   mouse_x < gdethpfx + 23 ? (
     slider1 == 1 ? (slider1 = 0):(slider1=1);
+    slider_automate(slider1);
   );
   );
   );
@@ -2285,6 +2289,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouse_x > gdetpeakx + 11 ? (
   mouse_x < gdetpeakx + 23 ? (
     slider3 == 1 ? (slider3 = 0):(slider3=1);
+    slider_automate(slider3);
   );
   );
   );
@@ -2295,6 +2300,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouse_x > gsplhpfx + 11 ? (
   mouse_x < gsplhpfx + 23 ? (
     slider2 == 1 ? (slider2 = 0):(slider2=1);
+    slider_automate(slider2);
   );
   );
   );
@@ -2305,6 +2311,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouse_x > gdist1x + 11 ? (
   mouse_x < gdist1x + 23 ? (
     slider9 != 1 ? (slider9 = 1):(slider9=0);
+    slider_automate(slider9);
   );
   );
   );
@@ -2315,6 +2322,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
    mouse_x > gdist2x + 11 ? (
    mouse_x < gdist2x + 23 ? (
      slider9 != 2 ? (slider9 = 2):(slider9=0);
+     slider_automate(slider9);
    );
    );
    );
@@ -2326,11 +2334,11 @@ gfx_rect(0,0,gfx_w,gfx_h);
     mouse_x > ledsx - 245 ? (
     mouse_x < ledsx - 245 + 43 ? (
       slider12 == 1 ? (slider12 = 0):(slider12=1);
+      slider_automate(slider12);
     );
     );
     );
     );
-   
    
   mouse_y > ledsy + 50 ? ( // DETECTOR BUTTON
   mouse_y < ledsy + 50 + 20 ? (
@@ -2343,36 +2351,38 @@ gfx_rect(0,0,gfx_w,gfx_h);
     ):(
       slider3 == 0 ? (
         slider1 = 1;
+        slider_automate(slider1);
       ):(
         slider1=0;slider3=0;
+        slider_automate(slider3);
       );
     );
-  ):(slider1 = 1);
+  ):(slider1 = 1;slider_automate(slider1));
   );
   );
   );
   );
   );
-
-  mouse_y > ledsy + 50 ? ( // AUDIO BUTTON
+  
+  mouse_y > ledsy + 50 ? (
   mouse_y < ledsy + 50 + 20 ? (
   mouse_x > ledsx -22 + 130 ? (
   mouse_x < ledsx - 22 + 130 + 45 ? (
     slider2 == 0 ? (
       slider9 == 1 ? (
-        slider2 = 1;
+        slider2 = 1;slider_automate(slider2);
       ):slider9 == 2 ? (
-        slider2 = 1;
+        slider2 = 1;slider_automate(slider2);
       ):slider9 == 0 ? (
-        slider2 = 1;
+        slider2 = 1;slider_automate(slider2);
       );
     ):(
       slider9 == 0 ? (
-        slider9 = 1; slider2 = 0;
+        slider9 = 1; slider2 = 0;slider_automate(slider9);
       ): slider9 == 1 ? (
-        slider9 = 2; slider2 = 0;
+        slider9 = 2; slider2 = 0;slider_automate(slider9);
       ): slider9 == 2 ? (
-      slider9 = 0; slider2 = 0;
+      slider9 = 0; slider2 = 0;slider_automate(slider9);
       );
     );
   
@@ -2380,14 +2390,13 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   );
- 
   
   mouse_y > ledsy + 50 ? (
   mouse_y < ledsy + 50 + 20 ? (
   mouse_x > ledsx -22 ? (
   mouse_x < ledsx - 22 + 45 ? (
   tempra = slider4 + 1; tempra > 8 ? (tempra = 1);
-  slider4 = tempra;
+  slider4 = tempra; slider_automate(slider4);
   gfx_x = ledsx - 25; gfx_y = ledsy + 50;
   );
   );
@@ -2398,7 +2407,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
   
   mouseHold == 1 ? (
-   //gfx_rect(ledsx-245, ledsy + 27, 43,18);
+ // gfx_r=1;
+ //  gfx_rect(ledsx-245, ledsy + 27, 43,18);
    mouse_y > ledsy + 27 ? (
     mouse_y < ledsy + 27 + 18 ? (
     mouse_x > ledsx - 245 ? (
@@ -2528,7 +2538,99 @@ gfx_rect(0,0,gfx_w,gfx_h);
   gscrew.rectOut(ledsx-300,ledsy+45, 10, 10, 61, 9); //Xpos,ypos,weite,höhe,Frames,bitmap
   
   //knopf(9,70+ledsx+315,ledsy+80,61,10,-20,20,slider14); //img, x,y, frames, frameh, von, bis, wert
-  /********************************* Mouse Control ******************************/
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+    
+    
+    ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+    last_clicked_item = -1;
+    Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+    menu_x = 15; menu_y = 15;
+    gfx_x=menu_x;gfx_y=menu_y;
+    gfx_blit(11,1,0);
+  //  gfx_drawnumber(last_clicked_item, 0); 
+    mouseClick ? (
+    //helpshow ? helpshow = 0;
+    mouse_x > menu_x ? (
+    mouse_x < menu_x + 20 ? (
+    mouse_y > menu_y ? (
+    mouse_y < menu_y + 20 ? (
+      gfx_x = menu_x;
+      gfx_y = menu_y+20;
+      slider13 == 1 ? (#item1 = "F.Back detection|"):(#item1 = "!F.Back detection|"); 
+          slider15 == 1 ? #item1 = "#!F.Back detection|";  #allitems = #item1;
+      slider17 == 0 ? (#item2 = "!Att/Rel interactive|"):(#item2 = "Att/Rel interactive|");    
+          slider15 == 1 ? #item2 = "#Att/Rel interactive|";  #allitems += #item2;
+      slider15 == 0 ? (#item3 = "Old buggy mode|"):(#item3 = "!Old buggy mode|");    #allitems += #item3;
+      slider19 == 0 ? (#item4 = "Sidechain|"):(#item4 = "!Sidechain|");
+          slider15 == 1 ? #item4 = "#Sidechain|";  #allitems += #item4;
+      slider18 == 0 ? (#item5 = "Listen SideChain|"):(#item5 = "!Listen SideChain|");  
+      slider15 == 1 ? #item5 = "#Listen SideChain|";  #allitems += #item5;
+      #item6 = "Show Info/Help";    #allitems += #item6;
+      last_clicked_item = gfx_showmenu(#allitems);
+    );
+    );
+    );
+    );
+    );
+    
+    
+    last_clicked_item == 1 ? (info = 60; slider13 == 0 ? (slider13=1):(slider13=0);slider_automate(slider13););
+    last_clicked_item == 2 ? (info = 60; slider17 == 0 ? (slider17=1):(slider17=0);slider_automate(slider17));
+    last_clicked_item == 3 ? (info = 60; slider15 == 0 ? (slider15=1):(slider15=0);slider_automate(slider15));
+    last_clicked_item == 4 ? (slider19 == 0 ? (slider19=1):(slider19=0);slider_automate(slider19));
+    last_clicked_item == 5 ? (slider18 == 0 ? (slider18=1):(slider18=0);slider_automate(slider18));
+    last_clicked_item == 6 ? helpshow = 1;
+    
+    gscrew.collision()    ? (
+    gfx_x = gscrew.xIn-0;gfx_y=gscrew.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 70, 13); 
+    gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Headroom")
+    );
+    
+    
+    helpshow == 1 ? (
+    gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+    gfx_rect(menu_x+20,menu_y+0,300,130);
+    gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+    gfx_x = menu_x+23; gfx_y = menu_y+3;
+    gfx_drawstr("- Screw next to Ratio 2:1: Headroom");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("Tip: Ratio LEDs are clickable!");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("Tip: Detector/Audio LEDs too! ;)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("This plugin can be automated.");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Fine tune knobs with shift)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Reset knobs with ctrl/cmd)");
+    );
+    
+    
+    ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+  
+  
+  
+  
+  
+  
   mouseClick == 1 ? 
       (
         gin.collision()   ? gin.dragStart();   
@@ -2536,7 +2638,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
    grel.collision()  ? grel.dragStart(); 
    gout.collision()  ? gout.dragStart(); 
    gscrew.collision()  ? gscrew.dragStart(); 
- 
+  
       
       
       
@@ -2577,6 +2679,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
           gin=gin.val;
           slider5=gin;
           pot.potVal(gin.val);
+          slider_automate(slider5);
           stattslider();
          ):
   gin!=slider5?
@@ -2592,6 +2695,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
           gatt=gatt.val;
           slider7=gatt;
           pot.potVal(gatt.val);
+          slider_automate(slider7);
           stattslider();
          ):
   gatt!=slider7?
@@ -2607,6 +2711,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
            grel=grel.val;
            slider8=grel;
            pot.potVal(grel.val);
+           slider_automate(slider8);
            stattslider();
           ):
    grel!=slider8?
@@ -2622,6 +2727,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
             gout=gout.val;
             slider6=gout;
             pot.potVal(gout.val);
+            slider_automate(slider6);
             stattslider();
            ):
     gout!=slider6?
@@ -2637,6 +2743,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
                 gscrew=gscrew.val;
                 slider14=gscrew;
                 pot.potVal(gscrew.val);
+                slider_automate(slider14);
                 stattslider();
                ):
         gscrew!=slider14?
@@ -2646,6 +2753,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
               gscrew.potVal(gscrew.val);
               gscrew.valOld=gscrew;
             );
+  
+  
+  
+  
+  
+  
+  
+  
+  
             
         ); // EXT FLAGS
         //stattslider();

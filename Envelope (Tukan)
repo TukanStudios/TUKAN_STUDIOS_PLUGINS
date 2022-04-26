@@ -11,9 +11,10 @@ filename:0,TKENVgui/background.png
 filename:1,TKENVgui/APIBig.png
 filename:2,TKENVgui/APIBig.png
 filename:3,TKENVgui/APISmall.png
+filename:4,TKENVgui/menu.png
 
 slider1:0<-100,100,1->-Attack (%)
-slider2:0<-100,100,1>-Sustain (%)
+slider2:0<-100,100,1>-Release (%)
 slider3:0<-24,8,.1>-Output (dB)
 
 in_pin:left input
@@ -362,6 +363,58 @@ gfx_lineto(graphx+74+(slider2/3),graphy+33);
  back.rectIn(128,230, 60, 60); 
  back.rectOut(128, 230, 60, 60, 61, 3);
 
+
+
+
+ 
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y = 5;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(4,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_x > menu_x ? (
+   mouse_x < menu_x + 20 ? (
+   mouse_y > menu_y ? (
+   mouse_y < menu_y + 20 ? (
+     gfx_x = menu_x;
+     gfx_y = menu_y+20;
+
+     #item2 = "Show Info/Help";    #allitems = "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   last_clicked_item == 1 ? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x+20,menu_y+0,300,60);
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+23; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+   
+   
+   
+   
 ); // EXT FLAGS
 
 
@@ -399,6 +452,7 @@ front!=front.val?
       front=front.val;
       slider1=front;
       pot.potVal(front.val);
+      slider_automate(slider1);
      ):
 front!=slider1?
     (
@@ -413,6 +467,7 @@ center!=center.val?
       center=center.val;
       slider2=center;
       pot.potVal(center.val);
+      slider_automate(slider2);
      ):
 center!=slider2?
     (
@@ -427,6 +482,7 @@ back!=back.val?
       back=back.val;
       slider3=back;
       pot.potVal(back.val);
+      slider_automate(slider3);
      ):
 back!=slider3?
     (

@@ -1,6 +1,6 @@
 desc:Compressor 2 (Tukan)
 //author: Tukan
-//version 1.1
+//version 1.2
 
 slider1:-16<-32,0,0.1>-Threshold (dB)
 slider2:0<0,100,1>-Knee (%)
@@ -8,7 +8,7 @@ slider3:4<1,17,0.1>-Ratio
 slider4:3<1,150,0.1>-Attack (ms)
 slider5:100<2,1000,1>-Release (ms)
 slider6:0<-24,24,0.1>-Output (dB)
-slider7:0<0,1,1{Off,On}>-Delta
+slider7:0<0,1,1{Off,On}>-Trick
 slider8:0<0,1,1>-Feedback
 slider9:0<0,1,1>-Sidechain
 slider10:0<0,1,1>-Metermode
@@ -24,6 +24,7 @@ filename:4,TKCC2gui/switch.png
 filename:5,TKCC2gui/CVU.png
 filename:6,TKCC2gui/screw.png
 filename:7,TKCC2gui/CCVU2.png
+filename:8,TKCC2gui/menu.png
 
 in_pin:L in
 in_pin:R in 
@@ -36,7 +37,7 @@ out_pin:R out
 ext_noinit = 1; 
 
 ovrlgain = 1;
-
+last_clicked_item = -1;
 threshold = slider1;
 knee_width = abs(slider1*2*slider2*0.01);
 grold = 1;
@@ -869,6 +870,92 @@ gfx_blit(0,1,0);
   screw.knob();
   gknee.knob();
   gdry.knob();
+  
+  
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+
+Helpshow ? mouseClick ? (helpshow = 0;last_clicked_item = -1);
+menu_x = 0; menu_y = 0;
+gfx_x=menu_x;gfx_y=menu_y;
+gfx_blit(8,1,0);
+//gfx_drawnumber(last_clicked_item, 0); 
+mouseClick ? (
+mouse_x > menu_x ? (
+mouse_x < menu_x + 20 ? (
+mouse_y > menu_y ? (
+mouse_y < menu_y + 20 ? (
+  gfx_x = menu_x;
+  gfx_y = menu_y;
+  last_clicked_item = gfx_showmenu(">Display|VU Meter Slow|VU Meter Normal|VU Meter Fast|<Graph/Values|Show Info/Help");
+);
+);
+);
+);
+);
+
+last_clicked_item == 1 ? (slider10 = 1; slider11 = 1.6);
+last_clicked_item == 2 ? (slider10 = 1; slider11 = 3);
+last_clicked_item == 3 ? (slider10 = 1; slider11 = 4.5);
+last_clicked_item == 4 ? slider10 = 0;
+last_clicked_item == 5 ? helpshow = 1;
+
+      screw.collision()    ? (
+      gfx_x = screw.xIn-90;gfx_y=screw.yIn+15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Meter Speed")
+      );
+      gknee.collision()    ? (
+      gfx_x = gknee.xIn;gfx_y=gknee.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 45, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Knee")
+      );
+      gdry.collision()    ?  (
+      gfx_x = gdry.xIn;gfx_y=gdry.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 55, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Dry Mix")
+      );     
+
+helpshow == 1 ? (
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+gfx_rect(menu_x+20,menu_y+20,300,110);
+gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+gfx_x = menu_x+23; gfx_y = menu_y+23;
+gfx_drawstr("- Screw next to Ratio: Knee");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- Screw next to Output: Parallel Mix");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- Screw top-right: Needle speed");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- (Click) red Values: Reset values");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("This plugin can be automated.");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Fine tune knobs with shift)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Reset knobs with ctrl/cmd)");
+);
+
+////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
@@ -883,6 +970,7 @@ mouseClick == 1 ?
       screw.collision()    ? screw.dragstart();
       gknee.collision()    ? gknee.dragstart();
       gdry.collision()    ? gdry.dragstart();     
+     /*
       mouse_x > meterx ? (
       mouse_x < meterx + 110 ? (
       mouse_y > metery ? (
@@ -892,7 +980,7 @@ mouseClick == 1 ?
       );
       );
       );
-      
+      */
       mouse_x > meterx +110 ? (
       mouse_x < meterx + 220 ? (
       mouse_y > metery ? (
@@ -943,6 +1031,7 @@ gthresh!=gthresh.val?
     (
       gthresh=gthresh.val;
       slider1=gthresh;
+      slider_automate(slider1);
       pot.potVal(gthresh.val);
      ):
 gthresh!=slider1?
@@ -957,6 +1046,7 @@ gratio!=gratio.val?
     (
       gratio=gratio.val;
       slider3=gratio;
+      slider_automate(slider3);
       pot.potVal(gratio.val);
      ):
 gratio!=slider3?
@@ -971,6 +1061,7 @@ gatt!=gatt.val?
     (
       gatt=gatt.val;
       slider4=gatt;
+      slider_automate(slider4);
       pot.potVal(gatt.val);
      ):
 gatt!=slider4?
@@ -985,6 +1076,7 @@ grel!=grel.val?
     (
       grel=grel.val;
       slider5=grel;
+      slider_automate(slider5);
       pot.potVal(grel.val);
      ):
 grel!=slider5?
@@ -999,6 +1091,7 @@ goutgain!=goutgain.val?
     (
       goutgain=goutgain.val;
       slider6=goutgain;
+      slider_automate(slider6);
       pot.potVal(goutgain.val);
      ):
 goutgain!=slider6?
@@ -1013,6 +1106,7 @@ gfeedback!=gfeedback.val?
     (
       gfeedback=gfeedback.val;
       slider8=gfeedback;
+      slider_automate(slider8);
       pot.potVal(gfeedback.val);
      ):
 gfeedback!=slider8?
@@ -1026,6 +1120,7 @@ gfeedback!=slider8?
         (
           Trick=Trick.val;
           slider7=Trick;
+          slider_automate(slider7);
           pot.potVal(Trick.val);
          ):
     Trick!=slider7?
@@ -1040,6 +1135,7 @@ gfeedback!=slider8?
         (
           SC=SC.val;
           slider9=SC;
+          slider_automate(slider9);
           pot.potVal(SC.val);
          ):
     SC!=slider9?
@@ -1053,6 +1149,7 @@ gfeedback!=slider8?
         (
           screw=screw.val;
           slider11=screw;
+          slider_automate(slider11);
           pot.potVal(screw.val);
          ):
     screw!=slider11?
@@ -1066,6 +1163,7 @@ gfeedback!=slider8?
         (
           gknee=gknee.val;
           slider2=gknee;
+          slider_automate(slider2);
           pot.potVal(gknee.val);
          ):
     gknee!=slider2?
@@ -1080,6 +1178,7 @@ gfeedback!=slider8?
         (
           gdry=gdry.val;
           slider12=gdry;
+          slider_automate(slider12);
           pot.potVal(gdry.val);
          ):
     gdry!=slider12?
@@ -1089,6 +1188,73 @@ gfeedback!=slider8?
           gdry.potVal(gdry.val);
           gdry.valOld=gdry;
         );
+
+//26161
+gfx_getchar(26161) ? helpshow = 1;
+mouseClick ? helpshow = 0;
+helpshow == 2 ? (
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+//gfx_rect(315,60,50,75);
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=115;gfx_y=140;
+gfx_rect(gfx_x,gfx_y,70,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Softknee");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=235;gfx_y=283;
+gfx_rect(gfx_x,gfx_y,150,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Dry Mix (Parallel)");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=400;gfx_y=120;
+gfx_rect(gfx_x,gfx_y,70,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("VU Meter");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=500;gfx_y=120;
+gfx_rect(gfx_x,gfx_y,140,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Reset (red) value");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=490;gfx_y=10;
+gfx_rect(gfx_x,gfx_y,140,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("VU Meter speed ->");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=0;gfx_y=0;
+gfx_rect(gfx_x,gfx_y,300,30);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("General: Finetune knobs with [shift]");
+gfx_y += 15;;gfx_x=0+2; gfx_drawstr("Reset knobs with [ctrl/cmd]");
+);
+
+
+
+helpshow == 2 ? (
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+gfx_rect(10,10,300,80);
+gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+gfx_x = 13; gfx_y = 13;
+gfx_drawstr("Screw next to Ratio: Knee");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("Screw next to Output: Parallel Mix");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("Screw top-right: Needle speed");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("(Click) Display left half:");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("VU Meter / Graph & Values");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("(Click) red Values: Reset values");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("");
+);
+
 
 
 

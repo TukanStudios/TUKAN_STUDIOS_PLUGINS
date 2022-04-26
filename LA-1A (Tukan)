@@ -1,4 +1,4 @@
- desc:LA-1A (Tukan)
+desc:LA-1A (Tukan)
 // Version 1.4
 
 // Copyright 2006, Thomas Scott Stillwell
@@ -36,17 +36,19 @@ filename:2,LAgui/machick.png
 filename:3,LAgui/switch.png
 filename:4,LAgui/screw.png
 filename:5,LAgui/CCVU2.png
+filename:6,LAgui/menu.png
 
-slider1:-40<-60,0,0.1>-Threshold (dB)
+
+slider1:-40<-60,0,0.1>-DONT Threshold (dB)
 slider2:4<1,20,0.1>-Ratio
 slider3:0<-10,20,0.1>-Gain
-slider4:3<0,3,1{Hard (Blown Capacitor),Soft (Blown Capacitor),Hard,Soft}>-Knee
-slider5:0<0,1,1{Normal,Sidechain}>-Detector Input
-slider6:0<0,1,1{No,Yes}>-Automatic Make-Up
-slider7:0<0,1,1{Peak,RMS}>-Detection
-slider8:1<0,1,1{Feedforward,Feedback}>-Detection Source
-slider9:20<0,60,0.5>-Gain Reduct
-slider10:0<0,0,0>-EMPTY
+slider4:3<0,3,1{Hard (Blown Capacitor),Soft (Blown Capacitor),Hard,Soft}>-DONT Knee
+slider5:0<0,1,1{Normal,Sidechain}>-Side chain
+slider6:0<0,1,1{No,Yes}>-DONT Automatic Make-Up
+slider7:0<0,1,1{Peak,RMS}>-DONT Detection
+slider8:1<0,1,1{Feedforward,Feedback}>-DONT Detection Source
+slider9:20<0,60,0.5>-Peak Reduction
+slider10:0<0,0,0>-DONT EMPTY
 slider11:5<0.1,10,0.01>-Meterspeed
 
 options:no_meter
@@ -94,20 +96,22 @@ out_pin:right output
   
   function stattslider() (
   mom = 0.00010 + 0.00032 * abs(100-slider11*10)^3 / 125000; 
-  slider1 = -1*slider9;
-  sliderchange(slider1);
+  //slider1 = -1*slider9;
+  //sliderchange(slider1);
   
   
   
-    thresh = slider1/1.2;//-1*slider9;
+    thresh = (-1*slider9)/1.2;//-1*slider9;
     threshv = exp(thresh * db2log);
-    ratio = slider2;
-    softknee = slider4&1;
-    capsc = (slider4&2) ? log2db : log2db * 2.08136898;
+    slider2 > 8 ? slider2 = 8;
+    slider2 < 6 ? (ratio=4):(ratio=8);
+//    ratio = slider2;
+    softknee = 3&1;//slider4&1;
+    capsc = (3&2) ? log2db : log2db * 2.08136898;
     cthresh = (softknee ? (thresh -3) : thresh);
     cthreshv = exp(cthresh * db2log);
     sidechain = slider5;
-    automakeup = slider6;
+    automakeup = 0;
     automakeup ? (
       autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
     ) : (
@@ -115,14 +119,14 @@ out_pin:right output
     );
     makeup = slider3;
     makeupv = exp((makeup+autogain) * db2log);
-    RMSdet = slider7;
+    RMSdet = 0;
     RMSdet ? (
       rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
     ) : (
       rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
       //rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
     );
-    opto = slider8; 
+    opto = 1; 
   );
   
   
@@ -1179,6 +1183,81 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
    gRatio.knob();
    gSidechain.knob();
    screw.knob();
+   
+   
+   
+   
+   
+   
+   
+   
+     
+     ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+     last_clicked_item = -1;
+     Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+     menu_x = 8; menu_y = 60;
+     gfx_x=menu_x;gfx_y=menu_y;
+     gfx_blit(6,1,0);
+   //  gfx_drawnumber(last_clicked_item, 0); 
+     mouseClick ? (
+     //helpshow ? helpshow = 0;
+     mouse_x > menu_x ? (
+     mouse_x < menu_x + 20 ? (
+     mouse_y > menu_y ? (
+     mouse_y < menu_y + 20 ? (
+       gfx_x = menu_x;
+       gfx_y = menu_y+20;
+       #item1 = "#No special features...||";  #allitems = #item1;
+       #item2 = "Show Info/Help";    #allitems += #item2;
+       last_clicked_item = gfx_showmenu(#allitems);
+     );
+     );
+     );
+     );
+     );
+     
+     
+     //last_clicked_item == 1 ? (info = 60; slider13 == 0 ? (slider13=1):(slider13=0);slider_automate(slider13););
+     last_clicked_item == 2 ? helpshow = 1;
+     
+     screw.collision()    ? (
+     gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
+     gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Meter speed")
+     );
+     
+     
+     helpshow == 1 ? (
+     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+     gfx_rect(menu_x+20,menu_y+0,300,85);
+     gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+     gfx_x = menu_x+23; gfx_y = menu_y+3;
+     gfx_drawstr("- Screw below VU Meter: Meter speed");
+     gfx_x = menu_x+23; gfx_y += 26;
+     gfx_drawstr("This plugin can be automated.");
+     gfx_x = menu_x+23; gfx_y += 13;
+     gfx_drawstr("");
+     gfx_x = menu_x+23; gfx_y += 13;
+     gfx_drawstr("(Fine tune knobs with shift)");
+     gfx_x = menu_x+23; gfx_y += 13;
+     gfx_drawstr("(Reset knobs with ctrl/cmd)");
+     );
+     
+     
+     ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+     
+     
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
     /********************************* Mouse Control ******************************/
     mouseClick == 1 ? 
         (
@@ -1219,6 +1298,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
           gGain=gGain.val;
           Slider3=gGain;
           pot.potVal(gGain.val);
+          slider_automate(slider3);
          ):
     gGain!=slider3?
         (
@@ -1233,6 +1313,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
               gReduct=gReduct.val;
               Slider9=gReduct;
               pot.potVal(gReduct.val);
+              slider_automate(slider9);
              ):
         gReduct!=slider9?
             (
@@ -1248,6 +1329,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
              gRatio=gRatio.val;
              Slider2=gRatio;
              pot.potVal(gRatio.val);
+             slider_automate(slider2);
             ):
        gRatio!=slider2?
            (
@@ -1262,6 +1344,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             gSidechain=gSidechain.val;
             Slider5=gSidechain;
             pot.potVal(gSidechain.val);
+            slider_automate(slider5);
            ):
       gSidechain!=slider5?
           (
@@ -1275,6 +1358,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             screw=screw.val;
             slider11=screw;
             pot.potVal(screw.val);
+            slider_automate(slider11);
            ):
       screw!=slider11?
           (

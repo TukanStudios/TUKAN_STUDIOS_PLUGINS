@@ -3,18 +3,18 @@ desc:Deesser (Tukan)
 //version 1.1
 
 slider1:-16<-32,0,0.1>-Threshold (dB)
-slider2:0<0,100,1>-Knee (%)
-slider3:8<1,17,0.1>-Ratio
-slider4:75<0,100,0.01>-HP Cutoff (Scale)
-slider5:100<0,100,0.01>-LP Cutoff (Scale)
-slider6:0<-24,24,0.1>-Output (dB)
-slider7:0<0,1,1{Off,On}>-Delta
-slider8:0<0,1,1>-Feedback
-slider9:0<0,1,1>-Sidechain
-slider10:0<0,1,1>-Metermode
+slider2:0<0,100,1>-DONT Knee (%)
+slider3:8<1,17,0.1>-DONT Ratio
+slider4:75<0,100,0.01>-Key In
+slider5:100<0,100,0.01>-Key Out
+slider6:0<-24,24,0.1>-DONT Output (dB)
+slider7:0<0,1,1{Off,On}>-Key Listen
+slider8:0<0,1,1>-DONT Feedback
+slider9:0<0,1,1>-DONT Sidechain
+slider10:0<0,1,1>-DONT Metermode
 
-slider11:3<0,5,0.01>-Meterspeed
-slider12:0<0,1,0.01>-Dry amount
+slider11:3<0,5,0.01>-DONT Meterspeed
+slider12:0<0,1,0.01>-DONT Dry amount
 
 filename:0,TKCC2gui/DSRBack.png
 filename:1,TKCC2gui/APIBig.png
@@ -27,13 +27,11 @@ filename:7,TKCC2gui/CCVU2.png
 filename:8,TKCC2gui/gled.png
 filename:9,TKCC2gui/oled.png
 filename:10,TKCC2gui/rled.png
-
+filename:11,TKCC2gui/menu.png
 options:No_meter
 
 in_pin:L in
 in_pin:R in 
-in_pin:Sidechain L
-in_pin:Sidechain R
 out_pin:L out
 out_pin:R out
 
@@ -48,7 +46,7 @@ grold = 1;
 
 inMeter = 0; ginMeter=0; gin2Meter=0;
 
-ratio = slider3;
+ratio = 8;
 slope = ((1 - ratio) / ratio);
 
 attack = slider4/1000;
@@ -406,157 +404,13 @@ Trick.rectOut(knobsx+280,knobsy+7, 48, 60, 2, 4);
   meterInL = spl0;
   meterInR = spl1;
   
-  function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
-  (
-  tot_nbr_spl += 1;
-  
-  smpL = meterInL; 
-  smpR = meterInR;
-  
-  mnmode == 1 ? ( 
-    smpL = (meterInL + meterInR) * 0.5;
-    smpR = smpL;  
-  );
-  
-  mnmode >= 2 ? ( 
-    smpL = max(meterInL, meterInR);
-    smpR = smpL; 
-  );
-  
-  smpL = abs(smpL);
-  smpR = abs(smpR);
-  
-   
-  scnt += 1;
-  
-  scnt === 10 ? (
-      
-    // move left needle
-    
-      force = smpL * fact_up  -  (nd_posL * .1 + offset);
-      
-      nd_speedL += force * dt / mnmom;  
-      nd_speedL = nd_speedL * damp;
-      nd_posL += nd_speedL * dt;
-      nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
-    
-      nd_posL = min(max(nd_posL,0),1);
-    
-      // move right needle
-  
-      force = smpR * fact_up  - (nd_posR * .1 + offset);
-      
-      nd_speedR += force * dt /mnmom;  
-      nd_speedR = nd_speedR * damp;
-      nd_posR += nd_speedR * dt;
-      nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
-    
-      nd_posR = min(max(nd_posR,0),1);
-       
-      overL -= 10;
-      overR -= 10;
-  
-      scnt = 0;
-    
-  );
-  );
-  
-  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
-  (
-  tot_nbr_spl_g  = tot_nbr_spl;
-  
-  overL_g = overL;
-  overR_g = overR;
-  nd_posL_g = nd_posL;
-  nd_posR_g = nd_posR;
-  
-  tot_nbr_spl_g === tot_nbr_spl ? (
-  
-    dbL = (nd_posL_g * 23) - 20;
-    dbR = (nd_posR_g * 23) - 20;
-    
-  ) : (
-    errcnt += 1; // thread collision
-  );
-  
-  
-  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery;
-  
-  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
-  gfx_blit(7,mnblitscale,0);
-  
-  
-  mnw1 = $pi * 16.5 / 180; 
-  mnw2 = $pi * 45 / 180;
-  
-  mnxw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
-  mnyw = 92*mnblitscale;//floor(mnxw / 1.5);
-  
-  mnr1 = 130*mnblitscale;//floor(mnyw * 0.85);
-  
-  
-  
-   mnxd = 10 + chan*(mnxw+10);
-    mode === 1 ? mnxd += floor(mnxw/2);
-    
-    mnyd = 10;
-  
-    mnxa = mnblitscale*190/2;//gfx_w/2;//floor(mnxd + mnxw / 2);
-    mnya = floor(mnyd + mnyw * 1.1);
-  
-  
-  twometer ? (
-    chan = 1;
-    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
-  
-    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
-    aay = abs((90 - abs(mnph))); 
-    mnr1 = mnblitscale*(80+aay/5);
-    
-    mnph = mnph * ($pi / 180);
-      
-    cosp = cos(mnph);
-    sinp = sin(mnph);
-      
-      mnya = mnmetery+110*mnblitscale;
-      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-    mnx1 = mnxa - cosp * mnr1 * 0.25;
-    mny1 = mnya - sinp * mnr1 * 0.25;
-  
-    mnx2 = mnxa - cosp * mnr1 * 1.1;
-    mny2 = mnya - sinp * mnr1 * 1.1;
-  
-    gfx_x = mnx1;
-    gfx_y = mny1; 
-    gfx_lineto(mnx2, mny2);
-   );
-    
-  chan = 0;
-  
-    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
-    mnch == 2 ? (mnph= dbR);
-    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
-    aay = abs((90 - abs(mnph))); 
-    mnr1 = mnblitscale*(80+aay/5);
-    
-    mnph = mnph * ($pi / 180);
-      
-    cosp = cos(mnph);
-    sinp = sin(mnph);
-      
-      mnya = mnmetery+110*mnblitscale;
-      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
-    mnx1 = mnxa - cosp * mnr1 * 0.25;
-    mny1 = mnya - sinp * mnr1 * 0.25;
-  
-    mnx2 = mnxa - cosp * mnr1 * 1.1;
-    mny2 = mnya - sinp * mnr1 * 1.1;
-  
-    gfx_x = mnx1;
-    gfx_y = mny1; 
-    gfx_lineto(mnx2, mny2);
-    
-    );
+
+
+
+
+
+
+
 
 
 
@@ -566,7 +420,7 @@ Trick.rectOut(knobsx+280,knobsy+7, 48, 60, 2, 4);
 threshold = slider1;
 knee_width = abs(slider1*2*75*0.01);
 
-ratio = slider3;
+ratio = 8;
 slope = ((1 - ratio) / ratio);
 
 attack = 1/1000;
@@ -578,7 +432,7 @@ Tlo = (threshold - knee_width / 2);
 Thi = (threshold + knee_width / 2);
 knee_factor = (slope / (knee_width * 2));
 
-output = 10^(slider6/20);
+output = 10^(0/20);
 
 listen = slider7;
 
@@ -909,7 +763,7 @@ meter_old = gr_meter;
 
 
   mom = 0.0001 + 0.00032 * abs(100-slider11*20)^3 / 125000;
-  mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+ // mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
  
  
 // inMeter = db2
@@ -988,7 +842,7 @@ ovrlgain = ovrlg;
 
 
 
-@gfx 360 171
+@gfx 450 171 //360
 
 
 
@@ -1196,6 +1050,59 @@ gfx_x=0;gfx_y=0;
  // screw.knob();
  // gknee.knob();
  // gdry.knob();
+ 
+ 
+ 
+ 
+ 
+ 
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 10; menu_y = 10;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(11,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_x > menu_x ? (
+   mouse_x < menu_x + 20 ? (
+   mouse_y > menu_y ? (
+   mouse_y < menu_y + 20 ? (
+     gfx_x = menu_x;
+     gfx_y = menu_y+20;
+
+     #item2 = "Show Info/Help";    #allitems = "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   last_clicked_item == 1 ? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x+20,menu_y+0,300,60);
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+23; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+   
+   
+   
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
@@ -1252,6 +1159,7 @@ gthresh!=gthresh.val?
       gthresh=gthresh.val;
       slider1=gthresh;
       pot.potVal(gthresh.val);
+      slider_automate(slider1);
      ):
 gthresh!=slider1?
     (
@@ -1280,6 +1188,7 @@ gatt!=gatt.val?
       gatt=gatt.val;
       slider4=gatt;
       pot.potVal(gatt.val);
+      slider_automate(slider4);
      ):
 gatt!=slider4?
     (
@@ -1294,6 +1203,7 @@ grel!=grel.val?
       grel=grel.val;
       slider5=grel;
       pot.potVal(grel.val);
+      slider_automate(slider5);
      ):
 grel!=slider5?
     (
@@ -1335,6 +1245,7 @@ gfeedback!=slider8?
           Trick=Trick.val;
           slider7=Trick;
           pot.potVal(Trick.val);
+          slider_automate(slider7);
          ):
     Trick!=slider7?
         (
@@ -1489,7 +1400,7 @@ changer == 1 ?(
 threshold = slider1;
 knee_width = abs(slider1*2*75*0.01);
 
-ratio = slider3;
+ratio = 8;
 slope = ((1 - ratio) / ratio);
 
 attack = 1/1000;
@@ -1501,7 +1412,7 @@ Tlo = (threshold - knee_width / 2);
 Thi = (threshold + knee_width / 2);
 knee_factor = (slope / (knee_width * 2));
 
-output = 10^(slider6/20);
+output = 10^(0/20);
 
 listen = slider7;
 
