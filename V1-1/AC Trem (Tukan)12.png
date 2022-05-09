@@ -1,0 +1,1154 @@
+desc:AC Trem (Tukan)
+//author: Tukan
+//This plugin also contains code by Geraint Luff. THANK YOU!
+//version 1.1
+
+slider1:50<1,1000,1>-DONT-density (ms)
+slider2:60<0,99,1>-DONT-feedback
+slider3:80<0,95,1>-DONT late-bias (%)
+slider4:25<0,100,1>-Spring Reverb
+slider5:100<0,100,1>-DONT dry (%)
+slider6:0<0,1,1{even,long}>-DONT room shape
+slider7:8000<100,20000,1>-DONT filter (lowpass Hz)
+slider8:0<0,100,1>-DONT detuning (cents)
+slider9:0<0.1,10,0.1>-DONT chorus speed (Hz)
+slider10:chorus_alignment=0<0,1,1{independent,linked}>-DONT chorus phase
+slider11:4<0,10,.1>-Trem Speed
+slider12:-6<-12,0,.1>-Trem Depth
+slider13:0<0,1>-Trem Stereo
+slider14:0<0,1,1>-Pre Switch
+slider15:0<0,2,1>-Spring Type
+slider16:0<0,1,1>-DONT WetSolo
+slider17:1<0,1,1>-Spring Stereo
+slider18:0<0,5,1>-DONT timeSig
+slider19:0<0,2,1>-DONT timespec
+
+import ui-lib.jsfx-inc
+import delay-utils.jsfx-inc
+import smoother.jsfx-inc
+
+
+filename:0,ACTremgui/TREMBack.png
+filename:1,ACTremgui/whiteknob.png
+filename:2,ACTremgui/chickenb.png
+filename:3,ACTremgui/switch.png
+filename:4,ACTremgui/voxamp3.png
+filename:5,ACTremgui/TREMBackovrl.png
+filename:6,ACTremgui/greenled.png
+filename:7,ACTremgui/LED.png
+filename:8,ACTremgui/menu.png
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+  
+
+@init
+
+aaa = 0;
+
+freemem = ui_setup(0);
+
+maxdetunefactor = pow(2, 110/1200)*exp(0.15); // 110 cents plus variation
+mindetunefreq = 0.1;
+max_delay_samples = ceil(srate*exp(0.3) + maxdetunefactor/mindetunefreq/(2*$pi)*srate + 1); // Longest possible delay, plus 100 samples
+
+freemem = delay1a.delay_init(freemem, max_delay_samples);
+freemem = delay1b.delay_init(freemem, max_delay_samples);
+freemem = delay2a.delay_init(freemem, max_delay_samples);
+freemem = delay2b.delay_init(freemem, max_delay_samples);
+freemem = delay3a.delay_init(freemem, max_delay_samples);
+freemem = delay3b.delay_init(freemem, max_delay_samples);
+freemem = delay4a.delay_init(freemem, max_delay_samples);
+freemem = delay4b.delay_init(freemem, max_delay_samples);
+
+freemem = myfeedL.delay_init(freemem, max_delay_samples);
+freemem = myfeedR.delay_init(freemem, max_delay_samples);
+
+filterLx1 = filterLx2 = 0;
+filterRx1 = filterRx2 = 0;
+filterLy1 = filterLy2 = 0;
+filterRy1 = filterRy2 = 0;
+
+writepos = 0;
+delaysamples1 = delaysamples2 = delaysamples3 = delaysamples4 = 0;
+chorusphase1 = rand()*2*$pi;
+chorusphase2 = rand()*2*$pi;
+chorusphase3 = rand()*2*$pi;
+chorusphase4 = rand()*2*$pi;
+
+function update() local(delay, chorus, chorusfactor) (
+
+slider15 == 0 ? (
+slider1 = 65;
+slider3 = 95;
+slider2 = 75;
+slider7 = 12000;
+  delayfactor1 = exp(0.35);
+  delayfactor2 = exp(0.17);
+  delayfactor3 = exp(-0.13);
+  delayfactor4 = exp(-0.45);
+);
+
+slider15 == 1 ? (
+slider1 = 96;
+slider2 = 72 ;
+slider3 = 50;
+slider7 = 7000;
+  delayfactor1 = exp(0.35);
+  delayfactor2 = exp(0.17);
+  delayfactor3 = exp(-0.13);
+  delayfactor4 = exp(-0.45);
+);
+
+slider15 == 2 ? (
+slider1 = 80;
+slider2 = 75;
+slider3 = 85;
+slider7 = 6200;
+  delayfactor1 = exp(0.45);
+  delayfactor2 = exp(0.13);
+  delayfactor3 = exp(-0.13);
+  delayfactor4 = exp(-0.45);
+);
+
+
+  delay = slider1*srate/1000;
+  delaysamples1 = min(max_delay_samples - 1, delay*delayfactor1);
+  delaysamples2 = min(max_delay_samples - 1, delay*delayfactor2);
+  delaysamples3 = min(max_delay_samples - 1, delay*delayfactor3);
+  delaysamples4 = min(max_delay_samples - 1, delay*delayfactor4);
+  delaysamples1i = ceil(delaysamples1);
+  delaysamples2i = ceil(delaysamples2);
+  delaysamples3i = ceil(delaysamples3);
+  delaysamples4i = ceil(delaysamples4);
+
+  chorus = slider9*2*$pi/srate;
+  chorus_alignment ? (
+    chorusphasespeed1 = chorusphasespeed2 = chorusphasespeed3 = chorusphasespeed4 = chorus;
+  ) : (
+    chorusphasespeed1 = chorus*exp(-0.15);
+    chorusphasespeed2 = chorus*exp(-0.05);
+    chorusphasespeed3 = chorus*exp(0.05);
+    chorusphasespeed4 = chorus*exp(0.15);
+  );
+
+  chorusfactor = 0;// pow(2, slider8/1200) - 1;
+  chorussamples = chorusfactor*srate/(slider9*2*$pi);
+
+  feedbackA = slider2/100;
+  feedbackRatio = slider3/100;
+  feedbackB = feedbackA*feedbackRatio;
+  dry = slider5/100;
+  wet = slider4/100;
+  // Feedback-racing compensation
+  amp = (1 - feedbackA*feedbackRatio)/(1 - feedbackRatio);
+
+  ampB = amp*min(1, feedbackRatio*1.1);
+);
+
+update();
+smoother_init(wet);
+smoother_init(dry);
+
+
+//==============================================================================
+  gfx_clear=1;
+  ext_noinit=1;
+  lastCap=1;
+  mouse_wheel=1;
+player = 0;
+ initial = 0;
+    function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+
+
+
+
+/******************************* GUI Function ***********************************/
+  
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+  /*
+  slider110:100<0,100,1>-Input Att
+  slider111:0<0,100,1>-Service Old
+  slider112:0<0,100,1>-Denoiser
+  slider113:0<-100,100,2>-Output
+  */
+gThresh.potcfg  (0,0,10,.01);
+gRel.potcfg (-3,-12,0,0.01);
+gOut.potcfg   (0,0,1,.001);
+gRTime.potcfg   (1,0,1,1);
+gRout.potcfg (80,0,100,.1);
+gSpringtype.potcfg (0,0,2,.01);
+gTremfirst.potcfg (0,0,1,1);
+gwetonly.potcfg (0,0,1,1);
+
+knobsx =  85;
+knobsy = 45;
+gThresh.rectIn(knobsx, knobsy, 60, 60);
+gThresh.rectOut(knobsx, knobsy, 60, 60, 61, 2);
+
+knobsx += 90;
+gRel.rectIn(knobsx, knobsy, 60, 60);
+gRel.rectOut(knobsx, knobsy, 60, 60, 61, 2);
+knobsx += 90;
+gOut.rectIn(knobsx, knobsy, 60, 60); 
+gOut.rectOut(knobsx, knobsy, 60, 60, 61, 2);
+
+knobsx += 70;
+gTremfirst.rectIn(knobsx, knobsy, 48, 60); 
+gTremfirst.rectOut(knobsx, knobsy, 48, 60, 2, 3);
+knobsx += 58;
+gSpringtype.rectIn(knobsx, knobsy, 60, 60); 
+gSpringtype.rectOut(knobsx, knobsy, 60, 60, 3, 4);
+knobsx += 90;
+gRTime.rectIn(knobsx, knobsy, 48, 60); 
+gRTime.rectOut(knobsx, knobsy, 48, 60, 2, 3);
+knobsx += 90;
+gROut.rectIn(knobsx, knobsy, 60, 60); 
+gROut.rectOut(knobsx, knobsy, 60, 60, 61, 2);
+knobsx += 70;
+gwetonly.rectIn(knobsx, knobsy, 48, 60); 
+gwetonly.rectOut(knobsx, knobsy, 48, 60, 2, 3);
+aaa = knobsx + 85;
+
+@slider
+  adv=$pi*2*slider11/srate;
+  sep=slider13*$pi; 
+  amount=2 ^ (slider12/6);
+  sc=0.5*amount; amount=1-amount;
+update();
+
+
+@block
+
+
+filter_Q = 0.5;
+filter_freq = slider7;
+filter_w0 = 2*$pi*min(0.49, filter_freq/srate);
+filter_cosW0 = cos(filter_w0);
+filter_alpha = sin(filter_w0)/(2*filter_Q);
+
+filter_a0 = 1 + filter_alpha;
+filter_a1 = (-2*filter_cosW0)/filter_a0;
+filter_a2 = (1 - filter_alpha)/filter_a0;
+filter_b1 = (1 - filter_cosW0)/filter_a0;
+filter_b0 = filter_b1/2;
+filter_b2 = filter_b0;
+
+smoothing = smoother_block(wet) + smoother_block(dry)
+  + smoother_block(filter_a1) + smoother_block(filter_a2)
+  + smoother_block(filter_b0) + smoother_block(filter_b1) + smoother_block(filter_b2);
+
+
+
+
+
+@sample
+
+amount < 0.748 ? (
+slider14 == 1 ? (
+spl0=spl0*((cos(pos) + 1) * sc + amount);
+spl1=spl1*((cos(pos+sep) + 1) * sc + amount);
+pos+=adv;
+);
+GREENLED = cos(pos)):(GREENLED = -1);
+
+smoothing ? (
+  smoother_sample(wet);
+  smoother_sample(dry);
+  smoother_sample(filter_a1);
+  smoother_sample(filter_a2);
+  smoother_sample(filter_b0);
+  smoother_sample(filter_b1);
+  smoother_sample(filter_b2);
+);
+
+chorus_alignment ? (
+  chorusphase1 += chorusphasespeed1;
+  chorusphase1 > 2*$pi ? chorusphase1 -= 2*$pi;
+
+  //chorusphase2 = chorusphase1 + 0.5*$pi;
+  //chorusphase3 = chorusphase1 + $pi;
+  //chorusphase4 = chorusphase1 + 1.5*$pi;
+
+  sine1 = sin(chorusphase1);
+  sine2 = cos(chorusphase2);
+  sine3 = -sine1;
+  sine4 = -sine2;
+) : (
+  chorusphase1 += chorusphasespeed1;
+  chorusphase1 > 2*$pi ? chorusphase1 -= 2*$pi;
+  chorusphase2 += chorusphasespeed2;
+  chorusphase2 > 2*$pi ? chorusphase2 -= 2*$pi;
+  chorusphase3 += chorusphasespeed3;
+  chorusphase3 > 2*$pi ? chorusphase3 -= 2*$pi;
+  chorusphase4 += chorusphasespeed4;
+  chorusphase4 > 2*$pi ? chorusphase4 -= 2*$pi;
+
+  sine1 = sin(chorusphase1);
+  sine2 = sin(chorusphase2);
+  sine3 = sin(chorusphase3);
+  sine4 = sin(chorusphase4);
+);
+
+d = delaysamples1 + (1 + sine1)*0.5*chorussamples - 1;
+echo1a = delay1a.delay_output_linear(d);
+echo1b = delay1b.delay_output_linear(d);
+
+d = delaysamples2 + (1 + sine2)*0.5*chorussamples - 1;
+echo2a = delay2a.delay_output_linear(d);
+echo2b = delay2b.delay_output_linear(d);
+
+d = delaysamples3 + (1 + sine3)*0.5*chorussamples - 1;
+echo3a = delay3a.delay_output_linear(d);
+echo3b = delay3b.delay_output_linear(d);
+
+d = delaysamples4 + (1 + sine4)*0.5*chorussamples - 1;
+echo4a = delay4a.delay_output_linear(d);
+echo4b = delay4b.delay_output_linear(d);
+
+y1a = 0.5*(echo1a + echo2a - echo3a + echo4a);
+y1b = 0.5*(echo1b + echo2b - echo3b + echo4b);
+y2a = -0.5*(echo1a + echo2a + echo3a - echo4a);
+y2b = -0.5*(echo1b + echo2b + echo3b - echo4b);
+y3a = 0.5*(echo1a - echo2a - echo3a - echo4a);
+y3b = 0.5*(echo1b - echo2b - echo3b - echo4b);
+y4a = 0.5*(echo1a - echo2a + echo3a + echo4a);
+y4b = 0.5*(echo1b - echo2b + echo3b + echo4b);
+
+left = spl0;
+right = spl1;
+
+
+feedL = myfeedL.delay_output_linear(slider1*slider2)/3;
+feedR = myfeedR.delay_output_linear(slider1*slider2)/3;
+
+delay1a.delay_input((0.3*feedL)+y1a*feedbackA + left*amp);
+delay1b.delay_input((0.3*feedL)+y1b*feedbackB + left*ampB);
+delay2a.delay_input((0.3*feedr)+y2a*feedbackA + right*amp);
+delay2b.delay_input((0.3*feedr)+y2b*feedbackB + right*ampB);
+delay3a.delay_input((0.3*feedL)+y3a*feedbackA + left*amp);
+delay3b.delay_input((0.3*feedL)+y3b*feedbackB + left*ampB);
+delay4a.delay_input((0.3*feedr)+y4a*feedbackA + right*amp);
+delay4b.delay_input((0.3*feedr)+y4b*feedbackB + right*ampB);
+
+
+
+left = (y1a - y1b + y3a - y3b)*0.6;
+right = (y2a - y2b + y4a - y4b)*0.6;
+
+//left = feedL; right = FeedR;
+
+// Filter
+
+x = left;
+left = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterLx1 + smoother_value(filter_b2)*filterLx2 - smoother_value(filter_a1)*filterLy1 - smoother_value(filter_a2)*filterLy2;
+filterLx2 = filterLx1;
+filterLx1 = x;
+filterLy2 = filterLy1;
+filterLy1 = left;
+
+x = right;
+right = smoother_value(filter_b0)*x + smoother_value(filter_b1)*filterRx1 + smoother_value(filter_b2)*filterRx2 - smoother_value(filter_a1)*filterRy1 - smoother_value(filter_a2)*filterRy2;
+filterRx2 = filterRx1;
+filterRx1 = x;
+filterRy2 = filterRy1;
+filterRy1 = right;
+
+myfeedL.delay_input(left/1.8);
+myfeedR.delay_input(right/1.8);
+
+slider17 == 0 ? (
+right = (left+right)/2; left = right;
+);
+
+slider16 == 1 ? (dry=0):(dry=1);
+
+spl0 = spl0*dry + 2*left*smoother_value(wet);
+spl1 = spl1*dry + 2*right*smoother_value(wet);
+
+writepos += 1;
+writepos >= buffersize ? writepos = 0;
+
+
+
+
+
+
+
+amount < 0.748 ? (
+slider14 == 0 ? (
+spl0=spl0*((cos(pos) + 1) * sc + amount);
+spl1=spl1*((cos(pos+sep) + 1) * sc + amount);
+pos+=adv;
+);
+GREENLED = cos(pos)):(GREENLED = -1);
+
+
+
+
+
+
+@serialize
+
+preset_version = 1;
+file_var(0, preset_version);
+
+
+
+
+
+
+
+
+
+
+@gfx 728 300 
+
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+
+                 
+      initial == 0 ? (
+      gThresh!=slider11?
+          (
+            gThresh=slider11;
+            gThresh.val=gThresh;
+            gThresh.potVal(gThresh.val);
+            gThresh.valOld=gThresh;
+          );
+      gRel!=slider12?
+          (
+            gRel=slider12;
+            gRel.val=gRel;
+            gRel.potVal(gRel.val);
+            gRel.valOld=gRel;
+          );  
+      gOut!=slider13?
+          (
+            gOut=slider13;
+            gOut.val=gOut;
+            gOut.potVal(gOut.val);
+            gOut.valOld=gOut;
+          );
+      gRTime!=slider17?
+          (
+            gRTime=slider17;
+            gRTime.val=gRTime;
+            gRTime.potVal(gRTime.val);
+            gRTime.valOld=gRTime;
+            );
+      gRout!=slider4?
+          (
+            gRout=slider4;
+            gRout.val=gRout;
+            gRout.potVal(gRout.val);
+            gRout.valOld=gRout;
+            );
+      floor(gSpringtype+0.5)!=slider15?
+          (
+            gSpringtype=slider15;
+            gSpringtype.val=gSpringtype;
+            gSpringtype.potVal(gSpringtype.val);
+            gSpringtype.valOld=gSpringtype;
+            );
+      gTremfirst!=slider14?
+          (
+            gTremfirst=slider14;
+            gTremfirst.val=gTremfirst;
+            gTremfirst.potVal(gTremfirst.val);
+            gTremfirst.valOld=gTremfirst;
+            );
+      gwetonly!=slider16?
+          (
+            gwetonly=slider16;
+            gwetonly.val=gwetonly;
+            gwetonly.potVal(gwetonly.val);
+            gwetonly.valOld=gwetonly;
+          );  
+       change = 1;
+      initial = 1;
+      );
+      
+
+
+
+
+     function miniknopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider,knopfscale)
+     (
+     gfx_x=kx; gfx_y=ky;
+     weg = abs(kmax - kmin);
+     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+      scry = kbitmap * floor(kframe);
+      gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+     );
+
+
+gfx_ext_flags == 1 ? (
+gfx_r = 1; gfx_g=0.2;gfx_b=0.7;gfx_a=0.7;
+gfx_rect(0,0,gfx_w,gfx_h);
+gfx_a = 1;
+
+
+
+  gfx_x = 3*(gfx_w/8); gfx_y = 0 ;       
+         gled=15+floor((GREENLED*14)+0.5);
+         ledscale = 0.25*  gfx_w / 64;
+         gfx_blit(6,ledscale,0,0,gled*64,64,64);
+
+
+
+
+
+  knscale = 0.35*gfx_w/60;
+  miniknopf(2,(gfx_w/4) - (60*0.5*knscale),3,61,60,-12,0,slider12,knscale);
+  
+  miniknopf(2,(3*gfx_w/4) - (60*0.5*knscale),3,61,60,0,100,slider4,knscale);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+      /********************************* Mouse Control ******************************/
+      mouseClick == 1 ? 
+          (
+   
+            mouse_x < gfx_w/2  ? gRel.dragStart();  
+
+            mouse_x > gfx_w / 2    ? gROut.dragStart(); 
+ 
+
+          ):
+      mouseClick == -1  ? 
+          (
+            gRel.dragStop();
+            gROut.dragStop();
+          );
+      
+      mouse_wheel ? 
+          (
+            mouse_x < gfx_w/2  ? gRel.potWheel():
+            mouse_x > gfx_w / 2    ? gROut.potWheel():
+            mouse_wheel=0;
+          );
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+):( // ext flags
+
+
+
+
+
+
+      
+      gfx_x = 0; gfx_y = 0;
+         gfx_blit(0,1,0);   
+      gThresh.knob();
+      gRel.knob();
+      gOut.knob();
+      gTremfirst.knob();
+      gRTime.knob();
+      gSpringtype.knob();
+      gRout.knob();
+      gwetonly.knob();
+
+kny = 203;
+k16 = 50;
+k8 = 50 + 40;
+k4 = 50 + 80;
+k2 = 50 + 120;
+K1 = 50 + 160;
+kT = 50 + 220;
+kD = 50 + 260;
+
+gfx_r = 1; gfx_b=0.8; gfx_g = 0.6; gfx_a = 1;
+gfx_y=kny;
+
+gfx_x = k16;
+gfx_blit(1,1,0);
+gfx_x = k8;
+gfx_blit(1,1,0);
+gfx_x = k4;
+gfx_blit(1,1,0);
+gfx_x = k2;
+gfx_blit(1,1,0);
+gfx_x = k1;
+gfx_blit(1,1,0);
+gfx_x = kT;
+gfx_blit(1,1,0);
+gfx_x = kD;
+gfx_blit(1,1,0);
+
+      gfx_x = 0; gfx_y = 0;
+         gfx_blit(5,1,0);
+         
+  gfx_x = 140; gfx_y = 23;       
+         gled=15+floor((GREENLED*14)+0.5);
+         gfx_blit(6,0.5,0,0,gled*64,64,64);
+         
+         
+         
+         
+  gfx_x=k16;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider18 == 5 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=k8;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider18 == 4 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=k4;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider18 == 3 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=k2;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider18 == 2 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=k1;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider18 == 1 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=kT;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider19 == 1 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );
+  gfx_x=kD;gfx_y=kny;
+  gfx_x+=8;gfx_y+=28;
+  slider19 == 2 ? (
+  gfx_blit(7,0.7,0,0,0,30,30);
+  ):(
+  gfx_blit(7,0.7,0,0,31,30,30); 
+  );         
+/*
+gfx_rect(k16, kny, 38, 38);
+gfx_rect(k8, kny, 38, 38);
+gfx_rect(k4, kny, 38, 38);
+gfx_rect(k2, kny, 38, 38);
+gfx_rect(k1, kny, 38, 38);
+gfx_rect(kT, kny, 38, 38);
+gfx_rect(kD, kny, 38, 38);
+*/
+
+
+
+
+
+    
+     
+     ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+     last_clicked_item = -1;
+     Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+     menu_x = 3; menu_y = 3;
+     gfx_x=menu_x;gfx_y=menu_y;
+     gfx_blit(8,1,0);
+     //gfx_drawnumber(last_clicked_item, 0); 
+     mouseClick ? (
+     //helpshow ? helpshow = 0;
+     mouse_x > menu_x ? (
+     mouse_x < menu_x + 20 ? (
+     mouse_y > menu_y ? (
+     mouse_y < menu_y + 20 ? (
+    gfx_x = menu_x;
+    gfx_y = menu_y+20;
+    #item1 = "#No speacial features||"; #allitems = #item1;
+    #item2 = "Show Info/Help";    #allitems += #item2;
+    last_clicked_item = gfx_showmenu(#allitems);
+     );
+     );
+     );
+     );
+     );
+     
+
+     last_clicked_item == 2 ? helpshow = 1;
+     
+     helpshow == 1 ? (
+     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.8;
+     gfx_rect(menu_x,menu_y+0,350,120);
+     gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+     gfx_x = menu_x+3; gfx_y = menu_y+3;
+     gfx_drawstr("These parameters can be automated:");
+     gfx_x = menu_x+3; gfx_y += 13;
+     gfx_drawstr("Speed, Depth, Stereo");
+     gfx_x = menu_x+3; gfx_y += 13;
+     gfx_drawstr("  Trem/Spring Pre switch");
+     gfx_x = menu_x+3; gfx_y += 13;
+     gfx_drawstr("Spring, Stereo switch, Reverb");
+     gfx_x = menu_x+3; gfx_y += 13;
+     gfx_drawstr("");
+     gfx_x = menu_x+3; gfx_y += 26;
+     gfx_drawstr("(Fine tune knobs with shift)");
+     gfx_x = menu_x+3; gfx_y += 13;
+     gfx_drawstr("(Reset knobs with ctrl/cmd)");
+     );
+     
+     
+     ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+     
+     
+     
+     
+     
+     
+      /********************************* Mouse Control ******************************/
+      mouseClick == 1 ? 
+          (
+            gThresh.collision()   ? gThresh.dragStart();   
+            gRel.collision()  ? gRel.dragStart();  
+            gOut.collision()    ? gOut.dragStart(); 
+            gTremfirst.collision()    ? gTremfirst.potToggle(); 
+            gSpringtype.collision()    ? gSpringtype.dragStart(); 
+            gRTime.collision()    ? gRTime.potToggle(); 
+            gROut.collision()    ? gROut.dragStart(); 
+            gwetonly.collision()    ? gwetonly.potToggle(); 
+            
+            //gfx_rect(meterx+meterw,metery+3,50,30);
+        mouse_y > kny ? (
+        mouse_y < kny+32 ? (
+        mouse_x > k16 ? (
+        mouse_x < k16+38 ? (
+        slider18 = 5;
+        );
+        );
+        mouse_x > k8 ? (
+        mouse_x < k8+38 ? (
+        slider18 = 4;
+        );
+        );
+        mouse_x > k4 ? (
+        mouse_x < k4+38 ? (
+        slider18 = 3;
+        );
+        );
+        mouse_x > k2 ? (
+        mouse_x < k2+38 ? (
+        slider18 = 2;
+        );
+        );
+        mouse_x > k1 ? (
+        mouse_x < k1+38 ? (
+        slider18 = 1;
+        );
+        );
+        mouse_x > kT ? (
+        mouse_x < kT+38 ? (
+        slider19 == 1 ? (
+        slider19 = 0;
+        ):(
+        slider18 > 0 ? (slider19 = 1);
+        );
+        );
+        );
+        mouse_x > kD ? (
+        mouse_x < kD+38 ? (
+        slider19 == 2 ? (
+        slider19 = 0;
+        ):(
+        slider18 > 0 ? (slider19 = 2);
+        );
+      );
+      );
+      );
+      );
+      
+      
+      slider18 == 1 ? slider11 = 1000*((60/4)/tempo);
+      slider18 == 2 ? slider11 = 1000*((60/2)/tempo);
+      slider18 == 3 ? slider11 = 1000*((60)/tempo);
+      slider18 == 4 ? slider11 = 1000*((120)/tempo);
+      slider18 == 5 ? slider11 = 1000*((240)/tempo);
+      
+      slider19 == 1 ? slider11 = slider11 / (2/3);
+      slider19 == 2 ? slider11 = slider11 / 1.5;  
+      slider18 > 0 ? (slider11/=250);
+      
+      
+      
+      slider11 > 10 ? (slider11=10); 
+      
+          ):
+      mouseClick == -1  ? 
+          (
+            gThresh.dragStop();
+            gRel.dragStop();
+            gOut.dragStop();
+           // gTremfirst.dragStop();
+           // gRTime.dragStop();
+            gROut.dragStop();
+            gSpringtype.dragStop();
+           // gwetonly.dragStop();
+          );
+      
+      mouse_wheel ? 
+          (
+            gThresh.collision()   ? gThresh.potWheel():
+            gRel.collision()  ? gRel.potWheel():
+            gOut.collision()    ? gOut.potWheel():
+            //gRTime.collision()    ? gRTime.potWheel():
+            gROut.collision()    ? gROut.potWheel():
+            gSpringtype.collision()    ? gSpringtype.potWheel():
+            mouse_wheel=0;
+          );
+ 
+      
+      
+      
+      
+      
+      
+      
+      ); // Ext flags
+      
+      
+      
+      
+      gThresh.dragging  ? gThresh.potDrag();
+      gRel.dragging ? gRel.potDrag();
+      gOut.dragging   ? gOut.potDrag();
+      gROut.dragging   ? gROut.potDrag();
+      gRTime.dragging   ? gRTime.potDrag();
+      gSpringtype.dragging   ? gSpringtype.potDrag();
+      gwetonly.dragging   ? gwetonly.potDrag();
+      gTremfirst.dragging   ? gTremfirst.potDrag();
+      /******************************* Slider Knob Control **************************/
+        gThresh!=gThresh.val?
+          (
+            gThresh=gThresh.val;
+            slider11=gThresh;
+            pot.potVal(gThresh.val);
+            slider_automate(slider11);
+            gThresh.collision() ? (slider18 = 0; slider19 = 0;);
+           ):
+      gThresh!=slider11?
+          (
+            gThresh=slider11;
+            gThresh.val=gThresh;
+            gThresh.potVal(gThresh.val);
+            gThresh.valOld=gThresh;
+          );
+        
+      gRel!=gRel.val?
+          (
+            gRel=gRel.val;
+            slider12=gRel;
+            pot.potVal(gRel.val);
+            slider_automate(slider12);
+           ):
+      gRel!=slider12?
+          (
+            gRel=slider12;
+            gRel.val=gRel;
+            gRel.potVal(gRel.val);
+            gRel.valOld=gRel;
+          );  
+        
+      gOut!=gOut.val?
+          (
+            gOut=gOut.val;
+            slider13=gOut;
+            pot.potVal(gOut.val);
+            slider_automate(slider13);
+           ): 
+      gOut!=slider13?
+          (
+            gOut=slider13;
+            gOut.val=gOut;
+            gOut.potVal(gOut.val);
+            gOut.valOld=gOut;
+          );
+
+       gRTime!=gRTime.val?
+          (
+            gRTime=gRTime.val;
+            slider17=gRTime;
+            pot.potVal(gRTime.val);
+            slider_automate(slider17);
+       change = 1;
+           ):
+      gRTime!=slider17?
+          (
+            gRTime=slider17;
+            gRTime.val=gRTime;
+            gRTime.potVal(gRTime.val);
+            gRTime.valOld=gRTime;
+       change = 1;          
+          );
+
+      gRout!=gRout.val?
+          (
+            gRout=gRout.val;
+            slider4=gRout;
+            pot.potVal(gRout.val);
+            slider_automate(slider4);
+       change = 1;
+           ):
+      gRout!=slider4?
+          (
+            gRout=slider4;
+            gRout.val=gRout;
+            gRout.potVal(gRout.val);
+            gRout.valOld=gRout;
+       change = 1;
+          );  
+        
+    gSpringtype!=gSpringtype.val?
+     (
+       gSpringtype=gSpringtype.val;
+       slider15=floor(gSpringtype+0.5);
+       pot.potVal(gSpringtype.val);
+       slider_automate(slider15);
+       change = 1;
+      ):
+      floor(gSpringtype+0.5)!=slider15?
+          (
+            gSpringtype=slider15;
+            gSpringtype.val=gSpringtype;
+            gSpringtype.potVal(gSpringtype.val);
+            gSpringtype.valOld=gSpringtype;
+       change = 1;
+          );
+      
+       gTremfirst!=gTremfirst.val?
+          (
+            gTremfirst=gTremfirst.val;
+            slider14=gTremfirst;
+            pot.potVal(gTremfirst.val);
+            slider_automate(slider14);
+           ):
+      gTremfirst!=slider14?
+          (
+            gTremfirst=slider14;
+            gTremfirst.val=gTremfirst;
+            gTremfirst.potVal(gTremfirst.val);
+            gTremfirst.valOld=gTremfirst;
+          );
+        
+      gwetonly!=gwetonly.val?
+          (
+            gwetonly=gwetonly.val;
+            slider16=gwetonly;
+            pot.potVal(gwetonly.val);
+           ):
+      gwetonly!=slider16?
+          (
+            gwetonly=slider16;
+            gwetonly.val=gwetonly;
+            gwetonly.potVal(gwetonly.val);
+            gwetonly.valOld=gwetonly;
+          );  
+      
+  adv=$pi*2*slider11/srate;
+  sep=slider13*$pi;
+  amount=2 ^ (slider12/6);
+  sc=0.5*amount; amount=1-amount;
+  
+  change == 1 ? (
+  feedbackA = slider2/100;
+  feedbackRatio = slider3/100;
+  feedbackB = feedbackA*feedbackRatio;
+ wet = slider4/100;
+    change = 0;
+  ):(
+  change = 0;
+  );
+      
+      
+  adv=$pi*2*slider11/srate;
+  sep=slider13*$pi; 
+  amount=2 ^ (slider12/6);
+  sc=0.5*amount; amount=1-amount;
+update();
+
