@@ -71,6 +71,8 @@ filename:7,Lexikan2gui/PCMFDL.png
 filename:8,Lexikan2gui/Lexi2t.png
 filename:9,Lexikan2gui/Display.png
 filename:10,Lexikan2gui/Displayl.png
+filename:11,Lexikan2gui/menu.png
+
 
 import ui-lib.jsfx-inc
 import delay-utils.jsfx-inc
@@ -1657,6 +1659,79 @@ gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=0.8;
 inmeter > 0.495 ? (gfx_rect(35,75,35,7));
 gfx_r=1;gfx_g=0;gfx_b=0;gfx_a=0.8;
 inmeter > 0.9 ? (gfx_rect(35,60,35,7));
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
+	   
+	   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+	   last_clicked_item = -1;
+	   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+	   menu_x = 550; menu_y = 48;
+	   gfx_x=menu_x;gfx_y=menu_y;
+	   gfx_blit(11,1,0);
+	   //gfx_drawnumber(last_clicked_item, 0); 
+	   mouseClick ? (
+	   //helpshow ? helpshow = 0;
+	   mouse_x > menu_x ? (
+	   mouse_x < menu_x + 20 ? (
+	   mouse_y > menu_y ? (
+	   mouse_y < menu_y + 20 ? (
+		gfx_x = menu_x;
+		gfx_y = menu_y+20;
+		slider8 != 0 ? (#item1 = "!Chorus|"):(#item1 = "Chorus|"); #allitems = #item1;
+		#item2 = "Show/Hide FDL|"; #allitems += #item2;
+		#item3 = "Show Info/Help";    #allitems += #item3;
+		last_clicked_item = gfx_showmenu(#allitems);
+	   );
+	   );
+	   );
+	   );
+	   );
+	   
+	   
+	   last_clicked_item == 1 ?  (slider8 == 0 ? (slider8 =23):(slider8=0););
+	   last_clicked_item == 2 ? (FDLDISP == 0 ? (FDLDISP = 1):(FDLDISP=0););
+	   last_clicked_item == 3 ? helpshow = 1;
+	   
+	   helpshow == 1 ? (
+	   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.8;
+	   gfx_rect(menu_x-300,menu_y+0,350,120);
+	   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+	   gfx_x = menu_x-300+3; gfx_y = menu_y+3;
+	   gfx_drawstr("These parameters can be automated:");
+	   gfx_x = menu_x-300+3; gfx_y += 13;
+	   gfx_drawstr("Length, ER/Tail, Tilt/LPF, Dry/Wet, Stereo");
+	   gfx_x = menu_x-300+3; gfx_y += 13;
+	   gfx_drawstr("");
+	   gfx_x = menu_x-300+3; gfx_y += 13;
+	   gfx_drawstr("TIP: The buttons [AMB] [Room]... select");
+	   gfx_x = menu_x-300+3; gfx_y += 13;
+	   gfx_drawstr("different reverb algorithms.");
+	   gfx_x = menu_x-300+3; gfx_y += 26;
+	   gfx_drawstr("(Fine tune knobs with shift)");
+	   gfx_x = menu_x-300+3; gfx_y += 13;
+	   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+	   );
+	   
+	   
+	   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+	   
+	 
+
+
+
+
 /*
 
 knobsx = 300;
@@ -1926,6 +2001,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		gERTail=gERTail.val;
 		slider15=gERTail;
 		pot.potVal(gERTail.val);
+		slider_automate(slider15);
 	    ):
     gERTail!=slider15?
 	   (
@@ -1954,6 +2030,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		gLPF=gLPF.val;
 		slider7=gLPF;
 		pot.potVal(gLPF.val);
+		slider_automate(slider7);
 	    ):
     gLPF!=slider7?
 	   (
@@ -1968,6 +2045,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		gDryWet=gDryWet.val;
 		slider20=gDryWet;
 		pot.potVal(gDryWet.val);
+		slider_automate(slider20);
 	    ):
     gDryWet!=slider20?
 	   (
@@ -1982,6 +2060,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		 gStereo=gStereo.val;
 		 slider19=gStereo;
 		 pot.potVal(gStereo.val);
+		 slider_automate(slider19);
 		):
 	gStereo!=slider19?
 	    (
@@ -1996,6 +2075,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		 slider36=gKnob1;
 		 slider2=gKnob1;
 		 pot.potVal(gKnob1.val);
+		 slider_automate(slider2);
 		):
 	gKnob1!=slider2?
 	    (
@@ -2009,6 +2089,7 @@ gKnob1.dragging   ? gKnob1.potDrag();
 		 gtilt=gtilt.val;
 		 slider16=gtilt;
 		 pot.potVal(gtilt.val);
+		 slider_automate(slider16);
 		):
 	gtilt!=slider16?
 	    (
