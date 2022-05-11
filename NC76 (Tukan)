@@ -41,6 +41,7 @@ slider9:0<0,1,1>-SC-KEY
 slider10:0<0,1>-TRICK
 slider11:4.9<0,5,0.01>-Meterspeed
 slider12:0<0,1,1>-DONT Peak needle when 1
+slider13:0<0,1,1>-Fast release
  
 filename:0,76gui/CVU.png
 filename:1,76gui/76Back.png
@@ -359,6 +360,7 @@ ovrlgain = 1;
   attime = 2*slider4 / 1000000;
   slider8==1?(attime+=0.008);
    reltime = slider5 / 1000; allin == 1 ? (reltime=slider5/10000);
+   slider13 == 1 ? reltime /= 5;
   atcoef=exp(-1/(attime * srate));
   relcoef=exp(-1/(reltime * srate));
   mix=1;//slider6/100;
@@ -884,10 +886,12 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
         mouse_y < menu_y + 20 ? (
           gfx_x = menu_x;
           gfx_y = menu_y+20;
-          slider2 == 0 ? (#item1 = "!Ratio 2:1 (All out)||"):(#item1 = "Ratio 2:1 (All out)||"); 
+          slider2 == 0 ? (#item1 = "!Ratio 2:1 (All out)|"):(#item1 = "Ratio 2:1 (All out)|"); 
            #allitems = #item1;
+          slider13 == 1 ? (#item1 = "!Fast release||"):(#item1 = "Fast release||"); 
+          #allitems += #item1;
           #item2 = "Show Info/Help";    #allitems += #item2;
-          last_clicked_item = gfx_showmenu(#allitems);
+           last_clicked_item = gfx_showmenu(#allitems);
         );
         );
         );
@@ -896,7 +900,8 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
         
         
         last_clicked_item == 1 ? (slider2 = 2; slider_automate(slider2););
-        last_clicked_item == 2 ? helpshow = 1;
+        last_clicked_item == 2 ? (slider13 == 0 ? (slider13 = 1; slider_automate(slider13)):(slider13 = 0; slider_automate(slider13)); stattslider());
+        last_clicked_item == 3 ? helpshow = 1;
         
         screw.collision()    ? (
         gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
