@@ -50,6 +50,7 @@ slider8:1<0,1,1{Feedforward,Feedback}>-DONT Detection Source
 slider9:20<0,60,0.5>-Peak Reduction
 slider10:0<0,0,0>-DONT EMPTY
 slider11:5<0.1,10,0.01>-Meterspeed
+slider12:1<0,6,.01>-Scaling
 
 options:no_meter
 
@@ -61,6 +62,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+gfx_ext_retina = 1;
   log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
   db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
   i=0;
@@ -296,7 +298,7 @@ out_pin:right output
     function collision  ()
       instance          (xIn yIn widthIn heightIn)
                         (
-                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                          mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                         );
     
     function dragStart ()
@@ -1105,7 +1107,7 @@ meterspeed();
   mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
   
   
-  
+
 @gfx 800 238 // request horizontal/vertical heights (0 means dont care)
     gr_meter *= exp(1/500); gr_meter>1?gr_meter=1; // decay meter here so if the audio processing stops it doesnt "stick"
     gfx_r=1; gfx_g=gfx_b=0; gfx_a=0.8;
@@ -1127,6 +1129,16 @@ meterspeed();
     
     
 gfx_ext_flags == 0 ? (   
+    /////////////////////////////  ZFCT ////////////////////////
+    zfct_w = 800; zfct_h = 238;
+    gfx_setimgdim(127,zfct_w,zfct_h);
+    gfx_dest = 127;
+    zmnu != slider12 ? zmnu = slider12;
+    mouse_xz = mouse_x / zfct;
+    mouse_yz = mouse_y / zfct;
+    ///////////////////////////////////////////////////////////
+    
+    
     
     meterx = (800/2)-(220/2);
     metery = 70;
@@ -1201,13 +1213,21 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
    //  gfx_drawnumber(last_clicked_item, 0); 
      mouseClick ? (
      //helpshow ? helpshow = 0;
-     mouse_x > menu_x ? (
-     mouse_x < menu_x + 20 ? (
-     mouse_y > menu_y ? (
-     mouse_y < menu_y + 20 ? (
+     mouse_xz > menu_x ? (
+     mouse_xz < menu_x + 20 ? (
+     mouse_yz > menu_y ? (
+     mouse_yz < menu_y + 20 ? (
        gfx_x = menu_x;
        gfx_y = menu_y+20;
-       #item1 = "#No special features...||";  #allitems = #item1;
+       //#item1 = "#No special features...||";  #allitems = #item1;
+        #item2 =">Scaling|";#allitems = #item2;
+       slider12 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+       slider12 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+       slider12 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+       slider12 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+       slider12 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+       slider12 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+       
        #item2 = "Show Info/Help";    #allitems += #item2;
        last_clicked_item = gfx_showmenu(#allitems);
      );
@@ -1218,7 +1238,13 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
      
      
      //last_clicked_item == 1 ? (info = 60; slider13 == 0 ? (slider13=1):(slider13=0);slider_automate(slider13););
-     last_clicked_item == 2 ? helpshow = 1;
+     last_clicked_item == 1 ? zmnu = sqrt(0.5);
+     last_clicked_item == 2 ? zmnu = sqrt(0.75);
+     last_clicked_item == 3 ? zmnu = 1;
+     last_clicked_item == 4 ? zmnu = sqrt(1.5);
+     last_clicked_item == 5 ? zmnu = sqrt(2);
+     last_clicked_item == 6 ? zmnu = 0;
+     last_clicked_item == 7 ? helpshow = 1;
      
      screw.collision()    ? (
      gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
@@ -1372,6 +1398,21 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             
             
      stattslider();       
+              
+              
+              
+              //////////////////////// ZFCT ///////////////////////////////
+              slider12 = zmnu;
+              zfct = zmnu;
+              zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+              
+              zmnu != 0 ? zfct *= gfx_ext_retina;
+              gfx_dest = -1;
+              gfx_x=gfx_y=0;gfx_a=1;
+              gfx_blit(127,zfct,0);
+              /////////////////////////////////////////////////////////////  
+              
+              
               
      ):( // EXT FLAGS
       gfx_mode=0; gfx_a = 1;

@@ -16,6 +16,8 @@ slider10:0<0,1,1>-Metermode
 slider11:3<0,5,0.01>-Meterspeed
 slider12:0<0,1,0.01>-Dry amount
 
+slider13:1<0,6,.01>-Scaling
+
 filename:0,TKCC2gui/TKCC2Back.png
 filename:1,TKCC2gui/APIBig.png
 filename:2,TKCC2gui/APIRED.png
@@ -35,6 +37,7 @@ out_pin:R out
 
 @init
 ext_noinit = 1; 
+gfx_ext_retina = 1;
 
 ovrlgain = 1;
 last_clicked_item = -1;
@@ -260,7 +263,7 @@ gr_meter2 > 1 ? gr_meter2 =1;
  function collision  ()
    instance          (xIn yIn widthIn heightIn)
                      (
-                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                      );
  
  function dragStart ()
@@ -719,6 +722,17 @@ ovrlgain = ovrlg;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
 gfx_ext_flags == 0 ? (
+//gfx_r = 0;
+//gfx_rect(0,0,gfx_w,gfx_h);
+//gfx_mode = 0;
+
+/////////////////////////////  ZFCT ////////////////////////
+zfct_w = 650; zfct_h = 300;
+gfx_setimgdim(127,zfct_w,zfct_h);
+gfx_dest = 127;
+//all mouse positions must operate *=zfct;
+///////////////////////////////////////////////////////////
+
 
 initial == 0 ? (
 grmin = 0;
@@ -890,13 +904,13 @@ gfx_x=menu_x;gfx_y=menu_y;
 gfx_blit(8,1,0);
 //gfx_drawnumber(last_clicked_item, 0); 
 mouseClick ? (
-mouse_x > menu_x ? (
-mouse_x < menu_x + 20 ? (
-mouse_y > menu_y ? (
-mouse_y < menu_y + 20 ? (
-  gfx_x = menu_x;
-  gfx_y = menu_y;
-  last_clicked_item = gfx_showmenu(">Display|VU Meter Slow|VU Meter Normal|VU Meter Fast|<Graph/Values|Show Info/Help");
+mouse_x > menu_x*zfct ? (
+mouse_x < menu_x*zfct + 20*zfct ? (
+mouse_y > menu_y*zfct ? (
+mouse_y < menu_y*zfct + 20*zfct ? (
+  gfx_x = menu_x*zfct;
+  gfx_y = menu_y*zfct;
+  last_clicked_item = gfx_showmenu(">Display|VU Meter Slow|VU Meter Normal|VU Meter Fast|<Graph/Values|>Scaling|50%|75%|100%|150%|200%|<FREE|Show Info/Help");
 );
 );
 );
@@ -907,7 +921,15 @@ last_clicked_item == 1 ? (slider10 = 1; slider11 = 1.6);
 last_clicked_item == 2 ? (slider10 = 1; slider11 = 3);
 last_clicked_item == 3 ? (slider10 = 1; slider11 = 4.5);
 last_clicked_item == 4 ? slider10 = 0;
-last_clicked_item == 5 ? helpshow = 1;
+last_clicked_item == 11 ? helpshow = 1;
+
+zmnu != slider13 ? zmnu = slider13;
+last_clicked_item == 5 ? zmnu = sqrt(0.5);
+last_clicked_item == 6 ? zmnu = sqrt(0.75);
+last_clicked_item == 7 ? zmnu = 1;
+last_clicked_item == 8 ? zmnu = sqrt(1.5);
+last_clicked_item == 9 ? zmnu = sqrt(2);
+last_clicked_item == 10 ? zmnu = 0;
 
       screw.collision()    ? (
       gfx_x = screw.xIn-90;gfx_y=screw.yIn+15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
@@ -981,10 +1003,10 @@ mouseClick == 1 ?
       );
       );
       */
-      mouse_x > meterx +110 ? (
-      mouse_x < meterx + 220 ? (
-      mouse_y > metery ? (
-      mouse_y < metery + 120 ? (
+      mouse_x > meterx*zfct +11*zfct ? (
+      mouse_x < meterx*zfct + 220*zfct ? (
+      mouse_y > metery*zfct ? (
+      mouse_y < metery*zfct + 120*zfct ? (
         grmin = 0;
       );
       );
@@ -1262,6 +1284,20 @@ gfx_drawstr("");
 
 
 
+//////////////////////// ZFCT ///////////////////////////////
+slider13 = zmnu;
+zfct = zmnu;
+zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+
+zmnu != 0 ? zfct *= gfx_ext_retina;
+gfx_dest = -1;
+gfx_x=gfx_y=0;gfx_a=1;
+gfx_blit(127,zfct,0);
+/////////////////////////////////////////////////////////////
+
+
+
+
 
 
 
@@ -1359,8 +1395,8 @@ ax=0;
       );
       
       mouseClick == 1 ? (
-      mouse_x > gfx_w/2 ? grmin=0;
-      mouse_x < gfx_w/2 ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      mouse_x > (gfx_w/2)*zfct ? grmin=0;
+      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
       );
       
       ):( // slider10
@@ -1386,8 +1422,8 @@ ax=0;
       gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("C2");
       
       mouseClick == 1 ? (
-      mouse_x > gfx_w/2 ? grmin=0;
-      mouse_x < gfx_w/2 ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      mouse_x > (gfx_w/2)*zfct ? grmin=0;
+      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
       );
       
       );//slider10

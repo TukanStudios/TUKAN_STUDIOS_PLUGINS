@@ -42,7 +42,8 @@ slider10:0<0,1>-TRICK
 slider11:4.9<0,5,0.01>-Meterspeed
 slider12:0<0,1,1>-DONT Peak needle when 1
 slider13:0<0,1,1>-Fast release
- 
+slider14:1<0,6,.01>-Scaling
+
 filename:0,76gui/CVU.png
 filename:1,76gui/76Back.png
 filename:2,76gui/MY1176.png
@@ -63,6 +64,7 @@ out_pin:left output
 out_pin:right output
 
 @init
+gfx_ext_retina = 1;
 ovrlgain = 1;
 
   log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
@@ -243,7 +245,7 @@ ovrlgain = 1;
     function collision  ()
       instance          (xIn yIn widthIn heightIn)
                         (
-                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                         );
     
     function dragStart ()
@@ -749,7 +751,14 @@ ovrlgain = ovrlg;
       
       
 gfx_ext_flags == 0 ? (      
-      
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 906; zfct_h = 213;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider14 ? zmnu = slider14;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
       meterx = 590;
       metery = 40;
       
@@ -880,16 +889,23 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
       //  gfx_drawnumber(last_clicked_item, 0); 
         mouseClick ? (
         //helpshow ? helpshow = 0;
-        mouse_x > menu_x ? (
-        mouse_x < menu_x + 20 ? (
-        mouse_y > menu_y ? (
-        mouse_y < menu_y + 20 ? (
+        mouse_xz > menu_x ? (
+        mouse_xz < menu_x + 20 ? (
+        mouse_yz > menu_y ? (
+        mouse_yz < menu_y + 20 ? (
           gfx_x = menu_x;
           gfx_y = menu_y+20;
           slider2 == 0 ? (#item1 = "!Ratio 2:1 (All out)|"):(#item1 = "Ratio 2:1 (All out)|"); 
            #allitems = #item1;
           slider13 == 1 ? (#item1 = "!Fast release||"):(#item1 = "Fast release||"); 
           #allitems += #item1;
+           #item2 =">Scaling|";#allitems += #item2;
+          slider14 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+          slider14 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+          slider14 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+          slider14 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+          slider14 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+          slider14 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
           #item2 = "Show Info/Help";    #allitems += #item2;
            last_clicked_item = gfx_showmenu(#allitems);
         );
@@ -901,7 +917,15 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
         
         last_clicked_item == 1 ? (slider2 = 2; slider_automate(slider2););
         last_clicked_item == 2 ? (slider13 == 0 ? (slider13 = 1; slider_automate(slider13)):(slider13 = 0; slider_automate(slider13)); stattslider());
-        last_clicked_item == 3 ? helpshow = 1;
+        
+        last_clicked_item == 3 ? zmnu = sqrt(0.5);
+        last_clicked_item == 4 ? zmnu = sqrt(0.75);
+        last_clicked_item == 5 ? zmnu = 1;
+        last_clicked_item == 6 ? zmnu = sqrt(1.5);
+        last_clicked_item == 7 ? zmnu = sqrt(2);
+        last_clicked_item == 8 ? zmnu = 0;
+        
+        last_clicked_item == 9 ? helpshow = 1;
         
         screw.collision()    ? (
         gfx_x = screw.xIn-0;gfx_y=screw.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
@@ -953,10 +977,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             gAtt.collision()    ? gAtt.dragStart(); 
             gRel.collision()    ? gRel.dragStart(); 
             screw.collision()    ? alt ? (slider12 == 1 ? (slider12=0):(slider12=1)):(screw.dragstart());
-            mouse_x > ksx+7 ?(
-            mouse_x < ksx-7 + 33?(
-            mouse_y > ksy ?(
-            mouse_y < ksy + 35 ?(
+            mouse_xz > ksx+7 ?(
+            mouse_xz < ksx-7 + 33?(
+            mouse_yz > ksy ?(
+            mouse_yz < ksy + 35 ?(
             slider2 = 8;
             alt ? (slider2 = 0);
             slider_automate(slider2);
@@ -966,10 +990,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             );
             );
             ksy+=35;
-            mouse_x > ksx+7 ?(
-            mouse_x < ksx-7 + 33?(
-            mouse_y > ksy ?(
-            mouse_y < ksy + 35 ?(
+            mouse_xz > ksx+7 ?(
+            mouse_xz < ksx-7 + 33?(
+            mouse_yz > ksy ?(
+            mouse_yz < ksy + 35 ?(
             slider2 = 7;
             alt ? (slider2 = 0);
             slider_automate(slider2);
@@ -978,10 +1002,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             );
             );
             );
-            ksy+=35;            mouse_x > ksx+7 ?(
-            mouse_x < ksx-7 + 33?(
-            mouse_y > ksy ?(
-            mouse_y < ksy + 35 ?(
+            ksy+=35;            mouse_xz > ksx+7 ?(
+            mouse_xz < ksx-7 + 33?(
+            mouse_yz > ksy ?(
+            mouse_yz < ksy + 35 ?(
             slider2 = 6;
             alt ? (slider2 = 0);
             slider_automate(slider2);
@@ -990,10 +1014,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             );
             );
             );
-            ksy+=35;            mouse_x > ksx+7 ?(
-            mouse_x < ksx-7 + 33?(
-            mouse_y > ksy ?(
-            mouse_y < ksy + 35 ?(
+            ksy+=35;            mouse_xz > ksx+7 ?(
+            mouse_xz < ksx-7 + 33?(
+            mouse_yz > ksy ?(
+            mouse_yz < ksy + 35 ?(
             slider2 = 5;
             alt ? (slider2 = 0);
             slider_automate(slider2);
@@ -1002,10 +1026,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             );
             );
             );
-            mouse_x > tksx+7 ?(
-                   mouse_x < tksx-7 + 33?(
-                   mouse_y > tksy ?(
-                   mouse_y < tksy + 35 ?(
+            mouse_xz > tksx+7 ?(
+                   mouse_xz < tksx-7 + 33?(
+                   mouse_yz > tksy ?(
+                   mouse_yz < tksy + 35 ?(
                    slider8 = toggles(slider8);
                    slider_automate(slider8);
                    changer =1;
@@ -1014,10 +1038,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    );
                    );
                    tksy+=35;
-                   mouse_x > tksx+7 ?(
-                   mouse_x < tksx-7 + 33?(
-                   mouse_y > tksy ?(
-                   mouse_y < tksy + 35 ?(
+                   mouse_xz > tksx+7 ?(
+                   mouse_xz < tksx-7 + 33?(
+                   mouse_yz > tksy ?(
+                   mouse_yz < tksy + 35 ?(
                    slider9 = toggles(slider9);
                    slider_automate(slider9);
                    changer =1;
@@ -1025,10 +1049,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    );
                    );
                    );
-                   tksy+=35;            mouse_x > tksx+7 ?(
-                   mouse_x < tksx-7 + 33?(
-                   mouse_y > tksy ?(
-                   mouse_y < tksy + 35 ?(
+                   tksy+=35;            mouse_xz > tksx+7 ?(
+                   mouse_xz < tksx-7 + 33?(
+                   mouse_yz > tksy ?(
+                   mouse_yz < tksy + 35 ?(
                    slider10 = toggles(slider10);
                    slider_automate(slider10);
                    changer =1;
@@ -1036,10 +1060,10 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
                    );
                    );
                    );
-                   tksy+=35;            mouse_x > tksx+7 ?(
-                   mouse_x < tksx-7 + 33?(
-                   mouse_y > tksy ?(
-                   mouse_y < tksy + 35 ?(
+                   tksy+=35;            mouse_xz > tksx+7 ?(
+                   mouse_xz < tksx-7 + 33?(
+                   mouse_yz > tksy ?(
+                   mouse_yz < tksy + 35 ?(
                    //slider11 = 1;//toggles(slider11);
                    changer =1;
                    slider2 = 9;
@@ -1168,7 +1192,18 @@ gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
             changer == 1 ? (
             stattslider();
             );
-    
+            
+            
+   //////////////////////// ZFCT ///////////////////////////////
+   slider14 = zmnu;
+   zfct = zmnu;
+   zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+   
+   zmnu != 0 ? zfct *= gfx_ext_retina;
+   gfx_dest = -1;
+   gfx_x=gfx_y=0;gfx_a=1;
+   gfx_blit(127,zfct,0);
+   /////////////////////////////////////////////////////////////   
             
             
   ):( // EXT FLAGS

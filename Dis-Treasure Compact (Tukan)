@@ -23,6 +23,7 @@ slider16:0<0,1,1>-Card Mode
 slider17:0<0,1,1>-Interact
 slider18:0<0,1,1>-SC Listen
 slider19:0<0,1,1>-19 side chain
+slider20:1<0,6,.01>-Scaling
 
 in_pin:L in
 in_pin:R in
@@ -47,6 +48,8 @@ filename:10,treasuregui/bugtreasure.png
 filename:11,treasuregui/menu.png
 
 @init
+gfx_ext_retina = 1;
+
 ovrlgain = 1; 
 // Dist
 ext_nodenorm=1;
@@ -192,7 +195,7 @@ log(cosh(x));
  function collision  ()
    instance          (xIn yIn widthIn heightIn)
                      (
-                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                     mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                      );
  
  function dragStart ()
@@ -1374,8 +1377,8 @@ spl1=y1*postgain;
 );
 
 // DC remove
-otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
-otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+//otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+//otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
 
 // initial value (send to @init) used to remove dc offset at playback start
 slider10=itm1;
@@ -1911,7 +1914,6 @@ spl0 = orispl0; spl1 = orispl1;
 
 
 
-
 @gfx 601 261 // request horizontal/vertical heights (0 means dont care)
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
@@ -2015,7 +2017,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
   
   
-  gfx_h = 142; gfx_w = 1053;
+  //gfx_h = 142; gfx_w = 1053;
+  /////////////////////////////  ZFCT ////////////////////////
+  zfct_w = 601; zfct_h = 261;
+  gfx_setimgdim(127,zfct_w,zfct_h);
+  gfx_dest = 127;
+  zmnu != slider20 ? zmnu = slider20;
+  mouse_xz = mouse_x / zfct;
+  mouse_yz = mouse_y / zfct;
+  ///////////////////////////////////////////////////////////
   
   gfx_x = 0; gfx_y=0; gfx_a=1;
   gfx_blit(7,1,0);
@@ -2122,10 +2132,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
     mouseclick ? (
     alt ? (
-    mouse_y > compacty+ledsy ? (
-    mouse_y < compacty+ledsy + 100 ? (
-    mouse_x > compactx+ledsx + 190 ? (
-    mouse_x < compactx+ledsx + 190 + 100 ? (
+    mouse_yz > compacty+ledsy ? (
+    mouse_yz < compacty+ledsy + 100 ? (
+    mouse_xz > compactx+ledsx + 190 ? (
+    mouse_xz < compactx+ledsx + 190 + 100 ? (
     thi1 =-100; slider13 == 0 ? (slider13 = 1):(slider13 = 0);
     info = 30;
     );
@@ -2133,10 +2143,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     );
     
-    mouse_y > compacty+ledsy ? (
-    mouse_y < compacty+ ledsy + 100 ? (
-    mouse_x > compactx+ledsx + 290 ? (
-    mouse_x < compactx+ledsx + 290 + 100 ? (
+    mouse_yz > compacty+ledsy ? (
+    mouse_yz < compacty+ ledsy + 100 ? (
+    mouse_xz > compactx+ledsx + 290 ? (
+    mouse_xz < compactx+ledsx + 290 + 100 ? (
     thi1 =-100; slider17 == 0 ? (slider17 = 1):(slider17 = 0);
     info = 30;
     );
@@ -2147,10 +2157,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     //gfx_rect(30,55,40,70);
  
-  mouse_y > 55 ? (
-  mouse_y < 55+70 ? (
-  mouse_x > 30 ? (
-  mouse_x < 70 ? (
+  mouse_yz > 55 ? (
+  mouse_yz < 55+70 ? (
+  mouse_xz > 30 ? (
+  mouse_xz < 70 ? (
   alt ? (
   slider15 == 0 ? (slider15=1):(slider15=0);
   ):(
@@ -2262,10 +2272,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouseClick == 1 ? (
   schnork = 1;
   slider15 == 0 ? (
-  mouse_y > gdetSCy + 11 ? (
-  mouse_y < gdetSCy + 23 ? (
-  mouse_x > gdetSCx + 11 ? (
-  mouse_x < gdetSCx + 23 ? (
+  mouse_yz > gdetSCy + 11 ? (
+  mouse_yz < gdetSCy + 23 ? (
+  mouse_xz > gdetSCx + 11 ? (
+  mouse_xz < gdetSCx + 23 ? (
     slider19 == 1 ? (slider19 = 0):(slider19=1);
     slider_automate(slider19);
   );
@@ -2274,20 +2284,20 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > gdethpfy + 11 ? (
-  mouse_y < gdethpfy + 23 ? (
-  mouse_x > gdethpfx + 11 ? (
-  mouse_x < gdethpfx + 23 ? (
+  mouse_yz > gdethpfy + 11 ? (
+  mouse_yz < gdethpfy + 23 ? (
+  mouse_xz > gdethpfx + 11 ? (
+  mouse_xz < gdethpfx + 23 ? (
     slider1 == 1 ? (slider1 = 0):(slider1=1);
     slider_automate(slider1);
   );
   );
   );
   );
-  mouse_y > gdetpeaky + 11 ? (
-  mouse_y < gdetpeaky + 23 ? (
-  mouse_x > gdetpeakx + 11 ? (
-  mouse_x < gdetpeakx + 23 ? (
+  mouse_yz > gdetpeaky + 11 ? (
+  mouse_yz < gdetpeaky + 23 ? (
+  mouse_xz > gdetpeakx + 11 ? (
+  mouse_xz < gdetpeakx + 23 ? (
     slider3 == 1 ? (slider3 = 0):(slider3=1);
     slider_automate(slider3);
   );
@@ -2295,10 +2305,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > gsplhpfy + 11 ? (
-  mouse_y < gsplhpfy + 23 ? (
-  mouse_x > gsplhpfx + 11 ? (
-  mouse_x < gsplhpfx + 23 ? (
+  mouse_yz > gsplhpfy + 11 ? (
+  mouse_yz < gsplhpfy + 23 ? (
+  mouse_xz > gsplhpfx + 11 ? (
+  mouse_xz < gsplhpfx + 23 ? (
     slider2 == 1 ? (slider2 = 0):(slider2=1);
     slider_automate(slider2);
   );
@@ -2306,10 +2316,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > gdist1y + 11 ? (
-  mouse_y < gdist1y + 23 ? (
-  mouse_x > gdist1x + 11 ? (
-  mouse_x < gdist1x + 23 ? (
+  mouse_yz > gdist1y + 11 ? (
+  mouse_yz < gdist1y + 23 ? (
+  mouse_xz > gdist1x + 11 ? (
+  mouse_xz < gdist1x + 23 ? (
     slider9 != 1 ? (slider9 = 1):(slider9=0);
     slider_automate(slider9);
   );
@@ -2317,10 +2327,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > gdist2y + 11 ? (
-   mouse_y < gdist2y + 23 ? (
-   mouse_x > gdist2x + 11 ? (
-   mouse_x < gdist2x + 23 ? (
+  mouse_yz > gdist2y + 11 ? (
+   mouse_yz < gdist2y + 23 ? (
+   mouse_xz > gdist2x + 11 ? (
+   mouse_xz < gdist2x + 23 ? (
      slider9 != 2 ? (slider9 = 2):(slider9=0);
      slider_automate(slider9);
    );
@@ -2329,10 +2339,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
    );
    
    //gfx_rect(ledsx-245, ledsy + 27, 43,18);
-   mouse_y > ledsy + 27 ? (
-    mouse_y < ledsy + 27 + 18 ? (
-    mouse_x > ledsx - 245 ? (
-    mouse_x < ledsx - 245 + 43 ? (
+   mouse_yz > ledsy + 27 ? (
+    mouse_yz < ledsy + 27 + 18 ? (
+    mouse_xz > ledsx - 245 ? (
+    mouse_xz < ledsx - 245 + 43 ? (
       slider12 == 1 ? (slider12 = 0):(slider12=1);
       slider_automate(slider12);
     );
@@ -2340,10 +2350,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     );
    
-  mouse_y > ledsy + 50 ? ( // DETECTOR BUTTON
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 + 70 ? (
-  mouse_x < ledsx - 22 + 70 + 45 ? (
+  mouse_yz > ledsy + 50 ? ( // DETECTOR BUTTON
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 70 ? (
+  mouse_xz < ledsx - 22 + 70 + 45 ? (
   alt ? (slider18 == 1 ? (slider18=0):(slider18=1)):(
   slider1 == 1 ? (
     slider3 == 0 ? (
@@ -2364,10 +2374,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > ledsy + 50 ? (
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 + 130 ? (
-  mouse_x < ledsx - 22 + 130 + 45 ? (
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 130 ? (
+  mouse_xz < ledsx - 22 + 130 + 45 ? (
     slider2 == 0 ? (
       slider9 == 1 ? (
         slider2 = 1;slider_automate(slider2);
@@ -2391,10 +2401,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > ledsy + 50 ? (
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 ? (
-  mouse_x < ledsx - 22 + 45 ? (
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 ? (
+  mouse_xz < ledsx - 22 + 45 ? (
   tempra = slider4 + 1; tempra > 8 ? (tempra = 1);
   slider4 = tempra; slider_automate(slider4);
   gfx_x = ledsx - 25; gfx_y = ledsy + 50;
@@ -2409,10 +2419,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   mouseHold == 1 ? (
  // gfx_r=1;
  //  gfx_rect(ledsx-245, ledsy + 27, 43,18);
-   mouse_y > ledsy + 27 ? (
-    mouse_y < ledsy + 27 + 18 ? (
-    mouse_x > ledsx - 245 ? (
-    mouse_x < ledsx - 245 + 43 ? (
+   mouse_yz > ledsy + 27 ? (
+    mouse_yz < ledsy + 27 + 18 ? (
+    mouse_xz > ledsx - 245 ? (
+    mouse_xz < ledsx - 245 + 43 ? (
      gfx_x = ledsx - 250; gfx_y = ledsy + 25;
      gfx_blit(6,0.75,0,0,37,90,37);
     // gfx_r = 0.3; gfx_g = 0.3; gfx_b = 0.3;
@@ -2423,20 +2433,20 @@ gfx_rect(0,0,gfx_w,gfx_h);
     );
     
    
-  mouse_y > ledsy + 50 ? (
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 + 70 ? (
-  mouse_x < ledsx - 22 + 70 + 45 ? (
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 70 ? (
+  mouse_xz < ledsx - 22 + 70 + 45 ? (
   gfx_x = ledsx - 25 + 70; gfx_y = ledsy + 50;
  gfx_blit(6,0.75,0,0,37,90,37);
   );
   );
   );
   );
-  mouse_y > ledsy + 50 ? (
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 + 130 ? (
-  mouse_x < ledsx - 22 + 130 + 45 ? (
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 130 ? (
+  mouse_xz < ledsx - 22 + 130 + 45 ? (
   gfx_x = ledsx - 25 + 130; gfx_y = ledsy + 50;
  gfx_blit(6,0.75,0,0,37,90,37);
   );
@@ -2444,10 +2454,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   );
   );
   
-  mouse_y > ledsy + 50 ? (
-  mouse_y < ledsy + 50 + 20 ? (
-  mouse_x > ledsx -22 ? (
-  mouse_x < ledsx - 22 + 45 ? (
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 ? (
+  mouse_xz < ledsx - 22 + 45 ? (
   gfx_x = ledsx - 25; gfx_y = ledsy + 50;
  gfx_blit(6,0.75,0,0,37,90,37);
   );
@@ -2462,46 +2472,46 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
   
   //Thresh LEDS
-  mouse_y > ledsy + 50 + 12 ? (
-  mouse_y < ledsy + 50 + 12 + 10 ? (
-  mouse_x > ledsx - 80 + 12 ? (
-  mouse_x < ledsx - 80 + 12 + 10 ? (
+  mouse_yz > ledsy + 50 + 12 ? (
+  mouse_yz < ledsy + 50 + 12 + 10 ? (
+  mouse_xz > ledsx - 80 + 12 ? (
+  mouse_xz < ledsx - 80 + 12 + 10 ? (
   slider4 = 8;
   );
   );
-  mouse_x > ledsx - 80 + 12 - ledsdist*1.5 ? (
-  mouse_x < ledsx - 80 + 12 + 10 - ledsdist*1.5 ? (
+  mouse_xz > ledsx - 80 + 12 - ledsdist*1.5 ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - ledsdist*1.5 ? (
   slider4 = 7;
   );
   );
-  mouse_x > ledsx - 80 + 12 - 2*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 2*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 2*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 2*(ledsdist*1.5) ? (
   slider4 = 6;
   );
   );
   
-  mouse_x > ledsx - 80 + 12 - 3*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 3*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 3*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 3*(ledsdist*1.5) ? (
   slider4 = 5;
   );
   );
-  mouse_x > ledsx - 80 + 12 - 4*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 4*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 4*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 4*(ledsdist*1.5) ? (
   slider4 = 4;
   );
   );
-  mouse_x > ledsx - 80 + 12 - 5*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 5*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 5*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 5*(ledsdist*1.5) ? (
   slider4 = 3;
   );
   );
-  mouse_x > ledsx - 80 + 12 - 6*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 6*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 6*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 6*(ledsdist*1.5) ? (
   slider4 = 2;
   );
   );
-  mouse_x > ledsx - 80 + 12 - 7*(ledsdist*1.5) ? (
-  mouse_x < ledsx - 80 + 12 + 10 - 7*(ledsdist*1.5) ? (
+  mouse_xz > ledsx - 80 + 12 - 7*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 7*(ledsdist*1.5) ? (
   slider4 = 1;
   );
   );
@@ -2561,10 +2571,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
   //  gfx_drawnumber(last_clicked_item, 0); 
     mouseClick ? (
     //helpshow ? helpshow = 0;
-    mouse_x > menu_x ? (
-    mouse_x < menu_x + 20 ? (
-    mouse_y > menu_y ? (
-    mouse_y < menu_y + 20 ? (
+    mouse_xz > menu_x ? (
+    mouse_xz < menu_x + 20 ? (
+    mouse_yz > menu_y ? (
+    mouse_yz < menu_y + 20 ? (
       gfx_x = menu_x;
       gfx_y = menu_y+20;
       slider13 == 1 ? (#item1 = "F.Back detection|"):(#item1 = "!F.Back detection|"); 
@@ -2574,8 +2584,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
       slider15 == 0 ? (#item3 = "Old buggy mode|"):(#item3 = "!Old buggy mode|");    #allitems += #item3;
       slider19 == 0 ? (#item4 = "Sidechain|"):(#item4 = "!Sidechain|");
           slider15 == 1 ? #item4 = "#Sidechain|";  #allitems += #item4;
-      slider18 == 0 ? (#item5 = "Listen SideChain|"):(#item5 = "!Listen SideChain|");  
-      slider15 == 1 ? #item5 = "#Listen SideChain|";  #allitems += #item5;
+      slider18 == 0 ? (#item5 = "Listen SideChain||"):(#item5 = "!Listen SideChain||");  
+      slider15 == 1 ? #item5 = "#Listen SideChain||";  #allitems += #item5;
+       #item2 =">Scaling|";#allitems += #item2;
+      slider20 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider20 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider20 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider20 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider20 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider20 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
       #item6 = "Show Info/Help";    #allitems += #item6;
       last_clicked_item = gfx_showmenu(#allitems);
     );
@@ -2590,7 +2607,15 @@ gfx_rect(0,0,gfx_w,gfx_h);
     last_clicked_item == 3 ? (info = 60; slider15 == 0 ? (slider15=1):(slider15=0);slider_automate(slider15));
     last_clicked_item == 4 ? (slider19 == 0 ? (slider19=1):(slider19=0);slider_automate(slider19));
     last_clicked_item == 5 ? (slider18 == 0 ? (slider18=1):(slider18=0);slider_automate(slider18));
-    last_clicked_item == 6 ? helpshow = 1;
+
+    last_clicked_item == 6 ? zmnu = sqrt(0.5);
+    last_clicked_item == 7 ? zmnu = sqrt(0.75);
+    last_clicked_item == 8 ? zmnu = 1;
+    last_clicked_item == 9 ? zmnu = sqrt(1.5);
+    last_clicked_item == 10? zmnu = sqrt(2);
+    last_clicked_item == 11? zmnu = 0;
+    
+    last_clicked_item == 12? helpshow = 1;
     
     gscrew.collision()    ? (
     gfx_x = gscrew.xIn-0;gfx_y=gscrew.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 70, 13); 
@@ -2759,9 +2784,19 @@ gfx_rect(0,0,gfx_w,gfx_h);
   
   
   
+  //////////////////////// ZFCT ///////////////////////////////
+  slider20 = zmnu;
+  zfct = zmnu;
+  zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
   
+  zmnu != 0 ? zfct *= gfx_ext_retina;
+  gfx_dest = -1;
+  gfx_x=gfx_y=0;gfx_a=1;
+  gfx_blit(127,zfct,0);
+  ///////////////////////////////////////////////////////////// 
   
   
             
         ); // EXT FLAGS
+
         //stattslider();
