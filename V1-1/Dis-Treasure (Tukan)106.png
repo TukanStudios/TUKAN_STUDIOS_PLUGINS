@@ -1,0 +1,2818 @@
+desc:Dis-Treasure (Tukan)
+// Version 1.0.4
+
+/////// OPTO MODE macht noch gain reduction bei input = 0 ... spl*ingain?
+//////// Blockschaltbild nochmal überprüfen...
+
+slider1:0<0,1,1>-01 HPF Detect
+slider2:0<0,1,1>-02 HPF Audio
+slider3:0<0,1,1>-03 Peak Detetct
+slider4:4<1,8,1>-04 Ratio
+slider5:5<0,10,0.01>-05 In Gain
+slider6:5<0,10,0.01>-06 Out Gain
+slider7:15<0.05,30,0.05>-07 Attack
+slider8:775<50,1500,10>-08 Release
+slider9:0<0,2,1>-09 Disttype
+slider10:0<-1,1,0.000001>-L offset (r/o)
+slider11:0<-1,1,0.000001>-R offset (r/o)
+slider12:0<0,1,1>-Bypass
+slider13:0<0,1,1>-13 F.Back
+slider14:0<-20,20,1>-Headroom
+slider15:0<0,1,1>-15 Bug Version
+slider16:0<0,1,1>-Card Mode
+slider17:0<0,1,1>-17 Interact
+slider18:0<0,1,1>-18 SC Listen
+slider19:0<0,1,1>-19 side chain
+slider20:1<0,6,.01>-Scaling
+
+in_pin:L in
+in_pin:R in
+in_pin:Link L in
+in_pin:Link R in
+out_pin:L out
+out_pin:R out
+
+options:no_meter
+
+filename:0,treasuregui/gled.png
+filename:1,treasuregui/yled.png
+filename:2,treasuregui/oled.png
+filename:3,treasuregui/rled.png
+filename:4,treasuregui/bled.png
+filename:5,treasuregui/treasure.png
+filename:6,treasuregui/treasure_button.png
+filename:7,treasuregui/treasureback.png
+filename:8,treasuregui/fwdtreasure.png
+filename:9,treasuregui/screw.png
+filename:10,treasuregui/bugtreasure.png
+filename:11,treasuregui/menu.png
+
+@init
+gfx_ext_retina = 1;
+ovrlgain = 1; 
+// Dist
+ext_nodenorm=1;
+det=0;
+det1=0;
+det0=0;
+gr=0;
+grdb=0;
+overbdb=0;
+rundd=0;
+cratio = 0;
+
+dbc = 20/log(10);
+function db2ratio(d) ( 10^(d/20); );
+function ratio2db(r) ( log(abs(r))*dbc; );
+
+
+// DC remove
+itm1=slider10;
+itm2=slider11;
+otm1=otm2=0;
+
+// Filter
+m1=m0=0;
+
+function tanh(x)
+(
+x = exp(2*x);
+(x - 1) / (x + 1);
+);
+
+function cosh(x)
+(
+(exp(x) + exp(-x))/2;
+);
+
+// First antiderivative of tanh(x)
+function tanh0(x)
+(
+log(cosh(x));
+);
+
+//dist end
+
+
+
+
+
+   function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+ 
+ function xy(x y)
+            ( gfx_x = x; gfx_y = y; );
+ 
+ function rgb(r g b)
+             ( gfx_r = r; gfx_g = g; gfx_b = b; );
+ 
+ function rectIn  (xIn_ yIn_ wIn hIn)
+   instance       (xIn yIn widthIn heightIn)
+                  (
+                   xIn = xIn_;
+                   yIn = yIn_;
+                   widthIn = wIn;
+                   heightIn = hIn;
+                   );
+                 
+ function rectOut  (xOut_ yOut_ wOut hOut c i)
+   instance        (xOut yOut widthOut heightOut count index)
+                   (
+                    xOut = xOut_;
+                    yOut = yOut_;
+                    widthOut = wOut;
+                    heightOut = hOut;
+                    count = c;
+                    index = i;
+                    );                
+ 
+ function potVal(v)
+   instance      (frame val minVal maxVal count heightOut)
+                 (
+                  val = v;
+                  frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                  frame |= 0;
+                 );
+ 
+ function potCfg  (default_ minVal_ maxVal_ step_)
+   instance        (default minVal maxVal step)
+                   (
+                    default = default_;
+                    minVal = minVal_;
+                    maxVal = maxVal_;
+                    step    = step_;
+                    //this.potVal();
+                   );
+ 
+ function bkg(wImg hImg indImg)
+              (
+                gfx_a=1;
+                coords[0] = coords[4] = 0;
+                coords[1] = coords[5] = 0;;
+                coords[2] = coords[6] = wImg;
+                coords[3] = coords[7] = hImg;
+                gfx_blitext(indImg, coords, 0);
+               ); 
+ 
+ function potDrawIn ()
+   instance        (xIn yIn widthIn heightIn val)
+                   (
+                      gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                      
+                      gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                      gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn,yIn,xIn+widthIn,yIn);
+       
+                      gfx_r = gfx_g = gfx_b = 0.75;
+                      gfx_x = xIn + widthIn/2-12;
+                      gfx_y = yIn+heightIn/2-5;
+                      gfx_drawnumber(val, 1);                   
+                   );
+ 
+ function knob()
+   instance   (xOut yOut widthOut heightOut index frame val)
+              (
+               
+                gfx_a=1;
+                coords[0] = 0;
+                coords[1] = frame * heightOut;
+                coords[2] = coords[6] = widthOut;
+                coords[3] = coords[7] = heightOut;
+                coords[4] = xOut;
+                coords[5] = yOut;
+                gfx_blitext(index, coords, 0);
+               );                                     
+ 
+ function collision  ()
+   instance          (xIn yIn widthIn heightIn)
+                     (
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
+                     );
+ 
+ function dragStart ()
+   instance          (dragging yOld default)
+                     (
+                      !ctrl ? (
+                      yOld = mouse_y;
+                      dragging = 1;
+                     ) : 
+                      this.potVal(default);
+                     );
+ 
+ function dragStop()
+   instance        (dragging val valOld)
+                   (
+                    dragging = 0;
+                    valOld = val;
+                   );
+ 
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+
+//11 INIT
+  log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+  db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+  attime=0.010;
+  reltime=0.100;
+  ratio=0;
+  cratio=0;
+  rundb=0;
+  overdb=0;
+  ratatcoef = exp(-1/(0.00001 * srate));
+  ratrelcoef = exp(-1/(0.5 * srate));
+  atcoef=exp(-1/(attime * srate));
+  relcoef=exp(-1/(reltime * srate));
+  mix=1;
+  gr_meter=1;
+  gr_meter_decay = exp(2/(1*srate));
+// END 11 INIT
+
+
+
+
+// init opto
+
+  log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+  db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+  
+  tenmaxover=0;
+  tenratio=10;
+  tenctenratio=0;
+  tenrundb=0;
+  tenoverdb=0;
+  tenmaxover=0;
+  tenfbacoef=exp(-1000/(2 * srate)); // 2 msec. tenopto attack for feedback tendetection
+  tenfbrcoef=exp(-1000/(200 * srate)); // 200 msec. tenopto release for feedback tendetection
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  //tenopto = 0;
+
+
+// end init opto
+
+
+
+function stattslider () (
+stattslider_on = 1;
+slider4 = ceil(slider4);
+
+slider15 == 0 ? (
+
+slider16 == 0 ? (
+slider4 == 1 ? (thresh = 0; ratio = 1;kneevalue = 50;); //in %);
+slider4 == 2 ? (thresh = -22;ratio = 2;kneevalue = 50;);
+slider4 == 3 ? (thresh = -21;ratio = 3;kneevalue = 40;);
+slider4 == 4 ? (thresh = -21.5;ratio = 4;kneevalue = 25;);
+slider4 == 5 ? (thresh = -19;ratio = 6;kneevalue = 15;);
+slider4 == 6 ? (thresh = -22;ratio = 10;kneevalue = 20;);
+slider4 == 7 ? (thresh = -17;ratio = 20;kneevalue = 15;);
+slider4 == 8 ? (thresh = -22;ratio = 70;kneevalue=0;);
+headroom = floor(slider14+0.5);
+thresh = -20+headroom;
+  ratio == 2 ? (
+  attime = slider7 / 2000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 3 ? (
+  attime = slider7 / 1000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 4 ? (
+  attime = slider7 / 1000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 6 ? (
+  attime = slider7 / 800;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 20 ? (
+  attime = 2*slider7 / 500;
+  reltime = (150+slider8) / 1000;
+  );
+  
+  ratio == 70 ? ( /////////////////////// NOCH NICHT GESETZT
+  attime = 2*slider7 / 150;
+  reltime = (150+slider8) / 1000;
+  );
+  
+  slider17 == 0 ? ( /// INTERACT
+  my7 = (slider7/15)-1;
+  my8 = (slider8 / 750)-1;
+  
+  my7 > 0 ? (ratio = ratio - (my7/4)*ratio):(ratio = ratio + ratio * abs(my7/1.2));
+  my7 > 0 ? (kneevalue = kneevalue - (my7/1)*kneevalue):(kneevalue = kneevalue - kneevalue * abs(my7/1.2));
+  my7 > 0 ? (thresh += my7 * 6):(thresh += my7 * 3);
+  
+  my9r = ratio;
+  my9knee = kneevalue;
+  );
+  
+  
+):(
+slider4 == 1 ? (thresh = 0; ratio = 1;kneevalue = 50;); //in %);
+slider4 == 2 ? (thresh = -12;ratio = 10;kneevalue = 70;);
+slider4 == 3 ? (thresh = -11;ratio = 20;kneevalue = 70;);
+slider4 == 4 ? (thresh = -12.4;ratio = 29;kneevalue = 70;);
+slider4 == 5 ? (thresh = -14.2;ratio = 33;kneevalue = 40;);
+slider4 == 6 ? (thresh = -21.7;ratio = 80;kneevalue = 2;);
+slider4 == 7 ? (thresh = -16.3;ratio = 30;kneevalue = 3;);
+slider4 == 8 ? (thresh = -20;ratio = 70;kneevalue=0;);
+headroom = floor(slider14+0.5);
+thresh += headroom;
+  ratio == 10 ? (
+  attime = slider7 / 1000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 4 ? (
+  attime = slider7 / 8000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 6 ? (
+  attime = slider7 / 8000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 20 ? (
+  attime = 2*slider7 / 1000;
+  reltime = (150+slider8) / 4000;
+  );
+  
+  ratio == 70 ? (
+  attime = 2*slider7 / 1000;
+  reltime = (150+slider8) / 4000;
+  );
+  //thresh+=slider7/20;
+  
+  slider4 == 1 ? (thresh = 0; ratio = 1;kneevalue = 50;); //in %);
+  slider4 == 2 ? (thresh = -9;ratio = 10;kneevalue = 40;);
+  slider4 == 3 ? (thresh = -12;ratio = 20;kneevalue = 70;);
+  slider4 == 4 ? (thresh = -11;ratio = 29;kneevalue = 70;);
+  slider4 == 5 ? (thresh = -14.2;ratio = 33;kneevalue = 40;);
+  slider4 == 6 ? (thresh = -21.7;ratio = 80;kneevalue = 2;);
+  slider4 == 7 ? (thresh = -16.3;ratio = 30;kneevalue = 3;);
+  slider4 == 8 ? (thresh = -20;ratio = 70;kneevalue=0;);
+ // vslider7=slider7/3;
+ // ratio = vslider7/ ratio;
+  
+);
+//kneevalue = 0;
+
+
+slider5 >= 5 ? (ingain = (slider5-5)*5);
+slider5 >= 7 ? (ingain = 10 + (slider5-7)*3);
+slider5 >= 8 ? (ingain = 13 + (slider5-8)*4);
+slider5 >= 9 ? (ingain = 17 + (slider5-9)*3);
+slider5 < 5 ? (ingain = abs(slider5-5)*-2.5);
+slider5 <= 3 ? (ingain = -5 + abs(slider5-3)*-5);
+slider5 <= 2 ? (ingain = -10 + abs(slider5-2)*-10);
+slider5 <= 1 ? (ingain = -20 + abs(slider5-1)*-40);
+ingain=10^(ingain/20);
+ingdb = 20*log10(ingain);
+
+slider6 >= 5 ? (outgain = (slider6-5)*5);
+slider6 >= 7 ? (outgain = 10 + (slider6-7)*3);
+slider6 >= 8 ? (outgain = 13 + (slider6-8)*4);
+slider6 >= 9 ? (outgain = 17 + (slider6-9)*3);
+slider6 < 5 ? (outgain = abs(slider6-5)*-2.5);
+slider6 <= 3 ? (outgain = -5 + abs(slider6-3)*-5);
+slider6 <= 2 ? (outgain = -10 + abs(slider6-2)*-10);
+slider6 <= 1 ? (outgain = -20 + abs(slider6-1)*-40);
+outgain=10^(outgain/20);
+outgdb = 20*log10(outgain);
+
+
+
+
+
+
+
+
+ slider4 == 6 ? (
+
+// opto slider
+
+slider15 == 0 ? (
+  slider13 == 0 ? (
+  tenthresh = thresh;
+  ):(
+  tenthresh = thresh-3;
+  );
+  
+  tenthreshv = exp(tenthresh * db2log);
+  tenratio = 10;
+  tensoftknee = 3&1;
+  tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  tenctenthresh = tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
+  tenctenthreshv = exp(tenctenthresh * db2log);
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenautotenmakeup ? (
+    tenautogain = (abs(tenthresh) - (abs(tenthresh)/max(1,tenratio-1)))/2;
+  ) : (
+    tenautogain = 0;
+  );
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+  tenopto = 1;
+
+  atfaktor = 0.03*Abs((0.9*slider7/6))+0.01;
+  slider13 == 1 ? atfaktor=0.1*Abs((0.9*slider7/30));
+  i=0;
+  loop(
+    120,
+    coords[i+10] = (atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006));
+    i+=1;
+  );
+  tenattime=slider7/1000;
+  tenreltime= (50+((slider8-50)))/4000;
+  tenatcoef=exp(-1/(tenattime * srate));
+  tenrelcoef=exp(-1/(tenreltime * srate));
+
+atf1 = coords[14];
+// end opto slider
+
+):(
+// opto slider
+  tenthresh = thresh;
+  tenthreshv = exp(tenthresh * db2log);
+  tenratio = 10;
+  tensoftknee = 3&1;
+  tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  tenctenthresh = (tensoftknee ? (tenthresh -3) : tenthresh);
+  tenctenthreshv = exp(tenctenthresh * db2log);
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenautotenmakeup ? (
+    tenautogain = (abs(tenthresh) - (abs(tenthresh)/max(1,tenratio-1)))/2;
+  ) : (
+    tenautogain = 0;
+  );
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+//  RMStendet ? (
+//    tenrmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+//  ) : (
+//    tenrmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak tendetector
+//  );
+  tenopto = 0;
+
+  atfaktor = 100*(slider7/3)+0.1;
+  i=0;
+  loop(
+    120,
+    coords[i+10] = ((0.08924 / i) + (0.60755 / (i ^ 2)) - 0.00006);
+    i+=1;
+  );
+  tenattime=slider7/1000;
+  tenreltime= (50+((slider8-50)))/1000;
+  tenatcoef=exp(-1/(tenattime * srate));
+  tenrelcoef=exp(-1/(tenreltime * srate));
+// end opto slider
+);
+
+):(
+//11 slider
+  capsc = log2db;
+  //(rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
+  //ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
+  ratio == 6 ? (allin=1; cratio=6;) : (allin=0; cratio = ratio;);
+  cthresh = (softknee ? (thresh -3) : thresh);
+  cthreshv = exp(cthresh * db2log);
+  makeup = 0;
+  makeupv = exp((makeup+autogain) * db2log);
+  
+  
+  atcoef=exp(-1/(attime * srate));
+  relcoef=exp(-1/(reltime * srate));
+  mix=1;
+//end 11 slider
+);
+
+
+
+//In boost 18,8 @ 11 - 18,7 @ 10
+//Out +20db
+
+// frequency slider scaling
+tmpx = 16+23.1*1.20103;
+tmpy = floor(exp(tmpx*log(1.059))*8.17742);
+
+// filter calculation
+omega = 2*$pi*tmpy/srate;
+
+K = tan(omega/2);
+
+Q = max(min(0.707,4),0.2);
+V = 10^(-0/20);
+
+//HPF:
+b0 = 1;
+b1 = -2;
+b2 = 1;
+a0 = 1 + K/Q + K^2;
+a1 = 2*(K^2 - 1);
+a2 = 1 - K/Q + K^2;
+//general
+a1 /= a0;
+a2 /= a0;
+b0 /= a0;
+b1 /= a0;
+b2 /= a0;
+
+
+
+
+
+
+//In detboost 18,8 @ 11 - 18,7 @ 10
+//Out +20ddetb
+
+// fredetQuency slider scaling
+dettempx = 16+23.1*1.20103;
+dettempy = floor(exp(dettempx*log(1.059))*8.17742);
+
+// filter calculation
+detomega = 2*$pi*dettempy/srate;
+
+detK = tan(detomega/2);
+
+detQ = max(min(0.707,4),0.2);
+detV = 10^(-0/20);
+
+//HPF:
+detb0 = 1;
+detb1 = -2;
+detb2 = 1;
+deta0 = 1 + detK/detQ + detK^2;
+deta1 = 2*(detK^2 - 1);
+deta2 = 1 - detK/detQ + detK^2;
+//general
+deta1 /= deta0;
+deta2 /= deta0;
+detb0 /= deta0;
+detb1 /= deta0;
+detb2 /= deta0;
+
+////////// PEAK FILTER
+// frebellQuency slider scaling
+belltmpx = 16+82.515*1.20103; //82.515 = 6kHz
+belltmpy = floor(exp(belltmpx*log(1.059))*8.17742);
+
+// filter calculation
+bellomega = 2*$pi*belltmpy/srate;
+
+bellK = tan(bellomega/2);
+
+bellQ = max(min(1.3,4),0.2);
+bellV = 10^(-5/20); // -sliderX in db filter
+
+//boost
+bellb0 = 1 + bellV*bellK/bellQ + bellK^2;
+bellb1 = 2*(bellK^2 - 1);
+bellb2 = 1 - bellV*bellK/bellQ + bellK^2;
+bella0 = 1 + bellK/bellQ + bellK^2;
+bella1 = 2*(bellK^2 - 1);
+bella2 = 1 - bellK/bellQ + bellK^2;
+
+//cut:
+bellb0 = 1 + bellK/bellQ + bellK^2;
+bellb1 = bell2*(K^2 - 1);
+bellb2 = 1 - bellK/bellQ + bellK^2;
+bella0 = 1 + bellV*bellK/bellQ + bellK^2;
+bella1 = 2*(bellK^2 - 1);
+bella2 = 1 - bellV*bellK/bellQ + bellK^2;
+//general
+bella1 /= bella0;
+bella2 /= bella0;
+bellb0 /= bella0;
+bellb1 /= bella0;
+bellb2 /= bella0;
+
+tenoverdb=0;
+
+//det=det1=det0=tendet=0;
+
+thresh -= ingdb;
+tenthresh -= ingdb;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+):( //////////BUG VERSION
+slider4 == 1 ? (thresh = 0; ratio = 1);
+slider4 == 2 ? (thresh = -24;ratio = 2);
+slider4 == 3 ? (thresh = -21;ratio = 3);
+slider4 == 4 ? (thresh = -22;ratio = 4);
+slider4 == 5 ? (thresh = -25;ratio = 6);
+slider4 == 6 ? (thresh = -18;ratio = 10);
+slider4 == 7 ? (thresh = -17;ratio = 20);
+slider4 == 8 ? (thresh = -21;ratio = 50);
+
+//thresh = -20;
+
+
+slider5 >= 5 ? (ingain = (slider5-5)*5);
+slider5 >= 7 ? (ingain = 10 + (slider5-7)*3);
+slider5 >= 8 ? (ingain = 13 + (slider5-8)*4);
+slider5 >= 9 ? (ingain = 17 + (slider5-9)*3);
+slider5 < 5 ? (ingain = abs(slider5-5)*-2.5);
+slider5 <= 3 ? (ingain = -5 + abs(slider5-3)*-5);
+slider5 <= 2 ? (ingain = -10 + abs(slider5-2)*-10);
+slider5 <= 1 ? (ingain = -20 + abs(slider5-1)*-40);
+ingain=10^(ingain/20);
+ingdb = 20*log10(ingain);
+
+slider6 >= 5 ? (outgain = (slider6-5)*5);
+slider6 >= 7 ? (outgain = 10 + (slider6-7)*3);
+slider6 >= 8 ? (outgain = 13 + (slider6-8)*4);
+slider6 >= 9 ? (outgain = 17 + (slider6-9)*3);
+slider6 < 5 ? (outgain = abs(slider6-5)*-2.5);
+slider6 <= 3 ? (outgain = -5 + abs(slider6-3)*-5);
+slider6 <= 2 ? (outgain = -10 + abs(slider6-2)*-10);
+slider6 <= 1 ? (outgain = -20 + abs(slider6-1)*-40);
+outgain=10^(outgain/20);
+outgdb = 20*log10(outgain);
+
+
+
+
+
+
+
+
+slider4 == 6 ? (
+
+// opto slider
+  tenthresh = thresh;
+  tenthreshv = exp(tenthresh * db2log);
+  tenratio = 10;
+  tensoftknee = 3&1;
+  tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  tenctenthresh = (tensoftknee ? (tenthresh -3) : tenthresh);
+  tenctenthreshv = exp(tenctenthresh * db2log);
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenautotenmakeup ? (
+    tenautogain = (abs(tenthresh) - (abs(tenthresh)/max(1,tenratio-1)))/2;
+  ) : (
+    tenautogain = 0;
+  );
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+//  RMStendet ? (
+//    tenrmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+//  ) : (
+//    tenrmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak tendetector
+//  );
+  tenopto = 0;
+
+
+  i=0;
+  loop(
+    120,
+    coords[i+10] = ((0.08924 / i) + (0.60755 / (i ^ 2)) - 0.00006);
+    i+=1;
+  );
+  tenattime=slider7/4000;
+  tenreltime= (50+((slider8-50)))/1000;
+  tenatcoef=exp(-1/(tenattime * srate));
+  tenrelcoef=exp(-1/(tenreltime * srate));
+// end opto slider
+
+):(
+//11 slider
+  capsc = log2db;
+  //(rpos = slider2) > 4 ? ( rpos -= 5; ) : ( capsc *= 2.08136898; /* broken capacitor */ );
+  //ratio = (rpos==0 ? 4 : (rpos==1 ? 8 : (rpos == 2 ? 12 : (rpos == 3 ? 20 : 20 ))));
+  ratio == 6 ? (allin=1; cratio=6;) : (allin=0; cratio = ratio;);
+  cthresh = (softknee ? (thresh -3) : thresh);
+  cthreshv = exp(cthresh * db2log);
+  makeup = 0;
+  makeupv = exp((makeup+autogain) * db2log);
+  
+  ratio == 2 ? (
+  attime = slider7 / 2000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 4 ? (
+  attime = slider7 / 8000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 6 ? (
+  attime = slider7 / 8000;
+  reltime = slider8 / 4000;
+  );
+  
+  ratio == 20 ? (
+  attime = 2*slider7 / 1000;
+  reltime = (150+slider8) / 1000;
+  );
+  
+  atcoef=exp(-1/(attime * srate));
+  relcoef=exp(-1/(reltime * srate));
+  mix=1;
+//end 11 slider
+);
+
+
+
+//In boost 18,8 @ 11 - 18,7 @ 10
+//Out +20db
+
+// frequency slider scaling
+tmpx = 16+23.1*1.20103;
+tmpy = floor(exp(tmpx*log(1.059))*8.17742);
+
+// filter calculation
+omega = 2*$pi*tmpy/srate;
+
+K = tan(omega/2);
+
+Q = max(min(0.707,4),0.2);
+V = 10^(-0/20);
+
+//HPF:
+b0 = 1;
+b1 = -2;
+b2 = 1;
+a0 = 1 + K/Q + K^2;
+a1 = 2*(K^2 - 1);
+a2 = 1 - K/Q + K^2;
+//general
+a1 /= a0;
+a2 /= a0;
+b0 /= a0;
+b1 /= a0;
+b2 /= a0;
+
+
+
+
+
+
+//In detboost 18,8 @ 11 - 18,7 @ 10
+//Out +20ddetb
+
+// fredetQuency slider scaling
+dettempx = 16+23.1*1.20103;
+dettempy = floor(exp(dettempx*log(1.059))*8.17742);
+
+// filter calculation
+detomega = 2*$pi*dettempy/srate;
+
+detK = tan(detomega/2);
+
+detQ = max(min(0.707,4),0.2);
+detV = 10^(-0/20);
+
+//HPF:
+detb0 = 1;
+detb1 = -2;
+detb2 = 1;
+deta0 = 1 + detK/detQ + detK^2;
+deta1 = 2*(detK^2 - 1);
+deta2 = 1 - detK/detQ + detK^2;
+//general
+deta1 /= deta0;
+deta2 /= deta0;
+detb0 /= deta0;
+detb1 /= deta0;
+detb2 /= deta0;
+
+////////// PEAK FILTER
+// frebellQuency slider scaling
+belltmpx = 16+82.515*1.20103; //82.515 = 6kHz
+belltmpy = floor(exp(belltmpx*log(1.059))*8.17742);
+
+// filter calculation
+bellomega = 2*$pi*belltmpy/srate;
+
+bellK = tan(bellomega/2);
+
+bellQ = max(min(1.3,4),0.2);
+bellV = 10^(-5/20); // -sliderX in db filter
+
+//boost
+bellb0 = 1 + bellV*bellK/bellQ + bellK^2;
+bellb1 = 2*(bellK^2 - 1);
+bellb2 = 1 - bellV*bellK/bellQ + bellK^2;
+bella0 = 1 + bellK/bellQ + bellK^2;
+bella1 = 2*(bellK^2 - 1);
+bella2 = 1 - bellK/bellQ + bellK^2;
+
+//cut:
+bellb0 = 1 + bellK/bellQ + bellK^2;
+bellb1 = bell2*(K^2 - 1);
+bellb2 = 1 - bellK/bellQ + bellK^2;
+bella0 = 1 + bellV*bellK/bellQ + bellK^2;
+bella1 = 2*(bellK^2 - 1);
+bella2 = 1 - bellV*bellK/bellQ + bellK^2;
+//general
+bella1 /= bella0;
+bella2 /= bella0;
+bellb0 /= bella0;
+bellb1 /= bella0;
+bellb2 /= bella0;
+); //////// BUG VERISON
+stattslider_on = 0;
+);
+
+
+stattslider();
+
+
+
+@slider
+//stattslider();
+stattslider_call = 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+
+stattslider_call == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+stattslider_call = 0;
+);
+);
+
+slider15 == 0 ? (  //NEUE DEBUG ENGINE 
+
+orispl0 = spl0;
+orispl1 = spl1;
+
+
+//spl0 *= inGain;
+//spl1 *= inGain;
+/*
+slider13 == 1 ? (
+spl0 *= inGain;
+spl1 *= inGain;
+);
+*/
+//spl0 = det0;
+//spl1 = det1;
+
+tenospl0 = det0;
+tenospl1 = det1;
+
+slider4 == 6 ? ( //ten?
+//optocomp
+slider13 == 0 ? (tenopto = 1):(tenopto=1);
+  tensidechain ? (
+    tenaspl0 = abs(spl2);
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (
+      tenospl = (tenospl0)^2 + (tenospl1)^2;
+          //tenospl /= 1000000;
+          
+       
+        tenospl > runtenospl ? (
+          runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+      runtenospl=tenospl;
+        
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+      
+    
+    ) : (
+      tenaspl0 = abs(spl0);
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+  RMStendet ? (  
+    tenave = (tenaspl0 * tenaspl0) + (tenaspl1 * tenaspl1);
+    runtenave = tenave + tenrmscoef * (runtenave - tenave);
+    tendet = sqrt(max(0,runtenave));
+  ) : (
+    tenmaxspl = max(tenaspl0, tenaspl1);
+    tenmaxspl = tenmaxspl * tenmaxspl;
+    runtenave = tenmaxspl + tenrmscoef * (runtenave - tenmaxspl);
+    tendet = sqrt(max(0,runtenave));
+  );
+  
+
+ // tenoverdb = log(tendet/tenctenthreshv) * tencapsc;
+ 
+ tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+thresh = tenthresh;
+slider13 == 1 ? (thresh = tenthresh - 3);
+
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    thi2 = 2;
+    ratior = ratio;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    thi2 = 1;
+    ratior = ratio;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+    //tenreltime = (130+((slider8-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = (tensoftknee ? (1 + (tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  slider13 == 0 ? (
+  tengr = -tenoverdb  *tenratio* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb * (tenctenratio-1)/(tenctenratio);
+  );
+  tengrv = exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+  thi3 = 1;//exp(-corfak*db2log);
+  spl0 *= tengrv;
+  spl1 *= tengrv;  
+  
+  
+grv = tengrv;
+// end optocomp
+):slider4 == 9 ? ( // Limiter
+
+/// LIMITER ///////////////
+ovrlParam1=thresh;//1.4; //ovrlthresh
+ovrlParam2=3; //output
+ovrlParam3=slider7*1500/srate;//0.5+0*0.5; //ovrlattack
+ovrlParam4=(50+(slider8-50)*30)/srate;//0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = exp(ovrlParam1 * db2log);//pow(10, ovrlParam1);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+slider13 == 0 ? (
+ovrlol = det0;
+ovrlor = det1;
+):(
+ovrlol = spl0;
+ovrlor = spl1;
+);
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+// FFWD ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg2 = ovrlg;
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (spl0 * ovrlg);
+spl1 = (spl1 * ovrlg);
+
+ovrlgain = ovrlg;
+
+grv = ovrlg;
+
+
+
+
+
+
+
+):( // 11comp?
+
+// 11 COMP
+
+  ospl0 = spl0;
+  ospl1 = spl1;
+  slider13 == 0 ? (
+  aspl0 = abs(det0);
+  aspl1 = abs(det1);
+  rationew = (ratio*ratio)*(ratio*ratio);
+  ):(
+  aspl0 = abs(det0);
+  aspl1 = abs(det1);
+  rationew = ratio;
+  );
+  maxspl = max(aspl0, aspl1);
+  maxspl = maxspl * maxspl;
+  runave = maxspl + rmscoef * (runave - maxspl);
+  det = sqrt(max(0,runave));
+ 
+  
+  
+ // overdb = max(0, capsc * log(det/cthreshv));
+ 
+det=max(det,0.0000000001);
+mydbin = ratio2db(det);//2^(det/6);//
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+
+
+
+mydbin < Tlo ? (
+  overdb = 0;
+  thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    thi2 = 2;
+    ratior = ratio;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    thi2 = 1;
+    ratior = ratio;
+  );
+
+);
+
+
+// ende neu ich
+
+  overdb - rundb > 5 ? (averatio = 4;);
+
+  overdb > rundb ? (
+    rundb = overdb + atcoef * (rundb - overdb);
+    runratio = averatio + ratatcoef * (runratio - averatio);
+  ) : (
+    rundb = overdb + relcoef * (rundb - overdb);
+    runratio = averatio + ratrelcoef * (runratio - averatio);
+  );
+  overdb = rundb;
+  averatio = runratio;
+
+  allin ? (
+    cratio = ratio;//6 + averatio;
+  ) : (
+    cratio = ratio;
+  );
+  
+  slider13 == 0 ? (
+  cratio = ratio^10; // Bei Rat 2 - r^4
+  gr = -overdb * ratior * (cratio-1)/cratio;
+  ):(
+  cratio = ratio^10; // Bei Rat 2 - r^4
+  gr = -overdb * (cratio-1)/cratio;
+  );
+  
+  
+  grv = exp(gr * db2log);
+  
+  runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
+  maxover = runmax;
+
+  spl0 *= grv;
+  spl1 *= grv; 
+
+
+// ENDE 11 COMP
+
+);
+
+  grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
+
+
+
+
+slider13 == 0 ? (
+spl0 *= inGain;
+spl1 *= inGain;
+);
+
+slider13 == 1 ? (
+indetA = orispl0*ingain;
+indetb = orispl1*ingain;
+):(
+indetA = spl0;
+indetB = spl1;
+//indetA = orispl0*ingain;
+//indetb = orispl1*ingain;
+);
+
+slider19 == 1 ? (
+slider13 == 0 ? (
+indetA = ingain*spl2 * grv;
+indetB = ingain*spl3 * grv;
+):(
+indetA = ingain*spl2;
+indetB = ingain*spl3;
+);
+
+);
+
+//Left
+x2deta = x1deta;
+x1deta = x0deta;
+x0deta = indetA;
+
+y2deta = y1deta;
+y1deta = y0deta;
+y0deta = detb0*x0deta + detb1*x1deta + detb2*x2deta - deta1*y1deta - deta2*y2deta;
+
+//Right
+x2detb = x1detb;
+x1detb = x0detb;
+x0detb = indetb;
+
+y2detb = y1detb;
+y1detb = y0detb;
+y0detb = detb0*x0detb + detb1*x1detb + detb2*x2detb - deta1*y1detb - deta2*y2detb;
+
+//Output
+hpfout0 = y0deta;
+hpfout1 = y0detb;
+
+
+slider1 == 1 ? (
+det0 = hpfout0; det1 = hpfout1;
+):(
+det0 = indetA; det1 =indetb);
+
+slider3 == 1 ? (
+
+bellinA = det0;
+bellinB = det1;
+
+//Left
+bellx2A = bellx1A;
+bellx1A = bellx0A;
+bellx0A = bellinA;
+
+belly2A = belly1A;
+belly1A = belly0A;
+belly0A = bellb0*bellx0A + bellb1*bellx1A + bellb2*bellx2A - bella1*belly1A - bella2*belly2A;
+
+//Right
+bellx2B = bellx1B;
+bellx1B = bellx0B;
+bellx0B = bellinB;
+
+belly2B = belly1B;
+belly1B = belly0B;
+belly0B = bellb0*bellx0B + bellb1*bellx1B + bellb2*bellx2B - bella1*belly1B - bella2*belly2B;
+
+//Output
+det0 = belly0A*0.3162277;
+det1 = belly0B*0.3162277;
+
+);
+
+//tenospl0 = det0; tenospl1 = det1;
+//spl0 = det0;
+//spl1 = det1;
+
+
+
+
+
+//////////////////////// SIGNAL OUTPUT
+
+
+clean0 = spl0;
+clean1 = spl1;
+///////// DIST
+
+slider9 > 0 ? (
+
+slider9 == 1 ? (
+vslider5 = 8;//-6;
+vslider6 = -2;//12;
+vslider8 = 2;
+vslider9 = 50;
+):(
+vslider5 = -10;
+vslider6 = 16;
+vslider8 = 2;
+vslider9 = 50;
+);
+
+
+fundamental=1;
+prelimit=0;
+postlimit=1;
+pregain=10^(vslider5/20);
+postgain=10^(vslider6/20);
+
+
+
+
+prelimit==1?(
+x0=tanh(spl0*pregain);
+x1=tanh(spl1*pregain);
+):(
+x0=spl0*pregain;
+x1=spl1*pregain;
+);
+
+fundamental==1?(
+z0=x0;
+z1=x1;
+w=0.5;
+):(
+z0=0;
+z1=0;
+w=1;
+);
+
+
+y0=(z0+(x0^vslider8/vslider9))*w;
+y1=(z1+(x1^vslider8/vslider9))*w;
+
+
+postlimit==1?(
+spl0=tanh(y0*postgain);
+spl1=tanh(y1*postgain);
+):(
+spl0=y0*postgain;
+spl1=y1*postgain;
+);
+
+// DC remove
+//otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+//otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+// initial value (send to @init) used to remove dc offset at playback start
+slider10=itm1;
+sliderchange(slider10);
+slider11=itm2;
+sliderchange(slider11);
+
+// Filter
+m1=m0;
+//spl0=0.5*(m1+m0=spl0);
+//spl1=0.5*(m1+m0=spl1);
+
+);// SLIDER 9 > 0
+
+
+delta0 = abs(spl0) - abs(clean0); delta1 = spl1 - clean1;
+percent0 = delta0/abs(clean0);
+
+
+maxispl = max(abs(clean0),abs(clean1));
+//y0aa < maxispl ? 
+y0aa = maxispl;
+//y0aa = 0;
+//d3 1% = .27 red = 0.932
+//d2 0.236 0.9048
+slider9 == 1 ? (
+y0aa > 0.314 ? (yline = 1; ylinedecay = 5);
+y0aa > 0.629 ? (rline = 1; rlinedecay = 5);
+):slider9 == 2 ? (
+y0aa > 0.157 ? (yline = 1; ylinedecay = 5);
+y0aa > 0.314 ? (rline = 1; rlinedecay = 5);
+);
+
+/// HPF
+inA = spl0;
+inB = spl1;
+
+//Left
+x2A = x1A;
+x1A = x0A;
+x0A = inA;
+
+y2A = y1A;
+y1A = y0A;
+y0A = b0*x0A + b1*x1A + b2*x2A - a1*y1A - a2*y2A;
+
+//Right
+x2B = x1B;
+x1B = x0B;
+x0B = inB;
+
+y2B = y1B;
+y1B = y0B;
+y0B = b0*x0B + b1*x1B + b2*x2B - a1*y1B - a2*y2B;
+
+//Output
+hpfout0 = y0A;
+hpfout1 = y0B;
+
+
+slider2 == 1 ? (
+spl0 = hpfout0; spl1 = hpfout1;
+);
+////// OUTGAIN
+spl0 *= outgain;
+spl1 *= outgain;
+
+
+outled < max(abs(spl0),abs(spl1)) ? outled = max(abs(spl0),abs(spl1));
+
+
+
+
+slider12 == 1 ? (
+spl0 = orispl0; spl1 = orispl1;
+);
+
+
+
+
+
+slider18 == 1 ? (
+spl0 = det0;
+spl1 = det1;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+):( //////////////////////////// slider 15
+
+orispl0 = spl0;
+orispl1 = spl1;
+
+
+spl0 *= inGain;
+spl1 *= inGain;
+//spl0 = det0;
+//spl1 = det1;
+
+
+
+
+slider4 == 6 ? ( //ten?
+//optocomp
+  tensidechain ? (
+    tenaspl0 = abs(spl2);
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (
+      tenospl = tenospl0 * tenospl0 + tenospl1 * tenospl1;
+        tenospl > runtenospl ? (
+         runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+    ) : (
+      tenaspl0 = abs(spl0);
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+  RMStendet ? (  
+    tenave = (tenaspl0 * tenaspl0) + (tenaspl1 * tenaspl1);
+    runtenave = tenave + tenrmscoef * (runtenave - tenave);
+    tendet = sqrt(max(0,runtenave));
+  ) : (
+    tenmaxspl = max(tenaspl0, tenaspl1);
+    tenmaxspl = tenmaxspl * tenmaxspl;
+    runtenave = tenmaxspl + tenrmscoef * (runtenave - tenmaxspl);
+    tendet = sqrt(max(0,runtenave));
+  );
+  
+  
+  tenoverdb = log(tendet/tenctenthreshv) * tencapsc;
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    tenattime = 1*slider7/1000;//coords[10+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+    tenreltime = (130+((slider8-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tenctenratio = (tensoftknee ? (1 + (tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tengr = -tenoverdb * (tenctenratio-1)/tenctenratio;
+  tengrv = exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+
+  spl0 *= tengrv * tenmakeupv;
+  spl1 *= tengrv * tenmakeupv;  
+
+grv = tengrv;
+// end optocomp
+):slider4 == 8 ? ( // Limiter
+
+/// LIMITER ///////////////
+ovrlParam1=thresh-10;//1.4; //ovrlthresh
+ovrlParam2=0.5; //output
+ovrlParam3=slider7*1500/srate;//0.5+0*0.5; //ovrlattack
+ovrlParam4=(50+(slider8-50)*30)/srate;//0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = exp(ovrlParam1 * db2log);//pow(10, ovrlParam1);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+ovrlol = det0;
+ovrlor = det1;
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (spl0 * ovrlg);
+spl1 = (spl1 * ovrlg);
+
+ovrlgain = ovrlg;
+
+grv = ovrlg;
+):( // 11comp?
+
+// 11 COMP
+
+  ospl0 = spl0;
+  ospl1 = spl1;
+  aspl0 = abs(det0);
+  aspl1 = abs(det1);
+  maxspl = max(aspl0, aspl1);
+  maxspl = maxspl * maxspl;
+  runave = maxspl + rmscoef * (runave - maxspl);
+  det = sqrt(max(0,runave));
+
+  overdb = max(0, capsc * log(det/cthreshv));
+
+  overdb - rundb > 5 ? (averatio = 4;);
+
+  overdb > rundb ? (
+    rundb = overdb + atcoef * (rundb - overdb);
+    runratio = averatio + ratatcoef * (runratio - averatio);
+  ) : (
+    rundb = overdb + relcoef * (rundb - overdb);
+    runratio = averatio + ratrelcoef * (runratio - averatio);
+  );
+  overdb = rundb;
+  averatio = runratio;
+
+  allin ? (
+    cratio = 12 + averatio;
+  ) : (
+    cratio = ratio;
+  );
+  
+  gr = -overdb * (cratio-1)/cratio;
+  grv = exp(gr * db2log);
+  
+  runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
+  maxover = runmax;
+
+  spl0 *= grv;
+  spl1 *= grv; 
+
+
+// ENDE 11 COMP
+
+);
+
+  grv < gr_meter ? gr_meter=grv : ( gr_meter*=gr_meter_decay; gr_meter>1?gr_meter=1; );
+
+
+
+  tenospl0 = spl0;
+  tenospl1 = spl1;
+indetA = spl0;
+indetb = spl1;
+
+//Left
+x2deta = x1deta;
+x1deta = x0deta;
+x0deta = indetA;
+
+y2deta = y1deta;
+y1deta = y0deta;
+y0deta = detb0*x0deta + detb1*x1deta + detb2*x2deta - deta1*y1deta - deta2*y2deta;
+
+//Right
+x2detb = x1detb;
+x1detb = x0detb;
+x0detb = indetb;
+
+y2detb = y1detb;
+y1detb = y0detb;
+y0detb = detb0*x0detb + detb1*x1detb + detb2*x2detb - deta1*y1detb - deta2*y2detb;
+
+//Output
+hpfout0 = y0deta;
+hpfout1 = y0detb;
+
+
+slider1 == 1 ? (
+det0 = hpfout0; det1 = hpfout1;
+):(
+det0 = spl0; det1 =spl1);
+
+
+slider3 == 1 ? (
+
+bellinA = det0;
+bellinB = det1;
+
+//Left
+bellx2A = bellx1A;
+bellx1A = bellx0A;
+bellx0A = bellinA;
+
+belly2A = belly1A;
+belly1A = belly0A;
+belly0A = bellb0*bellx0A + bellb1*bellx1A + bellb2*bellx2A - bella1*belly1A - bella2*belly2A;
+
+//Right
+bellx2B = bellx1B;
+bellx1B = bellx0B;
+bellx0B = bellinB;
+
+belly2B = belly1B;
+belly1B = belly0B;
+belly0B = bellb0*bellx0B + bellb1*bellx1B + bellb2*bellx2B - bella1*belly1B - bella2*belly2B;
+
+//Output
+det0 = belly0A*0.3162277;
+det1 = belly0B*0.3162277;
+
+);
+
+
+//spl0 = det0;
+//spl1 = det1;
+
+
+
+
+
+//////////////////////// SIGNAL OUTPUT
+
+clean0 = spl0;
+clean1 = spl1;
+///////// DIST
+
+
+
+slider9 > 0 ? (
+
+slider9 == 1 ? (
+vslider5 = 8;//-6;
+vslider6 = -2;//12;
+vslider8 = 2;
+vslider9 = 50;
+):(
+vslider5 = -10;
+vslider6 = 14;
+vslider8 = 2;
+vslider9 = 50;
+);
+
+
+fundamental=1;
+prelimit=0;
+postlimit=1;
+pregain=10^(vslider5/20);
+postgain=10^(vslider6/20);
+
+
+
+
+prelimit==1?(
+x0=tanh(spl0*pregain);
+x1=tanh(spl1*pregain);
+):(
+x0=spl0*pregain;
+x1=spl1*pregain;
+);
+
+fundamental==1?(
+z0=x0;
+z1=x1;
+w=0.5;
+):(
+z0=0;
+z1=0;
+w=1;
+);
+
+
+y0=(z0+(x0^vslider8/vslider9))*w;
+y1=(z1+(x1^vslider8/vslider9))*w;
+
+
+postlimit==1?(
+spl0=tanh(y0*postgain);
+spl1=tanh(y1*postgain);
+):(
+spl0=y0*postgain;
+spl1=y1*postgain;
+);
+
+// DC remove
+otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+// initial value (send to @init) used to remove dc offset at playback start
+slider10=itm1;
+sliderchange(slider10);
+slider11=itm2;
+sliderchange(slider11);
+
+// Filter
+m1=m0;
+//spl0=0.5*(m1+m0=spl0);
+//spl1=0.5*(m1+m0=spl1);
+
+);// SLIDER 9 > 0
+
+
+delta0 = abs(spl0) - abs(clean0); delta1 = spl1 - clean1;
+percent0 = delta0/abs(clean0);
+
+
+maxispl = max(abs(clean0),abs(clean1));
+//y0aa < maxispl ? 
+y0aa = maxispl;
+//y0aa = 0;
+//d3 1% = .27 red = 0.932
+//d2 0.236 0.9048
+slider9 == 1 ? (
+y0aa > 0.236 ? (yline = 1; ylinedecay = 5);
+y0aa > 0.9048 ? (rline = 1; rlinedecay = 5);
+):slider9 == 2 ? (
+y0aa > 0.27 ? (yline = 1; ylinedecay = 5);
+y0aa > 0.932 ? (rline = 1; rlinedecay = 5);
+);
+
+/// HPF
+inA = spl0;
+inB = spl1;
+
+//Left
+x2A = x1A;
+x1A = x0A;
+x0A = inA;
+
+y2A = y1A;
+y1A = y0A;
+y0A = b0*x0A + b1*x1A + b2*x2A - a1*y1A - a2*y2A;
+
+//Right
+x2B = x1B;
+x1B = x0B;
+x0B = inB;
+
+y2B = y1B;
+y1B = y0B;
+y0B = b0*x0B + b1*x1B + b2*x2B - a1*y1B - a2*y2B;
+
+//Output
+hpfout0 = y0A;
+hpfout1 = y0B;
+
+
+slider2 == 1 ? (
+spl0 = hpfout0; spl1 = hpfout1;
+);
+////// OUTGAIN
+spl0 *= outgain;
+spl1 *= outgain;
+
+
+outled < max(abs(spl0),abs(spl1)) ? outled = max(abs(spl0),abs(spl1));
+
+
+
+
+slider12 == 1 ? (
+spl0 = orispl0; spl1 = orispl1;
+);
+
+); /////////////////////// slider15
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 1053 142 // request horizontal/vertical heights (0 means dont care)
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      ctrlalt = mouse_cap & 20;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      alt = mouse_cap & 16;
+
+
+gfx_r=0.2; gfx_g = 0.2; gfx_b=0.2;gfx_a=1;
+gfx_rect(0,0,gfx_w,gfx_h);
+
+
+      function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider) 
+      (
+      gfx_x=kx; gfx_y=ky;
+      weg = abs(kmax - kmin);
+      //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+       kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+       scry = kbitmap * floor(kframe);
+       gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+      );
+
+
+     function miniknopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider,knopfscale)
+     (
+     gfx_x=kx; gfx_y=ky;
+     weg = abs(kmax - kmin);
+     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+      scry = kbitmap * floor(kframe);
+      gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+     );
+
+
+
+
+  gr_meter *= exp(1/30); gr_meter>1?gr_meter=1; // decay meter here so if the audio processing stops it doesnt "stick"
+  gfx_r=1; gfx_g=gfx_b=0; gfx_a=0.8;
+  
+  meter_bot=20;
+  meter_h=min(gfx_h,32);
+  xscale=gfx_w*20/meter_bot;
+
+/*
+  gfx_y=0;
+  gfx_x=gfx_w + log10(gr_meter)*xscale;
+  gfx_rectto(gfx_w,meter_h);
+
+  gfx_r=gfx_g=gfx_b=1.0; gfx_a=0.6;
+
+  s2=sqrt(2)/2;
+  g = s2;
+  while(
+    gfx_x=gfx_w + log10(g)*xscale;
+    gfx_x >= 0 ? 
+    (
+      gfx_y=0;
+      gfx_lineto(gfx_x,meter_h,0);
+      gfx_y=meter_h-gfx_texth;
+      gfx_x+=2;
+      gfx_drawnumber(log10(g)*20,0);
+      gfx_drawchar($'d');
+      gfx_drawchar($'B');
+    );
+    g*=s2;
+    gfx_x >=0;
+  );
+  gfx_a=1;
+
+  gfx_x=0; gfx_y=meter_h/2 - gfx_texth/2;
+  gfx_drawnumber(log10(gr_meter)*20,1);
+  gfx_drawchar($'d');
+  gfx_drawchar($'B');
+  */
+  
+  
+  gfx_ext_flags == 1 ? (
+  grdb = abs(log10(gr_meter)*20);
+  gfx_h = gfx_w/7.4074074;
+  scalegfx = gfx_h / 15;
+  gfx_x = gfx_w+(-10*scalegfx)+(-15*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb > 0.5 ? gfx_blit(0,scalegfx,0,0,35,35,35):gfx_blit(0,scalegfx,0,0,0,35,35);
+  gfx_x = gfx_w+2*(-10*scalegfx)+(-20*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 2 ? gfx_blit(0,scalegfx,0,0,35,35,35):gfx_blit(0,scalegfx,0,0,0,35,35);
+  gfx_x = gfx_w+3*(-10*scalegfx)+(-25*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 4 ? gfx_blit(0,scalegfx,0,0,35,35,35):gfx_blit(0,scalegfx,0,0,0,35,35);  
+  gfx_x = gfx_w+4*(-10*scalegfx)+(-30*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 6 ? gfx_blit(0,scalegfx,0,0,35,35,35):gfx_blit(0,scalegfx,0,0,0,35,35); 
+  gfx_x = gfx_w+5*(-10*scalegfx)+(-35*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 8 ? gfx_blit(1,scalegfx,0,0,35,35,35):gfx_blit(1,scalegfx,0,0,0,35,35); 
+  gfx_x = gfx_w+6*(-10*scalegfx)+(-40*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 12 ? gfx_blit(2,scalegfx,0,0,35,35,35):gfx_blit(2,scalegfx,0,0,0,35,35); 
+  gfx_x = gfx_w+7*(-10*scalegfx)+(-45*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 17 ? gfx_blit(2,scalegfx,0,0,35,35,35):gfx_blit(2,scalegfx,0,0,0,35,35); 
+  gfx_x = gfx_w+8*(-10*scalegfx)+(-50*scalegfx); gfx_y = -10*scalegfx; gfx_a = 1;
+  grdb >= 23 ? gfx_blit(3,scalegfx,0,0,35,35,35):gfx_blit(3,scalegfx,0,0,0,35,35); 
+  
+  ):( // EXT FLAGS
+  //gfx_h = 142; gfx_w = 1053;
+  
+  /////////////////////////////  ZFCT ////////////////////////
+  zfct_w = 1053; zfct_h = 142;
+  gfx_setimgdim(127,zfct_w,zfct_h);
+  gfx_dest = 127;
+  zmnu != slider20 ? zmnu = slider20;
+  mouse_xz = mouse_x / zfct;
+  mouse_yz = mouse_y / zfct;
+  ///////////////////////////////////////////////////////////
+  
+  
+  gfx_x = 0; gfx_y=0; gfx_a=1;
+  gfx_blit(7,1,0);
+  
+  
+  grdb = abs(log10(gr_meter)*20);
+  
+  ledsdist = 25 ; ledsx = 420; ledsy = 20; gfx_a = 1;
+  gfx_x = ledsx; gfx_y = ledsy;
+  grdb > 0.5 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 2 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 3 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  ///////////////// 1% + RedLine
+  /*
+  slider9 == 1 ? (
+  y0aa > 0.236 ? (yline = 1);
+  y0aa > 0.9048 ? (rline = 1;
+  ):slider9 == 2 ? (
+  y0aa > 0.27 ? (yline = 1);
+  y0aa > 0.932 ? (rline = 1;
+  );
+  */
+  rline == 1 ? (yline = 0);
+  gfx_y += 20;
+  rline == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  gfx_y += 20;
+  yline == 1 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_y -= 40;
+  rlinedecay -= 1;
+  ylinedecay -= 1;
+  
+  rline == 1 ? (
+  rlinedecay <= 0 ? (
+  yline = 1; ylinedecay = 3;
+  rlinedecay = 0;
+  rline = 0;
+  y0aa = 0;
+  );
+  );
+  
+  ylinedecay <= 0 ? (
+  ylinedecay = 0;
+  yline = 0;
+  y0aa = 0;
+  );
+  
+  gfx_x -= ledsdist;
+  grdb >= 4 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 5 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 6 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  
+  gfx_x -= ledsdist;
+  grdb >= 7 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 8 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 9 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 10 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  
+  gfx_x -= ledsdist;
+  grdb >= 12 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 14 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 17 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 20 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  
+  gfx_x -= ledsdist;
+  grdb >= 23 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  gfx_x -= ledsdist;
+  grdb >= 26 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  
+  slider15 == 0 ? (
+    slider13 == 0 ? (
+  knopf(5,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+       slider17 == 0 ? (
+  knopf(5,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(5,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+        ):(
+  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+        );
+  knopf(5,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+    ):(
+  knopf(8,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+  slider17 == 0 ? (
+  knopf(8,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(8,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  ):(
+  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  );
+  knopf(8,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+  );
+  ):(
+  knopf(10,70+ledsx+120,ledsy,100,100,0,10,slider5); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,70+ledsx+220,ledsy,100,100,0.005,30,slider7); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,70+ledsx+320,ledsy,100,100,50,1500,slider8); //img, x,y, frames, frameh, von, bis, wert
+  knopf(10,70+ledsx+420,ledsy,100,100,0,10,slider6); //img, x,y, frames, frameh, von, bis, wert
+  );
+  
+  //
+   // gfx_rect(ledsx+190,ledsy,100,100);
+  
+    mouseclick ? (
+    alt ? (
+    mouse_yz > ledsy ? (
+    mouse_yz < ledsy + 100 ? (
+    mouse_xz > ledsx + 190 ? (
+    mouse_xz < ledsx + 190 + 100 ? (
+    thi1 =-100; slider13 == 0 ? (slider13 = 1):(slider13 = 0);
+    info = 30;
+    );
+    );
+    );
+    );
+    
+    mouse_yz > ledsy ? (
+    mouse_yz < ledsy + 100 ? (
+    mouse_xz > ledsx + 290 ? (
+    mouse_xz < ledsx + 290 + 100 ? (
+    thi1 =-100; slider17 == 0 ? (slider17 = 1):(slider17 = 0);
+    info = 30;
+    );
+    );
+    );
+    );
+    
+    );
+    //gfx_rect(30,55,40,70);
+ 
+  mouse_yz > 55 ? (
+  mouse_yz < 55+70 ? (
+  mouse_xz > 30 ? (
+  mouse_xz < 70 ? (
+  alt ? (
+  slider15 == 0 ? (slider15=1):(slider15=0);
+  ):(
+  Info = 30;
+  );
+  );
+  );
+  );
+  );
+  );
+  
+  info >0 ? (
+  gfxo = gfx_x;
+  gfx_x-=300; gfx_y+=95; gfx_g=gfx_b=0;gfx_r=1;
+  //gfx_drawstr("Info: ");
+  
+  slider15 == 0 ? (
+  slider13 == 0 ? (gfx_drawstr("<- FBK")):(gfx_drawstr("FWD ->"));
+  gfx_x += 120;
+  slider17 == 0 ? (gfx_drawstr("Interact")):(gfx_drawstr("Correct"));
+  ):(
+  gfx_drawstr("BUGGY");
+  gfx_x += 120;
+  gfx_drawstr("VERSION");
+  );
+  
+  
+  info -= 1;
+  gfx_x=gfxo; gfx_y-=95;
+  );
+  
+  gfx_x += 100; gfx_y += 67.5; gfx_a = 0.8;
+  outled >= 0.001 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_y -= 22.5;
+  outled >= 0.25 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_y -= 22.5;
+  outled >= 0.887 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  gfx_y -= 22.5;
+  outled >= 1.4 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  //gfx_y -= 22.5;
+  gfx_a = 1;
+  outled > 0 ? outled -= 0.1;
+  gfx_x -= 100;
+  
+  ledsy += 20;
+  gfx_y = ledsy + 50; gfx_x = ledsx - 80;
+  slider4 == 8 ? gfx_blit(4,1,0,0,35,35,35):gfx_blit(4,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 7 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 6 ? gfx_blit(2,1,0,0,35,35,35):gfx_blit(2,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 5 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 4 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 3 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 2 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  slider4 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  gfx_x -= ledsdist*1.5;
+  
+  
+  
+  
+  
+  gfx_x = ledsx - 25; gfx_y = ledsy + 50;
+  gfx_blit(6,0.75,0,0,0,90,37);
+  gfx_x += 70;
+  //gfx_blit(6,0.75,0,0,0,90,37);
+  slider18 == 1 ? (
+  // gfx_x = ledsx - 25 + 130; gfx_y = ledsy + 50;
+  gfx_blit(6,0.75,0,0,37,90,37);
+  ):(gfx_blit(6,0.75,0,0,0,90,37);
+  );
+  gfx_x += 25; gfx_y -= 70;
+  gdethpfx = gfx_x; gdethpfy = gfx_y;
+  slider1 == 1 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_y += 20;
+  gdetpeakx = gfx_x; gdetpeaky = gfx_y;
+  slider3 == 1 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_y += 20;
+  gdetSCx = gfx_x; gdetSCy = gfx_y;
+  //slider19 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  slider15 == 1 ? (gfx_blit(3,1,0,0,0,35,35)):(slider19 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35));
+  
+  gfx_x += 35; gfx_y += 30;
+  gfx_blit(6,0.75,0,0,0,90,37);
+  
+  
+  gfx_x += 25; gfx_y -= 70;
+  gsplhpfx = gfx_x; gsplhpfy = gfx_y;
+  slider2 == 1 ? gfx_blit(0,1,0,0,35,35,35):gfx_blit(0,1,0,0,0,35,35);
+  gfx_y += 20;
+  gdist1x = gfx_x; gdist1y = gfx_y;
+  slider9 == 1 ? gfx_blit(1,1,0,0,35,35,35):gfx_blit(1,1,0,0,0,35,35);
+  gfx_y += 20;
+  gdist2x = gfx_x; gdist2y = gfx_y;
+  slider9 == 2 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  
+  gfx_x = ledsx - 250; gfx_y = ledsy + 25;
+  gfx_blit(6,0.75,0,0,0,90,37);
+  gfx_y -= 8; gfx_x += 45;
+  slider12 == 1 ? gfx_blit(3,1,0,0,35,35,35):gfx_blit(3,1,0,0,0,35,35);
+  
+  
+ 
+  
+  
+  
+  
+  
+  
+  gfx_r = 1;
+  //gfx_rect(ledsx-245, ledsy + 27, 43,18);
+  mouseClick == 1 ? (
+  schnork = 1;
+  slider15 == 0 ? (
+  mouse_yz > gdetSCy + 11 ? (
+  mouse_yz < gdetSCy + 23 ? (
+  mouse_xz > gdetSCx + 11 ? (
+  mouse_xz < gdetSCx + 23 ? (
+    slider19 == 1 ? (slider19 = 0):(slider19=1);
+    slider_automate(slider19);
+  );
+  );
+  );
+  );
+  );
+  
+  mouse_yz > gdethpfy + 11 ? (
+  mouse_yz < gdethpfy + 23 ? (
+  mouse_xz > gdethpfx + 11 ? (
+  mouse_xz < gdethpfx + 23 ? (
+    slider1 == 1 ? (slider1 = 0):(slider1=1);
+    slider_automate(slider1);
+  );
+  );
+  );
+  );
+  mouse_yz > gdetpeaky + 11 ? (
+  mouse_yz < gdetpeaky + 23 ? (
+  mouse_xz > gdetpeakx + 11 ? (
+  mouse_xz < gdetpeakx + 23 ? (
+    slider3 == 1 ? (slider3 = 0):(slider3=1);
+    slider_automate(slider3);
+  );
+  );
+  );
+  );
+  
+  mouse_yz > gsplhpfy + 11 ? (
+  mouse_yz < gsplhpfy + 23 ? (
+  mouse_xz > gsplhpfx + 11 ? (
+  mouse_xz < gsplhpfx + 23 ? (
+    slider2 == 1 ? (slider2 = 0):(slider2=1);
+    slider_automate(slider2);
+  );
+  );
+  );
+  );
+  
+  mouse_yz > gdist1y + 11 ? (
+  mouse_yz < gdist1y + 23 ? (
+  mouse_xz > gdist1x + 11 ? (
+  mouse_xz < gdist1x + 23 ? (
+    slider9 != 1 ? (slider9 = 1):(slider9=0);
+    slider_automate(slider9);
+  );
+  );
+  );
+  );
+  
+  mouse_yz > gdist2y + 11 ? (
+   mouse_yz < gdist2y + 23 ? (
+   mouse_xz > gdist2x + 11 ? (
+   mouse_xz < gdist2x + 23 ? (
+     slider9 != 2 ? (slider9 = 2):(slider9=0);
+     slider_automate(slider9);
+   );
+   );
+   );
+   );
+   
+   //gfx_rect(ledsx-245, ledsy + 27, 43,18);
+   mouse_yz > ledsy + 27 ? (
+    mouse_yz < ledsy + 27 + 18 ? (
+    mouse_xz > ledsx - 245 ? (
+    mouse_xz < ledsx - 245 + 43 ? (
+      slider12 == 1 ? (slider12 = 0):(slider12=1);
+      slider_automate(slider12);
+    );
+    );
+    );
+    );
+   
+  mouse_yz > ledsy + 50 ? ( // DETECTOR BUTTON
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 70 ? (
+  mouse_xz < ledsx - 22 + 70 + 45 ? (
+  alt ? (slider18 == 1 ? (slider18=0):(slider18=1)):(
+  slider1 == 1 ? (
+    slider3 == 0 ? (
+      slider3=1;slider1=0
+    ):(
+      slider3 == 0 ? (
+        slider1 = 1;
+        slider_automate(slider1);
+      ):(
+        slider1=0;slider3=0;
+        slider_automate(slider3);
+      );
+    );
+  ):(slider1 = 1;slider_automate(slider1));
+  );
+  );
+  );
+  );
+  );
+  
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 130 ? (
+  mouse_xz < ledsx - 22 + 130 + 45 ? (
+    slider2 == 0 ? (
+      slider9 == 1 ? (
+        slider2 = 1;slider_automate(slider2);
+      ):slider9 == 2 ? (
+        slider2 = 1;slider_automate(slider2);
+      ):slider9 == 0 ? (
+        slider2 = 1;slider_automate(slider2);
+      );
+    ):(
+      slider9 == 0 ? (
+        slider9 = 1; slider2 = 0;slider_automate(slider9);
+      ): slider9 == 1 ? (
+        slider9 = 2; slider2 = 0;slider_automate(slider9);
+      ): slider9 == 2 ? (
+      slider9 = 0; slider2 = 0;slider_automate(slider9);
+      );
+    );
+  
+  );
+  );
+  );
+  );
+  
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 ? (
+  mouse_xz < ledsx - 22 + 45 ? (
+  tempra = slider4 + 1; tempra > 8 ? (tempra = 1);
+  slider4 = tempra; slider_automate(slider4);
+  gfx_x = ledsx - 25; gfx_y = ledsy + 50;
+  );
+  );
+  );
+  );
+  
+  
+  
+
+  
+  
+  
+  mouseHold == 1 ? (
+   //gfx_rect(ledsx-245, ledsy + 27, 43,18);
+   mouse_yz > ledsy + 27 ? (
+    mouse_yz < ledsy + 27 + 18 ? (
+    mouse_xz > ledsx - 245 ? (
+    mouse_xz < ledsx - 245 + 43 ? (
+     gfx_x = ledsx - 250; gfx_y = ledsy + 25;
+     gfx_blit(6,0.75,0,0,37,90,37);
+    // gfx_r = 0.3; gfx_g = 0.3; gfx_b = 0.3;
+    // gfx_rect(ledsx-245, ledsy + 27, 43,18);
+    );
+    );
+    );
+    );
+    
+   
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 70 ? (
+  mouse_xz < ledsx - 22 + 70 + 45 ? (
+  gfx_x = ledsx - 25 + 70; gfx_y = ledsy + 50;
+ gfx_blit(6,0.75,0,0,37,90,37);
+  );
+  );
+  );
+  );
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 + 130 ? (
+  mouse_xz < ledsx - 22 + 130 + 45 ? (
+  gfx_x = ledsx - 25 + 130; gfx_y = ledsy + 50;
+ gfx_blit(6,0.75,0,0,37,90,37);
+  );
+  );
+  );
+  );
+  
+  mouse_yz > ledsy + 50 ? (
+  mouse_yz < ledsy + 50 + 20 ? (
+  mouse_xz > ledsx -22 ? (
+  mouse_xz < ledsx - 22 + 45 ? (
+  gfx_x = ledsx - 25; gfx_y = ledsy + 50;
+ gfx_blit(6,0.75,0,0,37,90,37);
+  );
+  );
+  );
+  );
+  
+  
+  
+  );
+  
+  
+  
+  //Thresh LEDS
+  mouse_yz > ledsy + 50 + 12 ? (
+  mouse_yz < ledsy + 50 + 12 + 10 ? (
+  mouse_xz > ledsx - 80 + 12 ? (
+  mouse_xz < ledsx - 80 + 12 + 10 ? (
+  slider4 = 8;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - ledsdist*1.5 ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - ledsdist*1.5 ? (
+  slider4 = 7;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - 2*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 2*(ledsdist*1.5) ? (
+  slider4 = 6;slider_automate(slider4);
+  );
+  );
+  
+  mouse_xz > ledsx - 80 + 12 - 3*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 3*(ledsdist*1.5) ? (
+  slider4 = 5;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - 4*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 4*(ledsdist*1.5) ? (
+  slider4 = 4;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - 5*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 5*(ledsdist*1.5) ? (
+  slider4 = 3;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - 6*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 6*(ledsdist*1.5) ? (
+  slider4 = 2;slider_automate(slider4);
+  );
+  );
+  mouse_xz > ledsx - 80 + 12 - 7*(ledsdist*1.5) ? (
+  mouse_xz < ledsx - 80 + 12 + 10 - 7*(ledsdist*1.5) ? (
+  slider4 = 1;slider_automate(slider4);
+  );
+  );
+  );
+  );
+  // ENDE Thresh LEDs
+  stattslider_call = 1;
+  );
+  
+  
+  
+  ledsy -= 20;
+//  gfx_rect(70+ledsx+420,ledsy,100,100);
+  knopf(9,ledsx-300,ledsy+45,61,10,-20,20,slider14); //img, x,y, frames, frameh, von, bis, wert SCREW
+  
+  gin.potcfg  (5,0,10,.01); //default. von, bis, step 9 bis 2 10 bis 24
+  gin.rectIn(70+ledsx+120,ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gin.rectOut(70+ledsx+120,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  
+  gout.potcfg  (5,0,10,.01); //default. von, bis, step 9 bis 2 10 bis 24
+  gout.rectIn(70+ledsx+420,ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gout.rectOut(70+ledsx+420,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  
+  gatt.potcfg  (15,0.05,30,.05); //default. von, bis, step 9 bis 2 10 bis 24
+  gatt.rectIn(70+ledsx+220,ledsy,100,100);//xpos,ypos,weite,höhe des img
+  gatt.rectOut(70+ledsx+220,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  
+  grel.potcfg  (775,50,1500,3.45); //default. von, bis, step 9 bis 2 10 bis 24
+  grel.rectIn(70+ledsx+320,ledsy,100,100);//xpos,ypos,weite,höhe des img
+  grel.rectOut(70+ledsx+320,ledsy, 100, 100, 100, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
+  
+  gscrew.potcfg  (0,-20,20,0.1); //default. von, bis, step 9 bis 2 10 bis 24
+  gscrew.rectIn(ledsx-300,ledsy+45,10,10);//xpos,ypos,weite,höhe des img
+  gscrew.rectOut(ledsx-300,ledsy+45, 10, 10, 61, 9); //Xpos,ypos,weite,höhe,Frames,bitmap
+  
+  //knopf(9,70+ledsx+315,ledsy+80,61,10,-20,20,slider14); //img, x,y, frames, frameh, von, bis, wert
+  /********************************* Mouse Control ******************************/
+  
+
+    
+    
+    ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+    last_clicked_item = -1;
+    Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+    menu_x = 15; menu_y = 15;
+    gfx_x=menu_x;gfx_y=menu_y;
+    gfx_blit(11,1,0);
+  //  gfx_drawnumber(last_clicked_item, 0); 
+    mouseClick ? (
+    //helpshow ? helpshow = 0;
+    mouse_xz > menu_x ? (
+    mouse_xz < menu_x + 20 ? (
+    mouse_yz > menu_y ? (
+    mouse_yz < menu_y + 20 ? (
+      gfx_x = menu_x;
+      gfx_y = menu_y+20;
+      slider13 == 1 ? (#item1 = "F.Back detection|"):(#item1 = "!F.Back detection|"); 
+          slider15 == 1 ? #item1 = "#!F.Back detection|";  #allitems = #item1;
+      slider17 == 0 ? (#item2 = "!Att/Rel interactive|"):(#item2 = "Att/Rel interactive|");    
+          slider15 == 1 ? #item2 = "#Att/Rel interactive|";  #allitems += #item2;
+      slider15 == 0 ? (#item3 = "Old buggy mode|"):(#item3 = "!Old buggy mode|");    #allitems += #item3;
+      slider19 == 0 ? (#item4 = "Sidechain|"):(#item4 = "!Sidechain|");
+          slider15 == 1 ? #item4 = "#Sidechain|";  #allitems += #item4;
+      slider18 == 0 ? (#item5 = "Listen SideChain||"):(#item5 = "!Listen SideChain||");  
+      slider15 == 1 ? #item5 = "#Listen SideChain||";  #allitems += #item5;
+       #item2 =">Scaling|";#allitems += #item2;
+      slider20 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider20 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider20 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider20 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider20 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider20 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+      #item6 = "Show Info/Help";    #allitems += #item6;
+      last_clicked_item = gfx_showmenu(#allitems);
+    );
+    );
+    );
+    );
+    );
+    
+    
+    last_clicked_item == 1 ? (info = 60; slider13 == 0 ? (slider13=1):(slider13=0);slider_automate(slider13););
+    last_clicked_item == 2 ? (info = 60; slider17 == 0 ? (slider17=1):(slider17=0);slider_automate(slider17));
+    last_clicked_item == 3 ? (info = 60; slider15 == 0 ? (slider15=1):(slider15=0);slider_automate(slider15));
+    last_clicked_item == 4 ? (slider19 == 0 ? (slider19=1):(slider19=0);slider_automate(slider19));
+    last_clicked_item == 5 ? (slider18 == 0 ? (slider18=1):(slider18=0);slider_automate(slider18));
+    
+    last_clicked_item == 6 ? zmnu = sqrt(0.5);
+    last_clicked_item == 7 ? zmnu = sqrt(0.75);
+    last_clicked_item == 8 ? zmnu = 1;
+    last_clicked_item == 9 ? zmnu = sqrt(1.5);
+    last_clicked_item == 10? zmnu = sqrt(2);
+    last_clicked_item == 11? zmnu = 0;
+    
+    last_clicked_item == 12? helpshow = 1;
+    
+    gscrew.collision()    ? (
+    gfx_x = gscrew.xIn-0;gfx_y=gscrew.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 70, 13); 
+    gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Headroom")
+    );
+    
+    
+    helpshow == 1 ? (
+    gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+    gfx_rect(menu_x+20,menu_y+0,300,130);
+    gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+    gfx_x = menu_x+23; gfx_y = menu_y+3;
+    gfx_drawstr("- Screw next to Ratio 2:1: Headroom");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("Tip: Ratio LEDs are clickable!");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("Tip: Detector/Audio LEDs too! ;)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("This plugin can be automated.");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Fine tune knobs with shift)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Reset knobs with ctrl/cmd)");
+    );
+    
+    
+    ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  mouseClick == 1 ? 
+      (
+        gin.collision()   ? gin.dragStart();   
+        gatt.collision()  ? gatt.dragStart();  
+   grel.collision()  ? grel.dragStart(); 
+   gout.collision()  ? gout.dragStart(); 
+   gscrew.collision()  ? gscrew.dragStart(); 
+ 
+      
+      
+      
+      ):
+  mouseClick == -1  ? 
+      (
+        gin.dragStop();
+        gatt.dragStop();
+        grel.dragStop();
+        gout.dragStop();
+        gscrew.dragStop();
+       );
+  
+  mouse_wheel ? 
+      (
+        gin.collision()   ? gin.potWheel():
+        gatt.collision()  ? gatt.potWheel():
+        grel.collision()  ? grel.potWheel():
+        gout.collision()  ? gout.potWheel():
+        gscrew.collision()  ? gscrew.potWheel():
+       mouse_wheel=0;
+      );
+  
+  
+  gin.dragging  ? (gin.potDrag();Changer = 1);
+  gatt.dragging ? (gatt.potDrag();Changer = 1);
+  grel.dragging ? (grel.potDrag();Changer = 1);
+  gout.dragging ? (gout.potDrag();Changer = 1);
+  gscrew.dragging ? (
+  gscrew.potDrag();
+  Changer = 1;;
+  gfx_x = ledsx-287; gfx_y=ledsy+42; gfx_r=1;gfxg=gfx_b=0;
+  gfx_drawnumber(slider14,0); gfx_drawstr("dB");
+  );
+  
+   gin!=gin.val?
+        (
+          gin=gin.val;
+          slider5=gin;
+          pot.potVal(gin.val);
+          slider_automate(slider5);
+          stattslider_call = 1;
+         ):
+  gin!=slider5?
+      (
+        gin=slider5;
+        gin.val=gin;
+        gin.potVal(gin.val);
+        gin.valOld=gin;
+      );
+      
+    gatt!=gatt.val?
+        (
+          gatt=gatt.val;
+          slider7=gatt;
+          pot.potVal(gatt.val);
+          slider_automate(slider7);
+          stattslider_call = 1;
+         ):
+  gatt!=slider7?
+      (
+        gatt=slider7;
+        gatt.val=gatt;
+        gatt.potVal(gatt.val);
+        gatt.valOld=gatt;
+      );
+      
+     grel!=grel.val?
+         (
+           grel=grel.val;
+           slider8=grel;
+           pot.potVal(grel.val);
+           slider_automate(slider8);
+           stattslider_call = 1;
+          ):
+   grel!=slider8?
+       (
+         grel=slider8;
+         grel.val=grel;
+         grel.potVal(grel.val);
+         grel.valOld=grel;
+       );
+       
+      gout!=gout.val?
+          (
+            gout=gout.val;
+            slider6=gout;
+            pot.potVal(gout.val);
+            slider_automate(slider6);
+            stattslider_call = 1;
+           ):
+    gout!=slider6?
+        (
+          gout=slider6;
+          gout.val=gout;
+          gout.potVal(gout.val);
+          gout.valOld=gout;
+        );
+        
+         gscrew!=gscrew.val?
+              (
+                gscrew=gscrew.val;
+                slider14=gscrew;
+                pot.potVal(gscrew.val);
+                slider_automate(slider14);
+                stattslider_call = 1;
+               ):
+        gscrew!=slider14?
+            (
+              gscrew=slider14;
+              gscrew.val=gscrew;
+              gscrew.potVal(gscrew.val);
+              gscrew.valOld=gscrew;
+            );
+        
+            
+            
+            
+            
+            //////////////////////// ZFCT ///////////////////////////////
+            slider20 = zmnu;
+            zfct = zmnu;
+            zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+            
+            zmnu != 0 ? zfct *= gfx_ext_retina;
+            gfx_dest = -1;
+            gfx_x=gfx_y=0;gfx_a=1;
+            gfx_blit(127,zfct,0);
+            /////////////////////////////////////////////////////////////   
+            
+            
+            
+        ); // EXT FLAGS
+
+        //stattslider();
