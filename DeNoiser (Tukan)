@@ -1,0 +1,1105 @@
+desc:DeNoiser (Tukan)
+// That's the description of the plugin. This is how it'll show up in the effect
+// search dialog, as well as the text at the start of its user interface. We use
+// it as the first line of the script per the JSFX documentation's
+// recommendation (https://www.reaper.fm/sdk/js/js.php#js_file)
+
+// Define our user interface.
+// Our FFT size will always be the same, so we only need controls for
+// the noise collection mode and the noise scale (k).
+
+// This defines a combo box that allows the user to select "Denoise Input" or
+// "Record Noise Sample". The default value is 0 (Denoise Input). The maximum
+// value is 1 (Record Noise Sample), and it increases in steps of 1.
+slider1:0<0,1,1{Denoise Input, Record Noise Sample}>-Noise Collection Mode
+
+// This defines a slider that can be varied between 0.0 and 10.0 in steps of
+// 0.001, with default value 1.0. (If slider2 is equal to 0.0, this plugin
+// shouldn't really do anything to the input audio.)
+slider2:1<0.0,10.0,0.001>-Noise Scale
+
+
+slider5:83<2,100,.1>-5 HSH FREQ
+slider6:0<-24,24,0.24>-6 HSH GAIN
+
+slider7:0<0,1,1>-7 Armed
+slider8:0<0,1,1>-8 Take Sample
+
+slider9:1<0,6,.01>-Scaling
+
+filename:0,TKDenoiser/switch.png
+filename:1,TKDenoiser/APIBig.png
+filename:2,TKDenoiser/APISmall.png
+filename:3,TKDenoiser/Denoiser_Back.png
+filename:4,TKDenoiser/menu.png
+
+// Here we can label our input and output pins. This also tells REAPER how many
+// channels we can handle. In this case, the plugin is stereo (a monophonic
+// plugin would be simpler, but I almost always use this to denoise stereo
+// audio), so we define two input and output pins.
+in_pin:Noisy Audio 1
+in_pin:Noisy Audio 2
+out_pin:Denoised Audio 1
+out_pin:Denoised Audio 2
+
+
+@init
+gfx_ext_retina = 1;
+ext_noinit = 1;
+
+initial = 1;
+// On initialization, initialize all of our variables.
+
+// The FFT size will always be constant.
+SIZE = 16384;
+
+// We don't do any allocation in this plugin, since we know we start out with 8M
+// words of memory. So all we need to do is construct some pointers to memory,
+// where we'll store our data.
+// Since we have two channels, we'll have 10 buffers of length SIZE.
+bufferI1L = 0; // The left input tile 1 buffer starts at memory address 0.
+bufferI2L = SIZE; // The left input tile 2 buffer starts at memory address SIZE.
+bufferO1L = 2*SIZE; // The left output tile 1 buffer starts at address 2*SIZE.
+bufferO2L = 3*SIZE; // And so on
+noiseBufferL = 4*SIZE; // The FFT of the noise sample uses 2*SIZE memory
+// but taking the norm reduces this to 1*SIZE, and saves time when processing effect
+bufferI1R = 5*SIZE; // Right channels
+bufferI2R = 6*SIZE;
+bufferO1R = 7*SIZE;
+bufferO2R = 8*SIZE;
+noiseBufferR = 9*SIZE;
+// We also use a temporary buffer of complex numbers in order to store our
+// audio signals using complex numbers. REAPER's implementation of JSFX supports
+// fft_real, which allows us to avoid this, as of this writing, but ReaPlugs
+// doesn't have this yet.
+fftBuffer = 10 * SIZE; // length 2*SIZE
+freembuf(12*SIZE + 1);
+
+// samplesCollected will be our position in the last of the two tiles.
+// As such, it'll range from 0 to (SIZE/2) - 1.
+// (In other words, our position in the first tile will be
+// samplesCollected + SIZE/2, and our position in the second tile will be
+// samplesCollected) 
+samplesCollected = 0;
+
+// Finally, the algorithm we use outputs modified audio SIZE samples after we
+// input it. If we tell REAPER that the plugin has a delay of SIZE samples,
+// REAPER can automatically compensate for this and make it appear as if there's
+// no delay at all.
+pdc_delay = SIZE; 
+pdc_bot_ch=0;
+pdc_top_ch=2;
+
+
+function Reset_Buffer () (
+freembuf(12*SIZE + 1);
+index = 0;
+loop(12*SIZE + 1,
+noiseBuffer[index] = 0;
+index += 1;
+);
+);
+
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+  
+    function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+ 
+ function xy(x y)
+            ( gfx_x = x; gfx_y = y; );
+ 
+ function rgb(r g b)
+             ( gfx_r = r; gfx_g = g; gfx_b = b; );
+ 
+ function rectIn  (xIn_ yIn_ wIn hIn)
+   instance       (xIn yIn widthIn heightIn)
+                  (
+                   xIn = xIn_;
+                   yIn = yIn_;
+                   widthIn = wIn;
+                   heightIn = hIn;
+                   );
+                 
+ function rectOut  (xOut_ yOut_ wOut hOut c i)
+   instance        (xOut yOut widthOut heightOut count index)
+                   (
+                    xOut = xOut_;
+                    yOut = yOut_;
+                    widthOut = wOut;
+                    heightOut = hOut;
+                    count = c;
+                    index = i;
+                    );                
+ 
+ function potVal(v)
+   instance      (frame val minVal maxVal count heightOut)
+                 (
+                  val = v;
+                  frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                  frame |= 0;
+                 );
+ 
+ function potCfg  (default_ minVal_ maxVal_ step_)
+   instance        (default minVal maxVal step)
+                   (
+                    default = default_;
+                    minVal = minVal_;
+                    maxVal = maxVal_;
+                    step    = step_;
+                    this.potVal(default);
+                   );
+ 
+ function bkg(wImg hImg indImg)
+              (
+                gfx_a=1;
+                coords[0] = coords[4] = 0;
+                coords[1] = coords[5] = 0;;
+                coords[2] = coords[6] = wImg;
+                coords[3] = coords[7] = hImg;
+                gfx_blitext(indImg, coords, 0);
+               ); 
+ 
+ function potDrawIn ()
+   instance        (xIn yIn widthIn heightIn val)
+                   (
+                      gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                      
+                      gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                      gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn,yIn,xIn+widthIn,yIn);
+       
+                      gfx_r = gfx_g = gfx_b = 0.75;
+                      gfx_x = xIn + widthIn/2-12;
+                      gfx_y = yIn+heightIn/2-5;
+                      gfx_drawnumber(val, 1);                   
+                   );
+ 
+ function knob()
+   instance   (xOut yOut widthOut heightOut index frame val)
+              (
+               
+                gfx_a=1;
+                coords[0] = 0;
+                coords[1] = frame * heightOut;
+                coords[2] = coords[6] = widthOut;
+                coords[3] = coords[7] = heightOut;
+                coords[4] = xOut;
+                coords[5] = yOut;
+                gfx_blitext(index, coords, 0);
+               );                                     
+ 
+ function collision  ()
+   instance          (xIn yIn widthIn heightIn)
+                     (
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
+                     );
+ 
+ function dragStart ()
+   instance          (dragging yOld default)
+                     (
+                      !ctrl ? (
+                      yOld = mouse_y;
+                      dragging = 1;
+                     ) : 
+                      this.potVal(default);
+                     );
+ 
+ function dragStop()
+   instance        (dragging val valOld)
+                   (
+                    dragging = 0;
+                    valOld = val;
+                   );
+ 
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+ /*
+ slider37:-60<-90,-20,1>scale bottom
+ slider38:0<-40,0,1>calibration
+ slider39:0<0,1,1>Stereo
+ slider40:0.87<0.5,1,0.01>Meter decay
+ */
+   
+ ghshF.potcfg  (75,50,99,.05); //default. von, bis, step
+ ghshG.potcfg (0,-24,24,.048);
+ //gstereo.potcfg   (20,0,150,1);
+ gScale.potcfg   (0.8,0,10,.01);
+ //ghshG.potcfg   (0,-30,0,.03);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function stattslider() (
+
+
+// freHSH_Quency slider scaling
+HSH_tmpx = 16+slider5*1.20103;
+HSH_tmpy = floor(exp(HSH_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+HSH_omega = 2*$pi*HSH_tmpy/srate;
+
+HSH_K = tan(($pi-HSH_omega)/2); //HSF only
+
+HSH_Q = max(min(0.7,4),0.2);
+HSH_V = 10^(-slider6/20);
+
+
+//HSH:
+//boost:
+HSH_b0 = 1 + sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_b1 = -2*(HSH_V*HSH_K^2 - 1);
+HSH_b1 = 1 - sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_a0 = 1 + HSH_K/HSH_Q + HSH_K^2;
+HSH_a1 = -2*(HSH_K^2 - 1);
+HSH_a2 = 1 - HSH_K/HSH_Q + HSH_K^2;
+
+//cut:
+HSH_b0 = 1 + HSH_K/HSH_Q + HSH_K^2;
+HSH_b1 = -2*(HSH_K^2 - 1);
+HSH_b2 = 1 - HSH_K/HSH_Q + HSH_K^2;
+HSH_a0 = 1 + sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+HSH_a1 = -2*(HSH_V*HSH_K^2 - 1);
+HSH_a2 = 1 - sQrt(HSH_V)*HSH_K/HSH_Q + HSH_V*HSH_K^2;
+
+
+HSH_a1 /= HSH_a0;
+HSH_a2 /= HSH_a0;
+HSH_b0 /= HSH_a0;
+HSH_b1 /= HSH_a0;
+HSH_b2 /= HSH_a0;
+
+// A simple function to zero out the noise buffers when switching mode to "Record Noise Sample"
+// previousMode should default to 0 on first initialization, but setting it to 0 in @init will cause
+// this code to get run again, and the noise profile lost even when switching to "Denoise Input"
+slider1 > 0.5 ? (
+  previousMode < 0.5 ? (
+    bandIndex = 0;
+    memset(noiseBufferL, 0, SIZE);
+    memset(noiseBufferR, 0, SIZE);
+    previousMode = 1;
+  )
+) : previousMode = 0;
+
+caller = 0;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+caller = 1;
+
+
+
+@sample
+// We'll write a function to denoise a single channel, and then we'll call this
+// for each of the channels.
+// In this case, we'll pass in the channel number, the four input and output
+// tiles, and the current sample.
+// We also need to specify which variables will be local to the function (i.e.
+// which variables have local instead of global scope).
+// Note that channels are zero-indexed (so the left channel is channel 0, and
+// the right channel is channel 1).
+// Functions can return values, but this one won't return anything.
+// Swapping tiles and resetting samplesCollected will be managed by the caller.
+
+all_detect_old == 0 ? (
+_global.TK_denoiser_all_detect == 1 ? 
+(Reset_Buffer();
+);
+);
+
+all_detect_old = _global.TK_denoiser_all_detect;
+inl = spl0; inr = spl1;
+
+caller == 1 ? (stattslider(););
+
+_global.TK_denoiser_all_detect == 1 ? (
+slider7 == 1 ? (
+slider1 = 1;
+);
+):(
+slider7 == 1 ? (
+slider1 = 0;
+);
+);
+
+slider7 == 0 ? (
+detect == 1 ? (slider1 = 1):(slider1 = 0);
+);
+
+slider1 > 0.5 ? (
+      slider6 != 0 ? (
+      HSH_inA = spl0;
+      HSH_inB = spl1;
+      
+      //Left
+      HSH_x2A = HSH_x1A;
+      HSH_x1A = HSH_x0A;
+      HSH_x0A = HSH_inA;
+      
+      HSH_y2A = HSH_y1A;
+      HSH_y1A = HSH_y0A;
+      HSH_y0A = HSH_b0*HSH_x0A + HSH_b1*HSH_x1A + HSH_b2*HSH_x2A - HSH_a1*HSH_y1A - HSH_a2*HSH_y2A;
+      
+      //Right
+      HSH_x2B = HSH_x1B;
+      HSH_x1B = HSH_x0B;
+      HSH_x0B = HSH_inB;
+      
+      HSH_y2B = HSH_y1B;
+      HSH_y1B = HSH_y0B;
+      HSH_y0B = HSH_b0*HSH_x0B + HSH_b1*HSH_x1B + HSH_b2*HSH_x2B - HSH_a1*HSH_y1B - HSH_a2*HSH_y2B;
+      
+      //Output
+      spl0 = HSH_y0A;
+      spl1 = HSH_y0B;
+      );
+);
+
+
+function denoiseChannel(channel tileI1 tileI2 tileO1 tileO2 noiseBuffer samplesCollected)
+local(sample tilePos1 tilePos2 hannWindowTile1 hannWindowTile2 index bandIndex
+  kSquared yNorm nNorm attenuationFactor)
+(
+  // Read out input audio and write it into the input buffer.
+  sample = spl(channel); // You can also use spl0 or spl1.
+  
+  // Compute our positions in tile 1 and tile 2 for conciseness
+  tilePos1 = samplesCollected + SIZE/2;
+  tilePos2 = samplesCollected;
+  
+  // We'll apply each tile's envelope as we write the sample into
+  // the tile's buffer.
+  // See https://en.wikipedia.org/wiki/Window_function#Hann_and_Hamming_windows
+  hannWindowTile1 = 0.5 - 0.5 * cos(2*$pi*tilePos1/SIZE);
+  hannWindowTile2 = 0.5 - 0.5 * cos(2*$pi*tilePos2/SIZE);
+  
+  // Write into the input buffers:
+  tileI1[tilePos1] = sample * hannWindowTile1;
+  tileI2[tilePos2] = sample * hannWindowTile2;
+  
+  // For the output audio, read from the two tiles and sum their results.
+  spl(channel) = tileO1[tilePos1] + tileO2[tilePos2];
+  
+  // When we finish a tile, samplesCollected is equal to (SIZE/2) - 1
+  // When that happens, we transform the contents of tile 1 and write them to
+  // output tile 1. Then we swap tiles 1 and 2 for both the input and output tiles.
+  // The code outside of this function will take care of setting samplesCollected
+  // back to 0.
+  samplesCollected == (SIZE/2) - 1 ? (
+    // The first thing we need to do is to copy from our tile of audio signals,
+    // tileI1, into a temporary array that stores the real and imaginary parts
+    // of SIZE complex numbers, and so has 2*SIZE words. This is necessary because
+    // JSFX's fft function operates on complex numbers; JSFX also has fft_real,
+    // but this isn't supported in ReaPlugs yet.
+    //
+    // tileI1 looks like
+    // [audio sample 0, audio sample 1, ..., audio sample SIZE - 1]
+    // and fftBuffer will look like
+    // [audio sample 0, 0, audio sample 1, 0, ..., audio sample SIZE - 1, 0]
+    // (i.e. it'll store the complex numbers (spl0 + 0i, spl1 + 0i, ...).
+    //
+    // Loop over each of the audio samples, from index = 0 to SIZE - 1.
+    index = 0;
+    loop(SIZE,
+      fftBuffer[2 * index + 0] = tileI1[index]; // Real part
+      fftBuffer[2 * index + 1] = 0.0; // Imaginary part
+      index += 1; // Next index
+    );
+    
+    // Now compute the FFT of the buffer in-place:
+    // Note that SIZE specifies the number of complex numbers.
+    fft(fftBuffer, SIZE);
+    // The different frequency bins are now stored in permuted order. We need to
+    // call fft_permute to get them in order of their frequencies.
+    // See https://www.reaper.fm/sdk/js/advfunc.php#js_advanced for more info.
+    fft_permute(fftBuffer, SIZE);
+    
+    // fftBuffer now looks like
+    // [band 0 real part, band 0 imaginary part,
+    //  band 1 real part, band 1 imaginary part,
+    //  ...
+    //  band SIZE-1 real part, band SIZE-1 imaginary part].
+    // Note that we don't get bands SIZE/2 + 1 to SIZE-1 for free - there's no
+    // real extra data there! Those bands are conjugated, reversed versions
+    // of bands 1 to SIZE/2 - 1. In other words, since we put in SIZE words of
+    // information, we get only SIZE words of information out.
+    
+    // If slider1 is greater than 0.5 (i.e. the user selected "Record Noise
+    // Sample", we store the FFTs of each of these buffers.
+    slider1 > 0.5? (
+      // for each band, compare the norm of the noise in this frame.
+      // If it is greater than what's already there for this band, then copy
+      // it into the noiseBuffer
+      
+      index = 0;
+      loop(SIZE,
+        normSquareNew = sqr(fftBuffer[2 * index + 0]) + sqr(fftBuffer[2 * index + 1]);
+        normSquareOld = noiseBuffer[index];
+         normSquareNew >= normSquareOld ? (
+              noiseBuffer[index] = normSquareNew;
+           );
+        index += 1;
+      );
+    );
+    
+    // Apply Norbert Weiner's filtering algorithm,
+    //   X(f) = Y(f) * (|Y(f)|^2)/(|Y(f)|^2 + k^2 |N(f)|^2)
+    // sqr() computes the square of a number, and abs() computes the absolute
+    // value of a number. We also include a factor of 1/SIZE, to normalize the
+    // FFT (so that if we don't do any denoising, the input signal is equal to
+    // the output signal).
+    kSquared = sqr(slider2); // slider2 is the Noise Scale from above.
+    
+    // Loop over each band, from bandIndex = 0 to SIZE - 1.
+    bandIndex = 0;
+    loop(SIZE,
+      // Compute |Y(f)|^2 = real(Y(f))^2 + imaginary(Y(f))^2
+      yNorm = sqr(fftBuffer[2 * bandIndex + 0]) + sqr(fftBuffer[2 * bandIndex + 1]);
+      // The same for the noise component:
+      nNorm = noiseBuffer[bandIndex];
+      
+      attenuationFactor = yNorm / (SIZE * (yNorm + kSquared * nNorm));
+      
+      fftBuffer[2 * bandIndex + 0] *= attenuationFactor;
+      fftBuffer[2 * bandIndex + 1] *= attenuationFactor;
+      bandIndex += 1;
+    );
+    
+    // Now, undo the FFT (i.e. convert back from the frequency domain to the
+    // time domain):
+    fft_ipermute(fftBuffer, SIZE);
+    ifft(fftBuffer, SIZE);
+    
+    // Copy from the complex numbers in fftBuffer to the output tile:
+    index = 0;
+    loop(SIZE,
+      tileO1[index] = fftBuffer[2 * index + 0];
+      index += 1;
+    );
+  )
+);
+
+// Now, call denoiseChannel for each of the channels.
+denoiseChannel(0, bufferI1L, bufferI2L, bufferO1L, bufferO2L, noiseBufferL, samplesCollected);
+denoiseChannel(1, bufferI1R, bufferI2R, bufferO1R, bufferO2R, noiseBufferR, samplesCollected);
+
+tenms = srate / 100;
+schnitt += 1;
+schnitt >= tenms ? (
+inlsum /= schnitt;
+inrsum /= schnitt;
+outlsum /= schnitt;
+outrsum /= schnitt;
+
+redl = inlsum - outlsum;
+
+inlsum = 0;
+inrsum = 0;
+outlsum = 0;
+outrsum = 0;
+schnitt = 0;
+);
+
+inlsum += abs(inl);
+inrsum += abs(inr);
+
+outlsum +=abs(spl0);
+outrsum +=abs(spl1);
+
+// Go to the next sample
+samplesCollected += 1;
+samplesCollected == SIZE/2 ? (
+  samplesCollected = 0;
+  
+  // Finally, swap our tiles:
+  temp = bufferI1L;
+  bufferI1L = bufferI2L;
+  bufferI2L = temp;
+  
+  temp = bufferO1L;
+  bufferO1L = bufferO2L;
+  bufferO2L = temp;
+  
+  temp = bufferI1R;
+  bufferI1R = bufferI2R;
+  bufferI2R = temp;
+  
+  temp = bufferO1R;
+  bufferO1R = bufferO2R;
+  bufferO2R = temp;
+); 
+
+
+@serialize
+// Sliders are serialized automatically, so all we have to serialize is the two
+// noise buffers. JSFX's serialization works in a clever way: when reading the
+// state of the plugin from a serialized version, these functions copy data into
+// noiseBufferL and noiseBufferR. But when writing out the state of the plugin,
+// they work the other way, copying data out of noiseBufferL and noiseBufferR.
+file_mem(0, noiseBufferL, SIZE);
+file_mem(0, noiseBufferR, SIZE);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 494 140
+//gfx_r=0.4; gfx_b=0.4; gfx_g = 0.4;
+//gfx_rect(0,0,500,150);
+
+     mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      
+  mouse_xz = mouse_x;
+  mouse_yz = mouse_y;
+   
+   
+   
+   
+   
+   
+initial == 1 ? (
+         ghshF=slider5;
+         ghshF.val=ghshF;
+         ghshF.potVal(ghshF.val);
+         ghshF.valOld=ghshF;
+
+         ghshG=slider6;
+         ghshG.val=ghshG;
+         ghshG.potVal(ghshG.val);
+         ghshG.valOld=ghshG;
+
+         gScale=slider2;
+         gScale.val=gScale;
+         gScale.potVal(gScale.val);
+         gScale.valOld=gScale;
+initial = 0;
+);
+
+   
+   
+   
+   
+   
+   function miniknopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider,knopfscale)
+   (
+   gfx_x=kx; gfx_y=ky;
+   weg = abs(kmax - kmin);
+   //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+    kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+    scry = kbitmap * floor(kframe);
+    gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+   );
+   function knopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider)
+   (
+   gfx_x=kx; gfx_y=ky;
+   weg = abs(kmax - kmin);
+   //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+    kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+    scry = kbitmap * floor(kframe);
+    gfx_blit(kfile,1,0,1,scry,kbitmap,kbitmap);
+   );
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+ gfx_ext_flags == 0 ? (
+ 
+   /////////////////////////////  ZFCT ////////////////////////
+   zfct_w = 494; zfct_h = 140;
+   gfx_setimgdim(127,zfct_w,zfct_h);
+   gfx_dest = 127;
+   zmnu != slider9 ? zmnu = slider9;
+   mouse_xz = mouse_x / zfct;
+   mouse_yz = mouse_y / zfct;
+   ///////////////////////////////////////////////////////////
+   
+   
+   
+   
+   
+   
+   ////////// DETECT SINGLE
+slider7 == 0 ? (gfx_r=0.2; gfx_b=0.2; gfx_g = 1);
+slider7 == 1 ? (gfx_r=0.2; gfx_b=0.2; gfx_g = 0.4);
+gfx_a = 1;
+slider7 == 0 ? (
+slider1 == 1 ? (
+gfx_r=1; gfx_b=0.2; gfx_g = 0.2;
+blink > 20 ? (gfx_a = 0.3):(gfx_a = 1);
+blink += 1;
+blink >= 40 ? blink = 0;
+);
+);
+gfx_rect(10,20,100,30);
+/////////////////7
+
+
+/////////////// DETECT ALL
+slider7 == 1 ? (gfx_r=0.2; gfx_b=0.2; gfx_g = 1);
+slider7 == 0 ? (gfx_r=0.2; gfx_b=0.2; gfx_g = 0.4);
+gfx_a = 1;
+slider7 == 1 ? (
+slider1 == 1 ? (
+gfx_r=1; gfx_b=0.2; gfx_g = 0.2;
+blink > 20 ? (gfx_a = 0.3):(gfx_a = 1);
+blink += 1;
+blink >= 40 ? blink = 0;
+);
+);
+gfx_rect(10,60,100,30);
+///////////////////////////
+
+gfx_a = 1;
+
+
+
+gfx_x = 0; gfx_y = 0 ; gfx_a=1;
+gfx_blit(3,1,0);
+
+
+
+
+knopf(2,180,30,61,60,50,99,slider5);
+gfx_r=0; gfx_b=0; gfx_g = 0;
+gfx_rect(180,100,60,17);
+gfx_x = 190; gfx_y = 104;
+gfx_r=0; gfx_b=1; gfx_g = 1;
+gfx_drawnumber(floor(HSH_tmpy/100)/10,1);
+gfx_drawstr("k");
+
+knopf(2,260,30,61,60,-24,24,slider6);
+gfx_r=0; gfx_b=0; gfx_g = 0;
+gfx_rect(260,100,60,17);
+gfx_x = 270; gfx_y = 104;
+gfx_r=0; gfx_b=1; gfx_g = 1;
+gfx_drawnumber(slider6,1);
+gfx_drawstr("");
+
+
+
+knopf(1,380,23,61,75,0,10,slider2);
+
+ ghshF.rectIn(180,30, 60, 60); 
+ ghshF.rectOut(180,30, 60, 60, 61, 1);
+ ghshG.rectIn(260,30, 60, 60); 
+ ghshG.rectOut(260,30, 60, 60, 61, 1);
+ gScale.rectIn(380,23, 75, 75); 
+ gScale.rectOut(380,23, 75, 75, 61, 1);
+
+mouseClick == 1 ? (
+mouse_xz > 10 ? (
+mouse_xz < 110 ? (
+mouse_yz > 20 ? (
+mouse_yz < 50 ? (
+slider7 == 0 ? (
+detect == 0 ? (detect = 1;Reset_Buffer()):(detect = 0);
+);
+););
+mouse_yz > 60 ? (
+mouse_yz < 90 ? (
+slider7 == 1 ? (
+_global.TK_denoiser_all_detect == 0 ? (_global.TK_denoiser_all_detect = 1):(_global.TK_denoiser_all_detect = 0);););
+);
+););
+
+mouse_xz > 125 ? (
+mouse_xz < 145 ? (
+mouse_yz > 40 ? (
+mouse_yz < 90 ? (
+slider7 == 0 ? (slider7 = 1):(slider7 = 0);
+););););
+
+);
+
+
+
+
+gfx_x = 110; gfx_y = 30;
+slider7 == 0 ? (
+gfx_blit(0,1,0,0,60,48,60);
+):(
+gfx_blit(0,1,0,0,00,48,60);
+);
+
+//gfx_rect(125,40,20,50);
+
+
+
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 470; menu_y = 5;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(4,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_xz > menu_x ? (
+   mouse_xz < menu_x + 20 ? (
+   mouse_yz > menu_y ? (
+   mouse_yz < menu_y + 20 ? (
+     gfx_x = menu_x*zfct;
+     gfx_y = (menu_y+20)*zfct;
+       #item2 =">Scaling|";#allitems = #item2;
+      slider9 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider9 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider9 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider9 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider9 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider9 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+      
+     #item2 = "Show Info/Help";    #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   last_clicked_item == 1 ? zmnu = sqrt(0.5);
+   last_clicked_item == 2 ? zmnu = sqrt(0.75);
+   last_clicked_item == 3 ? zmnu = 1;
+   last_clicked_item == 4 ? zmnu = sqrt(1.5);
+   last_clicked_item == 5 ? zmnu = sqrt(2);
+   last_clicked_item == 6 ? zmnu = 0;
+   last_clicked_item == 7 ? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x-280,menu_y+0,280,100);
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x-277; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x-277; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x-277; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x-277; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   gfx_x = menu_x-277; gfx_y += 26;
+   gfx_drawstr("Original Denoiser plugin by:");
+   gfx_x = menu_x-277; gfx_y += 13;
+   gfx_drawstr("Neil Bickford   -   Thank you!");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+
+
+
+  /********************************* Mouse Control ******************************/
+  mouseClick == 1 ? 
+      (
+        ghshF.collision()   ? (ghshF.dragStart(););
+        ghshG.collision()    ? ghshG.dragStart(); 
+        gScale.collision()    ? (gScale.dragStart(););
+      ):
+  mouseClick == -1  ? 
+      (
+        ghshF.dragStop();
+        ghshG.dragStop();
+        gScale.dragStop();
+       );
+  
+  mouse_wheel ? 
+      (
+        ghshF.collision()   ? ghshF.potWheel():
+        ghshG.collision()    ? ghshG.potWheel():
+        gScale.collision()    ? gScale.potWheel(): 
+        mouse_wheel=0;
+      );
+
+
+
+  ghshF.dragging  ? ghshF.potDrag();
+  ghshG.dragging   ? ghshG.potDrag();
+  gScale.dragging   ? gScale.potDrag();
+
+  /******************************* Slider Knob Control **************************/
+  
+  //////////////////////// ZFCT ///////////////////////////////
+  slider9 = zmnu;
+  zfct = zmnu;
+  zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+  
+  zmnu != 0 ? zfct *= gfx_ext_retina;
+  gfx_dest = -1;
+  gfx_x=gfx_y=0;gfx_a=1;
+  gfx_blit(127,zfct,0);
+  /////////////////////////////////////////////////////////////  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ):( /////////// EXT FLAGS
+  gfx_r=0.2; gfx_b=0.2; gfx_g = 0.2;
+  gfx_rect(0,0,gfx_w,gfx_h);
+  miniknopf(1,(gfx_w/2)+(gfx_w/8),0,61,75,0,10,slider2,gfx_h/75);
+  
+  
+  ghshF.rectIn(180,30, 60, 60); 
+  ghshF.rectOut(180,30, 60, 60, 61, 1);
+  ghshG.rectIn(260,30, 60, 60); 
+  ghshG.rectOut(260,30, 60, 60, 61, 1);
+  gScale.rectIn(380,23, 75, 75); 
+  gScale.rectOut(380,23, 75, 75, 61, 1);
+  gScale.rectIn(gfx_w/2,0, gfx_w/2, gfx_h); 
+  gScale.rectOut(gfx_w/2,0, gfx_w/2, gfx_h, 61, 1);
+  
+  
+  mouseClick == 1 ? 
+      (
+        mouse_x > gfx_w/2 ? (gScale.dragStart());
+        
+
+        mouse_x < gfx_w/2 ? (
+          slider7 == 0 ? (
+            detect == 0 ? (detect = 1;Reset_Buffer()):(detect = 0);
+          ):(
+          _global.TK_denoiser_all_detect == 0 ? (_global.TK_denoiser_all_detect = 1):(_global.TK_denoiser_all_detect = 0);
+          );
+        );
+      );
+      
+  mouseClick == -1  ? 
+      (
+        gScale.dragStop();
+       );
+  
+  mouse_wheel ? 
+      (
+        mouse_x > gfx_w/2 ? gScale.potWheel(): 
+        mouse_wheel=0;
+      );
+
+  gScale.dragging   ? gScale.potDrag();
+  
+  
+  
+     ////////// DETECT
+  //slider7 == 0 ? (gfx_r=0.2; gfx_b=0.2; gfx_g = 1);
+  gfx_r=0.2; gfx_b=0.2; gfx_g = 1;
+  gfx_a = 1;
+  slider1 == 1 ? (
+  gfx_r=1; gfx_b=0.2; gfx_g = 0.2;
+  blink > 10 ? (gfx_a = 0.3):(gfx_a = 1);
+  blink += 1;
+  blink >= 20 ? blink = 0;
+  );
+  gfx_roundrect(1,1,gfx_w/2,gfx_h-2,4);
+  gfx_x = gfx_w/8; gfx_y = gfx_h / 3;
+  slider7 == 0 ? (gfx_drawstr("TRK")):(gfx_drawstr("ALL"));
+  /////////////////7
+  
+  
+   
+  );
+  
+  
+  
+  
+  
+  ghshF!=ghshF.val?
+      (
+        ghshF=ghshF.val;
+        slider5=ghshF;
+        pot.potVal(ghshF.val);
+        slider_automate(slider5);
+        caller = 1;
+       ):
+  ghshF!=slider5?
+      (
+        ghshF=slider5;
+        ghshF.val=ghshF;
+        ghshF.potVal(ghshF.val);
+        ghshF.valOld=ghshF;
+        caller = 1;
+      );
+    
+  ghshG!=ghshG.val?
+      (
+        ghshG=ghshG.val;
+        slider6=ghshG;
+        pot.potVal(ghshG.val);
+        slider_automate(slider6);
+        caller = 1;
+       ):
+  ghshG!=slider6?
+      (
+        ghshG=slider6;
+        ghshG.val=ghshG;
+        ghshG.potVal(ghshG.val);
+        ghshG.valOld=ghshG;
+        caller = 1;
+      );
+  
+  gScale!=gScale.val?
+      (
+        gScale=gScale.val;
+        slider2=gScale;
+        pot.potVal(gScale.val);
+        slider_automate(slider2);
+        caller = 1;
+       ):
+  gScale!=slider2?
+      (
+        gScale=slider2;
+        gScale.val=gScale;
+        gScale.potVal(gScale.val);
+        gScale.valOld=gScale;
+        caller = 1;
+      );
+  
+  
+ 
+  
+/*
+slider1 == 0 ? (
+gfx_x = 300; gfx_y = 10;
+gfx_r=0.2; gfx_b=0.2; gfx_g = 1; gfx_a = 1;
+//redl = max(0,redl);
+redr = max(0,redr);
+gfx_rectto(300+(20*log(1-redl)), 20);
+
+gfx_r=1; gfx_b=1; gfx_g = 1; gfx_a = 0.7;
+gfx_x = 310; gfx_y = 10;
+gfx_drawnumber(20*log(1-redl),1);
+);
