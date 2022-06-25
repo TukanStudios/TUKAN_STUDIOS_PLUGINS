@@ -35,6 +35,7 @@ slider28:0<0,1,1>-28 Limiter
 slider29:50<0.1,100,0.1>-Meterspeed
 slider30:0<-24,0,1>-30 Metercalibration
 
+slider31:1<0,6,.01>-Scaling
 //options:no_meter
 
 in_pin:L in
@@ -62,9 +63,12 @@ filename:16,somegui/sback3.png
 filename:17,somegui/wfm.png
 filename:18,somegui/arrows.png
 filename:19,somegui/screw.png
+filename:20,somegui/menu.png
+
 
 @init
 version = "Beta 0.8.0";
+gfx_ext_retina = 1;
 /*
 function tanh(x)
 (
@@ -80,6 +84,35 @@ x = exp(2*x);
 
 function db2ratio(d) ( 10^(d/20); );
 function ratio2db(r) ( log(abs(r))*dbc; );
+
+
+
+
+aab = 0;
+  // DC Blocker to remove near-static frequency content
+  // that would otherwise "offset" the waveform.
+  function dcBlocker () instance (otml, itml)
+  (
+    /*
+    srate < 50000 ? (stateOut *= 0.99); //99988487
+    srate > 50000 ? (stateOut *= 0.99999999);
+    
+    stateOut += this - stateIn;
+    stateIn = this;
+    this = stateOut;
+  */
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  otm1=aab*otm1 + this - itm1; itm1=this; this=otm1;
+
+  );
+  
+  
+
 
 
 function computeGain(x)
@@ -289,7 +322,7 @@ histpos=0;
  function collision  ()
    instance          (xIn yIn widthIn heightIn)
                      (
-                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                      );
  
  function dragStart ()
@@ -1013,8 +1046,8 @@ y1=(x1-k3)/(x1+k4);
 slider11 > 0 ? (
 spl0=y0*output+noise;
 spl1=y1*output+noise;
-otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
-otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+spl0.dcblocker(); // otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+spl1.dcblocker(); //otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
 );
 
 histbuf[histpos]=spl0;
@@ -1308,7 +1341,6 @@ rgr_meter2 < rgr_meter ? (
 
 
 
-
 @gfx //380 428// 380 ??
 
 
@@ -1321,7 +1353,8 @@ rgr_meter2 < rgr_meter ? (
 
 
 
-
+  mouse_xz = mouse_x;
+  mouse_yz = mouse_y;
 
 initial == 1 ? (
            gamount=slider10;
@@ -1384,8 +1417,8 @@ mouseClick == 1 ?
  
  gcal.collision()  ? gcal.dragStart(); 
  
- /* mouse_x < 80 ? (
- mouse_y < 20 ? (
+ /* mouse_xz < 80 ? (
+ mouse_yz < 20 ? (
  slider25 == 0 ? (slider25 = 1):(slider25=0);
  );
  );*/
@@ -1546,8 +1579,8 @@ slider24 == 0 ? ( ///////// NOT MASTER
   gfx_drawstr(" >");
   */ 
   mouseclick == 1 ? (
-  mouse_x < gfx_w / 2 ? (slider27 -= 1);
-  mouse_x > gfx_w / 2 ? (slider27 += 1);
+  mouse_xz < gfx_w / 2 ? (slider27 -= 1);
+  mouse_xz > gfx_w / 2 ? (slider27 += 1);
   slider27 == -1 ? (slider27 = 2);
   slider27 == 3 ? (slider27 = 0);
   stattslider();
@@ -1556,6 +1589,26 @@ slider24 == 0 ? ( ///////// NOT MASTER
   ); ///////// END MASTER
   
 ):( // EXT FLAGS
+
+
+
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 491; zfct_h = 428;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider31 ? zmnu = slider31;
+      mouse_xz = mouse_xz / zfct;
+      mouse_yz = mouse_yz / zfct;
+      ///////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
 
 slider24 == 0 ? (/// NOT MASTER
 
@@ -1751,56 +1804,64 @@ slider27 == 2 ? (gfx_blit(11,0.8,0,0,0,30,30)):(gfx_blit(11,0.8,0,0,30,30,30)); 
       
       katze = 0;
    
-      mouse_y > 275 ? (
-      mouse_y < 295 ? (
-        mouse_x > deskx ? (
-         mouse_x < deskx + 80 ? (
+      mouse_yz > 275 ? (
+      mouse_yz < 295 ? (
+        mouse_xz > deskx ? (
+         mouse_xz < deskx + 80 ? (
            slider27 = 0;
+           slider_automate(slider27);
          );
         );
       
-  mouse_x > deskx+100 ? (
-  mouse_x < deskx+100 + 80 ? (
+  mouse_xz > deskx+100 ? (
+  mouse_xz < deskx+100 + 80 ? (
   slider27 = 1;
+  slider_automate(slider27);
   );
   );
-  mouse_x > deskx+200 ? (
-  mouse_x < deskx+200 + 80 ? (
+  mouse_xz > deskx+200 ? (
+  mouse_xz < deskx+200 + 80 ? (
   slider27 = 2;
+  slider_automate(slider27);
   );
   );
  );
    );
    
    
-   mouse_y > 195 ? (
-   mouse_y < 235 ? (
-   mouse_x > 15 ? (
-   mouse_x < 15 + 18 ? (
+   mouse_yz > 195 ? (
+   mouse_yz < 235 ? (
+   mouse_xz > 15 ? (
+   mouse_xz < 15 + 18 ? (
    slider22 == 0 ? (slider22 = 1):(slider22 = 0);
+   slider_automate(slider22);
    );
    );
-   mouse_x > 225 + 15 ? (
-   mouse_x < 225 + 15 + 18 ? (
+   mouse_xz > 225 + 15 ? (
+   mouse_xz < 225 + 15 + 18 ? (
    slider23 == 0 ? (slider23 = 1):(slider23 = 0);
+   slider_automate(slider23);
    );
    );
    
-  mouse_x > 400 + 15 ? (
-  mouse_x < 400 + 15 + 18 ? (
+  mouse_xz > 400 + 15 ? (
+  mouse_xz < 400 + 15 + 18 ? (
   slider25 == 0 ? (slider25 = 1):(slider25 = 0);
+  slider_automate(slider25);
   );
   ); 
   
-   mouse_x > 430 + 15 ? (
-   mouse_x < 430 + 15 + 18 ? (
+   mouse_xz > 430 + 15 ? (
+   mouse_xz < 430 + 15 + 18 ? (
    slider26 == 0 ? (slider26 = 1):(slider26 = 0);
+   slider_automate(slider26);
    );
    );
  
-   mouse_x > 265 + 15 ? (
-   mouse_x < 265 + 15 + 18 ? (
+   mouse_xz > 265 + 15 ? (
+   mouse_xz < 265 + 15 + 18 ? (
    slider28 == 0 ? (slider28 = 1):(slider28 = 0);
+   slider_automate(slider28);
    );
    );
    
@@ -1814,6 +1875,77 @@ slider27 == 2 ? (gfx_blit(11,0.8,0,0,0,30,30)):(gfx_blit(11,0.8,0,0,30,30,30)); 
       
 gfx_x = 310; gfx_y = 168; gfx_a = 1;
 cG == 0 ? (gfx_blit(11,1,0,0,30,30,30)):(gfx_blit(11,1,0,0,0,30,30)); //LED
+      
+      
+      
+      
+       ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+       last_clicked_item = -1;
+       Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+       menu_x = 5; menu_y = 25;
+       gfx_x=menu_x;gfx_y=menu_y;
+       gfx_blit(20,1,0);
+       //gfx_drawnumber(last_clicked_item, 0); 
+       mouseClick ? (
+       //helpshow ? helpshow = 0;
+       mouse_xz > menu_x ? (
+       mouse_xz < menu_x + 20 ? (
+       mouse_yz > menu_y ? (
+       mouse_yz < menu_y + 20 ? (
+      gfx_x = menu_x;
+      gfx_y = menu_y+20;
+       #item2 =">Scaling|";#allitems = #item2;
+      slider31 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider31 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider31 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider31 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider31 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider31 == 0 ? (#item2 = "<!FREE||"):(#item2 = "<FREE||");#allitems += #item2;
+      //slider33 == 0 ? (#item2 = "Dark Mode||"):(#item2 = "!Dark Mode||");    
+      //#allitems += #item2;
+      #item2 = "Show Info/Help";    #allitems += #item2;
+      last_clicked_item = gfx_showmenu(#allitems);
+       );
+       );
+       );
+       );
+       );
+       
+          last_clicked_item == 1 ? zmnu = sqrt(0.5);
+          last_clicked_item == 2 ? zmnu = sqrt(0.75);
+          last_clicked_item == 3 ? zmnu = 1;
+          last_clicked_item == 4 ? zmnu = sqrt(1.5);
+          last_clicked_item == 5 ? zmnu = sqrt(2);
+          last_clicked_item == 6 ? zmnu = 0;
+         // last_clicked_item == 7 ? slider33 == 0 ? (slider33 = 1):(slider33=0);
+       last_clicked_item == 7 ? helpshow = 1;
+       
+       helpshow == 1 ? (
+       gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.8;
+       gfx_rect(menu_x+0,menu_y+0,350,120);
+       gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+       gfx_x = menu_x+3; gfx_y = menu_y+3;
+       gfx_drawstr("This plugin can be automated.");
+       gfx_x = menu_x+3; gfx_y += 13;
+       gfx_drawstr("");
+       gfx_x = menu_x+3; gfx_y += 13;
+       gfx_drawstr("");
+       gfx_x = menu_x+3; gfx_y += 13;
+       gfx_drawstr("");
+       gfx_x = menu_x+3; gfx_y += 13;
+       gfx_drawstr("");
+       gfx_x = menu_x+3; gfx_y += 26;
+       gfx_drawstr("(Fine tune knobs with shift)");
+       gfx_x = menu_x+3; gfx_y += 13;
+       gfx_drawstr("(Reset knobs with ctrl/cmd)");
+       );
+       
+       
+       ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+      
+      
+      
+      
       
 ); /// END MASTER
 
@@ -1833,6 +1965,31 @@ slider26 == 1 ? (gfx_blit(11,1,0,0,0,30,30)):(gfx_blit(11,1,0,0,30,30,30)); //LE
 gfx_r = 1; gfx_g = 0; gfx_b = 0; gfx_a = 1;
 gfx_x = 290; gfx_y = 3; gfx_drawstr("Version: "); gfx_drawstr(version);
 
+
+            gspeed.dragging ? (
+            gfx_x = 185; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;
+            gfx_drawstr("Meter speed: "); gfx_drawnumber(slider29,0); gfx_drawstr("%");
+            );
+  gcal.dragging ? (
+  gfx_x = 145; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;
+  gfx_drawstr("Meter calibration: "); gfx_drawnumber(slider30,1); gfx_drawstr("dB");
+  );   
+
+
+    //////////////////////// ZFCT ///////////////////////////////
+    slider31 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    ///////////////////////////////////////////////////////////// 
+    
+    
+    
+    
 ); // EXT FLAGS
 
 
@@ -1852,6 +2009,7 @@ slider24 == 1 ? ( //EX NOT MASTER
          (
            gamount=gamount.val;
            slider10=gamount;
+           slider_automate(slider10);
            pot.potVal(gamount.val);
            stattslider();
           ):
@@ -1868,6 +2026,7 @@ slider24 == 1 ? ( //EX NOT MASTER
             (
               gnoise=gnoise.val;
               slider9=gnoise;
+              slider_automate(slider9);
               pot.potVal(gnoise.val);
               stattslider();
              ):
@@ -1885,6 +2044,7 @@ slider24 == 1 ? ( //EX NOT MASTER
             (
               glo=glo.val;
               slider21=glo;
+              slider_automate(slider21);
               pot.potVal(glo.val);
               stattslider();
              ):
@@ -1900,6 +2060,7 @@ slider24 == 1 ? ( //EX NOT MASTER
              (
                ghi=ghi.val;
                slider19=ghi;
+               slider_automate(slider19);
                pot.potVal(ghi.val);
                stattslider();
               ):
@@ -1915,6 +2076,7 @@ slider24 == 1 ? ( //EX NOT MASTER
               (
                 gout=gout.val;
                 slider20=gout;
+                slider_automate(slider20);
                 pot.potVal(gout.val);
                 stattslider();
                ):
@@ -1930,6 +2092,7 @@ slider24 == 1 ? ( //EX NOT MASTER
              (
                gspeed=gspeed.val;
                slider29=gspeed;
+               slider_automate(slider29);
                pot.potVal(gspeed.val);
                stattslider();
               ):
@@ -1945,6 +2108,7 @@ slider24 == 1 ? ( //EX NOT MASTER
               (
                 gcal=gcal.val;
                 slider30=gcal;
+                slider_automate(slider30);
                 pot.potVal(gcal.val);
                 stattslider();
                ):
@@ -1957,14 +2121,7 @@ slider24 == 1 ? ( //EX NOT MASTER
             );
             
             
-            gspeed.dragging ? (
-            gfx_x = 185; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;
-            gfx_drawstr("Meter speed: "); gfx_drawnumber(slider29,0); gfx_drawstr("%");
-            );
-  gcal.dragging ? (
-  gfx_x = 145; gfx_y = 145; gfx_g=gfx_b=0; gfx_r=1;gfx_a=1;
-  gfx_drawstr("Meter calibration: "); gfx_drawnumber(slider30,1); gfx_drawstr("dB");
-  );          
+       
             
 ); // END MASTER
   
