@@ -6,8 +6,8 @@ desc:Guitar Amp (Tukan)
 
 //tags: guitar amplifier convolution FFT
 
-slider1:/Cabs:none:-1 IR Model (Left)
-slider2:/Cabs:none:-2 IR Model (Right)
+slider1:/GitAmp:none:-1 IR Model (Left)
+slider2:/GitAmp:none:-2 IR Model (Right)
 slider3:0<-120,30,1>-3 IR Preamp (dB)
 slider4:2<0,2,1{No,Yes (no gain adjust), Yes (correct gain)}>-4 IR Upsample Impulse If Required
 slider5:0,-5 -IR Filter Size
@@ -111,6 +111,66 @@ filename:20,GitAmp/mback.png
 filename:21,GitAmp/nback.png
 
 filename:22,GitAmp/menu.png
+
+filename:23,GitAmp/B_Mid_20.wav
+filename:24,GitAmp/B_Mid_421.wav
+filename:25,GitAmp/B_Mid_57.wav
+filename:26,GitAmp/B_Mid_648.wav
+filename:27,GitAmp/B_Mid_87.wav
+filename:28,GitAmp/B_Mid_906.wav
+filename:29,GitAmp/B_Mid_Rib.wav
+filename:30,GitAmp/B_Side_20.wav
+filename:31,GitAmp/B_Side_421.wav
+filename:32,GitAmp/B_Side_57.wav
+filename:33,GitAmp/B_Side_648.wav
+filename:34,GitAmp/B_Side_87.wav
+filename:35,GitAmp/B_Side_906.wav
+filename:36,GitAmp/B_Side_Rib.wav
+
+filename:37,GitAmp/E_Mid_20.wav
+filename:38,GitAmp/E_Mid_421.wav
+filename:39,GitAmp/E_Mid_57.wav
+filename:40,GitAmp/E_Mid_648.wav
+filename:41,GitAmp/E_Mid_87.wav
+filename:42,GitAmp/E_Mid_906.wav
+filename:43,GitAmp/E_Mid_Rib.wav
+filename:44,GitAmp/E_Side_20.wav
+filename:45,GitAmp/E_Side_421.wav
+filename:46,GitAmp/E_Side_57.wav
+filename:47,GitAmp/E_Side_648.wav
+filename:48,GitAmp/E_Side_87.wav
+filename:49,GitAmp/E_Side_906.wav
+filename:50,GitAmp/E_Side_Rib.wav
+
+filename:51,GitAmp/F_Mid_20.wav
+filename:52,GitAmp/F_Mid_421.wav
+filename:53,GitAmp/F_Mid_57.wav
+filename:54,GitAmp/F_Mid_648.wav
+filename:55,GitAmp/F_Mid_87.wav
+filename:56,GitAmp/F_Mid_906.wav
+filename:57,GitAmp/F_Mid_Rib.wav
+filename:58,GitAmp/F_Side_20.wav
+filename:59,GitAmp/F_Side_421.wav
+filename:60,GitAmp/F_Side_57.wav
+filename:61,GitAmp/F_Side_648.wav
+filename:62,GitAmp/F_Side_87.wav
+filename:63,GitAmp/F_Side_906.wav
+filename:64,GitAmp/F_Side_Rib.wav
+
+filename:65,GitAmp/M_Mid_20.wav
+filename:66,GitAmp/M_Mid_421.wav
+filename:67,GitAmp/M_Mid_57.wav
+filename:68,GitAmp/M_Mid_648.wav
+filename:69,GitAmp/M_Mid_87.wav
+filename:70,GitAmp/M_Mid_906.wav
+filename:71,GitAmp/M_Mid_Rib.wav
+filename:72,GitAmp/M_Side_20.wav
+filename:73,GitAmp/M_Side_421.wav
+filename:74,GitAmp/M_Side_57.wav
+filename:75,GitAmp/M_Side_648.wav
+filename:76,GitAmp/M_Side_87.wav
+filename:77,GitAmp/M_Side_906.wav
+filename:78,GitAmp/M_Side_Rib.wav
 
 in_pin:left input
 in_pin:right input
@@ -366,20 +426,25 @@ amp = slider42;
 
 
 
-slider45 == 1 ? #Cab = "B_";
-slider45 == 2 ? #Cab = "M_";
-slider45 == 3 ? #Cab = "E_";
-slider45 == 4 ? #Cab = "F_";
+slider45 == 1 ? (vslider1 = 0;#Cab = "B_");
+slider45 == 2 ? (vslider1 = 42;#Cab = "M_");
+slider45 == 3 ? (vslider1 = 14;#Cab = "E_");
+slider45 == 4 ? (vslider1 = 28;#Cab = "F_");
 
-slider44 == 0 ? (#Position = "Mid_"):(#Position = "Side_");
+slider44 == 1 ? (vslider1 += 7;#Position = "Side_"):(#Position = "Mid_");
 
-slider43 == 1 ? (#Mic = "57"; slider3 = 10);
-slider43 == 2 ? (#Mic = "421"; slider3 = 9);
-slider43 == 3 ? (#Mic = "906";  slider3 =  8);
-slider43 == 4 ? (#Mic = "20";  slider3 = 11);
-slider43 == 5 ? (#Mic = "Rib"; slider3 = 7);
-slider43 == 6 ? (#Mic = "87"; slider3 = -9);
-slider43 == 7 ? (#Mic = "648"; slider3 = 0);
+slider43 == 1 ? (vslider1 += 3;(#Mic = "57"; slider3 = 10));
+slider43 == 2 ? (vslider1 += 2;(#Mic = "421"; slider3 = 9));
+slider43 == 3 ? (vslider1 += 6;(#Mic = "906";  slider3 = 8));
+slider43 == 4 ? (vslider1 += 1;(#Mic = "20";  slider3 = 11));
+slider43 == 5 ? (vslider1 += 7;(#Mic = "Rib"; slider3 = 7));
+slider43 == 6 ? (vslider1 += 5;(#Mic = "87"; slider3 = -9));
+slider43 == 7 ? (vslider1 += 4;(#Mic = "648"; slider3 = 0));
+
+//slider1 = vslider1;
+//slider2 = slider1;
+//slider_automate(slider1);
+//slider_automate(slider2); 
 
 #IR_File = "GitAmp/";
 #IR_File += #Cab;
@@ -526,19 +591,18 @@ gMid.potcfg   (0,MID_Ofset,-MID_Ofset,2*MID_Ofset/1000);
 gHigh.potcfg (0,-HIGH_Ofset,HIGH_Ofset,2*HIGH_Ofset/1000);
 */
 
-
-
+dings = vslider1 +22;
 
 slider43 < 8 ? (
 IR_Switch == 2 ? (
-aaa = 1000;
-
-  tmp=slider1|0;
-  tmp != lslider1 ? 
-  (
+//aaa = 1000;
+aaa = 3;
+  //tmp=slider1|0;
+  //tmp != lslider1 ? 
+  //(
     lslider1=""; //tmp;
     impbuf_nch=impbuf_srate=impbuf_l=0;
-    filehandle=file_open(#IR_File);//slider1);
+    filehandle=file_open(dings);
     filehandle > 0 ?
     (
       file_riff(filehandle,impbuf_nch,impbuf_srate);
@@ -547,16 +611,17 @@ aaa = 1000;
         impbuf_l=file_avail(filehandle)/impbuf_nch; 
         need_refft=1; 
         file_mem(filehandle,impbuf,impbuf_l*impbuf_nch);
+        aaya = 1;
       );
       file_close(filehandle);
-    );
-  );
-  tmp=slider2|0;
-  tmp != lslider2 ? 
-  (
+    ):(aaya = 2);
+  //);
+  //tmp=slider2|0;
+  //tmp != lslider2 ? 
+  //(
     lslider2="";//tmp;
     rimpbuf_nch=rimpbuf_srate=rimpbuf_l=0;
-    filehandle=file_open(#IR_File);//(slider2);
+    filehandle=file_open(dings);
     filehandle > 0 ? 
     (
       file_riff(filehandle,rimpbuf_nch,rimpbuf_srate);
@@ -568,7 +633,7 @@ aaa = 1000;
       );
       file_close(filehandle);
     );
-  );
+  //);
 
   useresample != slider4 ? (useresample=slider4; need_refft=1; );
   slider6=fftsize;
@@ -1257,7 +1322,7 @@ spl0.dcblocker();
 spl1.dcblocker(); 
 
 
-
+//spl1 *= -1;
 
 
 
