@@ -1,4 +1,6 @@
 desc:Guitar Amp (Tukan)
+// VERSION 1.01
+
 // This effect Copyright (C) 2004 and later Cockos Incorporated
 // License: LGPL - http://www.gnu.org/licenses/lgpl.html
 
@@ -81,34 +83,34 @@ slider47:0<-30,20,1>-47 Clean/Dist Gain
 slider48:1<0,1,1>-48 Amp on/off
 slider49:1<0,6,.01>-Scaling
 
-filename:0,/Gitamp/Knob1.png
-filename:1,/Gitamp/grill1.png
-filename:2,/Gitamp/grill2.png
-filename:3,/Gitamp/grill3.png
-filename:4,/Gitamp/grill4.png
+filename:0,GitAmp/Knob1.png
+filename:1,GitAmp/grill1.png
+filename:2,GitAmp/grill2.png
+filename:3,GitAmp/grill3.png
+filename:4,GitAmp/grill4.png
 
-filename:5,/Gitamp/57v.png
-filename:6,/Gitamp/421v.png
-filename:7,/Gitamp/906v.png
-filename:8,/Gitamp/20v.png
-filename:9,/Gitamp/Ribv.png
-filename:10,/Gitamp/87v.png
-filename:11,/Gitamp/648v.png
+filename:5,GitAmp/57v.png
+filename:6,GitAmp/421v.png
+filename:7,GitAmp/906v.png
+filename:8,GitAmp/20v.png
+filename:9,GitAmp/Ribv.png
+filename:10,GitAmp/87v.png
+filename:11,GitAmp/648v.png
 
-filename:12,/Gitamp/vknob.png
-filename:13,/Gitamp/eknob.png
-filename:14,/Gitamp/mknob.png
-filename:15,/Gitamp/fknob.png
+filename:12,GitAmp/vknob.png
+filename:13,GitAmp/eknob.png
+filename:14,GitAmp/mknob.png
+filename:15,GitAmp/fknob.png
 
-filename:16,/Gitamp/switch.png
+filename:16,GitAmp/switch.png
 
-filename:17,/Gitamp/fback.png
-filename:18,/Gitamp/vback.png
-filename:19,/Gitamp/eback.png
-filename:20,/Gitamp/mback.png
-filename:21,/Gitamp/nback.png
+filename:17,GitAmp/fback.png
+filename:18,GitAmp/vback.png
+filename:19,GitAmp/eback.png
+filename:20,GitAmp/mback.png
+filename:21,GitAmp/nback.png
 
-filename:22,/Gitamp/menu.png
+filename:22,GitAmp/menu.png
 
 in_pin:left input
 in_pin:right input
@@ -140,8 +142,28 @@ function tanh(x) (
 x=exp(2*x);
 (x-1)/(x+1);
 );
+aab = 0;
+  // DC Blocker to remove near-static frequency content
+  // that would otherwise "offset" the waveform.
+  function dcBlocker () instance (otml, itml)
+  (
+    /*
+    srate < 50000 ? (stateOut *= 0.99); //99988487
+    srate > 50000 ? (stateOut *= 0.99999999);
+    
+    stateOut += this - stateIn;
+    stateIn = this;
+    this = stateOut;
+  */
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  otm1=aab*otm1 + this - itm1; itm1=this; this=otm1;
 
-
+  );
 
 
 
@@ -359,7 +381,7 @@ slider43 == 5 ? (#Mic = "Rib"; slider3 = 7);
 slider43 == 6 ? (#Mic = "87"; slider3 = -9);
 slider43 == 7 ? (#Mic = "648"; slider3 = 0);
 
-#IR_File = "Gitamp/";
+#IR_File = "GitAmp/";
 #IR_File += #Cab;
 #IR_File += #Position;
 #IR_File += #Mic;
@@ -1231,7 +1253,8 @@ IR_Fade >= 1 ? (IR_Switch = 0; IR_Fade =1);
 
 
 
-
+spl0.dcblocker();
+spl1.dcblocker(); 
 
 
 
@@ -1309,9 +1332,6 @@ IR_Fade >= 1 ? (IR_Switch = 0; IR_Fade =1);
  mouse_yz = mouse_y / zfct;
  ///////////////////////////////////////////////////////////
  
- gfx_r=gfx_g=gfx_b=0;gfx_a=1;
- gfx_rect(0,0,gfx_w,gfx_h);
- 
  
  
  
@@ -1323,7 +1343,15 @@ IR_Fade >= 1 ? (IR_Switch = 0; IR_Fade =1);
  
  slider44 == 0 ? (gfx_x = ampv_x; gfx_y = ampv_y;):(gfx_x = ampv_x+80; gfx_y = ampv_y;);
  gfx_blit(slider43+4,1,0);
+ ):(
+ gfx_r=gfx_g=gfx_b=0.2;gfx_a=1;
+ gfx_rect(185,205,295,145);
  );
+ 
+ 
+ gfx_r=gfx_g=gfx_b=0.2;gfx_a=1;
+ gfx_rect(25,50,531,106);
+ 
  
  //Hintergrund
  gfx_x=gfx_y=0;
@@ -1358,11 +1386,6 @@ IR_Fade >= 1 ? (IR_Switch = 0; IR_Fade =1);
  miniknopf(Amp_knob,Amp_Knobs_x+5*Amp_Knobs_Distance+Knob_schieb,Amp_Knobs_y+Knob_schieb,61,75,-24,24,slider12,Knob_scale); // file, posx, posy, frames, size, min, max, slider, scaling
  //rgb(1,1,1); gfx_x = 5*Amp_Knobs_Distance+Amp_Knobs_x+15; gfx_y = Amp_Knobs_y + 80; gfx_drawstr("OUPUT");
  );
- 
- 
- 
- 
- 
  
  
  gfx_x = 2; gfx_y = 2; 
