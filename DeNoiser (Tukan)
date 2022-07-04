@@ -47,6 +47,8 @@ out_pin:Denoised Audio 2
 gfx_ext_retina = 1;
 ext_noinit = 1;
 
+pdc_set = 0;
+
 initial = 1;
 // On initialization, initialize all of our variables.
 
@@ -82,13 +84,6 @@ freembuf(12*SIZE + 1);
 // samplesCollected) 
 samplesCollected = 0;
 
-// Finally, the algorithm we use outputs modified audio SIZE samples after we
-// input it. If we tell REAPER that the plugin has a delay of SIZE samples,
-// REAPER can automatically compensate for this and make it appear as if there's
-// no delay at all.
-pdc_delay = SIZE; 
-pdc_bot_ch=0;
-pdc_top_ch=2;
 
 
 function Reset_Buffer () (
@@ -345,13 +340,20 @@ caller = 0;
 
 
 
+@block
+      
 
 
-
-
-
-
-
+// Finally, the algorithm we use outputs modified audio SIZE samples after we
+// input it. If we tell REAPER that the plugin has a delay of SIZE samples,
+// REAPER can automatically compensate for this and make it appear as if there's
+// no delay at all.
+pdc_set == 0 ? (
+pdc_delay = SIZE; 
+pdc_bot_ch=0;
+pdc_top_ch=2;
+pdc_set = 1;
+);
 
 
 

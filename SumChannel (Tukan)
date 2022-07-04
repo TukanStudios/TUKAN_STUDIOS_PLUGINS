@@ -1817,8 +1817,33 @@ stattslider();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 @sample
 
+_global.SumThing_Master <= 0 ? (
+gsm_present = 0;
+):(
+gsm_present = 1;
+_global.SumThing_Master -= 1;
+);
+
+
+general_process=1;
+slider59 == 0 ? gsm_present == 0 ? general_process = 0;
+
+general_process == 1 ? (
 
 changer > 0 ? (
 stattslider_on == 0 ? (
@@ -2524,7 +2549,7 @@ sample_on = 0;
 
 
 
-
+); //slider59 == 0 ? gsm_present ? 
 
 
 
@@ -4467,8 +4492,14 @@ noglbldesk -= .4;
 
 
 
-
-
+slider59 == 0 ? gsm_present == 0 ? _global.SumThing_Master == 0 ? ( //general_process = 0;
+gfx_r=gfx_g=gfx_b=0; gfx_a = 0.3;
+gfx_rect(0,0,gfx_w,gfx_h);
+gfx_a=1;
+gfx_rect(300,250,400,70);
+gfx_x = 320; gfx_y = 280; gfx_r = 1;
+gfx_drawstr("NO AUDIO PROCESSING! SumThing Master MISSING!");
+);
 
     //////////////////////// ZFCT ///////////////////////////////
     slider10 = zmnu;

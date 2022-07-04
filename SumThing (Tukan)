@@ -1,4 +1,4 @@
-desc: SumThing (Tukan)
+desc:SumThing (Tukan)
 
 slider1:-1<-1,0,0.01>-negative
 slider2:1<0,1,0.01>-positive
@@ -67,7 +67,7 @@ filename:19,somegui/screw.png
 filename:20,somegui/menu.png
 
 @init
-version = "Beta 0.8.0";
+version = "Beta 0.8.2";
 gfx_ext_retina = 1;
 
 /*
@@ -947,8 +947,34 @@ src_wetA = tgt_wetA;
 d_wetB = (tgt_wetB-src_wetB)/samplesblock;
 twetB = src_wetB;
 src_wetB = tgt_wetB;
-
 //_global.desk = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @sample
 /*
@@ -959,6 +985,23 @@ gdq > 2*srate ? (
 slider11 = 0;
 );
 */
+slider24 == 1 ? (
+_global.SumThing_Master = srate/2;
+gsm_present = 1;
+):(
+_global.SumThing_Master <= 0 ? (
+gsm_present = 0;
+):(
+gsm_present = 1;
+_global.SumThing_Master -= 1;
+);
+
+);
+
+
+
+gsm_present == 1 ? (
+
 
 slider11 != _global.desk ? //(deskswitch = 1);
 (
@@ -1232,6 +1275,18 @@ spl1 = inR * cL * ceiling * limitoutput;
 
 
 
+); // gsm_present ?
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1324,7 +1379,7 @@ mouseClick == 1 ?
  
  mouse_xz < 80 ? (
  mouse_yz < 20 ? (
- slider24 == 0 ? (slider24 = 1):(slider24=0);
+ slider24 == 1 ? (slider24 = 0): gsm_present == 0 ? (slider24 == 0 ? (slider24 = 1):(slider24=0)):(master_present = 30);
  );
  );
     ):
@@ -1540,7 +1595,8 @@ slider24 == 0 ? ( ///////// NOT MASTER
 slider24 == 0 ? (/// NOT MASTER
 
 
-slider11 > 0 ? (
+//slider11 > 0 ? (
+gsm_present > 0 ? (
   gamount.potcfg  (0,-24,24,.024); //default. von, bis, step 9 bis 2 10 bis 24
   gamount.rectIn(40,100,75,75);//xpos,ypos,weite,höhe des img
   gamount.rectOut(40,100, 75, 75, 61, 7); //Xpos,ypos,weite,höhe,Frames,bitmap
@@ -1682,15 +1738,27 @@ _global.desk == 3 ? (gfx_blit(16,1,0));
        ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
       
 
-
+master_present > 0 ? (
+master_present -= 1;
+gfx_x = 0; gfx_y = 0; gfx_a = 1;
+gfx_r=gfx_g=gfx_b=0;
+gfx_rect(8,22,280,20);
+gfx_x = 14; gfx_y = 30;
+  gfx_r=1; gfx_g=.4; gfx_b=.4; gfx_a=1;
+gfx_drawstr("Master instance already present...");
+);
 
 
 ):( // slider 11 global desk
 gfx_x = 0; gfx_y = 0; gfx_a = 1;
-(gfx_blit(15,1,0,0,0,265,23));
+gfx_r=gfx_g=gfx_b=0;
+gfx_rect(0,0,gfx_w,gfx_h);
+
+gfx_blit(15,1,0,0,0,265,23);
 gfx_x = 1; gfx_y = 25;
   gfx_r=1; gfx_g=.4; gfx_b=.4; gfx_a=1;
 gfx_drawstr("Waiting for master..");
+
 
 ); //slider 11 global desk
 
