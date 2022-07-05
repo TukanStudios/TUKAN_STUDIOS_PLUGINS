@@ -15,6 +15,7 @@ slider10:0<0,1,1>-DONT Metermode
 
 slider11:3<0,5,0.01>-DONT Meterspeed
 slider12:0<0,1,0.01>-DONT Dry amount
+slider13:1<0,6,.01>-Scaling
 
 filename:0,TKCC2gui/DSRBack.png
 filename:1,TKCC2gui/APIBig.png
@@ -37,6 +38,7 @@ out_pin:R out
 
 @init
 ext_noinit = 1; 
+gfx_ext_retina = 1;
 
 ovrlgain = 1;
 
@@ -262,7 +264,7 @@ gr_meter2 > 1 ? gr_meter2 =1;
  function collision  ()
    instance          (xIn yIn widthIn heightIn)
                      (
-                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                      );
  
  function dragStart ()
@@ -407,16 +409,12 @@ Trick.rectOut(knobsx+280,knobsy+7, 48, 60, 2, 4);
 
 
 
+stattslider_on = 0;
 
+function stattslider() (
+//changer == 1 ?(
+stattslider_on = 1;
 
-
-
-
-
-
-
-
-@slider
 threshold = slider1;
 knee_width = abs(slider1*2*75*0.01);
 
@@ -435,8 +433,6 @@ knee_factor = (slope / (knee_width * 2));
 output = 10^(0/20);
 
 listen = slider7;
-
-
 
 
 //****************************
@@ -480,7 +476,16 @@ CHLP_b1_lp = -2*CHLP_c2;
 CHLP_b2_lp = 2*CHLP_c1;
 
 
+stattslider_on = 0;
+);
 
+
+
+
+
+
+@slider
+changer = 1;
 
 
 
@@ -509,6 +514,11 @@ CHLP_b2_lp = 2*CHLP_c1;
 
 
 @sample
+
+changer == 1 ? (
+stattslider_on == 0 ? (stattslider();changer = 0):(changer = 1);
+);
+
 /*
 inL ? (oops = 0):(inL = spl0);
 inR ? (oops = 0):(inR = spl1);
@@ -841,7 +851,6 @@ ovrlgain = ovrlg;
 
 
 
-
 @gfx 450 171 //360
 
 
@@ -860,8 +869,20 @@ ovrlgain = ovrlg;
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
+      mouse_xz = mouse_x;
+      mouse_yz = mouse_y;
+      
 gfx_ext_flags == 0 ? (
 
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 450; zfct_h = 171;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider13 ? zmnu = slider13;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
+      
 initial == 0 ? (
 grmin = 0;
 
@@ -1005,7 +1026,7 @@ gfx_blit(0,1,0);
 
   scalegfx=1;
   grdb = abs(log10(gr_meter2)*20);
-  gfx_h =1;
+  //gfx_h =1;
   deesledy = 10;
   gfx_x = 313+(-12*scalegfx)+(-15*scalegfx); gfx_y = deesledy;
   grdb > 0.5 ? gfx_blit(8,scalegfx,0,0,35,35,35):gfx_blit(8,scalegfx,0,0,0,35,35);
@@ -1065,14 +1086,23 @@ gfx_x=0;gfx_y=0;
  //  gfx_drawnumber(last_clicked_item, 0); 
    mouseClick ? (
    //helpshow ? helpshow = 0;
-   mouse_x > menu_x ? (
-   mouse_x < menu_x + 20 ? (
-   mouse_y > menu_y ? (
-   mouse_y < menu_y + 20 ? (
+   mouse_xz > menu_x ? (
+   mouse_xz < menu_x + 20 ? (
+   mouse_yz > menu_y ? (
+   mouse_yz < menu_y + 20 ? (
      gfx_x = menu_x;
      gfx_y = menu_y+20;
 
-     #item2 = "Show Info/Help";    #allitems = "|Show Info/Help";
+     
+     
+      #item2 =">Scaling|";#allitems = #item2;
+     slider13 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+     slider13 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+     slider13 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+     slider13 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+     slider13 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+     slider13 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+     #item2 = "Show Info/Help";    #allitems += "Show Info/Help";
      last_clicked_item = gfx_showmenu(#allitems);
    );
    );
@@ -1080,7 +1110,13 @@ gfx_x=0;gfx_y=0;
    );
    );
    
-   last_clicked_item == 1 ? helpshow = 1;
+   last_clicked_item == 1 ? zmnu = sqrt(0.5);
+   last_clicked_item == 2 ? zmnu = sqrt(0.75);
+   last_clicked_item == 3 ? zmnu = 1;
+   last_clicked_item == 4 ? zmnu = sqrt(1.5);
+   last_clicked_item == 5 ? zmnu = sqrt(2);
+   last_clicked_item == 6 ? zmnu = 0;
+   last_clicked_item == 7 ? helpshow = 1;
    
    
    helpshow == 1 ? (
@@ -1352,6 +1388,29 @@ g*=s2;
 gfx_x >=0;
 );
 */
+
+
+
+
+    //////////////////////// ZFCT ///////////////////////////////
+    slider13 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    /////////////////////////////////////////////////////////////  
+
+
+
+
+
+
+
+
+
 ):( /// ext flags
 
   grdb = abs(log10(gr_meter2)*20);
@@ -1396,66 +1455,3 @@ gfx_x >=0;
 groldreset += 1;
 groldreset > 45 ? (groldreset = 0; grold=1);
 
-changer == 1 ?(
-threshold = slider1;
-knee_width = abs(slider1*2*75*0.01);
-
-ratio = 8;
-slope = ((1 - ratio) / ratio);
-
-attack = 1/1000;
-release = 5/1000;
-alphaA = attack>0 ? exp(-1 / (attack * srate)) : 0;
-alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
-
-Tlo = (threshold - knee_width / 2);
-Thi = (threshold + knee_width / 2);
-knee_factor = (slope / (knee_width * 2));
-
-output = 10^(0/20);
-
-listen = slider7;
-
-
-//****************************
-//hp
-
-n_hp = 6;
-CHLP_sx = 16+slider4*1.20103;
-CHLP_cx_hp = floor(exp(CHLP_sx*log(1.059))*8.17742);
-cutoff_hp = 2*CHLP_cx_hp/srate;
-res_hp = 10^(0.05*(-0/n_hp+1.5));
-
-k = 0.5*res_hp*sin($pi*cutoff_hp);
-CHLP_c1 = 0.5*(1-k)/(1+k);
-CHLP_c2 = (0.5+CHLP_c1)*cos($pi*cutoff_hp);
-CHLP_c3 = (0.5+CHLP_c1+CHLP_c2)*0.25;
-
-CHLP_a0_hp = 2*CHLP_c3;
-CHLP_a1_hp = -4*CHLP_c3;
-CHLP_a2_hp = 2*CHLP_c3;
-CHLP_b1_hp = -2*CHLP_c2;
-CHLP_b2_hp = 2*CHLP_c1;
-
-//****************************
-//lp
-
-n_lp = 6;
-CHLP_sx = 16+slider5*1.20103;
-CHLP_cx_lp = floor(exp(CHLP_sx*log(1.059))*8.17742);
-cutoff_lp = 2*CHLP_cx_lp/srate;
-res_lp = 10^(0.05*(-5/n_lp+1.5));
-
-k = 0.5*res_lp*sin($pi*cutoff_lp);
-CHLP_c1 = 0.5*(1-k)/(1+k);
-CHLP_c2 = (0.5+CHLP_c1)*cos($pi*cutoff_lp);
-CHLP_c3 = (0.5+CHLP_c1-CHLP_c2)*0.25;
-
-CHLP_a0_lp = 2*CHLP_c3;
-CHLP_a1_lp = 4*CHLP_c3;
-CHLP_a2_lp = 2*CHLP_c3;
-CHLP_b1_lp = -2*CHLP_c2;
-CHLP_b2_lp = 2*CHLP_c1;
-
-
-);

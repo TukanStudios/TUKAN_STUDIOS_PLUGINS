@@ -414,7 +414,7 @@ twometer ? (
 
   gfx_x = x1;
   gfx_y = y1; 
-  gfx_lineto(x2, y2);
+  dbL != dbR ? gfx_lineto(x2, y2);
  );
   
 chan = 0;
@@ -539,7 +539,7 @@ twometer ? (
 
   gfx_x = x1;
   gfx_y = y1; 
-  gfx_lineto(x2, y2);
+  dbL != dbR ? gfx_lineto(x2, y2);
  );
   
 chan = 0;
@@ -664,7 +664,7 @@ twometer ? (
 
   gfx_x = x1;
   gfx_y = y1; 
-  gfx_lineto(x2, y2);
+  dbL != dbR ? gfx_lineto(x2, y2);
  );
   
 chan = 0;
@@ -788,7 +788,7 @@ twometer ? (
 
   gfx_x = x1;
   gfx_y = y1; 
-  gfx_lineto(x2, y2);
+  dbL != dbR ? gfx_lineto(x2, y2);
  );
   
 chan = 0;
@@ -818,9 +818,27 @@ chan = 0;
   
 
   );
+  
+  
+  
+  _global.CMeter_stereo = slider1;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 //==============================================================================
 @slider
 //==============================================================================
+  _global.CMeter_stereo = slider1;
 mom = 0.00010 + 0.00032 *  slider3^3 / 125000;  
 //==============================================================================
 @block
@@ -2279,7 +2297,7 @@ rename_initial = 0;
      last_clicked_item == 3 ? slider6 = 16;
      last_clicked_item == 4 ? slider6 = 24;
      last_clicked_item == 5 ? (slider7 == 1 ? (slider7 =2):(slider7 = 1));
-     last_clicked_item == 6 ? (slider1 == 1 ? (slider1 =0):(slider1 = 1));
+     last_clicked_item == 6 ? (slider1 == 1 ? (slider1 =0):(slider1 = 1); _global.CMeter_stereo = slider1);
      
      last_clicked_item == 7 ? slider8 = 0; 
      last_clicked_item == 8 ? slider8 = -6; 
