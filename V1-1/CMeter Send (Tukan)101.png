@@ -1,0 +1,967 @@
+desc:CMeter Send (Tukan)
+// Veriosn 1.1.5
+
+filename:0,CMeter/CCVU2.png
+filename:1,CMeter/led.png
+filename:2,CMeter/CMSendback.png
+
+slider1:0<0,1,1>-Stereo
+slider2:0<-24,24,1>-Scale
+slider3:61<0,100,1>-Speed
+slider4:3<-24,24,1>-Warn Level
+slider5:0<0,24,1>-5 Console Meter VU
+
+options:no_meter
+
+ 
+in_pin:left input
+in_pin:right input
+out_pin:left output  
+out_pin:right output
+
+//==============================================================================
+@init
+//==============================================================================
+  gfx_clear=1;
+  ext_noinit=1;
+  lastCap=1; 
+  mouse_wheel=1;
+
+
+
+
+
+
+
+
+
+
+sucess = 0;
+nch = max(slider5,1);
+nnch = 0;
+while (sucess == 0) (
+
+nch == 1 ? _global.ConsoleMeter_1 == 1 ? (nch+=1):(sucess = 1);
+nch == 2 ? _global.ConsoleMeter_2 == 1 ? (nch+=1):(sucess = 1);
+nch == 3 ? _global.ConsoleMeter_3 == 1 ? (nch+=1):(sucess = 1);
+nch == 4 ? _global.ConsoleMeter_4 == 1 ? (nch+=1):(sucess = 1);
+nch == 5 ? _global.ConsoleMeter_5 == 1 ? (nch+=1):(sucess = 1);
+nch == 6 ? _global.ConsoleMeter_6 == 1 ? (nch+=1):(sucess = 1);
+nch == 7 ? _global.ConsoleMeter_7 == 1 ? (nch+=1):(sucess = 1);
+nch == 8 ? _global.ConsoleMeter_8 == 1 ? (nch+=1):(sucess = 1);
+
+nch == 9 ? _global.ConsoleMeter_9 == 1 ? (nch+=1):(sucess = 1);
+nch == 10 ? _global.ConsoleMeter_10 == 1 ? (nch+=1):(sucess = 1);
+nch == 11 ? _global.ConsoleMeter_11 == 1 ? (nch+=1):(sucess = 1);
+nch == 12 ? _global.ConsoleMeter_12 == 1 ? (nch+=1):(sucess = 1);
+nch == 13 ? _global.ConsoleMeter_13 == 1 ? (nch+=1):(sucess = 1);
+nch == 14 ? _global.ConsoleMeter_14 == 1 ? (nch+=1):(sucess = 1);
+nch == 15 ? _global.ConsoleMeter_15 == 1 ? (nch+=1):(sucess = 1);
+nch == 16 ? _global.ConsoleMeter_16 == 1 ? (nch+=1):(sucess = 1);
+
+nch == 17 ? _global.ConsoleMeter_17 == 1 ? (nch+=1):(sucess = 1);
+nch == 18 ? _global.ConsoleMeter_18 == 1 ? (nch+=1):(sucess = 1);
+nch == 19 ? _global.ConsoleMeter_19 == 1 ? (nch+=1):(sucess = 1);
+nch == 20 ? _global.ConsoleMeter_20 == 1 ? (nch+=1):(sucess = 1);
+nch == 21 ? _global.ConsoleMeter_21 == 1 ? (nch+=1):(sucess = 1);
+nch == 22 ? _global.ConsoleMeter_22 == 1 ? (nch+=1):(sucess = 1);
+nch == 23 ? _global.ConsoleMeter_23 == 1 ? (nch+=1):(sucess = 1);
+nch == 24 ? _global.ConsoleMeter_24 == 1 ? (nch+=1):(sucess = 1);
+
+nnch == 0 ?(
+nch == 24 ? (nch = 0; nnch = 1);
+):(
+nch == slider5 ? sucess = 1; nch = 0;
+);
+
+);
+slider5 = nch;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step/10;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 1 ? (val = 2):(val=1);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       val = valOld + (mouse_wheel/12)*step;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+
+
+
+
+
+errcnt = 0;
+tot_nbr_spl = 0;
+scnt = 0;
+
+offset = 0.0074;//0.0074;
+
+nd_posL = nd_posR = 0;
+nd_speedL = nd_speedR = 0;
+
+dt = 10 / srate;
+
+mom = 0.00042;
+
+dbL = dbR = 0;
+overL = overR = 0;
+
+fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+wl   = 0;
+damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+
+mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+meterInL = spl0;
+meterInR = spl1;
+
+function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+(
+tot_nbr_spl += 1;
+
+smpL = meterInL; 
+smpR = meterInR;
+
+mnmode == 1 ? ( 
+  smpL = (meterInL + meterInR) * 0.5;
+  smpR = smpL;  
+);
+
+mnmode >= 2 ? ( 
+  smpL = max(meterInL, meterInR);
+  smpR = smpL; 
+);
+
+smpL = abs(smpL);
+smpR = abs(smpR);
+
+ 
+scnt += 1;
+
+scnt === 10 ? (
+    
+  // move left needle
+  
+    force = smpL * fact_up  -  (nd_posL * .1 + offset);
+    
+    nd_speedL += force * dt / mnmom;  
+    nd_speedL = nd_speedL * damp;
+    nd_posL += nd_speedL * dt;
+    nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+  
+    nd_posL = min(max(nd_posL,0),1);
+  
+    // move right needle
+
+    force = smpR * fact_up  - (nd_posR * .1 + offset);
+    
+    nd_speedR += force * dt /mnmom;  
+    nd_speedR = nd_speedR * damp;
+    nd_posR += nd_speedR * dt;
+    nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+  
+    nd_posR = min(max(nd_posR,0),1);
+     
+    overL -= 10;
+    overR -= 10;
+
+    scnt = 0;
+    
+    slider5 == 1 ? (_global.CMeter_1_nd_posL = nd_posL;_global.CMeter_1_nd_posR = nd_posR;);
+    slider5 == 2 ? (_global.CMeter_2_nd_posL = nd_posL;_global.CMeter_2_nd_posR = nd_posR;);
+    slider5 == 3 ? (_global.CMeter_3_nd_posL = nd_posL;_global.CMeter_3_nd_posR = nd_posR;);
+    slider5 == 4 ? (_global.CMeter_4_nd_posL = nd_posL;_global.CMeter_4_nd_posR = nd_posR;);
+    slider5 == 5 ? (_global.CMeter_5_nd_posL = nd_posL;_global.CMeter_5_nd_posR = nd_posR;);
+    slider5 == 6 ? (_global.CMeter_6_nd_posL = nd_posL;_global.CMeter_6_nd_posR = nd_posR;);
+    slider5 == 7 ? (_global.CMeter_7_nd_posL = nd_posL;_global.CMeter_7_nd_posR = nd_posR;);
+    slider5 == 8 ? (_global.CMeter_8_nd_posL = nd_posL;_global.CMeter_8_nd_posR = nd_posR;);
+    
+    slider5 == 9 ? (_global.CMeter_9_nd_posL = nd_posL;_global.CMeter_9_nd_posR = nd_posR;);
+    slider5 == 10 ? (_global.CMeter_10_nd_posL = nd_posL;_global.CMeter_10_nd_posR = nd_posR;);
+    slider5 == 11 ? (_global.CMeter_11_nd_posL = nd_posL;_global.CMeter_11_nd_posR = nd_posR;);
+    slider5 == 12 ? (_global.CMeter_12_nd_posL = nd_posL;_global.CMeter_12_nd_posR = nd_posR;);
+    slider5 == 13 ? (_global.CMeter_13_nd_posL = nd_posL;_global.CMeter_13_nd_posR = nd_posR;);
+    slider5 == 14 ? (_global.CMeter_14_nd_posL = nd_posL;_global.CMeter_14_nd_posR = nd_posR;);
+    slider5 == 15 ? (_global.CMeter_15_nd_posL = nd_posL;_global.CMeter_15_nd_posR = nd_posR;);
+    slider5 == 16 ? (_global.CMeter_16_nd_posL = nd_posL;_global.CMeter_16_nd_posR = nd_posR;);
+    
+    slider5 == 17 ? (_global.CMeter_17_nd_posL = nd_posL;_global.CMeter_17_nd_posR = nd_posR;);
+    slider5 == 18 ? (_global.CMeter_18_nd_posL = nd_posL;_global.CMeter_18_nd_posR = nd_posR;);
+    slider5 == 19 ? (_global.CMeter_19_nd_posL = nd_posL;_global.CMeter_19_nd_posR = nd_posR;);
+    slider5 == 20 ? (_global.CMeter_20_nd_posL = nd_posL;_global.CMeter_20_nd_posR = nd_posR;);
+    slider5 == 21 ? (_global.CMeter_21_nd_posL = nd_posL;_global.CMeter_21_nd_posR = nd_posR;);
+    slider5 == 22 ? (_global.CMeter_22_nd_posL = nd_posL;_global.CMeter_22_nd_posR = nd_posR;);
+    slider5 == 23 ? (_global.CMeter_23_nd_posL = nd_posL;_global.CMeter_23_nd_posR = nd_posR;);
+    slider5 == 24 ? (_global.CMeter_24_nd_posL = nd_posL;_global.CMeter_24_nd_posR = nd_posR;);
+);
+);
+
+function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+(
+tot_nbr_spl_g  = tot_nbr_spl;
+
+overL_g = overL;
+overR_g = overR;
+nd_posL_g = nd_posL;
+nd_posR_g = nd_posR;
+
+tot_nbr_spl_g === tot_nbr_spl ? (
+
+  dbL = (nd_posL_g * 23) - 20;
+  dbR = (nd_posR_g * 23) - 20;
+  
+) : (
+  errcnt += 1; // thread collision
+);
+
+
+gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+;
+mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+gfx_blit(0,mnblitscale,0);
+
+
+w1 = $pi * 16.5 / 180; 
+w2 = $pi * 45 / 180;
+
+xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+yw = 92*mnblitscale;//floor(xw / 1.5);
+
+r1 = 130*mnblitscale;//floor(yw * 0.85);
+
+
+
+ xd = 10 + chan*(xw+10);
+  mode === 1 ? xd += floor(xw/2);
+  
+  yd = 10;
+
+  xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+  ya = floor(yd + yw * 1.1);
+
+
+twometer ? (
+  chan = 1;
+  chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+
+  ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+  aay = abs((90 - abs(ph))); 
+  r1 = mnblitscale*(80+aay/5);
+  
+  ph = ph * ($pi / 180);
+    
+  cosp = cos(ph);
+  sinp = sin(ph);
+    
+    ya = mnmetery+110*mnblitscale;
+    xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+  x1 = xa - cosp * r1 * 0.25;
+  y1 = ya - sinp * r1 * 0.25;
+
+  x2 = xa - cosp * r1 * 1.1;
+  y2 = ya - sinp * r1 * 1.1;
+
+  gfx_x = x1;
+  gfx_y = y1; 
+  gfx_lineto(x2, y2);
+ );
+  
+chan = 0;
+
+  chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+  mnch == 2 ? (ph= dbR);
+  ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+  aay = abs((90 - abs(ph))); 
+  r1 = mnblitscale*(80+aay/5);
+  
+  ph = ph * ($pi / 180);
+    
+  cosp = cos(ph);
+  sinp = sin(ph);
+    
+    ya = mnmetery+110*mnblitscale;
+    xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+  x1 = xa - cosp * r1 * 0.25;
+  y1 = ya - sinp * r1 * 0.25;
+
+  x2 = xa - cosp * r1 * 1.1;
+  y2 = ya - sinp * r1 * 1.1;
+
+  gfx_x = x1;
+  gfx_y = y1; 
+  gfx_lineto(x2, y2);
+  
+  );
+
+
+
+
+
+
+
+//==============================================================================
+@slider
+//==============================================================================
+slider5 > 0 ? (
+
+slider5 == 1 ? (
+_global.ConsoleMeter_1 == 0 ? 
+(
+CMSendTo = slider5;
+):(
+CMSendTo != slider5 ? CMSendTo = 0;
+);
+);
+
+); // slider5 > 0
+//==============================================================================
+@block
+//==============================================================================
+
+slider1 = _global.CMeter_stereo;
+
+
+_global.ConsoleMeter_Main_Present == 0 ?
+(
+cmmp += 1;
+cmmp >= 200 ? (cmmp_active = 0);
+):(cmmp_active = 1);
+
+_global.ConsoleMeter_Main_present = 0;
+
+
+
+_global.ConsoleMeter_1 == 0 ?
+(
+cm1 += 1;
+cm1 >= 10 ? (cm1 = 10; cm1active = 0; _global.nd_posR = _global.nd_posL = 0;);
+):(cm1=0;cm1active = 1);
+
+_global.ConsoleMeter_2 == 0 ?
+(
+cm2 += 1;
+cm2 >= 10 ? (cm2 = 10; cm2active = 0);
+):(cm2=0;cm2active = 1);
+
+_global.ConsoleMeter_3 == 0 ?
+(
+cm3 += 1;
+cm3 >= 10 ? (cm3 = 10; cm3active = 0);
+):(cm3=0;cm3active = 1);
+
+_global.ConsoleMeter_4 == 0 ?
+(
+cm4 += 1;
+cm4 >= 10 ? (cm4 = 10; cm4active = 0);
+):(cm4=0;cm4active = 1);
+
+_global.ConsoleMeter_5== 0 ?
+(
+cm5 += 1;
+cm5 >= 10 ? (cm5 = 10; cm5active = 0);
+):(cm5=0;cm5active = 1);
+
+_global.ConsoleMeter_6 == 0 ?
+(
+cm6 += 1;
+cm6 >= 10 ? (cm6 = 10; cm6active = 0);
+):(cm6=0;cm6active = 1);
+
+_global.ConsoleMeter_7 == 0 ?
+(
+cm7 += 1;
+cm7 >= 10 ? (cm7 = 10; cm7active = 0);
+):(cm7=0;cm7active = 1);
+
+_global.ConsoleMeter_8 == 0 ?
+(
+cm8 += 1;
+cm8 >= 10 ? (cm8 = 10; cm8active = 0);
+):(cm8=0;cm8active = 1);
+
+_global.ConsoleMeter_9 == 0 ?
+(
+cm9 += 1;
+cm9 >= 10 ? (cm9 = 10; cm9active = 0; _global.nd_posR = _global.nd_posL = 0;);
+):(cm9=0;cm9active = 1);
+
+_global.ConsoleMeter_10 == 0 ?
+(
+cm10 += 1;
+cm10 >= 10 ? (cm10 = 10; cm10active = 0);
+):(cm10=0;cm10active = 1);
+
+_global.ConsoleMeter_11 == 0 ?
+(
+cm11 += 1;
+cm11 >= 10 ? (cm11 = 10; cm11active = 0);
+):(cm11=0;cm11active = 1);
+
+_global.ConsoleMeter_12 == 0 ?
+(
+cm12 += 1;
+cm12 >= 10 ? (cm12 = 10; cm12active = 0);
+):(cm12=0;cm12active = 1);
+
+_global.ConsoleMeter_13== 0 ?
+(
+cm13 += 1;
+cm13 >= 10 ? (cm13 = 10; cm13active = 0);
+):(cm13=0;cm13active = 1);
+
+_global.ConsoleMeter_14 == 0 ?
+(
+cm14 += 1;
+cm14 >= 10 ? (cm14 = 10; cm14active = 0);
+):(cm14=0;cm14active = 1);
+
+_global.ConsoleMeter_15 == 0 ?
+(
+cm15 += 1;
+cm15 >= 10 ? (cm15 = 10; cm15active = 0);
+):(cm15=0;cm15active = 1);
+
+_global.ConsoleMeter_16 == 0 ?
+(
+cm16 += 1;
+cm16 >= 10 ? (cm16 = 10; cm16active = 0);
+):(cm16=0;cm16active = 1);
+
+_global.ConsoleMeter_17 == 0 ?
+(
+cm17 += 1;
+cm17 >= 10 ? (cm17 = 10; cm17active = 0; _global.nd_posR = _global.nd_posL = 0;);
+):(cm17=0;cm17active = 1);
+
+_global.ConsoleMeter_18 == 0 ?
+(
+cm18 += 1;
+cm18 >= 10 ? (cm18 = 10; cm18active = 0);
+):(cm18=0;cm18active = 1);
+
+_global.ConsoleMeter_19 == 0 ?
+(
+cm19 += 1;
+cm19 >= 10 ? (cm19 = 10; cm19active = 0);
+):(cm19=0;cm19active = 1);
+
+_global.ConsoleMeter_20 == 0 ?
+(
+cm20 += 1;
+cm20 >= 10 ? (cm20 = 10; cm20active = 0);
+):(cm20=0;cm20active = 1);
+
+_global.ConsoleMeter_21== 0 ?
+(
+cm21 += 1;
+cm21 >= 10 ? (cm21 = 10; cm21active = 0);
+):(cm21=0;cm21active = 1);
+
+_global.ConsoleMeter_22 == 0 ?
+(
+cm22 += 1;
+cm22 >= 10 ? (cm22 = 10; cm22active = 0);
+):(cm22=0;cm22active = 1);
+
+_global.ConsoleMeter_23 == 0 ?
+(
+cm23 += 1;
+cm23 >= 10 ? (cm23 = 10; cm23active = 0);
+):(cm23=0;cm23active = 1);
+
+_global.ConsoleMeter_24 == 0 ?
+(
+cm24 += 1;
+cm24 >= 10 ? (cm24 = 10; cm24active = 0);
+):(cm24=0;cm24active = 1);
+
+
+//==============================================================================
+@sample
+//==============================================================================
+
+cmmp_active == 1 ? (
+mom = 0.00010 + 0.00032 * _global.ConsoleMeter_Speed^3 / 125000;
+):(
+mom = 0.00010 + 0.00032 *  slider3^3 / 125000;
+);
+
+//scaler = 10^(abs(slider2)/20);
+//cmmp_active == 1 ?
+scaler = 10^(abs(_global.ConsoleMeter_Calibration+slider2)/20);
+
+mode = abs(slider1-1);
+mnmetersample(spl0*scaler,spl1*scaler,mode,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+
+warnlevel = 10^(slider4/20);
+max(smpL,smpR) > warnlevel ? (ledon = 10);
+
+
+//CMSendTo == slider5 ? 
+slider5 == 1 ? _global.ConsoleMeter_1 = 1;
+slider5 == 2 ? _global.ConsoleMeter_2 = 1;
+slider5 == 3 ? _global.ConsoleMeter_3 = 1;
+slider5 == 4 ? _global.ConsoleMeter_4 = 1;
+slider5 == 5 ? _global.ConsoleMeter_5 = 1;
+slider5 == 6 ? _global.ConsoleMeter_6 = 1;
+slider5 == 7 ? _global.ConsoleMeter_7 = 1;
+slider5 == 8 ? _global.ConsoleMeter_8 = 1;
+
+slider5 == 9 ? _global.ConsoleMeter_9 = 1;
+slider5 == 10 ? _global.ConsoleMeter_10 = 1;
+slider5 == 11 ? _global.ConsoleMeter_11 = 1;
+slider5 == 12 ? _global.ConsoleMeter_12 = 1;
+slider5 == 13 ? _global.ConsoleMeter_13 = 1;
+slider5 == 14 ? _global.ConsoleMeter_14 = 1;
+slider5 == 15 ? _global.ConsoleMeter_15 = 1;
+slider5 == 16 ? _global.ConsoleMeter_16 = 1;
+
+slider5 == 17 ? _global.ConsoleMeter_17 = 1;
+slider5 == 18 ? _global.ConsoleMeter_18 = 1;
+slider5 == 19 ? _global.ConsoleMeter_19 = 1;
+slider5 == 20 ? _global.ConsoleMeter_20 = 1;
+slider5 == 21 ? _global.ConsoleMeter_21 = 1;
+slider5 == 22 ? _global.ConsoleMeter_22 = 1;
+slider5 == 23 ? _global.ConsoleMeter_23 = 1;
+slider5 == 24 ? _global.ConsoleMeter_24 = 1;
+
+slider5 == 1 ? (_global.cm1_sendL = max(abs(spl0),_global.cm1_sendL); _global.cm1_sendR = max(abs(spl1),_global.cm1_sendR));
+slider5 == 2 ? (_global.cm2_sendL = max(abs(spl0),_global.cm2_sendL); _global.cm2_sendR = max(abs(spl1),_global.cm2_sendR));
+slider5 == 3 ? (_global.cm3_sendL = max(abs(spl0),_global.cm3_sendL); _global.cm3_sendR = max(abs(spl1),_global.cm3_sendR));
+slider5 == 4 ? (_global.cm4_sendL = max(abs(spl0),_global.cm4_sendL); _global.cm4_sendR = max(abs(spl1),_global.cm4_sendR));
+slider5 == 5 ? (_global.cm5_sendL = max(abs(spl0),_global.cm5_sendL); _global.cm5_sendR = max(abs(spl1),_global.cm5_sendR));
+slider5 == 6 ? (_global.cm6_sendL = max(abs(spl0),_global.cm6_sendL); _global.cm6_sendR = max(abs(spl1),_global.cm6_sendR));
+slider5 == 7 ? (_global.cm7_sendL = max(abs(spl0),_global.cm7_sendL); _global.cm7_sendR = max(abs(spl1),_global.cm7_sendR));
+slider5 == 8 ? (_global.cm8_sendL = max(abs(spl0),_global.cm8_sendL); _global.cm8_sendR = max(abs(spl1),_global.cm8_sendR));
+
+slider5 == 9 ? (_global.cm9_sendL = max(abs(spl0),_global.cm9_sendL); _global.cm9_sendR = max(abs(spl1),_global.cm9_sendR));
+slider5 == 10? (_global.cm10_sendL = max(abs(spl0),_global.cm10_sendL); _global.cm10_sendR = max(abs(spl1),_global.cm10_sendR));
+slider5 == 11? (_global.cm11_sendL = max(abs(spl0),_global.cm11_sendL); _global.cm11_sendR = max(abs(spl1),_global.cm11_sendR));
+slider5 == 12? (_global.cm12_sendL = max(abs(spl0),_global.cm12_sendL); _global.cm12_sendR = max(abs(spl1),_global.cm12_sendR));
+slider5 == 13? (_global.cm13_sendL = max(abs(spl0),_global.cm13_sendL); _global.cm13_sendR = max(abs(spl1),_global.cm13_sendR));
+slider5 == 14? (_global.cm14_sendL = max(abs(spl0),_global.cm14_sendL); _global.cm14_sendR = max(abs(spl1),_global.cm14_sendR));
+slider5 == 15? (_global.cm15_sendL = max(abs(spl0),_global.cm15_sendL); _global.cm15_sendR = max(abs(spl1),_global.cm15_sendR));
+slider5 == 16? (_global.cm16_sendL = max(abs(spl0),_global.cm16_sendL); _global.cm16_sendR = max(abs(spl1),_global.cm16_sendR));
+
+slider5 == 17? (_global.cm17_sendL = max(abs(spl0),_global.cm17_sendL); _global.cm17_sendR = max(abs(spl1),_global.cm17_sendR));
+slider5 == 18? (_global.cm18_sendL = max(abs(spl0),_global.cm18_sendL); _global.cm18_sendR = max(abs(spl1),_global.cm18_sendR));
+slider5 == 19? (_global.cm19_sendL = max(abs(spl0),_global.cm19_sendL); _global.cm19_sendR = max(abs(spl1),_global.cm19_sendR));
+slider5 == 20? (_global.cm20_sendL = max(abs(spl0),_global.cm20_sendL); _global.cm20_sendR = max(abs(spl1),_global.cm20_sendR));
+slider5 == 21? (_global.cm21_sendL = max(abs(spl0),_global.cm21_sendL); _global.cm21_sendR = max(abs(spl1),_global.cm21_sendR));
+slider5 == 22? (_global.cm22_sendL = max(abs(spl0),_global.cm22_sendL); _global.cm22_sendR = max(abs(spl1),_global.cm22_sendR));
+slider5 == 23? (_global.cm23_sendL = max(abs(spl0),_global.cm23_sendL); _global.cm23_sendR = max(abs(spl1),_global.cm23_sendR));
+slider5 == 24? (_global.cm24_sendL = max(abs(spl0),_global.cm24_sendL); _global.cm24_sendR = max(abs(spl1),_global.cm24_sendR));
+
+//==============================================================================
+@gfx 190 88
+//==============================================================================
+      mouseHold = mouse_cap & 1;
+      mouseHoldr = mouse_cap & 2;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
+      mouseClick = mouseHold - lastCap;
+      mouseClickr = mouseHoldr - lastCapr;      
+      
+      lastCap = mouseHold;
+      lastCapr = mouseHoldr;
+
+
+
+gfx_ext_flags == 0 ? (
+gfx_w = 190; gfx_h=88;
+);
+
+gfx_x =0; gfx_y=0;
+gfx_blit(2,1,0);
+
+mnmetergfx(0, 0, 0, slider1, 1);
+
+
+cm1active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 1 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(200,40,20,20,5);
+cm2active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 2 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(225,40,20,20,5);
+cm3active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 3 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(250,40,20,20,5);
+cm4active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 4 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(275,40,20,20,5);
+cm5active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 5 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(300,40,20,20,5);
+cm6active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 6 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(325,40,20,20,5);
+cm7active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 7 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(350,40,20,20,5);
+cm8active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 8 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(375,40,20,20,5);
+
+cm9active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 9 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(400,40,20,20,5);
+cm10active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 10 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(425,40,20,20,5);
+cm11active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 11 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(450,40,20,20,5);
+cm12active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 12 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(475,40,20,20,5);
+
+
+
+cm13active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 13 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(200,65,20,20,5);
+cm14active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 14 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(225,65,20,20,5);
+cm15active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 15 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(250,65,20,20,5);
+cm16active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 16 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(275,65,20,20,5);
+cm17active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 17 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(300,65,20,20,5);
+cm18active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 18 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(325,65,20,20,5);
+cm19active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 19 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(350,65,20,20,5);
+cm20active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 20 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(375,65,20,20,5);
+
+cm21active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 21 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(400,65,20,20,5);
+cm22active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 22 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(425,65,20,20,5);
+cm23active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 23 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(450,65,20,20,5);
+cm24active == 1 ? (gfx_r=1;gfx_g=0;gfx_b=0):(gfx_r=0.7;gfx_g=0.7;gfx_b=0);
+slider5 == 24 ? (gfx_r=0;gfx_g=1;gfx_b=0.3);
+gfx_roundrect(475,65,20,20,5);
+
+
+gfx_r=0.7;gfx_g=0.7;gfx_b=0.7;
+gfx_roundrect(200,10,20,20,5);
+gfx_roundrect(225,10,20,20,5);
+gfx_roundrect(250,10,45,20,5);
+gfx_roundrect(300,10,20,20,5);
+gfx_roundrect(325,10,20,20,5);
+slider2 >= 10 ? gfx_x = 265: 
+slider2 >= 0 ? gfx_x = 270:
+slider2 > -10 ? gfx_x = 265:
+slider2 <= -10 ? gfx_x = 260;
+
+gfx_y = 16;
+gfx_drawnumber(slider2,0);
+
+
+hover = 0;
+nch = 1;
+loop(12,
+mouse_x > 200+(nch-1)*25 ? (
+mouse_x < 220+(nch-1)*25 ? (
+mouse_y > 40 ? (
+mouse_y < 60 ? (
+hover = nch;
+);
+);
+mouse_y > 65 ? (
+mouse_y < 85 ? (
+hover = nch+12;
+);
+);
+);
+);
+
+nch += 1;
+);
+
+
+//gfx_r=0;gfx_g=1;gfx_b=0.3; gfx_x =200; gfx_y =3;
+//gfx_drawnumber(hover,0);
+
+
+mouseClick == 1 ? (
+hover != 0 ? (
+slider5 = hover;
+):(
+mouse_y > 10 ? (
+mouse_y < 30 ? (
+mouse_x > 200 ? (
+mouse_x < 220 ? (
+slider2 >= -18 ? slider2 -= 6;
+);
+);
+mouse_x > 225 ? (
+mouse_x < 245 ? (
+slider2 >= -23 ? slider2 -= 1;
+);
+);
+mouse_x > 300 ? (
+mouse_x < 320 ? (
+slider2 <= 23 ? slider2 += 1;
+);
+);
+mouse_x > 325 ? (
+mouse_x < 345 ? (
+slider2 <= 18 ? slider2 += 6;
+);
+);
+
+);
+);
+
+);
+);
+
+/*
+
+
+
+      
+      gfx_x=1;gfx_y=1;
+
+fsz = min(gfx_h/5,12);
+gfx_setfont(1,"Arial",fsz);
+gfx_drawnumber(abs(slider2),0);
+
+mouseClick == 1 ? (
+shift ? (
+//slider2 -= 6; slider2 < -24 ? (slider2 = 0);
+
+slider2 > -6 ? (slider2 = -6):
+slider2 > -12 ? (slider2 = -12):
+slider2 > -18 ? (slider2 = -18):
+slider2 > -24 ? (slider2 = -24):
+slider2 <= -24 ? (slider2 = 0);
+):(
+slider1 == 0 ? (slider1=1):(slider1=0);
+);
+
+alt ? (
+slider2 -= 1; slider2 < -24 ? (slider2 = 0);
+);
+
+);
+
+mouseclickr == 2 ? (
+shift ? (
+slider3 == 71 ? (slider3 = 61; Speedinfo = 60):
+slider3 == 61 ? (slider3 = 40; Speedinfo = 60):
+slider3 == 40 ? (slider3 = 71; Speedinfo = 60);
+);
+);
+  
+  
+speedinfo > 0 ? (
+slider3 == 71 ? gfx_drawstr("   SLOW");
+slider3 == 61 ? gfx_drawstr("   REGULAR");
+slider3 == 40 ? gfx_drawstr("   FAST");
+speedinfo -= 1;
+);
+
+blitscale = gfx_w/190;
+gfx_x = 155*blitscale; gfx_y = 60*blitscale;
+//gfx_blit(1,blitscale,0,0,35,35,35);
+ledon ? (gfx_blit(1,blitscale,0,0,35,35,35)):(gfx_blit(1,blitscale,0,0,0,35,35));
+
+ledon ? (ledon-=1);
+
+mom = 0.00010 + 0.00032 *  slider3^3 / 125000; 
+
+gfx_r=gfx_g=gfx_b=1;
+gfx_x = 200; gfx_y = 4;
+gfx_Drawstr("Needle not moving?...");
+CMSendTo = 0 ? (slider5 > 0 ? gfx_drawstr("NOT SENDING"));
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Shift+Left-Click = adjust 'VU 0dB' to x dBFS");
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Alt+Left-Click = adjust 'VU 0dB' to x dBFS (fine)");
+gfx_y+=20;gfx_x = 200;
+gfx_Drawstr("Shift+Right-Click = adjust meter speed  ");
