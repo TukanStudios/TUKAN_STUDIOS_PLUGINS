@@ -213,7 +213,8 @@ stattslider_on = 0;
 function stattslider() (
 
 stattslider_on = 1;
-
+     
+     
 // frequency slider scaling
 tmpx = 16+slider1*1.20103;
 tmpy = floor(exp(tmpx*log(1.059))*8.17742);
@@ -361,6 +362,8 @@ caller = 1;
 @sample
 
 caller == 1 ? (
+     Nose1_Freq.val=Nose1_Freq=slider1;
+     Nose2_Freq.val=Nose2_Freq=slider7;
 stattslider_on == 0 ? (
 stattslider();
 );
@@ -836,8 +839,7 @@ spl1 *= outvol;
        Nose2_Freq.potVal(Nose2_Freq.val);
        Nose2_Freq.valOld=Nose2_Freq;
      );
-     
-     
+   
      
      //////////////////////// ZFCT ///////////////////////////////
      slider10 = zmnu;
