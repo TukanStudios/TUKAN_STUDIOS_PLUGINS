@@ -1,0 +1,853 @@
+desc:Sphinx (Tukan)
+slider1:50<0,100,0.01>-Freq 1
+slider2:0.707<0,4,0.001>-DONT Bandwidth
+slider3:0<-12,12,0.1>-Nose1 Gain
+slider4:0<0,8,1{lpf (bw),hpf (bw),bpf (constant skirt gain) (bw),bpf2 (constant peak gain) (bw),notch (bw),all pass (bw),peak (bw;dB),lsf (bw;dB),hsf (bw;dB)}>-Filter type
+slider5:0<-24,24,0.1>-DONT Output (dB)
+slider6:0<0,4,1>-DONT 6 Find
+
+slider7:50<0,100,0.01>-Freq 2
+slider8:0<-12,12,0.1>-Nose2 Gain
+slider9:0<0,8,1{lpf (bw),hpf (bw),bpf (constant skirt gain) (bw),bpf2 (constant peak gain) (bw),notch (bw),all pass (bw),peak (bw;dB),lsf (bw;dB),hsf (bw;dB)}>-Filter type
+
+slider10:1<0,6,.01>-DONT Scaling
+
+in_pin:L in
+in_pin:R in
+out_pin:L out
+out_pin:R out
+
+filename:0,Sphinx/whiteknob_35.png
+filename:1,Sphinx/LED.png
+filename:2,Sphinx/APIBig.png
+filename:3,Sphinx/sphinxback.png
+filename:4,Sphinx/menu.png
+
+@init
+ gfx_clear=1;
+  ext_noinit=1;
+  gfx_ext_retina = 1;
+  lastCap=1;
+  mouse_wheel=1;
+
+ initial = 0;
+ 
+
+      function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+    function xy(x y)
+               ( gfx_x = x; gfx_y = y; );
+    
+    function rgb(r g b)
+                ( gfx_r = r; gfx_g = g; gfx_b = b; );
+    
+    function rectIn  (xIn_ yIn_ wIn hIn)
+      instance       (xIn yIn widthIn heightIn)
+                     (
+                      xIn = xIn_;
+                      yIn = yIn_;
+                      widthIn = wIn;
+                      heightIn = hIn;
+                      );
+                    
+    function rectOut  (xOut_ yOut_ wOut hOut c i)
+      instance        (xOut yOut widthOut heightOut count index)
+                      (
+                       xOut = xOut_;
+                       yOut = yOut_;
+                       widthOut = wOut;
+                       heightOut = hOut;
+                       count = c;
+                       index = i;
+                       );                
+    
+    function potVal(v)
+      instance      (frame val minVal maxVal count heightOut)
+                    (
+                     val = v;
+                     frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                     frame |= 0;
+                    );
+    
+    function potCfg  (default_ minVal_ maxVal_ step_)
+      instance        (default minVal maxVal step)
+                      (
+                       default = default_;
+                       minVal = minVal_;
+                       maxVal = maxVal_;
+                       step    = step_;
+                       this.potVal(default);
+                      );
+  
+    function bkg(wImg hImg indImg)
+                 (
+                   gfx_a=1;
+                   coords[0] = coords[4] = 0;
+                   coords[1] = coords[5] = 0;;
+                   coords[2] = coords[6] = wImg;
+                   coords[3] = coords[7] = hImg;
+                   gfx_blitext(indImg, coords, 0);
+                  ); 
+    
+    function potDrawIn ()
+      instance        (xIn yIn widthIn heightIn val)
+                      (
+                         gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                         
+                         gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                         gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                         gfx_line(xIn,yIn,xIn+widthIn,yIn);
+          
+                         gfx_r = gfx_g = gfx_b = 0.75;
+                         gfx_x = xIn + widthIn/2-12;
+                         gfx_y = yIn+heightIn/2-5;
+                         gfx_drawnumber(val, 1);                   
+                      );
+    
+    function knob()
+      instance   (xOut yOut widthOut heightOut index frame val)
+                 (
+                  
+                   gfx_a=1;
+                   coords[0] = 0;
+                   coords[1] = frame * heightOut;
+                   coords[2] = coords[6] = widthOut;
+                   coords[3] = coords[7] = heightOut;
+                   coords[4] = xOut;
+                   coords[5] = yOut;
+                   gfx_blitext(index, coords, 0);
+                  );                                     
+    
+    function collision  ()
+      instance          (xIn yIn widthIn heightIn)
+                        (
+                         mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
+                        );
+    
+    function dragStart ()
+      instance          (dragging yOld default)
+                        (
+                         !ctrl ? (
+                         yOld = mouse_y;
+                         dragging = 1;
+                        ) : 
+                         this.potVal(default);
+                        );
+    
+    function dragStop()
+      instance        (dragging val valOld)
+                      (
+                       dragging = 0;
+                       valOld = val;
+                      );
+    
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 1 ? (val = 2):(val=1);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+
+  /*
+  slider10:100<0,100,1>-Input Att
+  slider11:0<0,100,1>-Service Old
+  slider12:0<0,100,1>-Denoiser
+  slider13:0<-100,100,2>-Output
+  */
+Nose1_Freq.potcfg  (70,20,90,0.07);
+Nose2_Freq.potcfg (49,20,90,0.07);
+
+Nose1_Freq.rectIn(85, 115, 75, 75);
+Nose1_Freq.rectOut(85, 115, 75, 75, 61, 1);
+
+Nose2_Freq.rectIn(85, 110+115, 75, 75);
+Nose2_Freq.rectOut(85, 110+115, 75, 75, 61, 1);
+
+
+
+
+
+
+
+
+stattslider_on = 0;
+function stattslider() (
+
+stattslider_on = 1;
+     
+     
+// frequency slider scaling
+tmpx = 16+slider1*1.20103;
+tmpy = floor(exp(tmpx*log(1.059))*8.17742);
+
+slider6 == 2 ? (slider4 = 2):(slider4 = 6);
+// filter calculation
+f = 2*$pi * min(tmpy, 0.49 * srate) / srate;
+q = 2.8;//max(min(slider2,4),0.01);
+
+slider3 > -1.5 ? vslider3 = 0;
+slider3 > -4 ? slider3 <= -1.5 ? vslider3 = -3;
+slider3 > -6.5 ? slider3 <= -4 ? vslider3 = -5;
+slider3 <= -6.5 ? vslider3 = -8;
+
+slider6 == 1 ? (dB_gain = 6):(dB_gain = vslider3);
+
+Nose1_gfx_a = 1;
+vslider3 == 0 ? Nose1_gfx_a = 0;
+vslider3 < 0 ? Nose1_gfx_a = 0.5;
+vslider3 < -4 ? Nose1_gfx_a = 0.8;
+vslider3 < -7 ? Nose1_gfx_a = 1;
+
+
+outvol = 10^(slider5/20);
+
+slider4==2?(
+//BPF:
+w0 = f;
+alpha = sin(w0) / (2*q);
+
+b0 = q * alpha;
+b1 = 0;
+b2 = -b0;
+a0 = 1 + alpha;
+a1 = -2 * cos(w0);
+a2 = 1 - alpha;
+);
+
+slider4==6?(
+//PEQ:
+w0 = f;
+alpha = sin(w0) / (2*q);
+a = 10^(db_gain / 40);
+
+b0 = 1 + alpha * a;
+b1 = a1 = -2 * cos(w0);
+b2 = 1 - alpha * a;
+a0 = 1 + alpha / a;
+a2 = 1 - alpha / a;
+);
+
+a1 /= a0;
+a2 /= a0;
+b0 /= a0;
+b1 /= a0;
+b2 /= a0;
+
+
+
+
+
+
+
+
+
+slider8 > -1.5 ? vslider8 = 0;
+slider8 > -4 ? slider8 <= -1.5 ? vslider8 = -3;
+slider8 > -6.5 ? slider8 <= -4 ? vslider8 = -5;
+slider8 <= -6.5 ? vslider8 = -8;
+
+
+slider6 == 4 ? (slider9 = 2):(slider9 = 6);
+// frenose2_quency slider scaling
+nose2_tmpx = 16+slider7*1.20103;
+nose2_tmpy = floor(exp(nose2_tmpx*log(1.059))*8.17742);
+
+// filter calculation
+nose2_f = 2*$pi * min(nose2_tmpy, 0.49 * srate) / srate;
+nose2_q = 2.8;//max(min(slider2,4),0.01);
+//nose2_dB_gain = slider8;
+slider6 == 3 ? (nose2_dB_gain = 6):(nose2_dB_gain = vslider8);
+
+Nose2_gfx_a = 1;
+vslider8 == 0 ? Nose2_gfx_a = 0;
+vslider8 < 0 ? Nose2_gfx_a = 0.5;
+vslider8 < -4 ? Nose2_gfx_a = 0.8;
+vslider8 < -7 ? Nose2_gfx_a = 1;
+
+
+slider9==2?(
+//BPF:
+nose2_w0 = nose2_f;
+nose2_alpha = sin(nose2_w0) / (2*nose2_q);
+
+nose2_b0 = nose2_q * nose2_alpha;
+nose2_b1 = 0;
+nose2_b2 = -nose2_b0;
+nose2_a0 = 1 + nose2_alpha;
+nose2_a1 = -2 * cos(nose2_w0);
+nose2_a2 = 1 - nose2_alpha;
+);
+
+slider9==6?(
+//PEnose2_q:
+nose2_w0 = nose2_f;
+nose2_alpha = sin(nose2_w0) / (2*nose2_q);
+nose2_a = 10^(nose2_dB_gain / 40);
+
+nose2_b0 = 1 + nose2_alpha * nose2_a;
+nose2_b1 = nose2_a1 = -2 * cos(nose2_w0);
+nose2_b2 = 1 - nose2_alpha * nose2_a;
+nose2_a0 = 1 + nose2_alpha / nose2_a;
+nose2_a2 = 1 - nose2_alpha / nose2_a;
+);
+
+nose2_a1 /= nose2_a0;
+nose2_a2 /= nose2_a0;
+nose2_b0 /= nose2_a0;
+nose2_b1 /= nose2_a0;
+nose2_b2 /= nose2_a0;
+
+
+
+
+
+slider6 == 1 ? (Nose1_gfx_a = 1);
+slider6 == 2 ? (Nose2_gfx_a = 0;Nose1_gfx_a = 1);
+slider6 == 3 ? (Nose2_gfx_a = 1);
+slider6 == 4 ? (Nose1_gfx_a = 0;Nose2_gfx_a = 1);
+
+stattslider_on = 0;
+caller = 0;
+);
+
+
+stattslider();
+
+
+
+@slider
+
+caller = 1;
+
+
+@sample
+
+caller == 1 ? (
+     Nose1_Freq.val=Nose1_Freq=slider1;
+     Nose2_Freq.val=Nose2_Freq=slider7;
+stattslider_on == 0 ? (
+stattslider();
+);
+);
+
+
+slider6 != 4 ? (
+inA = spl0;
+inB = spl1;
+
+//Left
+x2A = x1A;
+x1A = x0A;
+x0A = inA;
+
+y2A = y1A;
+y1A = y0A;
+y0A = b0*x0A + b1*x1A + b2*x2A - a1*y1A - a2*y2A;
+
+//Right
+x2B = x1B;
+x1B = x0B;
+x0B = inB;
+
+y2B = y1B;
+y1B = y0B;
+y0B = b0*x0B + b1*x1B + b2*x2B - a1*y1B - a2*y2B;
+
+//Output
+spl0 = y0A;
+spl1 = y0B;
+
+);
+
+
+slider6 != 2 ? (
+inA = spl0;
+inB = spl1;
+
+//Left
+nose2_x2A = nose2_x1A;
+nose2_x1A = nose2_x0A;
+nose2_x0A = inA;
+
+nose2_y2A = nose2_y1A;
+nose2_y1A = nose2_y0A;
+nose2_y0A = nose2_b0*nose2_x0A + nose2_b1*nose2_x1A + nose2_b2*nose2_x2A - nose2_a1*nose2_y1A - nose2_a2*nose2_y2A;
+
+//Right
+nose2_x2B = nose2_x1B;
+nose2_x1B = nose2_x0B;
+nose2_x0B = inB;
+
+nose2_y2B = nose2_y1B;
+nose2_y1B = nose2_y0B;
+nose2_y0B = nose2_b0*nose2_x0B + nose2_b1*nose2_x1B + nose2_b2*nose2_x2B - nose2_a1*nose2_y1B - nose2_a2*nose2_y2B;
+
+//Output
+spl0 = nose2_y0A;
+spl1 = nose2_y0B;
+
+);
+
+
+/*
+slider6 != 4 ? (
+slider6 != 2 ? (
+spl0 *= outvol;
+spl1 *= outvol;
+);
+);
+*/
+
+
+
+@gfx 596 317
+//zfct = 1;
+
+
+     function miniknopf(kfile, kx,ky,kframe,kbitmap,kmin,kmax,kslider,knopfscale)
+     (
+     gfx_x=kx; gfx_y=ky;
+     weg = abs(kmax - kmin);
+     //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+      kframe = (kslider - kmin) * (kframe-1) / (kmax - kmin);// + 0.5;
+      scry = kbitmap * floor(kframe);
+      gfx_blit(kfile,knopfscale,0,1,scry,kbitmap,kbitmap);
+     );
+     
+       mouseHold = mouse_cap & 1;
+       ctrl = mouse_cap & 4;
+       shift = mouse_cap & 8;
+       mouseClick = mouseHold - lastCap;
+       lastCap = mouseHold;
+   mouse_xz = mouse_x;
+   mouse_yz = mouse_y;
+   
+   
+   /////////////////////////////  ZFCT ////////////////////////
+   zfct_w = 596; zfct_h = 317;
+   gfx_setimgdim(127,zfct_w,zfct_h);
+   gfx_dest = 127;
+   zmnu != slider10 ? zmnu = slider10;
+   mouse_xz = mouse_x / zfct;
+   mouse_yz = mouse_y / zfct;
+   ///////////////////////////////////////////////////////////
+     
+     
+ gfx_r=gfx_b=gfx_g=0.3;gfx_a=1;
+ gfx_rect(0,0,gfx_w,gfx_h);
+ 
+ 
+ skala_y = 30;
+ skala_h = 35;
+ 
+ gfx_r=gfx_b=gfx_g=0;gfx_a=1;
+ gfx_rect(170,skala_y,390,skala_h+15);
+ 
+ 
+ gfx_r=gfx_b=gfx_g=0.6;gfx_a=1;
+ sy = 100;
+ loop(10,
+ syx = (80*log(sy))-180;
+ gfx_line(syx,skala_y,syx,skala_y+skala_h);
+ sy+=100;
+ );
+ sy = 1000;
+ loop(10,
+ syx = (80*log(sy))-180;
+ gfx_line(syx,skala_y,syx,skala_y+skala_h);
+ sy+=1000;
+ );
+ 
+ 
+ /*
+ gfx_x=gfx_y=10;
+ gfx_r=gfx_b=0;gfx_g=gfx_a=1;
+ gfx_drawchar($'F');
+ gfx_drawchar($' ');
+ gfx_drawchar($'=');
+ gfx_drawchar($' ');
+ gfx_drawnumber(tmpy,0);
+ gfx_drawchar($' ');
+ gfx_drawchar($'H');
+ gfx_drawchar($'z');
+ */
+ 
+ 
+ 
+ Nose1_gfx_a != 0 ? (
+ gfx_r=1*Nose1_gfx_a;gfx_b=0.3*Nose1_gfx_a;gfx_g=0.8*Nose1_gfx_a; gfx_a=1;
+ tmpxx = (80*log(tmpy))-180;
+ colfade = 0;
+ loop(35,
+ gfx_a = colfade/35;
+ gfx_line(tmpxx-(35-colfade),skala_y,tmpxx-(35-colfade),skala_y+skala_h);
+ colfade += 1;
+ );
+ loop(35,
+ gfx_a = colfade/35;
+ gfx_line(tmpxx+(35-colfade),skala_y,tmpxx+(35-colfade),skala_y+skala_h);
+ colfade -= 1;
+ );
+ gfx_r=gfx_b=0;gfx_g=0;gfx_a=1;
+ gfx_line(tmpxx,skala_y,tmpxx,skala_y+skala_h);
+ );
+ 
+ 
+ gfx_x=gfx_y=0;
+ gfx_blit(3,1,0); //BACK
+ 
+ 
+ 
+ Nose2_gfx_a != 0 ? (
+ gfx_r=1*Nose2_gfx_a;gfx_b=0.4*Nose2_gfx_a;gfx_g=0.7*Nose2_gfx_a; gfx_a=1;
+ tmpxx = (80*log(nose2_tmpy))-180;
+ colfade = 0;
+ loop(35,
+ gfx_a = colfade/35;
+ gfx_line(tmpxx-(35-colfade),skala_y,tmpxx-(35-colfade),skala_y+skala_h);
+ colfade += 1;
+ );
+ loop(35,
+ gfx_a = colfade/35;
+ gfx_line(tmpxx+(35-colfade),skala_y,tmpxx+(35-colfade),skala_y+skala_h);
+ colfade -= 1;
+ );
+ gfx_r=gfx_b=0;gfx_g=0;gfx_a=1;
+ gfx_line(tmpxx,skala_y,tmpxx,skala_y+skala_h);
+ );
+ 
+ 
+ 
+ knobs_x = 100; knobs_y = 130;
+ 
+ ////////////// NOSE 1 FIELD
+ gfx_x = knobs_x+100; gfx_y= knobs_y;
+ vslider3 == -3 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+130; gfx_y= knobs_y+2;
+ vslider3 == -3 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+170; gfx_y= knobs_y;
+ vslider3 == -5 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+200; gfx_y= knobs_y+2;
+ vslider3 == -5 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+240; gfx_y= knobs_y;
+ vslider3 == -8 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+270; gfx_y= knobs_y+2;
+ vslider3 == -8 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+330; gfx_y= knobs_y;
+ slider6 == 1 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+360; gfx_y= knobs_y+2;
+ slider6 == 1 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+400; gfx_y= knobs_y;
+ slider6 == 2 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+430; gfx_y= knobs_y+2;
+ slider6 == 2 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ miniknopf(2, knobs_x-15,knobs_y-15,61,75,20,90,slider1,1);
+ ////////////////////////////////////77
+ 
+ 
+ ////////////// NOSE 2 FIELD
+ knobs_y += 110;
+ gfx_x = knobs_x+100; gfx_y= knobs_y;
+ vslider8 == -3 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+130; gfx_y= knobs_y+2;
+ vslider8 == -3 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+170; gfx_y= knobs_y;
+ vslider8 == -5 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+200; gfx_y= knobs_y+2;
+ vslider8 == -5 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+240; gfx_y= knobs_y;
+ vslider8 == -8 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+270; gfx_y= knobs_y+2;
+ vslider8 == -8 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+330; gfx_y= knobs_y;
+ slider6 == 3 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+360; gfx_y= knobs_y+2;
+ slider6 == 3 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ gfx_x = knobs_x+400; gfx_y= knobs_y;
+ slider6 == 4 ? (gfx_blit(0,1,0,0,35,35,35)):(gfx_blit(0,1,0,0,0,35,35));
+ gfx_x = knobs_x+430; gfx_y= knobs_y+2;
+ slider6 == 4 ? (gfx_blit(1,1,0,0,0,30,30)):(gfx_blit(1,1,0,0,30,30,30));
+ 
+ miniknopf(2, knobs_x-15,knobs_y-15,61,75,20,90,slider7,1);
+ ////////////////////////////////////77
+ 
+ 
+ //gfx_r=1;gfx_b=0;gfx_g=gfx_a=1;
+ //gfx_line(5*nose2_tmpx,0,5*nose2_tmpx,30);
+ 
+ 
+ //skala_tmpx = 16+slider7*1.20103;
+ //skala_tmpy = floor(exp(skala_tmpx*log(1.059))*8.17742);
+ 
+ 
+ 
+ 
+ 
+ 
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 7; menu_y =7;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(4,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_xz > menu_x ? (
+   mouse_xz < menu_x + 20 ? (
+   mouse_yz > menu_y ? (
+   mouse_yz < menu_y + 20 ? (
+     gfx_x = menu_x;
+     gfx_y = menu_y+20;
+      #allitems = "";
+       #item2 =">Scaling|";#allitems += #item2;
+      slider10== sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider10== sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider10== 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider10== sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider10== sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider10== 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+     #item2 = "Show Info/Help";    #allitems += #item2;
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+ 
+   last_clicked_item == 1 ? zmnu = sqrt(0.5);
+   last_clicked_item == 2 ? zmnu = sqrt(0.75);
+   last_clicked_item == 3 ? zmnu = 1;
+   last_clicked_item == 4 ? zmnu = sqrt(1.5);
+   last_clicked_item == 5 ? zmnu = sqrt(2);
+   last_clicked_item == 6 ? zmnu = 0;
+   
+   last_clicked_item == 7 ? helpshow = 1;
+
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x+20,menu_y+0,300,120);
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+23; gfx_y = menu_y+3;
+   gfx_drawstr("Sphinx, a simple fast-to-use EQ");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("for removing nasally sounds and more.");
+   gfx_x = menu_x+23; gfx_y += 26;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(But not 'Listen' or 'Solo')");
+   gfx_x = menu_x+23; gfx_y += 26;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+23; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ knobs_y -= 110;
+ 
+ //gfx_rect(knobs_x+100,knobs_y+9,35,17);
+ 
+ 
+ 
+ 
+ /********************************* Mouse Control ******************************/
+ mouseClick == 1 ? 
+     (
+       mouse_yz > knobs_y + 9 ? (
+       mouse_yz < knobs_y + 26 ? (
+         mouse_xz > knobs_x + 100 ? (
+         mouse_xz < knobs_x + 135 ? (
+           slider3 == -3 ? (slider3 = 0):(slider3 = -3);
+           slider_automate(slider3);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +70 ? (
+         mouse_xz < knobs_x + 135 +70 ? (
+           slider3 == -5 ? (slider3 = 0):(slider3 = -5);
+           slider_automate(slider3);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +140 ? (
+         mouse_xz < knobs_x + 135 +140 ? (
+           slider3 == -8 ? (slider3 = 0):(slider3 = -8);
+           slider_automate(slider3);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +230 ? (
+         mouse_xz < knobs_x + 135 +230 ? (
+           slider6 == 1 ? (slider6 = 0):(slider6 = 1);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +300 ? (
+         mouse_xz < knobs_x + 135 +300 ? (
+           slider6 == 2 ? (slider6 = 0):(slider6 = 2);
+           caller = 1;
+         ););
+       );
+       );
+       
+       mouse_yz > 110+knobs_y + 9 ? (
+       mouse_yz < 110+knobs_y + 26 ? (
+         mouse_xz > knobs_x + 100 ? (
+         mouse_xz < knobs_x + 135 ? (
+           slider8 == -3 ? (slider8 = 0):(slider8 = -3);
+           slider_automate(slider8);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +70 ? (
+         mouse_xz < knobs_x + 135 +70 ? (
+           slider8 == -5 ? (slider8 = 0):(slider8 = -5);
+           slider_automate(slider8);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +140 ? (
+         mouse_xz < knobs_x + 135 +140 ? (
+           slider8 == -8 ? (slider8 = 0):(slider8 = -8);
+           slider_automate(slider8);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +230 ? (
+         mouse_xz < knobs_x + 135 +230 ? (
+           slider6 == 3 ? (slider6 = 0):(slider6 = 3);
+           caller = 1;
+         ););
+         mouse_xz > knobs_x + 100 +300 ? (
+         mouse_xz < knobs_x + 135 +300 ? (
+           slider6 == 4 ? (slider6 = 0):(slider6 = 4);
+           caller = 1;
+         ););
+       );
+       );
+       
+       Nose1_Freq.collision()   ? Nose1_Freq.dragStart();   
+       Nose2_Freq.collision()  ? Nose2_Freq.dragStart();  
+  ):
+ mouseClick == -1  ? 
+     (
+       Nose1_Freq.dragStop();
+       Nose2_Freq.dragStop();
+     );
+ 
+ mouse_wheel ? 
+     (
+       Nose1_Freq.collision()   ? Nose1_Freq.potWheel():
+       Nose2_Freq.collision()  ? Nose2_Freq.potWheel():
+       mouse_wheel=0;
+     );
+ 
+ 
+ Nose1_Freq.dragging  ? Nose1_Freq.potDrag();
+ Nose2_Freq.dragging ? Nose2_Freq.potDrag();
+ 
+ /******************************* Slider Knob Control **************************/
+ 
+ Nose1_Freq!=Nose1_Freq.val?
+     (
+       Nose1_Freq=Nose1_Freq.val;
+       Slider1=Nose1_Freq;
+       caller = 1;
+       pot.potVal(Nose1_Freq.val);
+       slider_automate(slider1);
+      ):
+ Nose1_Freq!=slider1?
+     (
+       Nose1_Freq=slider1;
+       Nose1_Freq.val=Nose1_Freq;
+       Nose1_Freq.potVal(Nose1_Freq.val);
+       Nose1_Freq.valOld=Nose1_Freq;
+     );
+   
+ Nose2_Freq!=Nose2_Freq.val?
+     (
+       Nose2_Freq=Nose2_Freq.val;
+       slider7=Nose2_Freq;
+       caller = 1;
+       pot.potVal(Nose2_Freq.val);
+       slider_automate(slider7);
+      ):
+ Nose2_Freq!=slider7?
+     (
+       Nose2_Freq=slider7;
+       Nose2_Freq.val=Nose2_Freq;
+       Nose2_Freq.potVal(Nose2_Freq.val);
+       Nose2_Freq.valOld=Nose2_Freq;
+     );
+   
+     
+     //////////////////////// ZFCT ///////////////////////////////
+     slider10 = zmnu;
+     zfct = zmnu;
+     zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+     
+     zmnu != 0 ? zfct *= gfx_ext_retina;
+     gfx_dest = -1;
+     gfx_x=gfx_y=0;gfx_a=1;
+     gfx_blit(127,zfct,0);
+     ///////////////////////////////////////////////////////////// 
