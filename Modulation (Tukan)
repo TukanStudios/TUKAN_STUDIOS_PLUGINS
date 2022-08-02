@@ -28,19 +28,19 @@ desc:Modulation (Tukan)
 
 //tags: modulation flanger
 //author: Stillwell 
-
-slider1:15<1,18,0.01>-Flange (Delay)
+ 
+slider1:15<1,18,0.01>-DONT Flange (Delay)
 slider2:0.5<0,1,0.01>-Depth
 slider3:0<-1,1,0.01>-Feedback
-slider4:1<0.1,10,0.01>-Speed (Hz) (0=tempo sync)
-slider5:0.5<0,1,0.01>-Mix
-slider6:5<0,5,0.01>-Channel Offset
-slider7:0.25<0.0625,4,0.0625>-Tempo Sync (fraction of whole note)
+slider4:1<0.1,10,0.01>-Modulation Speed (Hz)
+slider5:0.5<0,1,0.01>-Dry/Wet
+slider6:5<0,5,0.01>-Stereo
+slider7:0.25<0.0625,4,0.0625>-DONT Tempo Sync (fraction of whole note)
 slider8:0<0,1,1{Triangle,Sine}>-LFO Waveform
 
 slider9:300<0,1000,10>-HPF
-slider10:4<0,4,1>-MODE
-
+slider10:4<0,4,1>-Presets
+slider11:1<0,6,.01>-Scaling
 
 
 
@@ -51,15 +51,19 @@ filename:2,MODgui/APIRED.png
 filename:3,MODgui/APISmall.png
 filename:4,MODgui/switch.png
 filename:5,MODgui/whiteknob_35.png
-
+filename:6,MODgui/menu.png
 
 in_pin:left input
 in_pin:right input
 out_pin:left output
 out_pin:right output
 
-@init
 
+options:gfx_idle
+
+
+@init
+gfx_ext_retina = 1;
   lastCap=1;
   mouse_wheel=1;
   coords=srate+1;
@@ -74,7 +78,7 @@ initial = 0;
   memset(buffer0,0,MAX_WG_DELAY);
   memset(buffer1,0,MAX_WG_DELAY);
   feedback = 0;
-  delay = 5 ;
+  delay = 5;
   tdelay0 = delay;
   tdelay1 = delay;
   rate = 0;
@@ -240,7 +244,7 @@ initial = 0;
     function collision  ()
       instance          (xIn yIn widthIn heightIn)
                         (
-                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                        mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                         );
     
     function dragStart ()
@@ -510,34 +514,30 @@ function Preset4() (
 
 
 
-
+        front=slider2;
+        center=slider4;
+        back=slider5;
+        four=slider6;
+      five=slider1;
+        lmfg=slider3;
+        lmfq=slider9;
 
 modus = slider10;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-@slider
-
-
-bufferleer = 1;
-
+function stattslider() (
+ stattslider_on = 1;
+ 
+modus = slider10; 
+ delay = 5;
  modus == 0 ? (
+
  //change == 1 ? (
- mix = back;
-
+ mix = slider5;
+  lfo = (slider8 == triangle ? triangle : sinusoid);
  beat = 240 * slider7;  
-
+  offset = slider6;
  feedback = slider3; 
  depth = (delay - 0.1) * slider2;
 
@@ -570,63 +570,28 @@ bufferleer = 1;
  
 
    
-
-
-  modus = 1 ? (Preset1());
-  modus = 2 ? (Preset2());
-  modus = 3 ? (Preset3());
-  modus = 4 ? (Preset4());
-
+//change >0 ? (
 modus > 0 ? (
+
+  modus == 1 ? (Preset1());
+  modus == 2 ? (Preset2());
+  modus == 3 ? (Preset3());
+  modus == 4 ? (Preset4());
+
  mix = slider5;
-  offset = four;
+  offset = slider6;
    tdelay0 = delay;
   tdelay1 = (delay + offset);
    sdelay0 = tdelay0 / 1000 * srate;
    sdelay1 = tdelay1 / 1000 * srate;
-  a1 = 1;
-  s1 = 1;
-  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
-  w01 = 2 * $pi * freq1/srate;
-  cosw01 = cos(w01);
-  sinw01 = sin(w01);
-  alpha1 = sinw01 / (2 * q1);
-  
-  b01 = (1 + cosw01)/2;
-  b11 = -(1 + cosw01);
-  b21 = (1 + cosw01)/2;
-  a01 = 1 + alpha1;
-  a11 = -2 * cosw01;
-  a21 = 1 - alpha1;
-  b01 /= a01;
-  b11 /= a01;
-  b21 /= a01;
-  a11 /= a01;
-  a21 /= a01;
-  
 );
-  
+//);
 
+ stattslider_on = 0;
+ change = 0;
+);
 
- 
- 
- 
- 
-
-
-/*
-  delay = slider1;
-  offset = slider6;
-  beat = 240 * slider7;  
-  tdelay0 = delay;
-  tdelay1 = (delay + offset);
-  sdelay0 = tdelay0 / 1000 * srate;
-  sdelay1 = tdelay1 / 1000 * srate;
-  feedback = slider3;
-  depth = (delay - 0.1) * slider2;
-  mix = slider5;
-  lfo = (slider8 == triangle ? triangle : sinusoid);
-  tpos = 0;
+stattslider();
 
 
 
@@ -636,32 +601,14 @@ modus > 0 ? (
 
 
 
-  freq1 = slider9;
 
-  slider9 == 0 ? hpf = 0 : hpf = 1;
+@slider
+change = 1;
 
-  a1 = 1;
-  s1 = 1;
-  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
-  w01 = 2 * $pi * freq1/srate;
-  cosw01 = cos(w01);
-  sinw01 = sin(w01);
-  alpha1 = sinw01 / (2 * q1);
 
-  b01 = (1 + cosw01)/2;
-  b11 = -(1 + cosw01);
-  b21 = (1 + cosw01)/2;
-  a01 = 1 + alpha1;
-  a11 = -2 * cosw01;
-  a21 = 1 - alpha1;
-  b01 /= a01;
-  b11 /= a01;
-  b21 /= a01;
-  a11 /= a01;
-  a21 /= a01;
-  
-  
-  */
+
+
+
 @block
  /*
   slider4==0 ? (
@@ -679,6 +626,11 @@ modus > 0 ? (
 
 
 @sample
+
+change == 1 ? (
+stattslider_on == 0 ? stattslider();
+);
+
 bufferleer == 2 ?(
   MAX_WG_DELAY = 16384;
   i = 0;
@@ -856,6 +808,9 @@ bufferleer == 2 ?(
   
 @gfx 738 238
 
+  mouse_xz = mouse_x;
+  mouse_yz = mouse_y;
+  
 gfx_ext_flags == 1 ? (
 
 gw = gfx_w; gh = gfx_h;
@@ -892,8 +847,19 @@ gfx_line(1+gw*(tpos/twopi), gh/2, 1+gw*(tpos/twopi) ,gh/2 + sin(-tpos)*gh*feedba
 
 ):( // // EXT FLAGS
 
-gfx_w = 738;
-gfx_h=238;
+//gfx_w = 738;
+//gfx_h=238;
+
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 738; zfct_h = 238;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider11 ? zmnu = slider11;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
+      
+      
 //gfx_line(0,400,800,400);
 //gfx_line(0,600,880,600);
 gfx_x=1; gfx_y=1;
@@ -964,6 +930,107 @@ four.knob();
 //lmfq.knob();
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     
+     
+       
+       ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+       last_clicked_item = -1;
+       Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+       menu_x = 90; menu_y = 4;
+       gfx_x=menu_x;gfx_y=menu_y;
+       gfx_blit(6,1,0);
+     //  gfx_drawnumber(last_clicked_item, 0); 
+       mouseClick ? (
+       //helpshow ? helpshow = 0;
+       mouse_xz > menu_x ? (
+       mouse_xz < menu_x + 20 ? (
+       mouse_yz > menu_y ? (
+       mouse_yz < menu_y + 20 ? (
+         gfx_x = menu_x*zfct;
+         gfx_y = (menu_y+20)*zfct;
+         slider8 == 0 ? (#item1 = "!LFO Triangle|"):(#item1 = "LFO Triangle|");  #allitems = #item1;
+         slider8 == 1 ? (#item2 = "!LFO Sinus||"):(#item2 = "LFO Sinus||");  #allitems += #item2;
+         
+          #item2 =">Scaling|";#allitems += #item2;
+         slider11 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+         slider11 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+         slider11 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+         slider11 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+         slider11 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+         slider11 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+         
+         
+         #item3 = "|Show Info/Help";    #allitems += #item3;
+         last_clicked_item = gfx_showmenu(#allitems);
+       );
+       );
+       );
+       );
+       );
+       
+       
+       last_clicked_item == 1 ? (slider8 == 1 ? (slider8=0):(slider8=1);slider_automate(slider8););
+       last_clicked_item == 2 ? (slider8 == 0 ? (slider8=1):(slider8=0);slider_automate(slider8););
+       
+       last_clicked_item == 3 ? zmnu = sqrt(0.5);
+       last_clicked_item == 4 ? zmnu = sqrt(0.75);
+       last_clicked_item == 5 ? zmnu = 1;
+       last_clicked_item == 6 ? zmnu = sqrt(1.5);
+       last_clicked_item == 7 ? zmnu = sqrt(2);
+       last_clicked_item == 8 ? zmnu = 0;
+       
+       last_clicked_item == 9 ? helpshow = 1;
+     
+       helpshow == 1 ? (
+       gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+       gfx_rect(menu_x+20,menu_y+0,300,100);
+       gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+       gfx_x = menu_x+23; gfx_y = menu_y+3;
+       gfx_drawstr("This plugin has 4 fixed presets.");
+       gfx_x = menu_x+23; gfx_y += 13;
+       gfx_drawstr("...or can be ajdusted...");
+       gfx_x = menu_x+23; gfx_y += 26;
+       gfx_drawstr("This plugin can be automated.");
+       gfx_x = menu_x+23; gfx_y += 13;
+       gfx_drawstr("");
+       gfx_x = menu_x+23; gfx_y += 13;
+       gfx_drawstr("(Fine tune knobs with shift)");
+       gfx_x = menu_x+23; gfx_y += 13;
+       gfx_drawstr("(Reset knobs with ctrl/cmd)");
+       );
+       
+       
+       ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+       
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
 knobsx = 45;
 knobsy = 410;
 //gfx_line(lffon + 20,355,lffon + 54,389);
@@ -980,11 +1047,12 @@ mouseClick == 1 ?
       lmff.collision()    ? lmff.dragStart();
       lmfq.collision()    ? lmfq.dragStart();
       hmfg.collision()    ? hmfg.dragStart();
-      mouse_x > ksx ?(
-      mouse_x < ksx + 33?(
-      mouse_y > ksy ?(
-      mouse_y < ksy + 16 ?(
+      mouse_xz > ksx ?(
+      mouse_xz < ksx + 33?(
+      mouse_yz > ksy ?(
+      mouse_yz < ksy + 16 ?(
       slider10 = 0;
+      slider_automate(slider10);
       modus = 0;
       change = 1;
       );
@@ -992,11 +1060,12 @@ mouseClick == 1 ?
       );
       );
       ksx+=35;
-      mouse_x > ksx ?(
-      mouse_x < ksx + 33?(
-      mouse_y > ksy ?(
-      mouse_y < ksy + 16 ?(
+      mouse_xz > ksx ?(
+      mouse_xz < ksx + 33?(
+      mouse_yz > ksy ?(
+      mouse_yz < ksy + 16 ?(
       slider10 = 1;
+      slider_automate(slider10);
       Preset1();
       modus = 1;
       change = 1;
@@ -1005,11 +1074,12 @@ mouseClick == 1 ?
       );
       );
       ksx+=35;      
-      mouse_x > ksx ?(
-      mouse_x < ksx + 33?(
-      mouse_y > ksy ?(
-      mouse_y < ksy + 16 ?(
+      mouse_xz > ksx ?(
+      mouse_xz < ksx + 33?(
+      mouse_yz > ksy ?(
+      mouse_yz < ksy + 16 ?(
       slider10 = 2;
+      slider_automate(slider10);
       Preset2();
       modus = 2;
       change = 1;
@@ -1018,11 +1088,12 @@ mouseClick == 1 ?
       );
       );
       ksx+=35;      
-      mouse_x > ksx ?(
-      mouse_x < ksx + 33?(
-      mouse_y > ksy ?(
-      mouse_y < ksy + 16 ?(
+      mouse_xz > ksx ?(
+      mouse_xz < ksx + 33?(
+      mouse_yz > ksy ?(
+      mouse_yz < ksy + 16 ?(
       slider10 = 3;
+      slider_automate(slider10);
       Preset3();
       modus = 3;
       change = 1;  
@@ -1031,11 +1102,12 @@ mouseClick == 1 ?
       );
       );
       ksx+=35; 
-      mouse_x > ksx ?(
-      mouse_x < ksx + 33?(
-      mouse_y > ksy ?(
-      mouse_y < ksy + 16 ?(
+      mouse_xz > ksx ?(
+      mouse_xz < ksx + 33?(
+      mouse_yz > ksy ?(
+      mouse_yz < ksy + 16 ?(
       slider10 = 4;
+      slider_automate(slider10);
       Preset4();
       modus = 4;
       change = 1;
@@ -1084,7 +1156,6 @@ lmfg.dragging   ? lmfg.potDrag();
 lmfq.dragging   ? lmfq.potDrag();
 //hmfg.dragging   ? hmfg.potDrag();
 //******************************* Slider Knob Control *************************
-
 front!=front.val?
     (
       front=front.val;
@@ -1092,6 +1163,7 @@ front!=front.val?
      change=1;
       gateThresh = front;
       pot.potVal(front.val);
+      slider_automate(slider2);
      ):
 front!=slider2?
     (
@@ -1107,6 +1179,7 @@ center!=center.val?
       slider4=center;
      change=1;
       pot.potVal(center.val);
+      slider_automate(slider4);
      ):
 center!=slider4?
     (
@@ -1123,6 +1196,7 @@ back!=back.val?
      change=1;
       gateAttack=back; 
       pot.potVal(back.val);
+      slider_automate(slider5);
      ):
 
 back!=slider5?
@@ -1140,6 +1214,7 @@ four!=four.val?
       slider6=four;
      change=1;
      pot.potVal(four.val);
+     slider_automate(slider6);
      ):
 four!=slider6?
     (
@@ -1155,6 +1230,7 @@ five!=five.val?
       slider1=five;
      change=1;
       pot.potVal(five.val);
+      slider_automate(slider1);
      ):
 five!=slider1?
     (
@@ -1171,6 +1247,7 @@ five!=slider1?
        slider3=lmfg;
      change=1;
        pot.potVal(lmfg.val);
+       slider_automate(slider3);
       ):
  lmfg!=slider3?
      (
@@ -1202,6 +1279,7 @@ five!=slider1?
        slider9=lmfq;
      change=1;
        pot.potVal(lmfq.val);
+       slider_automate(slider9);
       ):
  lmfq!=slider9?
      (
@@ -1214,7 +1292,7 @@ five!=slider1?
     
     
 
- 
+ /*
  
  change == 1 ?(
  bufferleer = 1;
@@ -1222,12 +1300,10 @@ five!=slider1?
 
  
  
- 
-
  modus == 0 ? (
  //change == 1 ? (
  mix = back;
-
+  lfo = (slider8 == triangle ? triangle : sinusoid);
  beat = 240 * slider7;  
 
  feedback = slider3; 
@@ -1276,39 +1352,31 @@ modus > 0 ? (
   tdelay1 = (delay + offset);
    sdelay0 = tdelay0 / 1000 * srate;
    sdelay1 = tdelay1 / 1000 * srate;
-  
-   
-   
-   
- 
-   
-   
-   
-   
-   /*
-  a1 = 1;
-  s1 = 1;
-  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
-  w01 = 2 * $pi * freq1/srate;
-  cosw01 = cos(w01);
-  sinw01 = sin(w01);
-  alpha1 = sinw01 / (2 * q1);
-  
-  b01 = (1 + cosw01)/2;
-  b11 = -(1 + cosw01);
-  b21 = (1 + cosw01)/2;
-  a01 = 1 + alpha1;
-  a11 = -2 * cosw01;
-  a21 = 1 - alpha1;
-  b01 /= a01;
-  b11 /= a01;
-  b21 /= a01;
-  a11 /= a01;
-  a21 /= a01;
-  */
+
+
   );
   );
 
+*/
+
+
+
+    //////////////////////// ZFCT ///////////////////////////////
+    slider11 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    /////////////////////////////////////////////////////////////   
+    
+    
+    
+    
+    
+    
   ); // EXT FLAGS
   
   
@@ -1370,5 +1438,4 @@ modus > 0 ? (
  b21 /= a01;
  a11 /= a01;
  a21 /= a01;
-
 
