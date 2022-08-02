@@ -1,0 +1,51 @@
+/*
+// init
+smoother_init(var1);
+smoother_init(var2);
+
+// block
+smoothing = smoother_block(var1) + smoother_block(var2);
+
+// sample
+smoothing ? (
+	smoother_block(var1);
+	smoother_sample(var2);
+);
+*/
+
+@init
+
+function smoother_init(slidervar*) (
+	slidervar.value = slidervar;
+	slidervar.step = 0;
+	1;
+);
+function smoother_block(slidervar*, modulo) local(half) (
+	slidervar != slidervar.value ? (
+		half = modulo*0.5;
+		while (slidervar - slidervar.value > half) (
+			slidervar.value += modulo;
+		);
+		while (slidervar - slidervar.value < -half) (
+			slidervar.value -= modulo;
+		);
+		slidervar.step = (slidervar - slidervar.value)/samplesblock;
+		1;
+	) : (
+		slidervar.step = 0;
+	);
+);
+function smoother_block(slidervar*) (
+	slidervar != slidervar.value ? (
+		slidervar.step = (slidervar - slidervar.value)/samplesblock;
+		1;
+	) : (
+		slidervar.step = 0;
+	);
+);
+function smoother_sample(slidervar*) (
+	slidervar.value += slidervar.step;
+);
+function smoother_value(slidervar*) (
+	slidervar.value;
+);
