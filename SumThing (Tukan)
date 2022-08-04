@@ -67,7 +67,7 @@ filename:19,somegui/screw.png
 filename:20,somegui/menu.png
 
 @init
-version = "Beta 0.8.2";
+version = "Beta 0.8.3";
 gfx_ext_retina = 1;
 
 /*
@@ -1407,8 +1407,8 @@ mouse_wheel ?
     );
 
 
-gamount.dragging  ? (gamount.potDrag();Changer = 1);
-gnoise.dragging ? (gnoise.potDrag();Changer = 1);
+gsm_present > 0 ? gamount.dragging  ? (gamount.potDrag();Changer = 1);
+gsm_present > 0 ? gnoise.dragging ? (gnoise.potDrag();Changer = 1);
 glo.dragging ? (glo.potDrag();Changer = 1);
 ghi.dragging ? (ghi.potDrag();Changer = 1);
 gout.dragging ? (gout.potDrag();Changer = 1);
@@ -1452,7 +1452,8 @@ slider24 == 0 ? ( ///////// NOT MASTER
 
  
 
-
+gsm_present > 0 ? (
+zfct = 1;
 
      gfx_mode=0; gfx_a = 1;
  
@@ -1507,6 +1508,7 @@ slider24 == 0 ? ( ///////// NOT MASTER
   gnoise.rectIn((gfx_w) - (40*knscale),gfx_h-(35*knscale),40*knscale,40*knscale);//xpos,ypos,weite,höhe des img
   gnoise.rectOut((gfx_w) - (40*knscale),gfx_h-(35*knscale), 40*knscale, 40*knscale, 61, 1); //Xpos,ypos,weite,höhe,Frames,bitmap
 
+); // gsm present?
 
   ):( ////// MASTER
   

@@ -1,5 +1,5 @@
 desc:Modulation 2 (Tukan)
-
+//v1.4
 in_pin:left input
 in_pin:right input
 out_pin:left output
@@ -67,6 +67,7 @@ slider41:1<0, 100, 0.1>-DONT FREQ LFO
 
 slider42:1<0,6,.01>-DONT Scaling
 
+slider43:1<0,1,1>-Free Run LFO
 
 filename:0,LFO/whiteknob_35.png
 filename:1,LFO/LED.png
@@ -1127,9 +1128,6 @@ CH_mix_knob.potcfg (0.5,0,1,.001);
 
 function stattslider () (
 stattslider_on = 1;
-slider41 = slider11 * slider12;
-slider41 != 0 ? Hertz = 1/slider41;
-cosphi = slider40 / 360;
 
 slider15 == 3 ? (
 filter_slide2r = slider33; // Q
@@ -1163,7 +1161,9 @@ caller = 1;
 
 
 
-
+@block
+block_play_position = play_position;
+pos_add = 0;
 
 
 
@@ -1177,6 +1177,7 @@ caller = 1;
 caller == 1 ? (
   stattslider_on == 0 ? (
     stattslider();
+    //katze = 0;
   );
 );
 
@@ -1186,11 +1187,17 @@ Takt_in_s = (240 / tempo);
 slider14 == 1 ? (T_Fac = 1.5):(T_Fac=1);
 Hertz = Takt_in_s / (slider8*T_Fac);
 slider14 == 2 ? Hertz *= 1.5;
+):(
+slider41 = slider11 * slider12;
+slider41 != 0 ? Hertz = 1/slider41;
+cosphi = slider40 / 360;
 );
 
+//block_ ... + (pos_add/srate) 
+n_durchgaenge = ((block_play_position + (pos_add/srate) + cosphi*Hertz) / Hertz);
+pos_add += 1;
 
-n_durchgaenge = ((play_position + cosphi*Hertz) / Hertz);
-
+slider43 == 1 ? ( //1 = Time sync, not free run
 slider10 == 1 ? (
 phase_position += (1/Hertz) / srate;
 phase_position >= 1 ? phase_position = 0;
@@ -1199,6 +1206,17 @@ play_state == 5 ? phase_position = n_durchgaenge - floor(n_durchgaenge); // von 
 ):(
 phase_position = n_durchgaenge - floor(n_durchgaenge); // von 0 bis 1
 );
+):( //Free run LFO?
+slider10 == 1 ? (
+phase_position += (1/Hertz) / srate;
+phase_position >= 1 ? phase_position = 0;
+):(
+play_state == 1 ? phase_position += (1/Hertz) / srate;
+play_state == 5 ? phase_position += (1/Hertz) / srate;
+phase_position >= 1 ? phase_position = 0;
+);
+);
+
 phase_position_2 = phase_position + slider16/360;
 phase_position_2 > 1 ? phase_position_2 -= 1;
 
@@ -1215,7 +1233,7 @@ phase_position > 0.75 ?  triangle_position = -1 + (phase_position - 0.75) * 4;
 
 
 sinus_position_2 = sin(phase_position_2 * 2 * $pi);
-flip_position_2 = sign(sinus_position_2);
+flip_position_2  = sign(sinus_position_2);
 ramp_up_position_2 = -1 + 2*phase_position_2;
 ramp_down_position_2 = 1 - 2*phase_position_2;
 
@@ -1670,7 +1688,8 @@ slider2 = abs_position_2;
    gfx_x = menu_x;
    gfx_y = menu_y+20;
    
-   slider10 == 1 ? (#item2 = "!Run on stop||"):(#item2 = "Run on stop||");#allitems = #item2;
+   slider10 == 1 ? (#item2 = "!Run on stop|"):(#item2 = "Run on stop|");#allitems = #item2;
+   slider43 == 0 ? (#item2 = "!Free run LFO||"):(#item2 = "Free run LFO||");#allitems += #item2;
    #item2 =">Scaling|";#allitems += #item2;
    slider42 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
    slider42 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
@@ -1688,14 +1707,15 @@ slider2 = abs_position_2;
     );
     );
        last_clicked_item == 1 ? slider10 == 1 ? (slider10 = 0):(slider10 = 1);
-       last_clicked_item == 2 ? zmnu = sqrt(0.5);
-       last_clicked_item == 3 ? zmnu = sqrt(0.75);
-       last_clicked_item == 4 ? zmnu = 1;
-       last_clicked_item == 5 ? zmnu = sqrt(1.5);
-       last_clicked_item == 6 ? zmnu = sqrt(2);
-       last_clicked_item == 7 ? zmnu = 0;
+       last_clicked_item == 2 ? slider43 == 1 ? (slider43 = 0):(slider43 = 1);
+       last_clicked_item == 3 ? zmnu = sqrt(0.5);
+       last_clicked_item == 4 ? zmnu = sqrt(0.75);
+       last_clicked_item == 5 ? zmnu = 1;
+       last_clicked_item == 6 ? zmnu = sqrt(1.5);
+       last_clicked_item == 7 ? zmnu = sqrt(2);
+       last_clicked_item == 8 ? zmnu = 0;
       // last_clicked_item == 7 ? slider33 == 0 ? (slider33 = 1):(slider33=0);
-    last_clicked_item == 8? helpshow = 1;
+    last_clicked_item == 9? helpshow = 1;
     
     helpshow == 1 ? (
     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.8;
@@ -1757,7 +1777,7 @@ slider2 = abs_position_2;
           slider11=Rate_knob;
           caller = 1;
           pot.potVal(Rate_knob.val);
-          mouseClick == 1 ? slider13 = 0;
+          Rate_knob.dragging  ? slider13 = 0;
           slider_automate(slider11);
          ):
    Rate_knob!=slider11?
@@ -1766,7 +1786,7 @@ slider2 = abs_position_2;
          Rate_knob.val=Rate_knob;
          Rate_knob.potVal(Rate_knob.val);
          Rate_knob.valOld=Rate_knob;
-         mouseClick == 1 ? slider13 = 0;
+         Rate_knob.dragging  ? slider13 = 0;
         );
       
    cosphi_knob!=cosphi_knob.val?
