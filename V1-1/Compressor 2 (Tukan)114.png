@@ -1,0 +1,1515 @@
+desc:Compressor 2 (Tukan)
+//author: Tukan
+//version 1.2?
+
+slider1:-16<-32,0,0.1>-Threshold (dB)
+slider2:0<0,100,1>-Knee (%)
+slider3:4<1,17,0.1>-Ratio
+slider4:3<1,150,0.1>-Attack (ms)
+slider5:100<2,1000,1>-Release (ms)
+slider6:0<-24,24,0.1>-Output (dB)
+slider7:0<0,1,1{Off,On}>-Trick
+slider8:0<0,1,1>-Feedback
+slider9:0<0,1,1>-Sidechain
+slider10:0<0,1,1>-Metermode
+
+slider11:3<0,5,0.01>-Meterspeed
+slider12:0<0,1,0.01>-Dry amount
+
+slider13:1<0,6,.01>-Scaling
+
+filename:0,TKCC2gui/TKCC2Back.png
+filename:1,TKCC2gui/APIBig.png
+filename:2,TKCC2gui/APIRED.png
+filename:3,TKCC2gui/APISmall.png
+filename:4,TKCC2gui/switch.png
+filename:5,TKCC2gui/CVU.png
+filename:6,TKCC2gui/screw.png
+filename:7,TKCC2gui/CCVU2.png
+filename:8,TKCC2gui/menu.png
+
+in_pin:L in
+in_pin:R in 
+in_pin:Sidechain L
+in_pin:Sidechain R
+out_pin:L out
+out_pin:R out
+
+@init
+ext_noinit = 1; 
+gfx_ext_retina = 1;
+
+ovrlgain = 1;
+last_clicked_item = -1;
+threshold = slider1;
+knee_width = abs(slider1*2*slider2*0.01);
+grold = 1;
+
+inMeter = 0; ginMeter=0; gin2Meter=0;
+
+ratio = slider3;
+slope = ((1 - ratio) / ratio);
+
+attack = slider4/1000;
+release = slider5/1000;
+alphaA = attack>0 ? exp(-1 / (attack * srate)) : 0;
+alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+
+Tlo = (threshold - knee_width / 2);
+Thi = (threshold + knee_width / 2);
+knee_factor = (slope / (knee_width * 2));
+
+yR = 0;
+yA = 0;
+
+function computeGain(x)
+(
+(x < Tlo) ? x = 0 :
+(x > Thi) ? x = slope * (x - threshold) :
+(delta = x - Tlo;
+x = delta * delta * knee_factor;);
+);
+
+function smoothAverage(x, alphaA, alphaR)
+(
+eps = 0.0000000001;
+yR = min(x, alphaR * yR + (1 - alphaR) * x + eps - eps);
+yA = alphaA * yA + (1 - alphaA) * yR + eps - eps;
+x = yA;
+);
+
+dbc = 20/log(10);
+function db2ratio(d) ( 10^(d/20); );
+function ratio2db(r) ( log(abs(r))*dbc; );
+
+gr_meter = 1;
+gr_meter_decay = exp(1/(1*srate));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+meter_dif = 0.0005;
+
+function meterspeed()
+(
+mspd = slider11;
+meter_speed = mspd/srate;
+
+mspd == 5 ? (
+gr_meter2 < gr_meter ? (
+  meter_speed /= 5;
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+
+    gr_meter2 = gr_meter;
+
+  );
+);
+;
+
+mspd == 0 ? (
+  gr_meter2 > gr_meter ? (
+    gr_meter2 = gr_meter;
+  );
+);
+
+mspd > 0 ? (
+mspd < 5 ? (
+gr_meter2 < gr_meter ? (
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 + (meter_speed);
+    
+  );
+//gr_meter *= 1.1;
+
+):(
+
+  abs(gr_meter2 - gr_meter) > meter_dif ? (
+    gr_meter2 = gr_meter2 - meter_speed*8;
+   gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+  );
+);
+);
+);
+
+gr_meter2 > 1 ? gr_meter2 =1;
+);
+
+
+
+
+
+
+
+
+
+
+  gfx_clear=0;
+  lastCap=1;
+  mouse_wheel=1;
+  coords=srate+1;
+  
+    function limitgui(s low up)
+                  ( min(max(s, low), up) );
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+                  
+                  
+ /******************************* GUI Function ***********************************/
+ 
+ function xy(x y)
+            ( gfx_x = x; gfx_y = y; );
+ 
+ function rgb(r g b)
+             ( gfx_r = r; gfx_g = g; gfx_b = b; );
+ 
+ function rectIn  (xIn_ yIn_ wIn hIn)
+   instance       (xIn yIn widthIn heightIn)
+                  (
+                   xIn = xIn_;
+                   yIn = yIn_;
+                   widthIn = wIn;
+                   heightIn = hIn;
+                   );
+                 
+ function rectOut  (xOut_ yOut_ wOut hOut c i)
+   instance        (xOut yOut widthOut heightOut count index)
+                   (
+                    xOut = xOut_;
+                    yOut = yOut_;
+                    widthOut = wOut;
+                    heightOut = hOut;
+                    count = c;
+                    index = i;
+                    );                
+ 
+ function potVal(v)
+   instance      (frame val minVal maxVal count heightOut)
+                 (
+                  val = v;
+                  frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                  frame |= 0;
+                 );
+ 
+ function potCfg  (default_ minVal_ maxVal_ step_)
+   instance        (default minVal maxVal step)
+                   (
+                    default = default_;
+                    minVal = minVal_;
+                    maxVal = maxVal_;
+                    step    = step_;
+                    this.potVal(default);
+                   );
+ 
+ function bkg(wImg hImg indImg)
+              (
+                gfx_a=1;
+                coords[0] = coords[4] = 0;
+                coords[1] = coords[5] = 0;;
+                coords[2] = coords[6] = wImg;
+                coords[3] = coords[7] = hImg;
+                gfx_blitext(indImg, coords, 0);
+               ); 
+ 
+ function potDrawIn ()
+   instance        (xIn yIn widthIn heightIn val)
+                   (
+                      gfx_r= 1; gfx_g = gfx_b =0;gfx_a= 0.5;
+                      
+                      gfx_line(xIn,yIn,xIn,heightIn+yIn);
+                      gfx_line(xIn,heightIn+yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn+widthIn,yIn,xIn+widthIn,heightIn+yIn);
+                      gfx_line(xIn,yIn,xIn+widthIn,yIn);
+       
+                      gfx_r = gfx_g = gfx_b = 0.75;
+                      gfx_x = xIn + widthIn/2-12;
+                      gfx_y = yIn+heightIn/2-5;
+                      gfx_drawnumber(val, 1);                   
+                   );
+ 
+ function knob()
+   instance   (xOut yOut widthOut heightOut index frame val)
+              (
+               
+                gfx_a=1;
+                coords[0] = 0;
+                coords[1] = frame * heightOut;
+                coords[2] = coords[6] = widthOut;
+                coords[3] = coords[7] = heightOut;
+                coords[4] = xOut;
+                coords[5] = yOut;
+                gfx_blitext(index, coords, 0);
+               );                                     
+ 
+ function collision  ()
+   instance          (xIn yIn widthIn heightIn)
+                     (
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
+                     );
+ 
+ function dragStart ()
+   instance          (dragging yOld default)
+                     (
+                      !ctrl ? (
+                      yOld = mouse_y;
+                      dragging = 1;
+                     ) : 
+                      this.potVal(default);
+                     );
+ 
+ function dragStop()
+   instance        (dragging val valOld)
+                   (
+                    dragging = 0;
+                    valOld = val;
+                   );
+ 
+    function potDrag()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                       !shift ? (
+                       mstep = (this.maxval - this.minval)/100;
+                      val = valOld + (yOld - mouse_y) * mstep;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      ):(
+                      val = valOld + (yOld - mouse_y) * step;
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      );
+                     );
+                     
+    function potToggle()
+          local      (val)
+            instance   (valOld minVal maxVal yOld step)
+                     (
+                      valold == 0 ? (val = 1):(val=0);
+                      val = limitgui(val, minVal, maxVal);
+                      this.potVal(val);
+                      valOld=val;
+                       );
+    
+    function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                      mstep = (this.maxval - this.minval)/100;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = limitgui(val, minVal, maxVal);
+                       this.potVal(val);
+                       valOld=val;
+                       mouse_wheel=0;
+                        );
+ 
+   
+ gthresh.potcfg  (-16,-32,-0,.032); //default. von, bis, step
+ gratio.potcfg (4,1,15,.015);
+ gatt.potcfg   (20,0,150,1);
+ grel.potcfg   (200,2,1000,1);
+ goutgain.potcfg   (0,-24,24,.048);
+ gfeedback.potcfg   (0,0,1,1);
+ Trick.potcfg   (0,0,1,1);
+ SC.potcfg   (0,0,1,1);
+ screw.potcfg   (3,0,5,.01);
+ gknee.potcfg   (0,0,100,.1);
+ gdry.potcfg   (0,0,1,.001);
+ 
+ knobsx = 50; 
+ knobsy = 50;
+ gthresh.rectIn(knobsx,knobsy,75,75);//xpos,ypos,weite,höhe des img
+ gthresh.rectOut(knobsx,knobsy, 75, 75, 61, 1); //Xpos,ypos,weite,höhe,Frames,bitmap
+
+ gknee.rectIn(knobsx+95,knobsy+75, 10, 10);
+ gknee.rectOut(knobsx+95,knobsy+75, 10, 10, 61, 6);
+ 
+ gratio.rectIn(knobsx+120,knobsy, 75, 75);
+ gratio.rectOut(knobsx+120,knobsy, 75, 75, 61, 2);
+ 
+ gatt.rectIn(knobsx+7,knobsy+140, 60, 60); 
+ gatt.rectOut(knobsx+7,knobsy+140, 60, 60, 61, 3);
+ 
+grel.rectIn(knobsx+127,knobsy+140, 60, 60); 
+grel.rectOut(knobsx+127,knobsy+140, 60, 60, 61, 3);
+
+knobsx+=260; knobsy+=133;
+goutgain.rectIn(knobsx,knobsy, 75, 75); 
+goutgain.rectOut(knobsx,knobsy, 75, 75, 61, 2);
+
+gdry.rectIn(knobsx-18,knobsy+85, 10, 10); 
+gdry.rectOut(knobsx-18,knobsy+85, 10, 10, 61, 6);
+
+screw.rectIn(knobsx+324,knobsy-175, 10, 10); 
+screw.rectOut(knobsx+324,knobsy-175, 10, 10, 61, 6);
+
+
+knobsx+=120;
+gfeedback.rectIn(knobsx,knobsy, 48, 60); 
+gfeedback.rectOut(knobsx,knobsy, 48, 60, 2, 4);
+
+Trick.rectIn(knobsx+60,knobsy, 48, 60); 
+Trick.rectOut(knobsx+60,knobsy, 48, 60, 2, 4);
+
+SC.rectIn(knobsx+120,knobsy, 48, 60); 
+SC.rectOut(knobsx+120,knobsy, 48, 60, 2, 4);
+
+
+
+
+
+
+
+
+
+  
+  errcnt = 0;
+  tot_nbr_spl = 0;
+  scnt = 0;
+  
+  offset = 0.0074;//0.0074;
+  
+  nd_posL = nd_posR = 0.6800809;;
+  nd_speedL = nd_speedR = 0;
+  
+  dt = 10 / srate;
+  
+  mom = 0.00042;
+  
+  dbL = dbR = 0;
+  overL = overR = 0;
+  
+  fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+  wl   = 0;
+  damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+  
+  mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+  meterInL = spl0;
+  meterInR = spl1;
+  
+  function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+  (
+  tot_nbr_spl += 1;
+  
+  smpL = meterInL; 
+  smpR = meterInR;
+  
+  mnmode == 1 ? ( 
+    smpL = (meterInL + meterInR) * 0.5;
+    smpR = smpL;  
+  );
+  
+  mnmode >= 2 ? ( 
+    smpL = max(meterInL, meterInR);
+    smpR = smpL; 
+  );
+  
+  smpL = abs(smpL);
+  smpR = abs(smpR);
+  
+   
+  scnt += 1;
+  
+  scnt === 10 ? (
+      
+    // move left needle
+    
+      force = smpL * fact_up  -  (nd_posL * .1 + offset);
+      
+      nd_speedL += force * dt / mnmom;  
+      nd_speedL = nd_speedL * damp;
+      nd_posL += nd_speedL * dt;
+      nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+    
+      nd_posL = min(max(nd_posL,0),1);
+    
+      // move right needle
+  
+      force = smpR * fact_up  - (nd_posR * .1 + offset);
+      
+      nd_speedR += force * dt /mnmom;  
+      nd_speedR = nd_speedR * damp;
+      nd_posR += nd_speedR * dt;
+      nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+    
+      nd_posR = min(max(nd_posR,0),1);
+       
+      overL -= 10;
+      overR -= 10;
+  
+      scnt = 0;
+    
+  );
+  );
+  
+  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+  
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery;
+  
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+  gfx_blit(7,mnblitscale,0);
+  
+  
+  mnw1 = $pi * 16.5 / 180; 
+  mnw2 = $pi * 45 / 180;
+  
+  mnxw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  mnyw = 92*mnblitscale;//floor(mnxw / 1.5);
+  
+  mnr1 = 130*mnblitscale;//floor(mnyw * 0.85);
+  
+  
+  
+   mnxd = 10 + chan*(mnxw+10);
+    mode === 1 ? mnxd += floor(mnxw/2);
+    
+    mnyd = 10;
+  
+    mnxa = mnblitscale*190/2;//gfx_w/2;//floor(mnxd + mnxw / 2);
+    mnya = floor(mnyd + mnyw * 1.1);
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+  
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (mnph = dbL; gfx_r=gfx_b=gfx_g=0) : (mnph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+    mnch == 2 ? (mnph= dbR);
+    mnph = 51 + (mnph+20)/23*83;//45 + (mnph+20)/23*90; 
+    aay = abs((90 - abs(mnph))); 
+    mnr1 = mnblitscale*(80+aay/5);
+    
+    mnph = mnph * ($pi / 180);
+      
+    cosp = cos(mnph);
+    sinp = sin(mnph);
+      
+      mnya = mnmetery+110*mnblitscale;
+      mnxa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    mnx1 = mnxa - cosp * mnr1 * 0.25;
+    mny1 = mnya - sinp * mnr1 * 0.25;
+  
+    mnx2 = mnxa - cosp * mnr1 * 1.1;
+    mny2 = mnya - sinp * mnr1 * 1.1;
+  
+    gfx_x = mnx1;
+    gfx_y = mny1; 
+    gfx_lineto(mnx2, mny2);
+    
+    );
+
+
+
+
+
+@slider
+threshold = slider1;
+knee_width = abs(slider1*2*slider2*0.01);
+
+ratio = slider3;
+slope = ((1 - ratio) / ratio);
+
+attack = slider4/1000;
+release = slider5/1000;
+alphaA = attack>0 ? exp(-1 / (attack * srate)) : 0;
+alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+
+Tlo = (threshold - knee_width / 2);
+Thi = (threshold + knee_width / 2);
+knee_factor = (slope / (knee_width * 2));
+
+output = 10^(slider6/20);
+
+listen = slider7;
+
+@sample
+/*
+inL ? (oops = 0):(inL = spl0);
+inR ? (oops = 0):(inR = spl1);
+*/
+clean0 = spl0;
+clean1 = spl1;
+
+slider8 == 1 ?(
+inL = feedL;//spl0;
+inR = feedR;// spl1;
+):(
+inL = spl0; inR = spl1;
+);
+slider9 == 1 ? (
+inL = spl2; inR = spl3;
+);
+
+inMeter = max(abs(spl0),abs(spl1));
+
+xL = max(abs(inL),abs(inR));
+
+xG = ratio2db(xL);
+yG = computeGain(xG);
+cG = smoothAverage(yG, alphaA, alphaR);
+cL = db2ratio(cG);
+
+feedL = spl0*cL; feedR=spl1*cL;
+
+listen == 0 ? (
+spl0 = clean0 * slider12 + spl0 * cL * output;
+spl1 = clean1 * slider12 + spl1 * cL * output;
+);
+listen == 1 ? (
+spl0 = clean0 * slider12 + ((spl0 * cL) - spl0)  * -output;
+spl1 = clean1 * slider12 + ((spl1 * cL) - spl1)  * -output;
+);
+
+
+gr = db2ratio(cL);
+grv = ratio2db(gr);
+//abs(gr_meter - meter_old) > 0.01 ? (gr_meter_decay = 1.01;//.111111;
+gr_meter_decay = 1.1;
+grv < gr_meter ? gr_meter=grv : ( gr_meter = grv; gr_meter>1?gr_meter=1; );// gr_meter*=gr_meter_decay
+grmin = min( min(cG,cG) , grmin);
+
+meterspeed();
+meter_old = gr_meter;
+
+
+  mom = 0.0001 + 0.00032 * abs(100-slider11*20)^3 / 125000;
+  mnmetersample(grv*0.63,grv*0.63,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+ 
+ 
+// inMeter = db2
+inMeter > ginMeter ? ginMeter=inMeter : (ginMeter*=0.99997;  ginMeter<0.1?ginMeter=0; );
+
+
+
+
+
+
+
+
+/// LIMITER ///////////////
+ovrlParam1=1.5; //ovrlthresh
+ovrlParam2=0.5; //output
+ovrlParam3=0.5+0*0.5; //ovrlattack
+ovrlParam4=0.5+0*0.5; //ovrlrelease
+ovrlParam5=0; //softknee
+
+//hard knee
+ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+
+ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+
+
+ovrlth = ovrlthresh;
+ovrlg = ovrlgain;
+ovrlat = ovrlatt;
+ovrlre = ovrlrel;
+ovrltr = ovrltrim;
+
+ovrlol = spl0;
+ovrlor = spl1;
+
+ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+
+(ovrllev > ovrlth) ?
+(
+ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+)
+: //below ovrlthreshold
+(
+ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+);
+
+spl0 = (ovrlol * ovrltr * ovrlg);
+spl1 = (ovrlor * ovrltr * ovrlg);
+
+ovrlgain = ovrlg;
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 650 300
+
+
+
+
+
+
+
+
+
+
+
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      mouse_xz = mouse_x;
+      mouse_yz = mouse_y;
+      
+gfx_ext_flags == 0 ? (
+//gfx_r = 0;
+//gfx_rect(0,0,gfx_w,gfx_h);
+//gfx_mode = 0;
+
+/////////////////////////////  ZFCT ////////////////////////
+zfct_w = 650; zfct_h = 300;
+gfx_setimgdim(127,zfct_w,zfct_h);
+gfx_dest = 127;
+//all mouse positions must operate *=zfct;
+///////////////////////////////////////////////////////////
+
+
+initial == 0 ? (
+grmin = 0;
+
+      gthresh=slider1;
+      gthresh.val=gthresh;
+      gthresh.potVal(gthresh.val);
+      gratio=slider3;
+      gratio.val=gratio;
+      gratio.potVal(gratio.val);
+      gatt=slider4;
+      gatt.val=gatt;
+      gatt.potVal(gatt.val);
+      grel=slider5;
+      grel.val=grel;
+      grel.potVal(grel.val);
+      goutgain=slider6;
+      goutgain.val=goutgain;
+      goutgain.potVal(goutgain.val);
+      gfeedback=slider8;
+      gfeedback.val=gfeedback;
+      gfeedback.potVal(gfeedback.val);
+          Trick=slider7;
+          Trick.val=Trick;
+          Trick.potVal(Trick.val);
+          SC=slider9;
+          SC.val=SC;
+          SC.potVal(SC.val);
+          initial = 1;
+          screw=slider11;
+          screw.val=screw;
+          screw.potVal(screw.val);
+          screw.valOld=screw;
+          gdry=slider12;
+          gdry.val=gdry;
+          gdry.potVal(gdry.val);
+          gdry.valOld=gdry;
+);
+  
+
+
+
+
+
+meter_bot=21;
+meter_h=20; //min(gfx_h,gfx_h-4);
+xscale=gfx_w*20/meter_bot;
+meterx = 395; metery=40;
+gfx_r=0.5;gfx_g=0.5;gfx_b=0.5; gfx_a=.1;
+gfx_rect(0,0,650,300);
+//gfx_rect(meterx,metery,220,120);
+
+gfx_a=1;
+gfx_x=meterx; gfx_y=metery+2;
+gfx_blit(5,1,0);
+
+
+dscale = 100/103;
+slider10 == 0 ? (
+gfx_r=0.1;gfx_g=0.1;gfx_b=0.1; gfx_a=1;
+//gfx_rect(0,0,650,300);
+gfx_rect(meterx,metery,220,120);
+n= 1;
+gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=0.3;
+loop(3,
+gfx_line(meterx+120-(n*30),metery+10,meterx+120-(n*30),metery+110);
+gfx_line(meterx+20,metery+10+(n*30),meterx+120,metery+10+(n*30));
+n = n + 1;
+);
+
+gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=1;
+gfx_line(meterx+20,metery+10,meterx+20,metery+110);
+gfx_line(meterx+120,metery+10,meterx+120,metery+110);
+gfx_line(meterx+20,metery+10,meterx+120,metery+10);
+gfx_line(meterx+20,metery+110,meterx+120,metery+110);
+gfx_line(meterx+20,metery+110, meterx+120+(slider1*3), metery+10-(slider1*3));
+grat = (slider1*3) - (slider1*3/slider3);
+gfx_line(meterx+120+(slider1*3), metery+10-(slider1*3), meterx+120, metery+10-grat);
+gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
+gfx_rect(meterx+123,metery+10,5,(-1 * (log10(gr_meter)*100)));
+grold > gr_meter ? (grold = gr_meter);
+grold != 1 ? (gfx_rect(meterx+123,metery+10+(-1 * (log10(grold)*100)),5,1));
+
+ticker += 1;
+gcG > cG ? (
+gcG = cG;
+ticker = 0;
+) : (
+ticker > 15 ? (
+gcG = cG;
+ticker = 0;
+);
+);
+
+gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=1;
+gfx_x = meterx + 145; gfx_y=metery+10;
+gfx_drawstr("Thresh:");
+gfx_x = meterx + 145; gfx_y=metery+20;
+gfx_drawnumber(slider1,1);//(grmin,1);
+gfx_drawstr(" dB");
+
+gfx_x = meterx + 145; gfx_y=metery+33;
+gfx_drawstr("Ratio:");
+gfx_x = meterx + 145; gfx_y=metery+43;
+gfx_drawnumber(slider3,1);//(grmin,1);
+gfx_drawstr(" : 1");
+
+gfx_x = meterx + 145; gfx_y=metery+56;
+gfx_drawstr("Knee:"); 
+gfx_x = meterx + 145; gfx_y=metery+66;
+gfx_drawnumber(slider2,0); gfx_drawstr(" %");
+
+gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
+gfx_x = meterx + 148; gfx_y=metery+80;
+gfx_drawnumber(gcG,1);//(grmin,1);
+gfx_drawstr(" dB");
+gfx_x = meterx + 148; gfx_y=metery+95;
+gfx_drawnumber(grmin,1);
+gfx_drawstr(" dB");
+gfx_x = meterx + 148; gfx_y=metery+105;
+gfx_drawstr(" (max)");
+):(
+gfx_r=0;gfx_g=0;gfx_b=0; gfx_a=1;
+slider11 == 0 ?(gfx_r=1;gfx_g=0;gfx_b=0; gfx_a=1);
+slider11 == 5 ?(gfx_r=0;gfx_g=0.5;gfx_b=0; gfx_a=1);
+gfx_x = meterx+110;
+gfx_y = metery+130;
+// -71 = 0; -130 = -oo;
+//gr_meter2 = 10^(-20/20);
+gfx_g = 0;
+winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
+//gfx_lineto(meterx+110+(100*(cos(winkel))),metery+130+(100*sin(winkel)));
+       mnmetergfx(1, meterx+15, metery+15, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+);
+
+gfx_a=1; 
+gfx_x=0;gfx_y=0; 
+gfx_blit(0,1,0);
+
+
+  gthresh.knob();
+  gratio.knob();
+  gatt.knob();
+  grel.knob();
+  goutgain.knob();
+  gfeedback.knob();
+  Trick.knob();
+  SC.knob();
+  screw.knob();
+  gknee.knob();
+  gdry.knob();
+  
+  
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+
+Helpshow ? mouseClick ? (helpshow = 0;last_clicked_item = -1);
+menu_x = 0; menu_y = 0;
+gfx_x=menu_x;gfx_y=menu_y;
+gfx_blit(8,1,0);
+//gfx_drawnumber(last_clicked_item, 0); 
+mouseClick ? (
+mouse_x > menu_x*zfct ? (
+mouse_x < menu_x*zfct + 20*zfct ? (
+mouse_y > menu_y*zfct ? (
+mouse_y < menu_y*zfct + 20*zfct ? (
+  gfx_x = menu_x*zfct;
+  gfx_y = menu_y*zfct;
+  last_clicked_item = gfx_showmenu(">Display|VU Meter Slow|VU Meter Normal|VU Meter Fast|<Graph/Values|>Scaling|50%|75%|100%|150%|200%|<FREE|Show Info/Help");
+);
+);
+);
+);
+);
+
+last_clicked_item == 1 ? (slider10 = 1; slider11 = 1.6);
+last_clicked_item == 2 ? (slider10 = 1; slider11 = 3);
+last_clicked_item == 3 ? (slider10 = 1; slider11 = 4.5);
+last_clicked_item == 4 ? slider10 = 0;
+last_clicked_item == 11 ? helpshow = 1;
+
+zmnu != slider13 ? zmnu = slider13;
+last_clicked_item == 5 ? zmnu = sqrt(0.5);
+last_clicked_item == 6 ? zmnu = sqrt(0.75);
+last_clicked_item == 7 ? zmnu = 1;
+last_clicked_item == 8 ? zmnu = sqrt(1.5);
+last_clicked_item == 9 ? zmnu = sqrt(2);
+last_clicked_item == 10 ? zmnu = 0;
+
+      screw.collision()    ? (
+      gfx_x = screw.xIn-90;gfx_y=screw.yIn+15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 90, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Meter Speed")
+      );
+      gknee.collision()    ? (
+      gfx_x = gknee.xIn;gfx_y=gknee.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 45, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Knee")
+      );
+      gdry.collision()    ?  (
+      gfx_x = gdry.xIn;gfx_y=gdry.yIn-15;gfx_r=gfx_g=gfx_b=0; gfx_rect(gfx_x, gfx_y, 55, 13); 
+      gfx_x +=2; gfx_y+=2;gfx_r=gfx_g=gfx_b=1; gfx_drawstr("Dry Mix")
+      );     
+
+helpshow == 1 ? (
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+gfx_rect(menu_x+20,menu_y+20,430,200);
+gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+gfx_x = menu_x+23; gfx_y = menu_y+23;
+gfx_drawstr("- Screw next to Ratio: Knee");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- Screw next to Output: Parallel Mix");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- Screw top-right: Needle speed");
+gfx_x = menu_x+23; gfx_y += 13;
+gfx_drawstr("- (Click) red Values: Reset values");
+gfx_x = menu_x+23; gfx_y += 26;
+gfx_drawstr("In MCP/TCP mode:");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Click the graph to switch to VU meter and back");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Click the numbers to reset the values");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Change the threshold with [alt]+drag");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Change the ratio with [win]+drag / [ctrl] on mac");
+gfx_x = menu_x+23; gfx_y += 26;
+gfx_drawstr("This plugin can be automated.");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Fine tune knobs with shift)");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("(Reset knobs with ctrl/cmd)");
+);
+
+////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+      gthresh.collision()   ? gthresh.dragStart();   
+      gratio.collision()  ? gratio.dragStart();  
+      gatt.collision()    ? gatt.dragStart(); 
+      grel.collision()    ? grel.dragStart();
+      goutgain.collision()    ? goutgain.dragStart();
+      gfeedback.collision()    ? gfeedback.potToggle();
+      Trick.collision()    ? Trick.potToggle();
+      SC.collision()    ? SC.potToggle();
+      screw.collision()    ? screw.dragstart();
+      gknee.collision()    ? gknee.dragstart();
+      gdry.collision()    ? gdry.dragstart();     
+     /*
+      mouse_x > meterx ? (
+      mouse_x < meterx + 110 ? (
+      mouse_y > metery ? (
+      mouse_y < metery + 120 ? (
+        slider10 == 1 ?(slider10 = 0):(slider10 = 1);
+      );
+      );
+      );
+      );
+      */
+      mouse_x > meterx*zfct +11*zfct ? (
+      mouse_x < meterx*zfct + 220*zfct ? (
+      mouse_y > metery*zfct ? (
+      mouse_y < metery*zfct + 120*zfct ? (
+        grmin = 0;
+      );
+      );
+      );
+      );
+      
+    ):
+mouseClick == -1  ? 
+    (
+      gthresh.dragStop();
+      gratio.dragStop();
+      gatt.dragStop();
+      grel.dragStop();goutgain.dragStop();
+      screw.dragstop();
+      gknee.dragstop();
+      gdry.dragstop();
+     );
+
+mouse_wheel ? 
+    (
+      gthresh.collision()   ? gthresh.potWheel():
+      gratio.collision()  ? gratio.potWheel():
+      gatt.collision()    ? gatt.potWheel():
+      grel.collision()    ? grel.potWheel(): 
+      goutgain.collision()    ? goutgain.potWheel():
+      screw.collision()    ? screw.potWheel():
+      gknee.collision()    ? gknee.potWheel():
+      gdry.collision()    ? gdry.potWheel():
+     mouse_wheel=0;
+    );
+
+
+gthresh.dragging  ? (gthresh.potDrag();Changer = 1);
+gratio.dragging ? (gratio.potDrag();Changer = 1);
+gatt.dragging   ? (gatt.potDrag();Changer = 1);
+grel.dragging   ? (grel.potDrag();Changer = 1);
+goutgain.dragging   ? (goutgain.potDrag();Changer = 1);
+screw.dragging   ? screw.potDrag();
+gknee.dragging   ? (gknee.potDrag();Changer = 1);
+gdry.dragging   ? (gdry.potDrag();Changer = 1);
+/******************************* Slider Knob Control **************************/
+  
+gthresh!=gthresh.val?
+    (
+      gthresh=gthresh.val;
+      slider1=gthresh;
+      slider_automate(slider1);
+      pot.potVal(gthresh.val);
+     ):
+gthresh!=slider1?
+    (
+      gthresh=slider1;
+      gthresh.val=gthresh;
+      gthresh.potVal(gthresh.val);
+      gthresh.valOld=gthresh;
+    );
+  
+gratio!=gratio.val?
+    (
+      gratio=gratio.val;
+      slider3=gratio;
+      slider_automate(slider3);
+      pot.potVal(gratio.val);
+     ):
+gratio!=slider3?
+    (
+      gratio=slider3;
+      gratio.val=gratio;
+      gratio.potVal(gratio.val);
+      gratio.valOld=gratio;
+    );  
+  
+gatt!=gatt.val?
+    (
+      gatt=gatt.val;
+      slider4=gatt;
+      slider_automate(slider4);
+      pot.potVal(gatt.val);
+     ):
+gatt!=slider4?
+    (
+      gatt=slider4;
+      gatt.val=gatt;
+      gatt.potVal(gatt.val);
+      gatt.valOld=gatt;
+    );
+
+grel!=grel.val?
+    (
+      grel=grel.val;
+      slider5=grel;
+      slider_automate(slider5);
+      pot.potVal(grel.val);
+     ):
+grel!=slider5?
+    (
+      grel=slider5;
+      grel.val=grel;
+      grel.potVal(grel.val);
+      grel.valOld=grel;
+    );
+
+goutgain!=goutgain.val?
+    (
+      goutgain=goutgain.val;
+      slider6=goutgain;
+      slider_automate(slider6);
+      pot.potVal(goutgain.val);
+     ):
+goutgain!=slider6?
+    (
+      goutgain=slider6;
+      goutgain.val=goutgain;
+      goutgain.potVal(goutgain.val);
+      goutgain.valOld=goutgain;
+    );
+    
+gfeedback!=gfeedback.val?
+    (
+      gfeedback=gfeedback.val;
+      slider8=gfeedback;
+      slider_automate(slider8);
+      pot.potVal(gfeedback.val);
+     ):
+gfeedback!=slider8?
+    (
+      gfeedback=slider8;
+      gfeedback.val=gfeedback;
+      gfeedback.potVal(gfeedback.val);
+      gfeedback.valOld=gfeedback;
+    );
+    Trick!=Trick.val?
+        (
+          Trick=Trick.val;
+          slider7=Trick;
+          slider_automate(slider7);
+          pot.potVal(Trick.val);
+         ):
+    Trick!=slider7?
+        (
+          Trick=slider7;
+          Trick.val=Trick;
+          Trick.potVal(Trick.val);
+          Trick.valOld=Trick;
+        );
+        
+    SC!=SC.val?
+        (
+          SC=SC.val;
+          slider9=SC;
+          slider_automate(slider9);
+          pot.potVal(SC.val);
+         ):
+    SC!=slider9?
+        (
+          SC=slider9;
+          SC.val=SC;
+          SC.potVal(SC.val);
+          SC.valOld=SC;
+        );
+    screw!=screw.val?
+        (
+          screw=screw.val;
+          slider11=screw;
+          slider_automate(slider11);
+          pot.potVal(screw.val);
+         ):
+    screw!=slider11?
+        (
+          screw=slider11;
+          screw.val=screw;
+          screw.potVal(screw.val);
+          screw.valOld=screw;
+        );
+    gknee!=gknee.val?
+        (
+          gknee=gknee.val;
+          slider2=gknee;
+          slider_automate(slider2);
+          pot.potVal(gknee.val);
+         ):
+    gknee!=slider2?
+        (
+          gknee=slider2;
+          gknee.val=gknee;
+          gknee.potVal(gknee.val);
+          gknee.valOld=gknee;
+        );
+
+    gdry!=gdry.val?
+        (
+          gdry=gdry.val;
+          slider12=gdry;
+          slider_automate(slider12);
+          pot.potVal(gdry.val);
+         ):
+    gdry!=slider12?
+        (
+          gdry=slider12;
+          gdry.val=gdry;
+          gdry.potVal(gdry.val);
+          gdry.valOld=gdry;
+        );
+
+//26161
+gfx_getchar(26161) ? helpshow = 1;
+mouseClick ? helpshow = 0;
+helpshow == 2 ? (
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+//gfx_rect(315,60,50,75);
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=115;gfx_y=140;
+gfx_rect(gfx_x,gfx_y,70,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Softknee");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=235;gfx_y=283;
+gfx_rect(gfx_x,gfx_y,150,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Dry Mix (Parallel)");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=400;gfx_y=120;
+gfx_rect(gfx_x,gfx_y,70,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("VU Meter");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=500;gfx_y=120;
+gfx_rect(gfx_x,gfx_y,140,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("Reset (red) value");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=490;gfx_y=10;
+gfx_rect(gfx_x,gfx_y,140,13);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("VU Meter speed ->");
+
+gfx_r=1;gfx_g=1;gfx_b=0;gfx_a=1;
+gfx_x=0;gfx_y=0;
+gfx_rect(gfx_x,gfx_y,300,30);
+gfx_x += 2; gfx_y +=2;gfx_r=gfx_g=gfx_b=0;
+gfx_drawstr("General: Finetune knobs with [shift]");
+gfx_y += 15;;gfx_x=0+2; gfx_drawstr("Reset knobs with [ctrl/cmd]");
+);
+
+
+
+helpshow == 2 ? (
+gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+gfx_rect(10,10,300,80);
+gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+gfx_x = 13; gfx_y = 13;
+gfx_drawstr("Screw next to Ratio: Knee");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("Screw next to Output: Parallel Mix");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("Screw top-right: Needle speed");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("(Click) Display left half:");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("VU Meter / Graph & Values");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("(Click) red Values: Reset values");
+gfx_x = 13; gfx_y += 13;
+gfx_drawstr("");
+);
+
+
+
+
+
+
+
+
+//////////////////////// ZFCT ///////////////////////////////
+slider13 = zmnu;
+zfct = zmnu;
+zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+
+zmnu != 0 ? zfct *= gfx_ext_retina;
+gfx_dest = -1;
+gfx_x=gfx_y=0;gfx_a=1;
+gfx_blit(127,zfct,0);
+/////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+//gfx_y=0;
+//gfx_x=gfx_w + log10(gr_meter)*xscale;
+
+
+//gfx_rectto(gfx_w,meter_h);
+
+
+/* INPUT METER
+gin2Meter=100 + log10(ginMeter)*xscale;
+gfx_x = meterx+60; gfx_y = metery+120;
+gin2Meter > 0 ? (
+gfx_rect(meterx+60, metery+120,100+gin2Meter,meter_h);
+);
+*/
+/*
+gfx_r=gfx_g=gfx_b=1; gfx_a=0.6;
+
+s2=sqrt(2)/2;
+g = s2;
+while(
+gfx_x=gfx_w + log10(g)*xscale;
+gfx_x >= 0 ? (
+gfx_y=0;
+gfx_lineto(gfx_x,meter_h,0);
+gfx_y=meter_h-gfx_texth;
+gfx_x+=2;
+gfx_drawnumber(log10(g)*20,0);
+gfx_drawchar($'d');
+gfx_drawchar($'B');
+);
+g*=s2;
+gfx_x >=0;
+);
+*/
+):( /// ext flags
+
+
+ax=0;
+   
+      slider10 == 0 ? (
+      
+      
+      meterx = 0; metery = 0; meterh = gfx_h - metery; meterw = meterh;
+      gfx_r=0.1;gfx_g=0.1;gfx_b=0.1; gfx_a=1;
+      //gfx_rect(0,0,650,300);
+      
+      //gfx_rect(meterx,metery,220,meterw);
+      n= 1;
+      gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=0.3;
+      loop(3,
+      gfx_line(meterx+meterw-(n*meterw*3/10),metery,meterx+meterw-(n*meterw*3/10),metery+meterh);
+      gfx_line(meterx,metery+(n*meterh*3/10),meterx+meterw,metery+(n*meterh*3/10));
+      n = n + 1;
+      );
+      
+      gfx_r=0.7;gfx_g=0.8;gfx_b=1; gfx_a=1;
+      gfx_line(meterx,metery,meterx,metery+meterh);
+      gfx_line(meterx+meterw,metery,meterx+meterw,metery+meterh);
+      gfx_line(meterx,metery,meterx+meterw,metery);
+      gfx_line(meterx,metery+meterh-1,meterx+meterw,metery+meterh-1);
+      gfx_line(meterx,metery+meterh, meterx+meterw+(slider1*3*meterw/100), metery-(slider1*3*meterh/100));
+      grat = (slider1*3*meterh/100) - ((slider1*3*meterh/100)/slider3);
+      gfx_line(meterx+meterw+(slider1*3*meterw/100), metery-(slider1*3*meterh/100), meterx+meterw, metery-grat);
+      gfx_r=0.7; gfx_g=gfx_b=0; gfx_a=1;
+      gfx_rect(meterx+meterh,metery,2,(-1 * (log10(gr_meter)*meterh)));
+      grold > gr_meter ? (grold = gr_meter);
+      grold != 1 ? (gfx_rect(meterx+meterh,metery+(-1 * (log10(grold)*meterh)),2,1));
+      
+      fontsize = min(max((meterh-10) / 2,8),14);
+      gfx_setfont(1, "Arial", fontsize);
+      gfx_r=1; gfx_g=gfx_b=0; gfx_a=1;
+      gfx_x = meterx + meterh + 3; gfx_y=metery+2;
+      gfx_drawnumber(gcG,1);//(grmin,1); gcG
+      gfx_drawstr(" dB");
+      gfx_a=0.7;
+      gfx_x = meterx + meterh+3; gfx_y=metery+20 ;
+      gfx_drawnumber(grmin,1);
+      gfx_drawstr(" dB");
+      gfx_drawstr(" (max)");
+       
+      gfx_setfont(1);
+      
+      ticker += 1;
+      gcG > cG ? (
+      gcG = cG;
+      ticker = 0;
+      ) : (
+      ticker > 15 ? (
+      gcG = cG;
+      ticker = 0;
+      );
+      );
+      
+      mouseClick == 1 ? (
+      alt ? gthresh.dragstart():
+      mouse_cap & 32 ? gratio.dragstart():
+      (mouse_x > (gfx_w/2)*zfct ? grmin=0;
+      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1)));
+      );
+      
+      mouseClick == -1  ? 
+          (
+            gthresh.dragStop();
+            gratio.dragStop();
+            );
+            
+      mouse_wheel ? 
+          (
+           !shift ? gthresh.potWheel():
+           shift ? gratio.potwheel():
+           mouse_wheel=0;
+          );
+          
+          gthresh.dragging  ? (gthresh.potDrag();Changer = 1);
+          gratio.dragging ? (gratio.potDrag();Changer = 1);
+          
+           
+       gthresh!=gthresh.val?
+           (
+             gthresh=gthresh.val;
+             slider1=gthresh;
+             slider_automate(slider1);
+             pot.potVal(gthresh.val);
+            ):
+       gthresh!=slider1?
+           (
+             gthresh=slider1;
+             gthresh.val=gthresh;
+             gthresh.potVal(gthresh.val);
+             gthresh.valOld=gthresh;
+           );
+         
+       gratio!=gratio.val?
+           (
+             gratio=gratio.val;
+             slider3=gratio;
+             slider_automate(slider3);
+             pot.potVal(gratio.val);
+            ):
+       gratio!=slider3?
+           (
+             gratio=slider3;
+             gratio.val=gratio;
+             gratio.potVal(gratio.val);
+             gratio.valOld=gratio;
+           );     
+      
+      ):( // slider10
+      
+      
+      gfx_mode=0; gfx_a = 1;
+      
+      scale2 = 1.12;blitscale = gfx_w/190;
+      gfx_x = -((gfx_w/10)*scale2)/2; gfx_y = 0; 
+      gfx_blit(7,scale2*blitscale,0);//5
+      
+      gfx_r=0;gfx_g=0;gfx_b=0;
+      gfx_x = gfx_w/2; gfx_y = 125*blitscale;
+      winkel = (-135*0.017453)+(1.08*60*(gr_meter2-0.02)*0.017453);
+      winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
+            winkel > -0.91 ? (
+            winkel = -0.91;
+            );
+      //gfx_lineto((gfx_w/2)+((110*blitscale)*(cos(winkel))),125*blitscale+((110*blitscale)*sin(winkel)));
+      mnmetergfx(0, 0, 0, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+       gfx_x = 2; gfx_y = 1;
+       gfx_setfont();
+      gfx_r=0;gfx_g=0;gfx_b=0; gfx_drawstr("C2");
+      
+      mouseClick == 1 ? (
+      mouse_x > (gfx_w/2)*zfct ? grmin=0;
+      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      );
+      
+      );//slider10
+); // ext flags
+groldreset += 1;
+groldreset > 45 ? (groldreset = 0; grold=1);
+
+changer == 1 ?(
+threshold = slider1;
+knee_width = abs(slider1*2*slider2*0.01);
+
+ratio = slider3;
+slope = ((1 - ratio) / ratio);
+
+attack = slider4/1000;
+release = slider5/1000;
+alphaA = attack>0 ? exp(-1 / (attack * srate)) : 0;
+alphaR = release>0 ? exp(-1 / (release * srate)) : 0;
+
+Tlo = (threshold - knee_width / 2);
+Thi = (threshold + knee_width / 2);
+knee_factor = (slope / (knee_width * 2));
+
+output = 10^(slider6/20);
+
+listen = slider7;
+
+);
