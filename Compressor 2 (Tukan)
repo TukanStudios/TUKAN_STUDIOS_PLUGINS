@@ -1,6 +1,6 @@
 desc:Compressor 2 (Tukan)
 //author: Tukan
-//version 1.2
+//version 1.2?
 
 slider1:-16<-32,0,0.1>-Threshold (dB)
 slider2:0<0,100,1>-Knee (%)
@@ -719,8 +719,12 @@ ovrlgain = ovrlg;
       mouseHold = mouse_cap & 1;
       ctrl = mouse_cap & 4;
       shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
+      mouse_xz = mouse_x;
+      mouse_yz = mouse_y;
+      
 gfx_ext_flags == 0 ? (
 //gfx_r = 0;
 //gfx_rect(0,0,gfx_w,gfx_h);
@@ -946,7 +950,7 @@ last_clicked_item == 10 ? zmnu = 0;
 
 helpshow == 1 ? (
 gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
-gfx_rect(menu_x+20,menu_y+20,300,110);
+gfx_rect(menu_x+20,menu_y+20,430,200);
 gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
 gfx_x = menu_x+23; gfx_y = menu_y+23;
 gfx_drawstr("- Screw next to Ratio: Knee");
@@ -956,9 +960,17 @@ gfx_x = menu_x+23; gfx_y += 13;
 gfx_drawstr("- Screw top-right: Needle speed");
 gfx_x = menu_x+23; gfx_y += 13;
 gfx_drawstr("- (Click) red Values: Reset values");
-gfx_x = menu_x+23; gfx_y += 13;
-gfx_drawstr("");
-gfx_x = menu_x+23; gfx_y += 13;
+gfx_x = menu_x+23; gfx_y += 26;
+gfx_drawstr("In MCP/TCP mode:");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Click the graph to switch to VU meter and back");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Click the numbers to reset the values");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Change the threshold with [alt]+drag");
+    gfx_x = menu_x+23; gfx_y += 13;
+    gfx_drawstr("- Change the ratio with [win]+drag / [ctrl] on mac");
+gfx_x = menu_x+23; gfx_y += 26;
 gfx_drawstr("This plugin can be automated.");
     gfx_x = menu_x+23; gfx_y += 13;
     gfx_drawstr("");
@@ -1027,14 +1039,14 @@ mouseClick == -1  ?
 
 mouse_wheel ? 
     (
-      gthresh.collision()   ? gthresh.potWheel():
-      gratio.collision()  ? gratio.potWheel():
-      gatt.collision()    ? gatt.potWheel():
-      grel.collision()    ? grel.potWheel(): 
-      goutgain.collision()    ? goutgain.potWheel():
-      screw.collision()    ? screw.potWheel():
-      gknee.collision()    ? gknee.potWheel():
-      gdry.collision()    ? gdry.potWheel():
+      gthresh.collision()   ? (gthresh.potWheel();Changer = 1):
+      gratio.collision()  ? (gratio.potWheel();Changer = 1):
+      gatt.collision()    ? (gatt.potWheel();Changer = 1):
+      grel.collision()    ? (grel.potWheel();Changer = 1): 
+      goutgain.collision()    ? (goutgain.potWheel();Changer = 1):
+      screw.collision()    ? (screw.potWheel();Changer = 1):
+      gknee.collision()    ? (gknee.potWheel();Changer = 1):
+      gdry.collision()    ? (gdry.potWheel();Changer = 1):
      mouse_wheel=0;
     );
 
@@ -1395,9 +1407,58 @@ ax=0;
       );
       
       mouseClick == 1 ? (
-      mouse_x > (gfx_w/2)*zfct ? grmin=0;
-      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1));
+      alt ? gthresh.dragstart():
+      mouse_cap & 32 ? gratio.dragstart():
+      (mouse_x > (gfx_w/2)*zfct ? grmin=0;
+      mouse_x < (gfx_w/2)*zfct ? (slider10 == 1 ? (slider10 = 0):(slider10=1)));
       );
+      
+      mouseClick == -1  ? 
+          (
+            gthresh.dragStop();
+            gratio.dragStop();
+            );
+            
+      mouse_wheel ? 
+          (
+           !shift ? gthresh.potWheel():
+           shift ? gratio.potwheel():
+           mouse_wheel=0;
+          );
+          
+          gthresh.dragging  ? (gthresh.potDrag();Changer = 1);
+          gratio.dragging ? (gratio.potDrag();Changer = 1);
+          
+           
+       gthresh!=gthresh.val?
+           (
+             gthresh=gthresh.val;
+             slider1=gthresh;
+             slider_automate(slider1);
+             pot.potVal(gthresh.val);
+            ):
+       gthresh!=slider1?
+           (
+             gthresh=slider1;
+             gthresh.val=gthresh;
+             gthresh.potVal(gthresh.val);
+             gthresh.valOld=gthresh;
+           );
+         
+       gratio!=gratio.val?
+           (
+             gratio=gratio.val;
+             slider3=gratio;
+             slider_automate(slider3);
+             pot.potVal(gratio.val);
+            ):
+       gratio!=slider3?
+           (
+             gratio=slider3;
+             gratio.val=gratio;
+             gratio.potVal(gratio.val);
+             gratio.valOld=gratio;
+           );     
       
       ):( // slider10
       

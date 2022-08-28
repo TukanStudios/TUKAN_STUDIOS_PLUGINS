@@ -437,13 +437,12 @@ slider2 > -12 ? (slider2 = -12):
 slider2 > -18 ? (slider2 = -18):
 slider2 > -24 ? (slider2 = -24):
 slider2 <= -24 ? (slider2 = 0);
+): alt ? (
+slider2 -= 1; slider2 < -24 ? (slider2 = 0);
 ):(
 slider1 == 0 ? (slider1=1):(slider1=0);
 );
 
-alt ? (
-slider2 -= 1; slider2 < -24 ? (slider2 = 0);
-);
 
 );
 

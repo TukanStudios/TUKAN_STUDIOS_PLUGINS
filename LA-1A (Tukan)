@@ -94,42 +94,9 @@ gfx_ext_retina = 1;
   function db2ratio(d) ( 10^(d/20); );
   function ratio2db(r) ( log(abs(r))*dbc; );
   
+  stattslider_on = 0;
+  caller = 1;
   
-  
-  function stattslider() (
-  mom = 0.00010 + 0.00032 * abs(100-slider11*10)^3 / 125000; 
-  //slider1 = -1*slider9;
-  //sliderchange(slider1);
-  
-  
-  
-    thresh = (-1*slider9)/1.2;//-1*slider9;
-    threshv = exp(thresh * db2log);
-    slider2 > 8 ? slider2 = 8;
-    slider2 < 6 ? (ratio=4):(ratio=8);
-//    ratio = slider2;
-    softknee = 3&1;//slider4&1;
-    capsc = (3&2) ? log2db : log2db * 2.08136898;
-    cthresh = (softknee ? (thresh -3) : thresh);
-    cthreshv = exp(cthresh * db2log);
-    sidechain = slider5;
-    automakeup = 0;
-    automakeup ? (
-      autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
-    ) : (
-      autogain = 0;
-    );
-    makeup = slider3;
-    makeupv = exp((makeup+autogain) * db2log);
-    RMSdet = 0;
-    RMSdet ? (
-      rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
-    ) : (
-      rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
-      //rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
-    );
-    opto = 1; 
-  );
   
   
   
@@ -780,13 +747,50 @@ gfx_ext_retina = 1;
   
   
   
-  
+    function stattslider() (
+    stattslider_on = 1;
+    mom = 0.00010 + 0.00032 * abs(100-slider11*10)^3 / 125000; 
+    //slider1 = -1*slider9;
+    //sliderchange(slider1);
+    
+    
+    
+      thresh = (-1*slider9)/1.2;//-1*slider9;
+      threshv = exp(thresh * db2log);
+      slider2 > 8 ? slider2 = 8;
+      slider2 < 6 ? (ratio=4):(ratio=8);
+  //    ratio = slider2;
+      softknee = 3&1;//slider4&1;
+      capsc = (3&2) ? log2db : log2db * 2.08136898;
+      cthresh = (softknee ? (thresh -3) : thresh);
+      cthreshv = exp(cthresh * db2log);
+      sidechain = slider5;
+      automakeup = 0;
+      automakeup ? (
+        autogain = (abs(thresh) - (abs(thresh)/max(1,ratio-1)))/2;
+      ) : (
+        autogain = 0;
+      );
+      makeup = slider3;
+      makeupv = exp((makeup+autogain) * db2log);
+      RMSdet = 0;
+      RMSdet ? (
+        rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+      ) : (
+        rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
+        //rmscoef=exp(-1000/(10 * srate));       // 10 ms RMS window
+      );
+      opto = 1; 
+      
+      stattslider_on = 0;
+      caller = 0;
+    );
   
   
   
   
 @slider
-stattslider();
+caller == 1;
 
 
 
@@ -802,6 +806,13 @@ stattslider();
 
 
 @sample
+
+caller == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+);
+);
+
   //  ospl0 = spl0;
    // ospl1 = spl1;
     opto = 0;
@@ -1397,7 +1408,7 @@ winkel = (-133*0.017453)+(62*(gr_meter2)*0.017453);
             
             
             
-     stattslider();       
+     caller = 1;      
               
               
               

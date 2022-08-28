@@ -1056,6 +1056,10 @@ noise=rand(2)-1;
 noise=(noise*noiselevel*noisech);
 );
 
+meter_speed = _global.meter_speed;
+scaler = 10^(abs(_global.meter_cal)/20);
+mnmetersample(spl0*scaler,spl1*scaler,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+
 
 
 
@@ -1096,12 +1100,6 @@ histbuf[histpos+histsize]=spl1;
 
 histpos+=1;
 histpos >= histsize ? histpos=0;
-
-
-meter_speed = _global.meter_speed;
-scaler = 10^(abs(_global.meter_cal)/20);
-mnmetersample(spl0*scaler,spl1*scaler,1,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
-
 
           
 ); // ENdE _global.process

@@ -14,6 +14,7 @@ slider9:1<0,1,1>-Ducking On
 slider10:0<0,1,1>-DONT Metermode
 slider11:3<0,5,0.01>-DONT Meterspeed
 slider12:0.5<0,1,0.01>-Wet/Dry
+slider13:1<0,6,.01>-Scaling
 
 filename:0,TKCC2gui/DUCKBack.png
 filename:1,TKCC2gui/APIBig.png
@@ -34,6 +35,7 @@ out_pin:R out
 
 @init
 ext_noinit = 1; 
+gfx_ext_retina = 1;
 
 ovrlgain = 1;
 
@@ -259,7 +261,7 @@ gr_meter2 > 1 ? gr_meter2 =1;
  function collision  ()
    instance          (xIn yIn widthIn heightIn)
                      (
-                      mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                      mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                      );
  
  function dragStart ()
@@ -633,8 +635,8 @@ slider12 > 0.5 ? (wetmix = 1-(slider12-0.5)*2):(wetmix=1);
 
 
 listen == 0 ? (
-spl0 = clean0 * drymix + spl0 * cL * wetmix;
-spl1 = clean1 * drymix + spl1 * cL * wetmix;
+spl0 = (clean0 * drymix + spl0 * cL * wetmix)*output;
+spl1 = (clean1 * drymix + spl1 * cL * wetmix)*output;
 );
 listen == 1 ? (
 spl0 = clean0 * slider12 + ((spl0 * cL) - spl0)  * -output;
@@ -724,7 +726,6 @@ ovrlgain = ovrlg;
 
 
 
-
 @gfx 401 300
 
 
@@ -745,6 +746,14 @@ ovrlgain = ovrlg;
       lastCap = mouseHold;
 gfx_ext_flags == 0 ? (
 
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 401; zfct_h = 300;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider13 ? zmnu = slider13;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
 
  knobsx = 50; 
  knobsy = 50;
@@ -986,13 +995,22 @@ gfx_x=0;gfx_y=0;
   //  gfx_drawnumber(last_clicked_item, 0); 
     mouseClick ? (
     //helpshow ? helpshow = 0;
-    mouse_x > menu_x ? (
-    mouse_x < menu_x + 20 ? (
-    mouse_y > menu_y ? (
-    mouse_y < menu_y + 20 ? (
+    mouse_xz > menu_x ? (
+    mouse_xz < menu_x + 20 ? (
+    mouse_yz > menu_y ? (
+    mouse_yz < menu_y + 20 ? (
       gfx_x = menu_x;
       gfx_y = menu_y+20;
-      #allitems = "|Show Info/Help";
+      
+       #item2 =">Scaling|";#allitems = #item2;
+      slider13 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider13 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider13 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider13 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider13 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider13 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+      
+      #allitems += "|Show Info/Help";
       last_clicked_item = gfx_showmenu(#allitems);
     );
     );
@@ -1000,8 +1018,13 @@ gfx_x=0;gfx_y=0;
     );
     );
     
-    
-    last_clicked_item == 1 ? helpshow = 1;
+    last_clicked_item == 1 ? zmnu = sqrt(0.5);
+    last_clicked_item == 2 ? zmnu = sqrt(0.75);
+    last_clicked_item == 3 ? zmnu = 1;
+    last_clicked_item == 4 ? zmnu = sqrt(1.5);
+    last_clicked_item == 5 ? zmnu = sqrt(2);
+    last_clicked_item == 6 ? zmnu = 0;
+    last_clicked_item == 7 ? helpshow = 1;
 
     helpshow == 1 ? (
     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
@@ -1059,20 +1082,20 @@ mouseClick == 1 ?
     gdry.collision()    ? gdry.dragstart(); 
       /*
     
-      mouse_x > meterx ? (
-      mouse_x < meterx + 110 ? (
-      mouse_y > metery ? (
-      mouse_y < metery + 120 ? (
+      mouse_xz > meterx ? (
+      mouse_xz < meterx + 110 ? (
+      mouse_yz > metery ? (
+      mouse_yz < metery + 120 ? (
         slider10 == 1 ?(slider10 = 0):(slider10 = 1);
       );
       );
       );
       );
       
-      mouse_x > meterx +110 ? (
-      mouse_x < meterx + 220 ? (
-      mouse_y > metery ? (
-      mouse_y < metery + 120 ? (
+      mouse_xz > meterx +110 ? (
+      mouse_xz < meterx + 220 ? (
+      mouse_yz > metery ? (
+      mouse_yz < metery + 120 ? (
         grmin = 0;
       );
       );
@@ -1321,6 +1344,29 @@ g*=s2;
 gfx_x >=0;
 );
 */
+
+
+
+
+
+    //////////////////////// ZFCT ///////////////////////////////
+    slider13 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    /////////////////////////////////////////////////////////////  
+    
+    
+    
+    
+    
+    
+    
+    
 ):( /// ext flags
 
 blitscale = gfx_w/100;

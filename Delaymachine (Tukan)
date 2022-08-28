@@ -2,10 +2,10 @@
 
 desc: Delay Machine (Tukan)
 // version 1.1.2 FIXED NO DELAYS ON SYNCED PLAYBACK
-slider1:100<0,3000,1>-Delay (ms) (0=tempo sync)
+slider1:100<0,3000,1>-Delay (ms)
 slider2:-5<-40,0,1>-Feedback (dB)
 slider3:0<-120,6,1>-Mix In (dB)
-slider4:0.5<0,1,0.01>-Mix dry/ Wet (dB)
+slider4:0.5<0,1,0.01>-Mix dry/Wet
 slider5:0<-120,6,1>-none (dB)
 slider6:0<0,100,1>-Ping-Pong Width (%)
 slider7:0.25<0.0625,4,0.0625>-Tempo Sync (fraction of whole note)
@@ -16,8 +16,9 @@ slider11:0<0,2>-TimeSpec
 slider12:0<0,1000,10>-HPF
 slider13:22000<1000,22000,100>-LPF (DON'T automate, use slider14!)
 slider14:14.2877123<9.96,14.2877123,0.01>-LPF Log
-slider15:0<0,1,1>-Crush on
-slider16:2<0,2,1>-Start Pong Left
+slider15:0<0,1,1>-Crush
+slider16:2<0,2,1>-Start Pong
+slider17:1<0,6,.01>-Scaling
 
 filename:0,DELAYgui/switch.png
 filename:1,DELAYgui/APIBig.png
@@ -28,6 +29,7 @@ filename:5,DELAYgui/tapedelgr.png
 filename:6,DELAYgui/tapeback.png
 filename:7,DELAYgui/digback.png
 filename:8,DELAYgui/LED.png
+filename:9,DELAYgui/menu.png
 
 import DELAYgui/delay-utils.jsfx-inc
 
@@ -38,15 +40,13 @@ out_pin:right output
 out_pin:SC left output
 out_pin:SC right output
 
-options:gfx_idle
-
 @init
-
+gfx_ext_retina = 1;
 ext_noinit=1;
 
   delaypos=0;
   pongloc=0;
-  Dryonly = 0;
+
         tempox = tempo;
         
         slider10 > 0 ? (
@@ -77,11 +77,13 @@ ext_noinit=1;
   //freemem = pong.delay_init(freemem, delaylen_max*2);
   //freemem = Left.delay_init(freemem, delaylen_max*2);
   //freemem = Right.delay_init(freemem, delaylen_max*2);
-  // freemem = pongLeft.delay_init(freemem, delaylen_max*2);
-  //  freemem = pongRight.delay_init(freemem, delaylen_max*2);
+  //freemem = pongLeft.delay_init(freemem, delaylen_max*2);
+  //freemem = pongRight.delay_init(freemem, delaylen_max*2);
   nix = 0;//delaylen_new;
   nix2=1; 
+
   loop(delaylen_max*2, // -delaylen_new ,
+
   pong.delay_input(0);
   Left.delay_input(0);
   right.delay_input(0);
@@ -98,6 +100,8 @@ ext_noinit=1;
   //dpint[1] = 0;
   nix+=1;
   );
+
+  
   );
 
   //emptybuffer();
@@ -208,7 +212,7 @@ ext_noinit=1;
     function collision  ()
       instance          (xIn yIn widthIn heightIn)
                         (
-                         mouse_x > xIn && mouse_x < xIn + widthIn && mouse_y > yIn && mouse_y < yIn + heightIn
+                         mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
                         );
     
     function dragStart ()
@@ -552,28 +556,14 @@ slider9 == 0 ? (
 
 
 
+function stattslider()
+(
+stattslider_on = 1;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  slider1 == 0 ? (Dryonly = 1):(Dryonly = 0);
+  slider1 > 3000 ? slider1 = 3000;
   
   
-@slider
-
     slider10 > 0 ? (
     slider10 == 5 ? slider1 = 1000*((60/4)/tempo):
     slider10 == 4 ? slider1 = 1000*((60/2)/tempo):
@@ -584,7 +574,6 @@ slider9 == 0 ? (
     slider11 == 1 ? slider1 = slider1 * (2/3):
     slider11 == 2 ? slider1 = slider1 * 1.5;
   ); 
-  
   
   
   
@@ -657,11 +646,12 @@ slider13 < 1000 ? (slider13=1000);
    b23 /= a03;
    a13 /= a03;
    a23 /= a03;
-   
-   
-   
-   
-   
+   stattslider_on = 0;
+   );
+  
+  
+@slider
+   stattslider_call = 1;
    
    
    
@@ -684,6 +674,10 @@ slider13 < 1000 ? (slider13=1000);
       shift = mouse_cap & 8;
       mouseClick = mouseHold - lastCap;
       lastCap = mouseHold;
+  
+  mouse_xz = mouse_x;
+  mouse_yz = mouse_y;
+  
   
   
   initial == 0 ?(
@@ -779,9 +773,19 @@ slider13 < 1000 ? (slider13=1000);
   
       ):( // EXT FLAGS
       
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 838; zfct_h = 255;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider17 ? zmnu = slider17;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
+      gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+      gfx_rect(0,0,gfx_w,gfx_h);
       
-  gfx_w = 838;
-  gfx_h=255;
+  //gfx_w = 838;
+  //gfx_h=255;
   gfx_x=0; gfx_y=0;
   slider9 == 1 ? (
   gfx_blit(6,1,0);
@@ -928,6 +932,71 @@ slider13 < 1000 ? (slider13=1000);
   gfx_blit(8,0.7,0,0,31,30,30);
   );
 
+
+
+
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(9,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_xz > menu_x ? (
+   mouse_xz < menu_x + 20 ? (
+   mouse_yz > menu_y ? (
+   mouse_yz < menu_y + 20 ? (
+     gfx_x = menu_x*zfct;
+     gfx_y = (menu_y+20)*zfct;
+      
+       #item2 =">Scaling|";#allitems = #item2;
+      slider17 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider17 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider17 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider17 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider17 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider17 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   
+   last_clicked_item == 1 ? zmnu = sqrt(0.5);
+   last_clicked_item == 2 ? zmnu = sqrt(0.75);
+   last_clicked_item == 3 ? zmnu = 1;
+   last_clicked_item == 4 ? zmnu = sqrt(1.5);
+   last_clicked_item == 5 ? zmnu = sqrt(2);
+   last_clicked_item == 6 ? zmnu = 0;
+   last_clicked_item == 7 ? helpshow = 1;
+   
+   
+        helpshow == 1 ? (
+        gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+        gfx_rect(menu_x,menu_y+0,310,90);
+        menu_x +=3;
+        gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+        gfx_x = menu_x+23; gfx_y = menu_y+3;
+        gfx_drawstr("This plugin can be automated.");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(But when delay times are touched");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("the buffers will be cleared!)");
+        gfx_x = menu_x+23; gfx_y += 26;
+        gfx_drawstr("(Fine tune knobs with shift)");
+        gfx_x = menu_x+23; gfx_y += 13;
+        gfx_drawstr("(Reset knobs with ctrl/cmd)");
+        );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+
+
   /********************************* Mouse Control ******************************/
   mouseClick == 1 ? 
       (
@@ -941,11 +1010,11 @@ slider13 < 1000 ? (slider13=1000);
         slider9 == 0 ? (
         glpf.collision()   ? glpf.dragStart();
         ghpf.collision()   ? ghpf.dragStart();
-        mouse_x > gcrushx ? (
-        mouse_x < gcrushx + 48 ? (
-        mouse_y > gcrushy ? (
-        mouse_y < gcrushy + 60 ?(
-        slider15 == 0 ? (slider15 = 1):(slider15 = 0);
+        mouse_xz > gcrushx ? (
+        mouse_xz < gcrushx + 48 ? (
+        mouse_yz > gcrushy ? (
+        mouse_yz < gcrushy + 60 ?(
+        slider15 == 0 ? (slider15 = 1):(slider15 = 0);slider_automate(slider15);
         //gfx_drawstr("CR"); 
         );
         );
@@ -956,55 +1025,56 @@ slider13 < 1000 ? (slider13=1000);
         gdist.collision()   ? gdist.dragStart();
         );
         
-        mouse_y > kny ? (
-        mouse_y < kny+32 ? (
-        mouse_x > kpong ? (
-        mouse_x < kpong+38 ? (
+        mouse_yz > kny ? (
+        mouse_yz < kny+32 ? (
+        mouse_xz > kpong ? (
+        mouse_xz < kpong+38 ? (
         slider16 == 0 ? (slider16 = 1):
         slider16 == 1 ? (slider16 = 2):
         slider16 == 2 ? (slider16 = 0);
+        slider_automate(slider16);
         );
         );
-        mouse_x > k16 ? (
-        mouse_x < k16+38 ? (
-        slider10 = 5;
+        mouse_xz > k16 ? (
+        mouse_xz < k16+38 ? (
+        emptybuffer();slider10 = 5;slider_automate(slider10);
         );
         );
-        mouse_x > k8 ? (
-        mouse_x < k8+38 ? (
-        slider10 = 4;
+        mouse_xz > k8 ? (
+        mouse_xz < k8+38 ? (
+        emptybuffer();slider10 = 4;slider_automate(slider10);
         );
         );
-        mouse_x > k4 ? (
-        mouse_x < k4+38 ? (
-        slider10 = 3;
+        mouse_xz > k4 ? (
+        mouse_xz < k4+38 ? (
+        emptybuffer();slider10 = 3;slider_automate(slider10);
         );
         );
-        mouse_x > k2 ? (
-        mouse_x < k2+38 ? (
-        slider10 = 2;
+        mouse_xz > k2 ? (
+        mouse_xz < k2+38 ? (
+        emptybuffer();slider10 = 2;slider_automate(slider10);
         );
         );
-        mouse_x > k1 ? (
-        mouse_x < k1+38 ? (
-        slider10 = 1;
+        mouse_xz > k1 ? (
+        mouse_xz < k1+38 ? (
+        emptybuffer();slider10 = 1;slider_automate(slider10);
         );
         );
-        mouse_x > kT ? (
-        mouse_x < kT+38 ? (
+        mouse_xz > kT ? (
+        mouse_xz < kT+38 ? (
         slider11 == 1 ? (
-        slider11 = 0;
+        emptybuffer();slider11 = 0;slider_automate(slider11);
         ):(
-        slider10 > 0 ? (slider11 = 1);
+        emptybuffer();slider10 > 0 ? (slider11 = 1;slider_automate(slider11););
         );
         );
         );
-        mouse_x > kD ? (
-        mouse_x < kD+38 ? (
+        mouse_xz > kD ? (
+        mouse_xz < kD+38 ? (
         slider11 == 2 ? (
-        slider11 = 0;
+        emptybuffer();slider11 = 0;slider_automate(slider11);
         ):(
-        slider10 > 0 ? (slider11 = 2);
+        emptybuffer();slider10 > 0 ? (slider11 = 2;slider_automate(slider11););
         );
         );
         );
@@ -1064,7 +1134,7 @@ slider13 < 1000 ? (slider13=1000);
      gdelay!=gdelay.val?
          (
           gdelay=gdelay.val;
-          Slider1=gdelay;
+          Slider1=gdelay; slider_automate(slider1);
           pot.potVal(gdelay.val); 
           gdelay.collision() ? (slider10 = 0; slider11 = 0;);
           //emptybuffer();
@@ -1079,7 +1149,7 @@ slider13 < 1000 ? (slider13=1000);
      gfb!=gfb.val?
          (
           gfb=gfb.val;
-          Slider2=gfb;
+          Slider2=gfb; slider_automate(slider2);
           pot.potVal(gfb.val); 
           ):
      gfb!=slider2?
@@ -1091,7 +1161,7 @@ slider13 < 1000 ? (slider13=1000);
      gmix!=gmix.val?
          (
           gmix=gmix.val;
-          slider4=gmix;
+          slider4=gmix; slider_automate(slider4);
           pot.potVal(gmix.val); 
           ):
      gmix!=slider4?
@@ -1103,7 +1173,7 @@ slider13 < 1000 ? (slider13=1000);
      gst!=gst.val?
          (
           gst=gst.val;
-          slider6=gst;
+          slider6=gst; slider_automate(slider6);
           pot.potVal(gst.val); 
           ):
      gst!=slider6?
@@ -1116,7 +1186,7 @@ slider13 < 1000 ? (slider13=1000);
        gdist!=gdist.val?
            (
             gdist=gdist.val;
-            slider8=gdist;
+            slider8=gdist; slider_automate(slider8);
             pot.potVal(gdist.val); 
             ):
        gdist!=slider8?
@@ -1129,7 +1199,7 @@ slider13 < 1000 ? (slider13=1000);
            gtape!=gtape.val?
                (
                 gtape=gtape.val;
-                slider9=gtape;
+                slider9=gtape; slider_automate(slider9);
                 pot.potVal(gtape.val); 
                 ):
            gtape!=slider9?
@@ -1143,7 +1213,7 @@ slider13 < 1000 ? (slider13=1000);
          gcrush!=gcrush.val?
              (
               gcrush=gcrush.val;
-              slider15=gcrush;
+              slider15=gcrush; slider_automate(slider15);
               pot.potVal(gcrush.val); 
               ):
          gcrush!=slider15?
@@ -1156,7 +1226,7 @@ slider13 < 1000 ? (slider13=1000);
         glpf!=glpf.val?
             (
              glpf=glpf.val;
-             slider14=glpf;
+             slider14=glpf; slider_automate(slider14);
              pot.potVal(glpf.val); 
              ):
         glpf!=slider14?
@@ -1168,7 +1238,7 @@ slider13 < 1000 ? (slider13=1000);
       ghpf!=ghpf.val?
           (
            ghpf=ghpf.val;
-           slider12=ghpf;
+           slider12=ghpf; slider_automate(slider12);
            pot.potVal(ghpf.val); 
            ):
       ghpf!=slider12?
@@ -1181,10 +1251,11 @@ slider13 < 1000 ? (slider13=1000);
         //  );
       
                
-               slider1 == 0 ? (Dryonly = 1):(Dryonly = 0);
 
      //gtape.dragging  ? gtape.potToggle();
+    
      
+     /*
 sliderchange(slider4);
     slider13 = 2^slider14;
     slider13 < 1000 ? (slider13=1000);
@@ -1308,8 +1379,24 @@ odelay != delaylen ? (
   freembuf(delaylen*2);
 );
 */
+slider1 == 0 ? (Dryonly = 1):(Dryonly = 0);
 slider1 > 3000 ? slider1 = 3000;
-); //EXT FLAGS
+stattslider_call = 1;
+
+
+//////////////////////// ZFCT ///////////////////////////////
+    slider17 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    /////////////////////////////////////////////////////////////   
+      
+      
+); //EXT FLAGS   
 
 
 
@@ -1361,8 +1448,6 @@ odelay != delaylen ? (
   freembuf(delaylen*2);
 );
 */
-    delaylen != delaylen_old ? (emptybuffer(););
-    delaylen_old = delaylen;
     
     
     
@@ -1397,7 +1482,16 @@ odelay != delaylen ? (
     
     
 @sample
-slider13 < 1000 ? (slider13=1000);
+slider13 < 1000 ? (slider13=1000;stattslider_call = 1);
+
+stattslider_call == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+   delaylen != delaylen_old ? (emptybuffer(););
+    delaylen_old = delaylen;
+);
+);
+
 spl2 = spl0; spl3 = spl1;
   
   os = (spl0 + spl1) / 2;
@@ -1581,7 +1675,7 @@ spl2 = spl0; spl3 = spl1;
   crushos1 = os1*scaler; crushos2 = os2*scaler; 
   crushos1 = max(min((floor(crushos1*resol))*invresl,1),-1);
   crushos2 = max(min((floor(crushos2*resol))*invresl, 1),-1);
-  pongcomp = backscaler*max(min((floor(pongcomp*scaler*resol))*invresl, 1),-1);
+  pongcomp != 0 ? pongcomp = backscaler*max(min((floor(pongcomp*scaler*resol))*invresl, 1),-1);
   crushos1*=backscaler; crushos2*=backscaler;
   
   
@@ -1598,7 +1692,8 @@ abs(crushos2) < 2^(-90/6) ? (crushos2 = 0.3*os2*wetmix);
  // abs(crushos1) < 2^(-75/6) ? (crushos1 =0);
  // abs(crushos2) < 2^(-75/6) ? (crushos2 =0);
   
-  os1 = crushos1; os2 = crushos2;
+  os1 = crushos1; 
+  os2 = crushos2;
   //abs(os1) < 0.0025 ? (os1 = 0);
   //abs(os2) < 0.0025 ? (os2 = 0);
 
