@@ -20,7 +20,7 @@ slider16:0<0,24,0.0024>-16 ROutGain
 slider17:0<0,400,1>-17 R HPF
 slider18:0<0,1,1>-18 RBypass
 
-slider19:0<0,1,1>-19 EMPTY
+slider19:0<0,1,1>-19 Sidechain
 slider20:1<0,2,1{Stereo,Dual,MS}>-20 Mode
 
 slider21:1<0,6,.01>-Scaling
@@ -28,8 +28,13 @@ slider22:2<0,3,1>-Transistors
 
 slider23:4.9<0.1,10,0.01>-Meterspeed
 
+slider24:0<0,2,1>-24 Parameter Link
+
+
 in_pin:L in
 in_pin:R in
+in_pin:Sidechain L in
+in_pin:Sidechain R in
 
 out_pin:L out
 out_pin:R out
@@ -43,10 +48,11 @@ filename:4,BusTools/sslr60.png
 filename:5,BusTools/CCVU3.png
 filename:6,BusTools/whiteknob_35.png
 filename:7,BusTools/LED.png
-filename:8,BusTools/BCBack.png
+filename:8,BusTools/BCBack2.png
 filename:9,BusTools/screw.png
 filename:10,BusTools/menu.png
-
+filename:11,BusTools/oled.png
+filename:12,BusTools/CCVU3mini.png
 
 
 @init
@@ -267,7 +273,7 @@ ovrlgain = 1;
   
   gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
   ;
-  mnmeterscale == 0 ? (mnblitscale = gfx_w/190):(mnblitscale = mnmeterscale);
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/(190*2)):(mnblitscale = mnmeterscale);
   gfx_blit(5,mnblitscale,0);
   
   
@@ -343,6 +349,124 @@ ovrlgain = 1;
     );
   
   
+  
+  
+  function mini_mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+   
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+  ;
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/(190*2)):(mnblitscale = mnmeterscale);
+  gfx_blit(12,mnblitscale,0);
+  
+  
+  w1 = $pi * 11.5 / 180; 
+  w2 = $pi * 30 / 180;
+  
+  xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  yw = 92*mnblitscale;//floor(xw / 1.5);
+  
+  r1 = 130*mnblitscale;//floor(yw * 0.85);
+  
+  
+   xd = 10 + chan*(xw+10);
+    mode === 1 ? xd += floor(xw/2);
+    
+    yd = 60*mnblitscale;
+  
+    xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+    ya = floor(yd + yw * 1.1);
+  
+  gfx_a = 1;gfx_r=gfx_b=gfx_g=0.8;
+  //gfx_arc(mnmeterx + xa, ya, r1, -30 * ($pi / 180), w2, 1);   
+  
+  //gfx_r=0.94902; gfx_g=0.32157; gfx_b=0.72941; // bold line 
+  //gfx_arc(mnmeterx + xa, ya, r1 + 1, w1, w2, 1);
+  //gfx_arc(xa, ya, r1 + 1, w1, w2, 1);
+  //gfx_arc(xa, ya, r1 + 2, w1, w2, 1);  
+  //gfx_arc(xa, ya, r1 + 3, w1, w2, 1);  
+  //gfx_arc(xa, ya, r1 + 4, w1, w2, 1);
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+  
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+    mnch == 2 ? (ph= dbR);
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+    
+    
+    );
   
   
   
@@ -640,6 +764,30 @@ stattslider_on = 1;
 
   mom = 0.00010 + 0.00032 * abs(100-slider23*10)^3 / 125000; 
 
+tensidechain = slider19;
+
+slider24 == 1 ? (
+slider10 = slider1;
+slider11 = slider2;
+slider12 = slider3;
+slider13 = slider4;
+slider14 = slider5;
+slider15 = slider6;
+slider16 = slider7;
+slider17 = slider8;
+slider18 = slider9;
+):slider24 == 2 ? (
+slider1 = slider10;
+slider2 = slider11;
+slider3 = slider12;
+slider4 = slider13;
+slider5 = slider14;
+slider6 = slider15;
+slider7 = slider16;
+slider8 = slider17;
+slider9 = slider18;
+);
+
 
 ratio = slider2;
 thresh = slider1;
@@ -656,7 +804,7 @@ kneevalue = 50;//slider5;
   tencapsc = (3&2) ? log2db : log2db * 2.08136898;
   tenctenthresh = tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
   tenctenthreshv = exp(tenctenthresh * db2log);
-  tensidechain = 0;
+  //tensidechain = 0;
   tenautotenmakeup = 0;
   tenmakeup = 0;
   tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
@@ -731,7 +879,7 @@ R_kneevalue = 50;//slider14;
   R_tencapsc = (3&2) ? log2db : log2db * 2.08136898;
   R_tenctenthresh = R_tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
   R_tenctenthreshv = exp(R_tenctenthresh * db2log);
-  tensidechain = 0;
+  //tensidechain = 0;
   tenautotenmakeup = 0;
   tenmakeup = 0;
   tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
@@ -1620,25 +1768,37 @@ gfx_blit(8,1,0);
 
       
       
-      
 
      gfx_x = knobsx+300; gfx_y = knobsy + 100;
      slider9 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
      gfx_x += 32; gfx_y += 3;
      slider9 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider20 == 0 ? gfx_blit(11,30/35,0,0,35,30,30):slider24 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     
+     //gfx_r = gfx_b= 1; gfx_a = 0.3;
+     //gfx_rect(388,238,17,17);
+     //gfx_rect(733,238,17,17);
      
      slider20 == 1 ? (
      gfx_x = knobsx+645; gfx_y = knobsy + 100;
      slider18 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
      gfx_x += 32; gfx_y += 3;
      slider18 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider24 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
      ):(
      gfx_x = knobsx+645; gfx_y = knobsy + 100;
      slider9 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
      gfx_x += 32; gfx_y += 3;
      slider9 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider24 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
      );
 
+
+     //knobsy -= 10;
+      
      gfx_x = knobsx+450; gfx_y = knobsy + 100;
      slider20 == 0 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
      gfx_x += 32; gfx_y += 3;
@@ -1654,7 +1814,13 @@ gfx_blit(8,1,0);
      gfx_x += 32; gfx_y += 3;
      slider20 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
 
-
+/*
+     gfx_x = knobsx+450; gfx_y = knobsy + 195;
+     slider24 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider24 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+*/     
+     //knobsy += 10;
 
      gfx_x = L_atk.xIn+54; gfx_y = L_atk.yIn+55;
      slider3 == 31 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
@@ -1722,6 +1888,15 @@ gfx_a = 1;
       slider22 == 2 ? #item2 = "!Input Transistor|!Output Transistor|";
       slider22 == 3 ? #item2 = "Input Transistor|!Output Transistor|";
       #allitems = #item2;
+      
+      slider20 == 0 ? (
+      #item2 = "#Match (left master)|";#allitems += #item2;
+      #item2 = "#Match (right master)||";#allitems += #item2;
+      ):(
+      slider24 == 1 ? (#item2 = "!Match (left master)|"):(#item2 = "Match (left master)|");#allitems += #item2;
+      slider24 == 2 ? (#item2 = "!Match (right master)||"):(#item2 = "Match (right master)||");#allitems += #item2;     
+      );
+      slider19 == 1 ? (#item2 = "!Sidechain||"):(#item2 = "Sidechain||");#allitems += #item2; 
        #item2 =">Scaling|";#allitems += #item2;
       slider12 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
       slider12 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
@@ -1750,13 +1925,17 @@ gfx_a = 1;
    slider22 == 3 ? slider22 = 0;
    caller = 1;
    );
-   last_clicked_item == 3 ? zmnu = sqrt(0.5);
-   last_clicked_item == 4 ? zmnu = sqrt(0.75);
-   last_clicked_item == 5 ? zmnu = 1;
-   last_clicked_item == 6 ? zmnu = sqrt(1.5);
-   last_clicked_item == 7 ? zmnu = sqrt(2);
-   last_clicked_item == 8 ? zmnu = 0;
-   last_clicked_item == 9 ? helpshow = 1;
+   last_clicked_item == 3 ? slider24 != 1 ? (slider24 = 1;caller = 1) :(slider24 = 0;caller = 1);
+   last_clicked_item == 4 ? slider24 != 2 ? (slider24 = 2;caller = 1) :(slider24 = 0;caller = 1);  
+   last_clicked_item == 5 ? slider19 != 1 ? (slider19 = 1;caller = 1) :(slider19 = 0;caller = 1);
+   
+   last_clicked_item == 6 ? zmnu = sqrt(0.5);
+   last_clicked_item == 7 ? zmnu = sqrt(0.75);
+   last_clicked_item == 8 ? zmnu = 1;
+   last_clicked_item == 9 ? zmnu = sqrt(1.5);
+   last_clicked_item == 10 ? zmnu = sqrt(2);
+   last_clicked_item == 11? zmnu = 0;
+   last_clicked_item == 12? helpshow = 1;
    
    
    helpshow == 1 ? (
@@ -1791,10 +1970,26 @@ gfx_r=gfx_g=gfx_b=0.4;
 //gfx_rect(knobsx+720,knobsy-10,310,180);
 gfx_a=1;
 
+slider24 > 0 ? (alt = 16);
+
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
-    alt ? (transistor1 = transistor2 = 0);
+    //alt ? (transistor1 = transistor2 = 0);
+    //gfx_rect(388,238,17,17);
+    //gfx_rect(733,238,17,17);
+    
+    mouse_yz > 238 ? (
+    mouse_yz < 238 + 17 ? (
+    mouse_xz > 388 ? (
+    mouse_xz < 388 + 17 ? (
+    slider24 != 1 ? (slider24 = 1;caller = 1) :(slider24 = 0;caller = 1);
+    ););
+    mouse_xz > 733 ? (
+    mouse_xz < 733 + 17 ? (
+    slider24 != 2 ? (slider24 = 2;caller = 1) :(slider24 = 0;caller = 1);
+    ););););
+    
     mouse_xz > knobsx + 645 ? (
     mouse_xz < knobsx+645 + 35 ? (
     mouse_yz > knobsy+100 + 8 ? (
@@ -1825,7 +2020,7 @@ mouseClick == 1 ?
     caller=1;
     ););
     mouse_yz > knobsy+130 + 8 ? (
-    mouse_yz < knobsy+130 + 8 + 18 ? (
+    mouse_yz < knobsy+130 + 8 + 180 ? (
     slider20 = 1;
     slider_automate(slider20);
     caller=1;
@@ -1839,7 +2034,7 @@ mouseClick == 1 ?
     ););
       slider20 != 0 ? (
       R_thresh.collision()   ? alt ? (R_thresh.dragStart();L_thresh.dragStart()):(R_thresh.dragStart()); 
-      R_ratio.collision()   ? alt ? (R_ratio.dragStart();L_Ratio.dragStart()):(R_Ratio.dragStart());
+      R_ratio.collision()   ? alt ? (R_ratio.dragStart();L_Ratio.dragStart()):(R_ratio.dragStart());
       R_Gain.collision()   ? alt ? (R_Gain.dragStart();L_Gain.dragStart()):(R_Gain.dragStart());
       R_gHPF.collision()   ? alt ? (R_gHPF.dragStart();L_gHPF.dragStart()):(R_gHPF.dragStart());
       R_atk.collision()   ? alt ? (R_atk.dragStart();L_atk.dragStart()):(R_atk.dragStart());
@@ -1934,7 +2129,7 @@ R_rel.dragging  ? R_rel.potDrag();
 );
 
 
-
+gfx_ext_flags == 0 ? (
 //////////////////////// ZFCT ///////////////////////////////
     slider21 = zmnu;
     zfct = zmnu;
@@ -1945,3 +2140,18 @@ R_rel.dragging  ? R_rel.potDrag();
     gfx_x=gfx_y=0;gfx_a=1;
     gfx_blit(127,zfct,0);
     /////////////////////////////////////////////////////////////  
+    
+):gfx_ext_flags == 1 ? (
+    gfx_dest = -1;
+   mini_mnmetergfx(0,0,0, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+   mini_mnmetergfx(0, (gfx_w/2)+1, 0, 0, 2); //(0=flexible, x,y,redneedle, channel 1or2)
+
+);
+
+caller == 1 ? stattslider_call = 1;
+stattslider_call == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+caller = stattslider_call = 0;
+);
+);

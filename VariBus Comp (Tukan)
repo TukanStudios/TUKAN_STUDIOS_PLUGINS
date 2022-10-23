@@ -19,7 +19,7 @@ slider16:0<0,24,0.0024>-16 ROutGain
 slider17:0<0,400,1>-17 R HPF
 slider18:0<0,1,1>-18 RBypass
 
-slider19:0<0,1,1>-19 EMPTY
+slider19:0<0,2,1>-19 Link Parameters
 slider20:1<0,2,1{Stereo,Dual,MS}>-20 Mode
 
 slider21:1<0,6,.01>-Scaling
@@ -40,6 +40,7 @@ out_pin:L out
 out_pin:R out
 
 
+
 filename:0,BusTools/FairIngain.png
 filename:1,BusTools/FairOutgain.png
 filename:2,BusTools/FairThresh.png
@@ -48,10 +49,10 @@ filename:4,BusTools/sslr60.png
 filename:5,BusTools/VUMeter1.png
 filename:6,BusTools/chick1001142.png
 filename:7,BusTools/switch.png
-filename:8,BusTools/VBBack.png
+filename:8,BusTools/VBBack2.png
 filename:9,BusTools/screw2.png
 filename:10,BusTools/menu.png
-
+filename:11,BusTools/VUMeter1_1.png
 
 @init
 
@@ -350,6 +351,106 @@ ovrlgain = 1;
    );
   
   
+  function mini_mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+   
+   
+  
+  gfx_a = 1; gfx_x = 0 - (gfx_w/4.5); gfx_y=mnmetery;
+  mnmeterscale == 0 ? (mnblitscale = 1.5*gfx_w/190):(mnblitscale = mnmeterscale);
+  gfx_blit(11,mnblitscale,0);
+  
+  
+  w1 = $pi * 16.5 / 180; 
+  w2 = $pi * 45 / 180;
+  
+  xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  yw = 92*mnblitscale;//floor(xw / 1.5);
+  
+  r1 = 130*mnblitscale;//floor(yw * 0.85);
+  
+  
+   xd = 10 + chan*(xw+10);
+    mode === 1 ? xd += floor(xw/2);
+    
+    yd = 10;
+  
+    xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+    ya = floor(yd + yw * 1.1);
+  
+  
+  
+   chan = 1;
+   
+     chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+     mnch == 2 ? (ph= dbR);
+     ph = 43 + (ph+20)/23*88;//45 + (ph+20)/23*90; 
+     aay = abs((90 - abs(ph))); 
+     r1 = mnblitscale*(70+aay/5);
+     
+     ph = ph * ($pi / 180);
+       
+     cosp = cos(ph);
+     sinp = sin(ph);
+       
+       ya = mnmetery+95*mnblitscale;
+       xa = 0 - (gfx_w/5) + mnmeterx+2+(180*mnblitscale/2);//-(gfx_w/50);
+     mnx1 = xa - cosp * r1 * 0.25;
+     mny1 = ya - sinp * r1 * 0.25;
+   
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
+   
+     gfx_x = mnx1;
+     gfx_y = mny1; 
+     dBL != dBR ? gfx_lineto(mnx2,mny2);
+     
+
+     
+   chan = 0;
+   
+     chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0);
+     mnch == 2 ? (ph= dbR);
+     ph = 43 + (ph+20)/23*88;//45 + (ph+20)/23*90; 
+     aay = abs((90 - abs(ph))); 
+     r1 = mnblitscale*(70+aay/5);
+     
+     ph = ph * ($pi / 180);
+       
+     cosp = cos(ph);
+     sinp = sin(ph);
+       
+       ya = mnmetery+95*mnblitscale;
+       xa = 0 - (gfx_w/5) + mnmeterx+2+(180*mnblitscale/2);//-(gfx_w/50);
+     mnx1 = xa - cosp * r1 * 0.25;
+     mny1 = ya - sinp * r1 * 0.25;
+   
+     mnx2 = xa - cosp * r1 * 1.1;
+     mny2 = ya - sinp * r1 * 1.1;
+   
+     gfx_x = mnx1;
+     gfx_y = mny1; 
+     gfx_lineto(mnx2,mny2);
+   
+
+   
+   
+   );
   
   
   
@@ -645,6 +746,30 @@ function HPF(sliderval, inp) (
 
 function stattslider () (
 stattslider_on = 1;
+
+slider19 == 1 ? (
+slider10 = slider1;
+slider11 = slider2;
+slider12 = slider3;
+slider13 = slider4;
+slider14 = slider5;
+slider15 = slider6;
+slider16 = slider7;
+slider17 = slider8;
+slider18 = slider9;
+slider25 = slider24;
+):slider19 == 2 ? (
+slider1 = slider10;
+slider2 = slider11;
+slider3 = slider12;
+slider4 = slider13;
+slider5 = slider14;
+slider6 = slider15;
+slider7 = slider16;
+slider8 = slider17;
+slider9 = slider18;
+slider24 = slider25;
+);
 
 slider20 = floor(slider27);
 slider20 != 1 ? slider18 = slider9;
@@ -1625,6 +1750,8 @@ slider20 == 0 ? (L_tengrv = R_tengrv = tengrv);
       
       
       
+gfx_ext_flags == 0 ? (
+
       /////////////////////////////  ZFCT ////////////////////////
       zfct_w = 925; zfct_h = 410;
       gfx_setimgdim(127,zfct_w,zfct_h);
@@ -1692,7 +1819,10 @@ xy(knobsx + 410,knobsy+200);
 slider18 == 1 ? (gfx_blit(7,1,0,0,0,35,60)):(gfx_blit(7,1,0,0,60,35,60));
 
 
-
+slider19 == 1 ? (gfx_r=1; gfx_g = 0.5; gfx_b = 0):(gfx_r=.7; gfx_g = 0.7; gfx_b = 0.7);
+gfx_roundrect(157,202,83,13,3);
+slider19 == 2 ? (gfx_r=1; gfx_g = 0.5; gfx_b = 0):(gfx_r=.7; gfx_g = 0.7; gfx_b = 0.7);
+gfx_roundrect(157,224,83,13,3);
 
    ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
    last_clicked_item = -1;
@@ -1821,10 +1951,29 @@ gfx_r=gfx_g=gfx_b=0.4;
 //gfx_rect(knobsx+720,knobsy-10,310,180);
 gfx_a=1;
 
+slider19 != 0 ? alt = 16;
 /********************************* Mouse Control ******************************/
 mouseClick == 1 ? 
     (
-    alt ? (transistor1 = transistor2 = 0);
+    //alt ? (transistor1 = transistor2 = 0);
+    
+
+    //gfx_roundrect(345,200,18,18,3);
+    //slider19 == 2 ? (gfx_r=1; gfx_g = 0.5; gfx_b = 0):(gfx_r=.7; gfx_g = 0.7; gfx_b = 0.7);
+    //gfx_roundrect(345,222,18,18,3);
+    mouse_xz > 157 ? (
+    mouse_xz < 157 + 83 ? (
+    mouse_yz > 202 ? (
+    mouse_yz < 202 + 13 ? (
+    slider19 == 1 ? (slider19 = 0):(slider19 = 1);
+    caller = 1;
+    ););
+    mouse_yz > 224 ? (
+    mouse_yz < 224 + 13 ? (
+    slider19 == 2 ? (slider19 = 0):(slider19 = 2);
+    caller = 1;
+    ););););
+    
     mouse_xz > meterx +20 ? (
     mouse_xz < meterx + 180 ? (
     mouse_yz > metery ? (
@@ -1841,6 +1990,7 @@ mouse_xz < knobsx + 425 + 18 ? (
   mouse_yz > knobsy+20 ? (
   mouse_yz < knobsy+20+55 ? (
     slider9 == 1 ? (slider9=0):(slider9 = 1);
+    alt ? slider18 = slider9;
     slider_automate(slider9);
     caller = 1;
   ););
@@ -1848,6 +1998,7 @@ mouse_xz < knobsx + 425 + 18 ? (
   mouse_yz < 180+knobsy+20+55 ? (
     slider20 == 1 ? (
     slider18 == 1 ? (slider18=0):(slider18 = 1);
+    alt ? slider9 = slider18;
     slider_automate(slider18);
     ):(
     slider9 == 1 ? (slider9=0):(slider9 = 1);
@@ -1864,6 +2015,7 @@ mouse_xz < knobsx + 425 + 18 ? (
       L_gHPF.collision()   ? L_gHPF.dragStart();
       L_Times.collision()   ? L_Times.dragStart();
       L_gKnee.collision()   ? L_gKnee.dragStart();
+      
       slider20 != 0 ? (
       R_thresh.collision()   ? R_thresh.dragStart(); 
       R_gInGain.collision()   ? R_gInGain.dragStart();
@@ -1871,6 +2023,18 @@ mouse_xz < knobsx + 425 + 18 ? (
       R_gHPF.collision()   ? R_gHPF.dragStart();
       R_Times.collision()   ? R_Times.dragStart();
       R_gKnee.collision()   ? R_gKnee.dragStart();
+      alt ? L_thresh.collision()   ? R_thresh.dragStart(); 
+      alt ? L_gInGain.collision()   ? R_gInGain.dragStart();
+      alt ? L_gOutGain.collision()   ? R_gOutGain.dragStart();
+      alt ? L_gHPF.collision()   ? R_gHPF.dragStart();
+      alt ? L_Times.collision()   ? R_Times.dragStart();
+      alt ? L_gKnee.collision()   ? R_gKnee.dragStart();
+      alt ? R_thresh.collision()   ? L_thresh.dragStart(); 
+      alt ? R_gInGain.collision()   ? L_gInGain.dragStart();
+      alt ? R_gOutGain.collision()   ? L_gOutGain.dragStart();
+      alt ? R_gHPF.collision()   ? L_gHPF.dragStart();
+      alt ? R_Times.collision()   ? L_Times.dragStart();
+      alt ? R_gKnee.collision()   ? L_gKnee.dragStart();
       ):(
       R_thresh.collision()   ? L_thresh.dragStart(); 
       R_gInGain.collision()   ? L_gInGain.dragStart();
@@ -1949,3 +2113,18 @@ R_gKnee.dragging  ? R_gKnee.potDrag(1);
     gfx_x=gfx_y=0;gfx_a=1;
     gfx_blit(127,zfct,0);
     /////////////////////////////////////////////////////////////  
+    
+    ):gfx_ext_flags == 1 ? (
+    //katze =  0;
+    mini_mnmetergfx(0, 0, 0, 1, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+    
+    );
+    
+    caller == 1 ? stattslider_call = 1;
+    stattslider_call == 1 ? (
+    stattslider_on == 0 ? (
+    stattslider();
+    caller = stattslider_call = 0;
+    );
+    );
+    

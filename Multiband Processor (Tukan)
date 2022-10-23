@@ -1137,8 +1137,14 @@ spl1 += vspl7;
 
 
 ////////////////////////////////////////// ANALYZER START ////////////////////////////
+
+gfx_ext_flags == 0 ? (
 a_gfx_w = 800;
 a_gfx_h = 100;
+):gfx_ext_flags == 1 ? (
+a_gfx_w = gfx_w;
+a_gfx_h = gfx_h;
+);
 
 gfx_setimgdim(126,a_gfx_w,a_gfx_h);
 gfx_dest = 126;
@@ -1577,6 +1583,7 @@ update ? (
         fill_slast=tx0;        
       );  
       gfx_a=0.5;
+      gfx_ext_flags == 1 ? (gfx_a = 1);
       gfx_x=lx; gfx_y=ly; gfx_lineto(tx,ty,1) ;
     );
 
@@ -1652,6 +1659,8 @@ update ? (
       
       
 
+
+gfx_ext_flags == 0 ? (
 
       /////////////////////////////  ZFCT ////////////////////////
       zfct_w = 904; zfct_h = 569;
@@ -3274,8 +3283,85 @@ gMBE4_Sustain.dragging  ? gMBE4_Sustain.potDrag();
     gfx_blit(127,zfct,0);
     /////////////////////////////////////////////////////////////  
     
+):gfx_ext_flags == 1 ? (
+
+katze = 0 ;
+gfx_dest = -1;
+gfx_x = 0; gfx_y = 0; gfx_a = 0.7;
+gfx_blit(126,1,0);
+
+
+analyzer_x = analyzer_y = 0;
+a_gfx_h = gfx_h; a_gfx_w = gfx_w;
+
+slider13 > 1 ? (l9x = log(1.0+(freqLOW/44100*2.0)*400)*wsc):(l9x = log(1.0+(23000/44100*2.0)*400)*wsc); // change: srate
+slider13 > 2 ? (l10x = log(1.0+(freqMID/44100*2.0)*400)*wsc):(l10x = log(1.0+(24000/44100*2.0)*400)*wsc);
+slider13 > 3 ? (l11x = log(1.0+(freqHI/44100*2.0)*400)*wsc):(l11x = log(1.0+(25000/44100*2.0)*400)*wsc);
+
+rgb255(0, 170, 170);
+slider13 > 1 ? gfx_line(l9x, 0, l9x, gfx_h);
+slider13 > 2 ? gfx_line(l10x, 0, l10x, gfx_h);
+slider13 > 3 ? gfx_line(l11x, 0, l11x, gfx_h);
+
+gfx_a = 1;
+
+//////////////// BUNTE FREQUENZBAENDER
+rgb255(235, 52, 229);
+ly9 = analyzer_y + (a_gfx_h/2);
+slider63 == 1 ? ly9 -= ratio2db(MBC1_output)*(a_gfx_h/48);
+slider62 == 1 ? ly9 += (-ratio2db(MBC1_gr_meter))*(a_gfx_h/48);
+ly9 = min(ly9, analyzer_y + a_gfx_h-1);
+slider13 == 1 ? (
+Band1_on == 1 ? gfx_rect(analyzer_x, ly9-1, a_gfx_w, 3);
+):(
+Band1_on == 1 ? gfx_rect(analyzer_x, ly9-1, l9x, 3);
+);
+
+rgb255(220, 242, 56);
+ly10 = analyzer_y + (a_gfx_h/2);
+slider63 == 1 ? ly10 -= ratio2db(MBC2_output)*(a_gfx_h/48);
+slider62 == 1 ? ly10 += (-ratio2db(MBC2_gr_meter))*(a_gfx_h/48);
+ly10 = min(ly10, analyzer_y + a_gfx_h-1);
+slider13 > 1 ? (
+slider13 == 2 ? (
+gfx_x = analyzer_x + l9x; gfx_y = ly10-1;
+band2_on == 1 ? gfx_rectto(analyzer_x + a_gfx_w,ly10+2);
+):(
+Band2_on == 1 ? gfx_rect(analyzer_x + l9x, ly10-1, (analyzer_x - l9x) + l10x + 1, 3);
+);
+);
+
+rgb255(242, 161, 56);
+ly11 = analyzer_y + (a_gfx_h/2);
+slider63 == 1 ? ly11 -= ratio2db(MBC3_output)*(a_gfx_h/48);
+slider62 == 1 ? ly11 += (-ratio2db(MBC3_gr_meter))*(a_gfx_h/48);
+ly11 = min(ly11, analyzer_y + a_gfx_h-1);
+slider13 > 2 ? (
+slider13 == 3 ? (
+gfx_x = analyzer_x + l10x; gfx_y = ly11-1;
+band3_on == 1 ? gfx_rectto(analyzer_x + a_gfx_w,ly11+2);
+):(
+Band3_on == 1  ? gfx_rect(analyzer_x + l10x, ly11-1, (analyzer_x - l10x) + l11x +1, 3);
+);
+);
+
+rgb255(7, 240, 240);
+ly12 = analyzer_y + (a_gfx_h/2);
+slider63 == 1 ? ly12 -= ratio2db(MBC4_output)*(a_gfx_h/48);
+slider62 == 1 ? ly12 += (-ratio2db(MBC4_gr_meter))*(a_gfx_h/48);
+ly12 = min(ly12, analyzer_y + a_gfx_h-1);
+slider13 == 4 ? Band4_on == 1  ?gfx_rect(analyzer_x + l11x , ly12-1, (analyzer_x - l11x) + + a_gfx_w, 3);
+///////////////////////////////////////7
+
+
+);
     
-    
+caller == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+caller = 0;
+);
+);
 
 
 
