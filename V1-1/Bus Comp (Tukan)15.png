@@ -1,0 +1,2157 @@
+desc:Bus Comp (Tukan)
+
+slider1:-10<-30,0,1>-01 LThresh
+slider2:4<1,12,.1>-02 LRatio
+slider3:5<0.05,31,0.05>-03 LAttack
+slider4:100<50,1501,10>-04 LRelease
+slider5:0<0,100,0.1>-05 EMPTY
+slider6:0<-24,24,0.0048>-06 EMPTY
+slider7:0<0,24,0.0024>-07 LOutGain
+slider8:0<0,400,1>-08 L HPF
+slider9:0<0,1,1>-09 LBypass
+
+slider10:-10<-30,0,1>-10 RThresh
+slider11:4<1,12,.1>-11 RRatio
+slider12:5<0.05,31,0.05>-12 RAttack
+slider13:100<50,1501,10>-13 RRelease
+slider14:0<0,100,0.1>-14 EMPTY
+slider15:0<-24,24,0.0048>-15 EMPTY
+slider16:0<0,24,0.0024>-16 ROutGain
+slider17:0<0,400,1>-17 R HPF
+slider18:0<0,1,1>-18 RBypass
+
+slider19:0<0,1,1>-19 Sidechain
+slider20:1<0,2,1{Stereo,Dual,MS}>-20 Mode
+
+slider21:1<0,6,.01>-Scaling
+slider22:2<0,3,1>-Transistors
+
+slider23:4.9<0.1,10,0.01>-Meterspeed
+
+slider24:0<0,2,1>-24 Parameter Link
+
+
+in_pin:L in
+in_pin:R in
+in_pin:Sidechain L in
+in_pin:Sidechain R in
+
+out_pin:L out
+out_pin:R out
+
+
+filename:0,BusTools/ssl60.png
+filename:1,BusTools/sslb60.png
+filename:2,BusTools/sslg60.png
+filename:3,BusTools/ssll60.png
+filename:4,BusTools/sslr60.png
+filename:5,BusTools/CCVU3.png
+filename:6,BusTools/whiteknob_35.png
+filename:7,BusTools/LED.png
+filename:8,BusTools/BCBack2.png
+filename:9,BusTools/screw.png
+filename:10,BusTools/menu.png
+filename:11,BusTools/oled.png
+filename:12,BusTools/CCVU3mini.png
+
+
+@init
+
+
+ext_noinit = 1;
+gfx_ext_retina = 1;
+
+dbc = 20/log(10);
+function db2ratio(d) ( 10^(d/20); );
+function ratio2db(r) ( log(abs(r))*dbc; );
+
+function tanh(x) (
+x=exp(2*x);
+(x-1)/(x+1);
+);
+
+  function dcBlocker () instance (otml, itml)
+  (
+    /*
+    srate < 50000 ? (stateOut *= 0.99); //99988487
+    srate > 50000 ? (stateOut *= 0.99999999);
+    
+    stateOut += this - stateIn;
+    stateIn = this;
+    this = stateOut;
+  */
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  otm1=aab*otm1 + this - itm1; itm1=this; this=otm1;
+
+  );
+  
+ovrlgain = 1; 
+
+// init opto
+
+  log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+  db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+  
+  tenmaxover=0;
+  tenratio=10;
+  tenctenratio=0;
+  tenrundb=0;
+  tenoverdb=0;
+  tenmaxover=0;
+  tenfbacoef=exp(-1000/(2 * srate)); // 2 msec. tenopto attack for feedback tendetection
+  tenfbrcoef=exp(-1000/(200 * srate)); // 200 msec. tenopto release for feedback tendetection
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  //tenopto = 0;
+
+
+// end init opto
+
+  gr_meter=1;
+  gr_meter_decay = exp(1/(1*srate)); 
+  
+  
+  meter_dif = 0.0005;
+  
+  function meterspeed()
+  (
+  mspd = slider23;
+  meter_speed = mspd/srate;
+  
+  mspd == 5 ? (
+  gr_meter2 < gr_meter ? (
+    meter_speed /= 5;
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+  
+      gr_meter2 = gr_meter;
+  
+    );
+  );
+  ;
+  
+  mspd == 0 ? (
+    gr_meter2 > gr_meter ? (
+      gr_meter2 = gr_meter;
+    );
+  );
+  
+  mspd > 0 ? (
+  mspd < 5 ? (
+  gr_meter2 < gr_meter ? (
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 + (meter_speed);
+      
+    );
+  //gr_meter *= 1.1;
+  
+  ):(
+  
+    abs(gr_meter2 - gr_meter) > meter_dif ? (
+      gr_meter2 = gr_meter2 - meter_speed*8;
+     gr_meter2 < gr_meter ? gr_meter2 = gr_meter;
+    );
+  );
+  );
+  );
+  
+  gr_meter2 > 1 ? gr_meter2 =1;
+  );
+  
+  
+  
+  
+  errcnt = 0;
+  tot_nbr_spl = 0;
+  scnt = 0;
+  
+  offset = 0.0074;//0.0074;
+  
+  nd_posL = nd_posR = 0;
+  nd_speedL = nd_speedR = 0;
+  
+  dt = 10 / srate;
+  
+  mom = 0.00042;
+  
+  dbL = dbR = 0;
+  overL = overR = 0;
+  
+  fact_up = 10 ^ (( 0 - 10)/20) * 0.3785 ;
+  wl   = 0;
+  damp = 0.995;//935; //1 - slider5 * (48000 / srate);
+  
+  mnmode = 0; // (0 ST, 1 SumMono, 2 MaxMono)
+  meterInL = spl0;
+  meterInR = spl1;
+  
+  function mnMetersample(meterInL, meterInR, mnmode, mnmom) //Mom = speed
+  (
+  tot_nbr_spl += 1;
+  
+  smpL = meterInL; 
+  smpR = meterInR;
+  
+  mnmode == 1 ? ( 
+    smpL = (meterInL + meterInR) * 0.5;
+    smpR = smpL;  
+  );
+  
+  mnmode >= 2 ? ( 
+    smpL = max(meterInL, meterInR);
+    smpR = smpL; 
+  );
+  
+  smpL = abs(smpL);
+  smpR = abs(smpR);
+  
+   
+  scnt += 1;
+  
+  scnt === 10 ? (
+      
+    // move left needle
+    
+      force = smpL * fact_up  -  (nd_posL * .1 + offset);
+      
+      nd_speedL += force * dt / mnmom;  
+      nd_speedL = nd_speedL * damp;
+      nd_posL += nd_speedL * dt;
+      nd_posL < 0 || nd_posL > 1 ? nd_speedL = 0;
+    
+      nd_posL = min(max(nd_posL,0),1);
+    
+      // move right needle
+  
+      force = smpR * fact_up  - (nd_posR * .1 + offset);
+      
+      nd_speedR += force * dt /mnmom;  
+      nd_speedR = nd_speedR * damp;
+      nd_posR += nd_speedR * dt;
+      nd_posR < 0 || nd_posR > 1 ? nd_speedR = 0;
+    
+      nd_posR = min(max(nd_posR,0),1);
+       
+      overL -= 10;
+      overR -= 10;
+  
+      scnt = 0;
+    
+  );
+  );
+  
+  function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+   
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+  ;
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/(190*2)):(mnblitscale = mnmeterscale);
+  gfx_blit(5,mnblitscale,0);
+  
+  
+  w1 = $pi * 16.5 / 180; 
+  w2 = $pi * 45 / 180;
+  
+  xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  yw = 92*mnblitscale;//floor(xw / 1.5);
+  
+  r1 = 130*mnblitscale;//floor(yw * 0.85);
+  
+  
+   xd = 10 + chan*(xw+10);
+    mode === 1 ? xd += floor(xw/2);
+    
+    yd = 10;
+  
+    xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+    ya = floor(yd + yw * 1.1);
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+  
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+    mnch == 2 ? (ph= dbR);
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+    
+    );
+  
+  
+  
+  
+  function mini_mnmetergfx(mnmeterscale, mnmeterx, mnmetery, twometer, mnch) //(0=flexible, x,y,redneedle, channel 1or2)
+  (
+  tot_nbr_spl_g  = tot_nbr_spl;
+  
+  overL_g = overL;
+  overR_g = overR;
+  nd_posL_g = nd_posL;
+  nd_posR_g = nd_posR;
+  
+  tot_nbr_spl_g === tot_nbr_spl ? (
+  
+    dbL = (nd_posL_g * 23) - 20;
+    dbR = (nd_posR_g * 23) - 20;
+    
+  ) : (
+    errcnt += 1; // thread collision
+  );
+   
+  
+  gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+  ;
+  mnmeterscale == 0 ? (mnblitscale = gfx_w/(190*2)):(mnblitscale = mnmeterscale);
+  gfx_blit(12,mnblitscale,0);
+  
+  
+  w1 = $pi * 11.5 / 180; 
+  w2 = $pi * 30 / 180;
+  
+  xw = 190*mnblitscale; //max(1,floor((gfx_w-30) / 2));
+  yw = 92*mnblitscale;//floor(xw / 1.5);
+  
+  r1 = 130*mnblitscale;//floor(yw * 0.85);
+  
+  
+   xd = 10 + chan*(xw+10);
+    mode === 1 ? xd += floor(xw/2);
+    
+    yd = 60*mnblitscale;
+  
+    xa = mnblitscale*190/2;//gfx_w/2;//floor(xd + xw / 2);
+    ya = floor(yd + yw * 1.1);
+  
+  gfx_a = 1;gfx_r=gfx_b=gfx_g=0.8;
+  //gfx_arc(mnmeterx + xa, ya, r1, -30 * ($pi / 180), w2, 1);   
+  
+  //gfx_r=0.94902; gfx_g=0.32157; gfx_b=0.72941; // bold line 
+  //gfx_arc(mnmeterx + xa, ya, r1 + 1, w1, w2, 1);
+  //gfx_arc(xa, ya, r1 + 1, w1, w2, 1);
+  //gfx_arc(xa, ya, r1 + 2, w1, w2, 1);  
+  //gfx_arc(xa, ya, r1 + 3, w1, w2, 1);  
+  //gfx_arc(xa, ya, r1 + 4, w1, w2, 1);
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  twometer ? (
+    chan = 1;
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+  
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+   );
+    
+  chan = 0;
+  
+    chan == 0 ? (ph = dbL; gfx_r=gfx_b=gfx_g=0.8) : (ph = dbR; gfx_r=1;gfx_b=gfx_g=0.8);
+    mnch == 2 ? (ph= dbR);
+    ph = 51 + (ph+20)/23*83;//45 + (ph+20)/23*90; 
+    aay = abs((90 - abs(ph))); 
+    r1 = mnblitscale*(80+aay/5);
+    
+    ph = ph * ($pi / 180);
+      
+    cosp = cos(ph);
+    sinp = sin(ph);
+      
+      ya = mnmetery+110*mnblitscale;
+      xa= mnmeterx+2+(190*mnblitscale/2);//-(gfx_w/50);
+    x1 = xa - cosp * r1 * 0.25;
+    y1 = ya - sinp * r1 * 0.25;
+  
+    x2 = xa - cosp * r1 * 1.1;
+    y2 = ya - sinp * r1 * 1.1;
+  
+    gfx_x = x1;
+    gfx_y = y1; 
+    gfx_lineto(x2, y2);
+    
+    
+    );
+  
+  
+  
+  
+function HPF(sliderval, inp) (
+
+  freq1 = sliderval;
+  a1 = 1;
+  s1 = 1;
+  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
+  w01 = 2 * $pi * freq1/srate;
+  cosw01 = cos(w01);
+  sinw01 = sin(w01);
+  alpha1 = sinw01 / (2 * q1);
+
+  b01 = (1 + cosw01)/2;
+  b11 = -(1 + cosw01);
+  b21 = (1 + cosw01)/2;
+  a01 = 1 + alpha1;
+  a11 = -2 * cosw01;
+  a21 = 1 - alpha1;
+  b01 /= a01;
+  b11 /= a01;
+  b21 /= a01;
+  a11 /= a01;
+  a21 /= a01;
+  
+  hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  inp
+);
+  
+  
+  
+  
+  
+  
+  freq1 = L_HPF;
+  a1 = 1;
+  s1 = 1;
+  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
+  w01 = 2 * $pi * freq1/srate;
+  cosw01 = cos(w01);
+  sinw01 = sin(w01);
+  alpha1 = sinw01 / (2 * q1);
+  
+  b01 = (1 + cosw01)/2;
+  b11 = -(1 + cosw01);
+  b21 = (1 + cosw01)/2;
+  a01 = 1 + alpha1;
+  a11 = -2 * cosw01;
+  a21 = 1 - alpha1;
+  b01 /= a01;
+  b11 /= a01;
+  b21 /= a01;
+  a11 /= a01;
+  a21 /= a01;
+  
+  
+ R_freq1 = R_HPF;
+ R_a1 = 1;
+ R_s1 = 1;
+ R_q1 = 1 / (sqrt((R_a1 + 1/R_a1)*(1/R_s1 - 1) + 2));
+ R_w01 = 2 * $pi * R_freq1/srate;
+ R_cosw01 = cos(R_w01);
+ R_sinw01 = sin(R_w01);
+ R_alpha1 = R_sinw01 / (2 * R_q1);
+ 
+ R_b01 = (1 + R_cosw01)/2;
+ R_b11 = -(1 + R_cosw01);
+ R_b21 = (1 + R_cosw01)/2;
+ R_a01 = 1 + R_alpha1;
+ R_a11 = -2 * R_cosw01;
+ R_a21 = 1 - R_alpha1;
+ R_b01 /= R_a01;
+ R_b11 /= R_a01;
+ R_b21 /= R_a01;
+ R_a11 /= R_a01;
+ R_a21 /= R_a01; 
+  
+  
+  
+  
+   lastCap=1;
+    mouse_wheel=1;
+    coords=srate+1;
+    initial = 0;
+  /******************************* GUI Function ***********************************/
+   caller = 0;
+      function limitgui(s low up)
+               ( min(max(s, low), up) );
+      function xy(x y)
+                 ( gfx_x = x; gfx_y = y; );
+      
+      function rgb(r g b)
+                  ( gfx_r = r; gfx_g = g; gfx_b = b; );
+      
+      function rectIn  (xIn_ yIn_ wIn frames_ scaling_ file_) // x y width/height frames scaling file
+        instance       (xIn yIn widthIn heightIn frames scaling file)
+                       (
+                        xIn = xIn_;
+                        yIn = yIn_;
+                        widthIn = wIn;
+                        heightIn = wIn;
+                        frames = frames_;
+                        scaling = scaling_;
+                        file = file_;
+                        );
+           /*           
+      function rectOut  (xOut_ yOut_ wOut hOut c i)
+        instance        (xOut yOut widthOut heightOut count index)
+                        (
+                         xOut = xOut_;
+                         yOut = yOut_;
+                         widthOut = wOut;
+                         heightOut = hOut;
+                         count = c;
+                         index = i;
+                         );                
+         */
+      function potVal(v)
+        instance      (frame val minVal maxVal count heightOut)
+                      (
+                       val = v;
+                       frame = (val - minVal) * (count - 1) / (maxVal - minVal) + 0.5;
+                       frame |= 0;
+                      );
+      
+      function potCfg  (default_ minVal_ maxVal_ step_ slider_)
+        instance        (default minVal maxVal step vslider)
+                        (
+                         default = default_;
+                         minVal = minVal_;
+                         maxVal = maxVal_;
+                         step    = step_;
+                         vslider = slider_;
+                        );
+  
+      function knob()
+        instance   (xIn yIn widthin minVal MaxVal frames vslider file scaling potval)
+                   (
+                     //gfx_a=1;
+                    gfx_x=xIn; gfx_y=yIn;
+                    weg = abs(minVal - maxVal);
+                    //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+                     kframe = (slider(vslider) - minVal) * (frames-1) / (maxVal - minVal);// + 0.5;
+                     scry = widthIn * floor(kframe);
+                     gfx_blit(file,scaling,0,1,scry,widthin,widthin);
+                    );                                     
+   
+      function knob2()
+        instance   (xIn yIn widthin minVal MaxVal frames vslider file scaling potval)
+                   (
+                     //gfx_a=1;
+                    gfx_x=xIn+750; gfx_y=yIn;
+                    weg = abs(minVal - maxVal);
+                    //scry = kbitmap*(floor((kframe-1)*(kslider / weg)));
+                     kframe = (slider(vslider) - minVal) * (frames-1) / (maxVal - minVal);// + 0.5;
+                     scry = widthIn * floor(kframe);
+                     gfx_blit(file,scaling,0,1,scry,widthin,widthin);
+                    ); 
+                    
+      function collision  ()
+        instance          (xIn yIn widthIn heightIn)
+                          (
+                           mouse_x > xIn*zfct && mouse_x < xIn*zfct + widthIn*zfct && mouse_y > yIn*zfct && mouse_y < yIn*zfct + heightIn*zfct
+                          );
+      
+      function dragStart ()
+        instance          (dragging yOld default vslider valold)
+                          (
+                           !ctrl ? (
+                           yOld = mouse_y;
+                           dragging = 1;
+                           valold = slider(vslider);
+                          ) : 
+                           (slider(vslider) = default;
+                            valold = slider(vslider););
+                            slider_automate(slider(vslider));
+                            caller = 1;
+                          );
+      
+      function dragStop()
+        instance        (dragging val valOld)
+                        (
+                         dragging = 0;
+                         valOld = val;
+                        );
+      
+      function potDrag()
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld step vslider xIn yIn)
+                       (
+                         !shift ? (
+                         mstep = (this.maxval - this.minval)/100;
+                        val = valOld + (yOld - mouse_y) * mstep;
+                        val = limitgui(val, minVal, maxVal);
+                        slider(vslider) = val;
+                        slider_automate(slider(vslider));
+                        this.potVal(val);
+                        caller = 1;
+                        gfx_x = xIn-5; gfx_y = yIn-20;
+                        gfx_r = 1; gfx_g=0.5; gfx_b=0; gfx_a=1;
+                        abs(val) > 100 ? (nachkomma = 0):(nachkomma=1);
+                        gfx_drawnumber(val,1);
+                        ):(
+                        val = valOld + (yOld - mouse_y) * ((this.maxval - this.minval)/1000);
+                        val = limitgui(val, minVal, maxVal);
+                        slider(vslider) = val;
+                        slider_automate(slider(vslider));
+                        this.potVal(val);
+                        caller = 1;
+                        gfx_x = xIn-5; gfx_y = yIn-20;
+                        gfx_r = 1; gfx_g=0.5; gfx_b=0; gfx_a=1;
+                        abs(val) > 100 ? (nachkomma = 0):(nachkomma=1);
+                        gfx_drawnumber(val,1);
+                        );
+                       );
+      
+      function potWheel()
+          local         (val)
+          instance      (valOld minVal maxVal step vslider)
+                        (
+                        mstep = (this.maxval - this.minval)/100;
+                         val = valOld + (mouse_wheel/36)*mstep;
+                         val = limitgui(val, minVal, maxVal);
+                         slider(vslider) = val;
+                         slider_automate(slider(vslider));
+                         valOld=val;
+                         mouse_wheel=0;
+                         caller = 1;
+                          );
+   knobsx = 50; knobsy = 80;
+   L_Thresh.potcfg  (-10,-30,0,.3,1); // default, min, max, step, slider
+   L_Thresh.rectIn(knobsx, knobsy, 60, 61, 1, 0); // x y width/height frames scaling file
+  
+   L_ratio.potcfg  (4,1,12,.01,2); // default, min, max, step, slider
+   L_ratio.rectIn(knobsx+100, knobsy, 60, 61, 1, 0); // x y width/height frames scaling file
+  
+   L_gain.potcfg  (0,0,24,.01,7); // default, min, max, step, slider
+   L_gain.rectIn(knobsx+200, knobsy, 60, 61, 1, 1); // x y width/height frames scaling file
+  
+   L_gHPF.potcfg  (0,0,400,.01,8); // default, min, max, step, slider
+   L_gHPF.rectIn(knobsx, knobsy+100, 60, 61, 1, 3); // x y width/height frames scaling file
+  
+   L_atk.potcfg  (5,0.05,31,.01,3); // default, min, max, step, slider
+   L_atk.rectIn(knobsx+100, knobsy+100, 60, 61, 1, 2); // x y width/height frames scaling file
+  
+   L_rel.potcfg  (100,50,1501,.01,4); // default, min, max, step, slider
+   L_rel.rectIn(knobsx+200, knobsy+100, 60, 61, 1, 2); // x y width/height frames scaling file
+  
+  knobsx += 750;
+  R_Thresh.potcfg  (-10,-30,0,.3,10); // default, min, max, step, slider
+  R_Thresh.rectIn(knobsx, knobsy, 60, 61, 1, 0); // x y width/height frames scaling file
+  
+  R_ratio.potcfg  (4,1,12,.01,11); // default, min, max, step, slider
+  R_ratio.rectIn(knobsx+100, knobsy, 60, 61, 1, 0); // x y width/height frames scaling file
+  
+  R_gain.potcfg  (0,0,24,.01,16); // default, min, max, step, slider
+  R_gain.rectIn(knobsx+200, knobsy, 60, 61, 1, 1); // x y width/height frames scaling file
+  
+  R_gHPF.potcfg  (0,0,400,.01,17); // default, min, max, step, slider
+  R_gHPF.rectIn(knobsx, knobsy+100, 60, 61, 1, 3); // x y width/height frames scaling file
+  
+  R_atk.potcfg  (5,0.05,31,.01,12); // default, min, max, step, slider
+  R_atk.rectIn(knobsx+100, knobsy+100, 60, 61, 1, 2); // x y width/height frames scaling file
+  
+  R_rel.potcfg  (100,50,1501,.01,13); // default, min, max, step, slider
+  R_rel.rectIn(knobsx+200, knobsy+100, 60, 61, 1, 2); // x y width/height frames scaling file
+  knobsx -= 750;
+  
+  screw.potcfg  (4.9,0.1,10,.01,23); // default, min, max, step, slider
+  screw.rectIn(knobsx+385, knobsy+71, 10, 61, 1, 9); // x y width/height frames scaling file
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+function stattslider () (
+stattslider_on = 1;
+
+
+
+  mom = 0.00010 + 0.00032 * abs(100-slider23*10)^3 / 125000; 
+
+tensidechain = slider19;
+
+slider24 == 1 ? (
+slider10 = slider1;
+slider11 = slider2;
+slider12 = slider3;
+slider13 = slider4;
+slider14 = slider5;
+slider15 = slider6;
+slider16 = slider7;
+slider17 = slider8;
+slider18 = slider9;
+):slider24 == 2 ? (
+slider1 = slider10;
+slider2 = slider11;
+slider3 = slider12;
+slider4 = slider13;
+slider5 = slider14;
+slider6 = slider15;
+slider7 = slider16;
+slider8 = slider17;
+slider9 = slider18;
+);
+
+
+ratio = slider2;
+thresh = slider1;
+kneevalue = 50;//slider5;
+
+
+// opto slider
+
+  tenthresh = thresh;
+
+  tenthreshv = exp(tenthresh * db2log);
+  tenratio = ratio;
+  tensoftknee = 3&1;
+  tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  tenctenthresh = tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
+  tenctenthreshv = exp(tenctenthresh * db2log);
+  //tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+  tenopto = 0;//slider19;
+
+  vslider7 = slider3/4;
+  slider3 > 30 ? (autoatt=1):(autoatt=0);
+  slider4 > 1500 ? (autorel=1):(autorel=0);
+  
+  tenopto ? vslider7 *= 2;
+  
+  atfaktor = 0.03*Abs((0.9*vslider7/6))+0.01;
+  atfaktor=0.1*Abs((0.9*vslider7/30));
+  i=0;
+  loop(
+    120,
+    coords[i+10] = (atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006));
+    i+=1;
+  );
+  tenattime=vslider7/1000;
+  tenreltime= slider4/1000;// (50+((slider8-50)))/4000;
+  tenatcoef=exp(-1/(tenattime * srate));
+  tenrelcoef=exp(-1/(tenreltime * srate));
+
+atf1 = coords[14];
+
+L_in_Gain = 1;//db2ratio(slider6);
+L_out_Gain = db2ratio(slider7);
+L_HPF = slider8;
+L_Bypass = slider9;
+
+  freq1 = L_HPF;
+  a1 = 1;
+  s1 = 1;
+  q1 = 1 / (sqrt((a1 + 1/a1)*(1/s1 - 1) + 2));
+  w01 = 2 * $pi * freq1/srate;
+  cosw01 = cos(w01);
+  sinw01 = sin(w01);
+  alpha1 = sinw01 / (2 * q1);
+
+  b01 = (1 + cosw01)/2;
+  b11 = -(1 + cosw01);
+  b21 = (1 + cosw01)/2;
+  a01 = 1 + alpha1;
+  a11 = -2 * cosw01;
+  a21 = 1 - alpha1;
+  b01 /= a01;
+  b11 /= a01;
+  b21 /= a01;
+  a11 /= a01;
+  a21 /= a01;
+// end opto slider
+
+
+
+
+
+
+R_ratio = slider11;
+R_thresh = slider10;
+R_kneevalue = 50;//slider14;
+
+
+// opto slider
+
+  R_tenthresh = R_thresh;
+
+  R_tenthreshv = exp(R_tenthresh * db2log);
+  R_tenratio = R_ratio;
+  R_tensoftknee = 3&1;
+  R_tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  R_tenctenthresh = R_tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
+  R_tenctenthreshv = exp(R_tenctenthresh * db2log);
+  //tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+  tenopto = 0;//slider19;
+
+  R_vslider7 = slider12/4;
+  
+  slider12 > 30 ? (R_autoatt=1):(R_autoatt=0);
+  slider13 > 1500 ? (R_autorel=1):(R_autorel=0);
+  
+  tenopto ? R_vslider7 *= 2;
+  
+  R_atfaktor = 0.03*Abs((0.9*R_vslider7/6))+0.01;
+  R_atfaktor=0.1*Abs((0.9*R_vslider7/30));
+  i=130;
+  loop(
+    120,
+    coords[i+10] = (R_atfaktor+((0.08924/ i) + (0.60755 / (i ^ 2)) - 0.00006));
+    i+=1;
+  );
+  R_tenattime=R_vslider7/1000;
+  R_tenreltime= slider13/1000;// (50+((slider8-50)))/4000;
+  R_tenatcoef=exp(-1/(R_tenattime * srate));
+  R_tenrelcoef=exp(-1/(R_tenreltime * srate));
+
+R_atf1 = coords[14+120];
+
+R_in_Gain = 1;//db2ratio(slider15);
+R_out_Gain = db2ratio(slider16);
+
+slider20 == 0 ? (R_HPF = L_HPF):(R_HPF = slider17);
+
+slider20 != 1 ? slider18 = slider9; 
+R_Bypass = slider18;
+
+ R_freq1 = R_HPF;
+ R_a1 = 1;
+ R_s1 = 1;
+ R_q1 = 1 / (sqrt((R_a1 + 1/R_a1)*(1/R_s1 - 1) + 2));
+ R_w01 = 2 * $pi * R_freq1/srate;
+ R_cosw01 = cos(R_w01);
+ R_sinw01 = sin(R_w01);
+ R_alpha1 = R_sinw01 / (2 * R_q1);
+ 
+ R_b01 = (1 + R_cosw01)/2;
+ R_b11 = -(1 + R_cosw01);
+ R_b21 = (1 + R_cosw01)/2;
+ R_a01 = 1 + R_alpha1;
+ R_a11 = -2 * R_cosw01;
+ R_a21 = 1 - R_alpha1;
+ R_b01 /= R_a01;
+ R_b11 /= R_a01;
+ R_b21 /= R_a01;
+ R_a11 /= R_a01;
+ R_a21 /= R_a01;
+// end opto slider
+
+slider22 != 0 ? (transistor1 = 1):(transistor1 = 0);
+slider22 > 1 ? (transistor2 = 1):(transistor2 = 0);
+slider22 == 3 ? transistor1 = 0;
+stattslider_on = 0;
+); //stattslider
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+//stattslider();
+stattslider_call = 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+caller == 1 ? stattslider_call = 1;
+stattslider_call == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+caller = stattslider_call = 0;
+);
+);
+
+
+
+
+
+//////////////// PINK NOISE FOR DETECTOR
+p1_noise=rand(2)-1;
+p2_noise=rand(2)-1;
+p1_b0 = 0.99886 * p1_b0 + p1_noise * 0.0555179;
+p1_b1 = 0.99332 * p1_b1 + p1_noise * 0.0750759;
+p1_b2 = 0.96900 * p1_b2 + p1_noise * 0.1538520;
+p1_b3 = 0.86650 * p1_b3 + p1_noise * 0.3104856;
+p1_b4 = 0.55000 * p1_b4 + p1_noise * 0.5329522;
+p1_b5 = -0.7616 * p1_b5 - p1_noise * 0.0168980;
+p1_pink = p1_b0 + p1_b1 + p1_b2 + p1_b3 + p1_b4 + p1_b5 + p1_b6 + p1_noise * 0.5362;
+p1_b6 = p1_noise * 0.115926;
+p1_pink *= db2ratio(-77);
+
+p2_b0 = 0.99886 * p2_b0 + p2_noise * 0.0555179;
+p2_b1 = 0.99332 * p2_b1 + p2_noise * 0.0750759;
+p2_b2 = 0.96900 * p2_b2 + p2_noise * 0.1538520;
+p2_b3 = 0.86650 * p2_b3 + p2_noise * 0.3104856;
+p2_b4 = 0.55000 * p2_b4 + p2_noise * 0.5329522;
+p2_b5 = -0.7616 * p2_b5 - p2_noise * 0.0168980;
+p2_pink = p2_b0 + p2_b1 + p2_b2 + p2_b3 + p2_b4 + p2_b5 + p2_b6 + p2_noise * 0.5362;
+p2_b6 = p2_noise * 0.115926;
+p2_pink *= db2ratio(-77);
+
+
+
+
+first_spl0 = spl0;
+first_spl1 = spl1;
+
+
+slider20 == 0 ? ( // MODE STEREO
+
+
+spl0 *= L_In_Gain;
+spl1 *= L_In_Gain;
+
+
+
+
+//************************************ TRANSISTOR 1 *****************
+transistor1 == 1 ? (
+Rp=-6.9*0.1;
+Vk=(-2.2-1)+4;
+Vs=1;
+
+level=1;
+PreGain=10^(-12.5/20);
+PostGain=10^((12.2-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+
+);
+//************************************ ENDE TRANSISTOR 1 *****************
+
+
+
+
+temp_spl0 = spl0;
+temp_spl1 = spl1;
+//***************************** HPF **********************************
+  
+  inp = spl0+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  spl0 = inp;
+  
+  R_inp = spl1+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  spl1 = R_inp;
+
+  inp = spl2+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  spl2 = inp;
+  
+  R_inp = spl3+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  spl3 = R_inp;
+  
+  inp = tenospl0+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  tenospl0 = inp;
+  
+  R_inp = tenospl1+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  tenospl1 = R_inp;
+//**********************************ENDE HPF******************************************
+
+
+  tensidechain ? (
+    tenaspl0 = abs(spl2);
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (
+      tenospl = (tenospl0)^2 + (tenospl1)^2;
+          //tenospl /= 1000000;
+          
+       
+        tenospl > runtenospl ? (
+          runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+      //runtenospl=tenospl;
+        
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+      
+    
+    ) : (
+      tenaspl0 = abs(spl0);
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+spl0 = temp_spl0;
+spl1 = temp_spl1;
+
+
+
+
+
+  RMStendet ? (  
+    tenave = (tenaspl0 * tenaspl0) + (tenaspl1 * tenaspl1);
+    runtenave = tenave + tenrmscoef * (runtenave - tenave);
+    tendet = sqrt(max(0,runtenave));
+  ) : (
+    tenmaxspl = max(tenaspl0, tenaspl1);
+    tenmaxspl = tenmaxspl * tenmaxspl;
+    runtenave = tenmaxspl + tenrmscoef * (runtenave - tenmaxspl);
+    tendet = sqrt(max(0,runtenave));
+  );
+  //Stattdessen:
+  tendet = max(tenaspl0,tenaspl1);
+
+ // tenoverdb = log(tendet/tenctenthreshv) * tencapsc;
+ 
+ 
+ 
+ 
+ tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+thresh = tenthresh;
+tenopto == 1 ? (thresh = tenthresh - 3):(thresh = tenthresh);
+
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    //overdb = (mydbin - thresh); //Besser?
+    thi2 = 2;
+    ratior = ratio;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    thi2 = 1;
+    ratior = ratio;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    autoatt ?  tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+    autorel == 1 ? tenreltime = max(0.001,tengrv/5)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+    
+    
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (tenratio-1) * min(tenoverdb, 6) / 6; //(tensoftknee ? (1 + (tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (tenratio-1)/(tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+  thi3 = 1;//exp(-corfak*db2log);
+  spl0 *= tengrv;
+  spl1 *= tengrv;  
+  
+  
+  
+  
+  tenospl0 = spl0;
+  tenospl1 = spl1;
+  
+  
+  L_Bypass == 0 ? (spl0 *= L_out_Gain):(spl0 = first_spl0);
+  L_Bypass == 0 ? (spl1 *= L_out_Gain):(spl1 = first_spl1);
+  ); // slider20 == 0 ? ( // MODE STEREO
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+slider20 != 0 ? ( ////////Nicht im STEREO mode....
+
+
+
+
+
+
+slider20 == 2 ? ( // MID SIDE ENCODING
+vspl0 = (spl0+spl1)/2;
+vspl1 = (spl0-spl1)/2;
+spl0 = vspl0;
+spl1 = vspl1;
+);
+
+spl0 *= L_in_Gain;
+spl1 *= R_In_Gain;
+
+
+//************************************ TRANSISTOR 1 *****************
+transistor1 == 1 ? (
+Rp=-6.9*0.1;
+Vk=(-2.2-1)+4;
+Vs=1;
+
+level=1;
+PreGain=10^(-12.5/20);
+PostGain=10^((12.2-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+
+);
+//************************************ ENDE TRANSISTOR 1 *****************
+
+
+
+temp_spl0 = spl0;
+temp_spl1 = spl1;
+//***************************** HPF **********************************
+  
+  inp = spl0+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  spl0 = inp;
+  
+  R_inp = spl1+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  spl1 = R_inp;
+
+  inp = spl2+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  spl2 = inp;
+  
+  R_inp = spl3+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  spl3 = R_inp;
+  
+  inp = tenospl0+p1_pink;
+  L_hpf != 0 ? (
+  ospl0 = inp;
+  inp = b01 * inp + b11 * xl11 + b21 * xl21 - a11 * yl11 - a21 * yl21;
+  xl21 = xl11;
+  xl11 = ospl0;
+  yl21 = yl11;
+  yl11 = inp;
+  );
+  tenospl0 = inp;
+  
+  R_inp = tenospl1+p2_pink;
+  R_hpf != 0 ? (
+  R_ospl0 = R_inp;
+  R_inp = R_b01 * R_inp + R_b11 * R_xl11 + R_b21 * R_xl21 - R_a11 * R_yl11 - R_a21 * R_yl21;
+  R_xl21 = R_xl11;
+  R_xl11 = R_ospl0;
+  R_yl21 = R_yl11;
+  R_yl11 = R_inp;
+  );
+  tenospl1 = R_inp;
+//**********************************ENDE HPF******************************************
+
+//spl2 = spl0;
+//spl3 = spl1;
+
+
+  tensidechain ? (
+    tenaspl0 = abs(spl2);       // **************
+    tenaspl1 = 0;//abs(spl3);
+  ) : (
+    tenopto ? (                                                           // FEEDBACK ?     ***********
+      tenospl = (tenospl0)^2 + (tenospl0)^2;
+
+        tenospl > runtenospl ? (
+          runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+    ) : (                                                                // NOT FEEDBACK 
+      tenaspl0 = abs(spl0);               // ********************
+      tenaspl1 = abs(spl0);
+    );
+  );
+
+spl0 = temp_spl0;
+
+tendet = max(tenaspl0,tenaspl1);
+tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+thresh = tenthresh;
+tenopto == 1 ? (thresh = tenthresh - 3):(thresh = tenthresh);
+
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  R_thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    R_thi2 = 2;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    R_thi2 = 1;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    // tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+    //tenreltime = (130+((tenreltime-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+    autorel == 1 ? tenreltime = max(0.001,tengrv/5)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+    
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (tenratio-1) * min(tenoverdb, 6) / 6; //(tensoftknee ? (1 + (R_tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (R_tenratio-1)/(R_tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+  thi3 = 1;//exp(-corfak*db2log);
+  spl0 *= tengrv;
+  //spl1 *= tengrv;  
+  L_tengrv = tengrv;
+  tenospl0 = spl0;
+  //tenospl1 = spl1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  tensidechain ? (
+    tenaspl0 = 0; // abs(spl2);        **************
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (                                                           // FEEDBACK ?     ***********
+      tenospl = (tenospl1)^2 + (tenospl1)^2;
+
+        tenospl > R_runtenospl ? (
+          R_runtenospl = tenospl + R_tenatcoef * (R_runtenospl - tenospl);
+         ) : (
+          R_runtenospl = tenospl + R_tenrelcoef * (R_runtenospl - tenospl);
+        );
+
+      tenospl = sqrt(max(0,R_runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+    ) : (                                                                // NOT FEEDBACK 
+      tenaspl0 = abs(spl1);               // ********************
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+spl1 = temp_spl1;
+
+tendet = max(tenaspl0,tenaspl1);
+tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+R_thi1 < mydbin ? R_thi1 = mydbin;
+
+//Neu ich
+thresh = R_tenthresh;
+tenopto == 1 ? (thresh = R_tenthresh - 3):(thresh = R_tenthresh);
+
+knee_width = abs(thresh*2*R_kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - R_ratio) / R_ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  R_thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    R_thi2 = 2;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    R_thi2 = 1;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > R_tenmaxover ? (
+    R_tenmaxover = tenoverdb;
+    // tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    R_tenatcoef = exp(-1/(R_tenattime * srate));
+    //tenreltime = (130+((tenreltime-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    R_tenrelcoef = exp(-1/(R_tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+    R_autorel == 1 ? R_tenreltime = max(0.001,R_tengrv/5)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    R_tenrelcoef = exp(-1/(R_tenreltime * srate));
+    
+  tenoverdb > R_tenrundb ? (
+    R_tenrundb = tenoverdb + R_tenatcoef * (R_tenrundb - tenoverdb);
+  ) : (
+    R_tenrundb = tenoverdb + R_tenrelcoef * (R_tenrundb - tenoverdb);
+  );
+  tenoverdb = R_tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (R_tenratio-1) * min(R_tenoverdb, 6) / 6; //(tensoftknee ? (1 + (R_tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * R_tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (R_tenratio-1)/(R_tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  R_tenrunmax = R_tenmaxover + R_tenrelcoef * (R_tenrunmax - R_tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  R_tenmaxover = R_tenrunmax;
+  R_thi3 = 1;//exp(-corfak*db2log);
+  //spl0 *= tengrv;
+  spl1 *= tengrv;  
+  R_tengrv = tengrv;
+  //tenospl0 = spl0;
+  tenospl1 = spl1;
+  
+
+
+  spl0 *= L_out_Gain;
+  spl1 *= R_out_Gain;
+
+slider20 == 2 ? ( // MID SIDE DECODING
+vspl0 = spl0 + spl1;
+vspl1 = spl0 - spl1;
+spl0 = vspl0;
+spl1 = vspl1;
+);
+
+  L_Bypass == 1 ? (spl0 = first_spl0);
+  R_Bypass == 1 ? (spl1 = first_spl1);  
+
+); // slider20 != 0
+
+//************************************ TRANSISTOR 2 *****************
+transistor2 == 1 ? (
+Rp=-0*0.1;
+Vk=(-0-1)+4;
+Vs=5;
+
+level=1;
+PreGain=10^(-10/20);
+PostGain=10^((4-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+
+);
+//************************************ ENDE TRANSISTOR 1 *****************
+
+spl0.dcblocker(); // otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+spl1.dcblocker(); //otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+
+meterspeed();
+slider20 == 0 ? (L_tengrv = R_tengrv = tengrv);
+  mnmetersample(L_tengrv*0.63,R_tengrv*0.63,0,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+@gfx 1110 300
+
+      mouseHold = mouse_cap & 1;
+      ctrl = mouse_cap & 4;
+      shift = mouse_cap & 8;
+      alt = mouse_cap & 16;
+      mouseClick = mouseHold - lastCap;
+      lastCap = mouseHold;
+      mouse_xz = mouse_x;
+      mouse_yz = mouse_y;
+      //zfct = 1;
+
+
+      /////////////////////////////  ZFCT ////////////////////////
+      zfct_w = 1110; zfct_h = 300;
+      gfx_setimgdim(127,zfct_w,zfct_h);
+      gfx_dest = 127;
+      zmnu != slider21 ? zmnu = slider21;
+      mouse_xz = mouse_x / zfct;
+      mouse_yz = mouse_y / zfct;
+      ///////////////////////////////////////////////////////////
+      
+      
+gfx_r=gfx_g=gfx_b=0.4;
+gfx_rect(0,0,1110,300);
+meterx = knobsx + 300; metery = knobsy - 28;
+   mnmetergfx(1, meterx, metery, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+   mnmetergfx(1, meterx+210, metery, 0, 2); //(0=flexible, x,y,redneedle, channel 1or2)
+   
+//HINTERGRUND
+xy(0,0);
+gfx_blit(8,1,0);
+
+      
+      
+
+     gfx_x = knobsx+300; gfx_y = knobsy + 100;
+     slider9 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider9 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider20 == 0 ? gfx_blit(11,30/35,0,0,35,30,30):slider24 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     
+     //gfx_r = gfx_b= 1; gfx_a = 0.3;
+     //gfx_rect(388,238,17,17);
+     //gfx_rect(733,238,17,17);
+     
+     slider20 == 1 ? (
+     gfx_x = knobsx+645; gfx_y = knobsy + 100;
+     slider18 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider18 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider24 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     ):(
+     gfx_x = knobsx+645; gfx_y = knobsy + 100;
+     slider9 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider9 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_y += 48;
+     slider24 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     );
+
+
+     //knobsy -= 10;
+      
+     gfx_x = knobsx+450; gfx_y = knobsy + 100;
+     slider20 == 0 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider20 == 0 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+
+     gfx_x = knobsx+450; gfx_y = knobsy + 130;
+     slider20 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider20 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     
+     gfx_x = knobsx+450; gfx_y = knobsy + 160;
+     slider20 == 2 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider20 == 2 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+
+/*
+     gfx_x = knobsx+450; gfx_y = knobsy + 195;
+     slider24 == 1 ? (gfx_blit(6,1,0,0,35,35,35)):(gfx_blit(6,1,0,0,0,35,35));
+     gfx_x += 32; gfx_y += 3;
+     slider24 == 1 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+*/     
+     //knobsy += 10;
+
+     gfx_x = L_atk.xIn+54; gfx_y = L_atk.yIn+55;
+     slider3 == 31 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_x = L_rel.xIn+54; gfx_y = L_rel.yIn+55;
+     slider4 == 1501 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+
+slider20 == 0 ? (
+     gfx_x = R_atk.xIn+54; gfx_y = R_atk.yIn+55;
+     slider3 == 31 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_x = R_rel.xIn+54; gfx_y = R_rel.yIn+55;
+     slider4 == 1501 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     ):(     
+     gfx_x = R_atk.xIn+54; gfx_y = R_atk.yIn+55;
+     slider12 == 31 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     gfx_x = R_rel.xIn+54; gfx_y = R_rel.yIn+55;
+     slider13 == 1501 ? (gfx_blit(7,1,0,0,0,30,30)):(gfx_blit(7,1,0,0,30,30,30));
+     );
+
+
+L_thresh.knob();
+L_ratio.knob();
+L_Gain.knob();
+L_gHPF.knob();
+L_atk.knob();
+L_rel.knob();
+screw.knob();
+
+slider20 == 0 ? (
+L_thresh.knob2();
+L_ratio.knob2();
+L_Gain.knob2();
+L_gHPF.knob2();
+L_atk.knob2();
+L_rel.knob2();
+):(
+R_thresh.knob();
+R_ratio.knob();
+R_Gain.knob();
+R_gHPF.knob();
+R_atk.knob();
+R_rel.knob();
+gfx_a = 1;
+);
+
+
+
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 635; menu_y =190;
+   gfx_x=menu_x;gfx_y=menu_y;
+   gfx_blit(10,1,0);
+ //  gfx_drawnumber(last_clicked_item, 0); 
+   mouseClick ? (
+   //helpshow ? helpshow = 0;
+   mouse_xz > menu_x ? (
+   mouse_xz < menu_x + 20 ? (
+   mouse_yz > menu_y ? (
+   mouse_yz < menu_y + 20 ? (
+     gfx_x = menu_x*zfct;
+     gfx_y = (menu_y+20)*zfct;
+      
+      slider22 == 0 ? #item2 = "Input Transistor|Output Transistor|";
+      slider22 == 1 ? #item2 = "!Input Transistor|Output Transistor|";
+      slider22 == 2 ? #item2 = "!Input Transistor|!Output Transistor|";
+      slider22 == 3 ? #item2 = "Input Transistor|!Output Transistor|";
+      #allitems = #item2;
+      
+      slider20 == 0 ? (
+      #item2 = "#Match (left master)|";#allitems += #item2;
+      #item2 = "#Match (right master)||";#allitems += #item2;
+      ):(
+      slider24 == 1 ? (#item2 = "!Match (left master)|"):(#item2 = "Match (left master)|");#allitems += #item2;
+      slider24 == 2 ? (#item2 = "!Match (right master)||"):(#item2 = "Match (right master)||");#allitems += #item2;     
+      );
+      slider19 == 1 ? (#item2 = "!Sidechain||"):(#item2 = "Sidechain||");#allitems += #item2; 
+       #item2 =">Scaling|";#allitems += #item2;
+      slider12 == sqrt(0.5) ? (#item2 = "!50%|"):(#item2 = "50%|");#allitems += #item2;
+      slider12 == sqrt(0.75) ? (#item2 = "!75%|"):(#item2 = "75%|");#allitems += #item2;
+      slider12 == 1 ? (#item2 = "!100%|"):(#item2 = "100%|");#allitems += #item2;
+      slider12 == sqrt(1.5) ? (#item2 = "!150%|"):(#item2 = "150%|");#allitems += #item2;
+      slider12 == sqrt(2) ? (#item2 = "!200%|"):(#item2 = "200%|");#allitems += #item2;
+      slider12 == 0 ? (#item2 = "<!FREE|"):(#item2 = "<FREE|");#allitems += #item2;
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+   );
+   );
+   );
+   last_clicked_item == 1 ? (
+   slider22 == 0 ? slider22 = 1:
+   slider22 == 1 ? slider22 = 0:
+   slider22 == 2 ? slider22 = 3:
+   slider22 == 3 ? slider22 = 2;
+   caller = 1;
+   );
+   last_clicked_item == 2 ? (
+   slider22 == 0 ? slider22 = 3:
+   slider22 == 1 ? slider22 = 2:
+   slider22 == 2 ? slider22 = 1:
+   slider22 == 3 ? slider22 = 0;
+   caller = 1;
+   );
+   last_clicked_item == 3 ? slider24 != 1 ? (slider24 = 1;caller = 1) :(slider24 = 0;caller = 1);
+   last_clicked_item == 4 ? slider24 != 2 ? (slider24 = 2;caller = 1) :(slider24 = 0;caller = 1);  
+   last_clicked_item == 5 ? slider19 != 1 ? (slider19 = 1;caller = 1) :(slider19 = 0;caller = 1);
+   
+   last_clicked_item == 6 ? zmnu = sqrt(0.5);
+   last_clicked_item == 7 ? zmnu = sqrt(0.75);
+   last_clicked_item == 8 ? zmnu = 1;
+   last_clicked_item == 9 ? zmnu = sqrt(1.5);
+   last_clicked_item == 10 ? zmnu = sqrt(2);
+   last_clicked_item == 11? zmnu = 0;
+   last_clicked_item == 12? helpshow = 1;
+   
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,320,70);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3; gfx_y = menu_y+3;
+   gfx_drawstr("This plugin can be automated.");
+   gfx_x = menu_x+3; gfx_y += 13;
+   gfx_drawstr("");
+   gfx_x = menu_x+3; gfx_y += 13;
+   gfx_drawstr("(Fine tune knobs with shift)");
+   gfx_x = menu_x+3; gfx_y += 13;
+   gfx_drawstr("(Reset knobs with ctrl/cmd)");
+   gfx_x = menu_x+3; gfx_y += 13;
+   gfx_drawstr("(Quick link parameters with alt/option)");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+   
+   
+   
+   
+   
+   
+   
+
+
+gfx_r=gfx_g=gfx_b=0.4;
+//gfx_rect(knobsx+720,knobsy-10,310,180);
+gfx_a=1;
+
+slider24 > 0 ? (alt = 16);
+
+/********************************* Mouse Control ******************************/
+mouseClick == 1 ? 
+    (
+    //alt ? (transistor1 = transistor2 = 0);
+    //gfx_rect(388,238,17,17);
+    //gfx_rect(733,238,17,17);
+    
+    mouse_yz > 238 ? (
+    mouse_yz < 238 + 17 ? (
+    mouse_xz > 388 ? (
+    mouse_xz < 388 + 17 ? (
+    slider24 != 1 ? (slider24 = 1;caller = 1) :(slider24 = 0;caller = 1);
+    ););
+    mouse_xz > 733 ? (
+    mouse_xz < 733 + 17 ? (
+    slider24 != 2 ? (slider24 = 2;caller = 1) :(slider24 = 0;caller = 1);
+    ););););
+    
+    mouse_xz > knobsx + 645 ? (
+    mouse_xz < knobsx+645 + 35 ? (
+    mouse_yz > knobsy+100 + 8 ? (
+    mouse_yz < knobsy+100 + 8 + 18 ? (
+    slider20 == 1 ? (
+    slider18 == 0 ? (slider18=1):(slider18=0);
+    slider_automate(slider18);
+    ):(
+    slider9 == 0 ? (slider9=1):(slider9=0);
+    slider_automate(slider9);
+    );
+    caller=1;
+    ););););
+    mouse_xz > knobsx + 300 ? (
+    mouse_xz < knobsx+300 + 35 ? (
+    mouse_yz > knobsy+100 + 8 ? (
+    mouse_yz < knobsy+100 + 8 + 18 ? (
+    slider9 == 0 ? (slider9=1):(slider9=0);
+    slider_automate(slider9);
+    caller=1;
+    ););););
+    mouse_xz > knobsx + 450 ? (
+    mouse_xz < knobsx+450 + 35 ? (
+    mouse_yz > knobsy+100 + 8 ? (
+    mouse_yz < knobsy+100 + 8 + 18 ? (
+    slider20 = 0;
+    slider_automate(slider20);
+    caller=1;
+    ););
+    mouse_yz > knobsy+130 + 8 ? (
+    mouse_yz < knobsy+130 + 8 + 180 ? (
+    slider20 = 1;
+    slider_automate(slider20);
+    caller=1;
+    ););
+    mouse_yz > knobsy+160 + 8 ? (
+    mouse_yz < knobsy+160 + 8 + 18 ? (
+    slider20 = 2;
+    slider_automate(slider20);
+    caller=1;
+    ););
+    ););
+      slider20 != 0 ? (
+      R_thresh.collision()   ? alt ? (R_thresh.dragStart();L_thresh.dragStart()):(R_thresh.dragStart()); 
+      R_ratio.collision()   ? alt ? (R_ratio.dragStart();L_Ratio.dragStart()):(R_ratio.dragStart());
+      R_Gain.collision()   ? alt ? (R_Gain.dragStart();L_Gain.dragStart()):(R_Gain.dragStart());
+      R_gHPF.collision()   ? alt ? (R_gHPF.dragStart();L_gHPF.dragStart()):(R_gHPF.dragStart());
+      R_atk.collision()   ? alt ? (R_atk.dragStart();L_atk.dragStart()):(R_atk.dragStart());
+      R_rel.collision()   ? alt ? (R_rel.dragStart();L_rel.dragStart()):(R_rel.dragStart());      
+      L_thresh.collision()   ? alt ? (L_thresh.dragStart();R_thresh.dragStart()):(L_thresh.dragStart()); 
+      L_ratio.collision()   ? alt ? (L_ratio.dragStart();R_ratio.dragStart()):(L_ratio.dragStart());
+      L_Gain.collision()   ? alt ? (L_Gain.dragStart();R_Gain.dragStart()):(L_Gain.dragStart());
+      L_gHPF.collision()   ? alt ? (L_gHPF.dragStart();R_gHPF.dragStart()):(L_gHPF.dragStart());
+      L_atk.collision()   ? alt ? (L_atk.dragStart();R_atk.dragStart()):(L_atk.dragStart());
+      L_rel.collision()   ? alt ? (L_rel.dragStart();R_rel.dragStart()):(L_rel.dragStart());
+      screw.collision()   ? screw.dragStart();
+      ):(
+      R_thresh.collision()   ? L_thresh.dragStart(); 
+      R_ratio.collision()   ? L_ratio.dragStart();
+      R_Gain.collision()   ? L_Gain.dragStart();
+      R_gHPF.collision()   ? L_gHPF.dragStart();
+      R_atk.collision()   ? L_atk.dragStart();
+      R_rel.collision()   ? L_rel.dragStart();
+      L_thresh.collision()   ? L_thresh.dragStart(); 
+      L_ratio.collision()   ? L_ratio.dragStart();
+      L_Gain.collision()   ? L_Gain.dragStart();
+      L_gHPF.collision()   ? L_gHPF.dragStart();
+      L_atk.collision()   ? L_atk.dragStart();
+      L_rel.collision()   ? L_rel.dragStart();
+      screw.collision()   ? screw.dragStart();
+      );
+    ):
+mouseClick == -1  ? 
+    (
+      L_thresh.dragStop();
+      L_ratio.dragStop();
+      L_Gain.dragStop();
+      L_gHPF.dragStop();
+      L_atk.dragStop();
+      L_rel.dragStop();
+      R_thresh.dragStop();
+      R_ratio.dragStop();
+      R_Gain.dragStop();
+      R_gHPF.dragStop();
+      R_atk.dragStop();
+      R_rel.dragStop();
+      screw.dragStop();
+    );
+mouse_wheel ? 
+    (
+    slider20 == 0  ? (
+      L_thresh.collision()   ? L_thresh.potWheel():
+      L_ratio.collision()   ? L_ratio.potWheel():
+      L_Gain.collision()   ? L_Gain.potWheel():
+      L_gHPF.collision()   ? L_gHPF.potWheel():
+      L_atk.collision()   ? L_atk.potWheel():
+      L_rel.collision()   ? L_rel.potWheel():
+      R_thresh.collision()   ? L_thresh.potWheel():
+      R_ratio.collision()   ? L_ratio.potWheel():
+      R_Gain.collision()   ? L_Gain.potWheel():
+      R_gHPF.collision()   ? L_gHPF.potWheel():
+      R_atk.collision()   ? L_atk.potWheel():
+      R_rel.collision()   ? L_rel.potWheel():
+      screw.collision()   ? screw.potWheel():
+      mouse_wheel=0;
+    ):(
+      L_thresh.collision()   ? L_thresh.potWheel():
+      L_ratio.collision()   ? L_ratio.potWheel():
+      L_Gain.collision()   ? L_Gain.potWheel():
+      L_gHPF.collision()   ? L_gHPF.potWheel():
+      L_atk.collision()   ? L_atk.potWheel():
+      L_rel.collision()   ? L_rel.potWheel():
+      R_thresh.collision()   ? R_thresh.potWheel():
+      R_ratio.collision()   ? R_ratio.potWheel():
+      R_Gain.collision()   ? R_Gain.potWheel():
+      R_gHPF.collision()   ? R_gHPF.potWheel():
+      R_atk.collision()   ? R_atk.potWheel():
+      R_rel.collision()   ? R_rel.potWheel():
+      screw.collision()   ? screw.potWheel():
+    mouse_wheel=0;
+    );
+    );
+L_thresh.dragging  ? L_thresh.potDrag();
+L_ratio.dragging  ? L_ratio.potDrag();
+L_Gain.dragging  ? L_Gain.potDrag();
+L_gHPF.dragging  ? L_gHPF.potDrag();
+L_atk.dragging  ? L_atk.potDrag();
+L_rel.dragging  ? L_rel.potDrag();
+screw.dragging  ? screw.potDrag();
+slider20 != 0 ? (
+R_thresh.dragging  ? R_thresh.potDrag();
+R_ratio.dragging  ? R_ratio.potDrag();
+R_Gain.dragging  ? R_Gain.potDrag();
+R_gHPF.dragging  ? R_gHPF.potDrag();
+R_atk.dragging  ? R_atk.potDrag();
+R_rel.dragging  ? R_rel.potDrag();
+);
+
+
+gfx_ext_flags == 0 ? (
+//////////////////////// ZFCT ///////////////////////////////
+    slider21 = zmnu;
+    zfct = zmnu;
+    zmnu == 0 ? zfct = min(gfx_w/zfct_w,gfx_h/zfct_h);
+    
+    zmnu != 0 ? zfct *= gfx_ext_retina;
+    gfx_dest = -1;
+    gfx_x=gfx_y=0;gfx_a=1;
+    gfx_blit(127,zfct,0);
+    /////////////////////////////////////////////////////////////  
+    
+):gfx_ext_flags == 1 ? (
+    gfx_dest = -1;
+   mini_mnmetergfx(0,0,0, 0, 1); //(0=flexible, x,y,redneedle, channel 1or2)
+   mini_mnmetergfx(0, (gfx_w/2)+1, 0, 0, 2); //(0=flexible, x,y,redneedle, channel 1or2)
+
+);
+
+caller == 1 ? stattslider_call = 1;
+stattslider_call == 1 ? (
+stattslider_on == 0 ? (
+stattslider();
+caller = stattslider_call = 0;
+);
+);
