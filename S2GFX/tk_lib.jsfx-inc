@@ -129,6 +129,8 @@ CHLP_out_hp_l;
  db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom+this.width *zoom + db_max_clipped*(this.width*zoom/this.db_range), this.yIn*zoom, min(1,2*zoom),this.height*zoom);
  );
  
+
+
  function gr_meter_show() 
  instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max dB_Val_Max_GR)
  local (dB_clipped dB_Max_clipped)
@@ -143,6 +145,9 @@ CHLP_out_hp_l;
 				);
  db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom+this.width *zoom + db_max_clipped*(this.width*zoom/this.db_range), this.yIn*zoom, min(1,2*zoom),this.height*zoom);
  );
+
+
+
 
  function meter_overlay ()
  instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max)
@@ -187,7 +192,18 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 );
 
 
-
+function feed_meter_gr(in_spl) 
+instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
+(
+    this.U_Val=abs(in_spl);
+        ratio2db(this.U_Val) < this.dB_Val ? (
+        this.dB_Val = ratio2db(this.U_Val);
+    ):(
+        this.dB_Val += this.S2_meter_fallback/srate; // db pro sec
+    );
+    this.dB_Val_Max = max(this.dB_Val_Max,this.dB_Val);
+	this.dB_Val_Max_GR = min(this.dB_Val_Max_GR,this.dB_Val);
+);
 
 
 	function labelposition (S2_Labelpos, s2label_w, s2label_h) (
