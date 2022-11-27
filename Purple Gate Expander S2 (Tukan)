@@ -50,8 +50,11 @@ slider13:0<0,1,1>-Bypass
 
 
 @init
-GATE_VERSION = 0.5;
-
+GATE_VERSION = 0.6;
+/*
+changes 0.6:
+smaller bugfixes (mainly about the orange circle dragging)
+*/
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
 gfx_clear=0;
@@ -936,10 +939,10 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         g_collision(gfx_hyst_x, gfx_hyst_y, gfx_hyst_width, gfx_hyst_height) ? (Khyst.h_dragstart();
         ):g_collision(gfx_thresh_x, gfx_thresh_y, gfx_thresh_width, gfx_thresh_height) ? (KThreshold.h_dragstart());
        
-        g_collision(attackhandle_x -4, attackhandle_y -4, 8, 8) ? KAttack.h_dragstart();
-        g_collision(holdhandle_x -4, holdhandle_y -4, 8, 8) ? Khold.h_dragstart();
-        g_collision(releasehandle_x -4, releasehandle_y -4, 8, 8) ? Krelease.h_dragstart();
-        g_collision(outputhandle_x -4, outputhandle_y -4, 8, 8) ? Koutput.v_dragstart();
+        g_collision(attackhandle_x -4*zoom, attackhandle_y -4*zoom, 8*zoom, 8*zoom) ? KAttack.h_dragstart();
+        g_collision(holdhandle_x -4*zoom, holdhandle_y -4*zoom, 8*zoom, 8*zoom) ? Khold.h_dragstart();
+        g_collision(releasehandle_x -4*zoom, releasehandle_y -4*zoom, 8*zoom, 8*zoom) ? Krelease.h_dragstart();
+        g_collision(outputhandle_x -4*zoom, outputhandle_y -4*zoom, 8*zoom, 8*zoom) ? Koutput.v_dragstart();
         
         g_collision(Left_Meter_In.xIn * zoom - 4*zoom, Left_Meter_out.yIn*zoom - 10*zoom, Left_Meter_Out.width*zoom + 10*zoom, 4*Left_Meter_Out.height*zoom + 19 * zoom) ?
         (

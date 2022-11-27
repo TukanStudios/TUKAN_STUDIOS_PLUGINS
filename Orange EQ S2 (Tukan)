@@ -72,8 +72,12 @@ options:gfx_idle
 
 
 @init
-OEQ_VERSION = 0.5;
-
+OEQ_VERSION = 0.6;
+/*
+changes 0.6:
+Changed TCP/MCP graphics
+degub: Lowshelf in MCP/TCP now dragging
+*/
 Stereo_Mode=1; //<0,1,1{Mid/Side,Left/Right}>-Stereo Mode
 Quality=1; //<0,1,1{Eco,HQ}>-Quality
 MLGain=0;//<-136,30,0.01>-Mid/Left Gain
@@ -2049,8 +2053,9 @@ ree_mouse_y = mouse_y- ree_offset_y * zoom;
 gfx_setimgdim(127,grf_w,grf_h);
 gfx_dest = 127; //DEST_FLAG
 ):gfx_ext_flags == 1 ? (
+//922 564
 grf_w = gfx_w;
-grf_h = gfx_h;
+grf_h = gfx_h;//(gfx_w/922)*564;
 ree_offset_x = 0;
 ree_offset_y = 0;
 ree_mouse_x = mouse_x;
@@ -2082,6 +2087,8 @@ very_compact_width = actual_width < 300;
 very_compact_height = actual_height < 160;
 
 TOP_MARGIN = 10;
+//gfx_ext_flags == 1 ? TOP_MARGIN = 0; // DEBUG FLAG
+
 BOTTOM_MARGIN = gfx_ext_retina == 2 ? 64 : 32;
 RAISED_BOTTOM = gfx_ext_retina == 2 ? 240 : 120;
 
@@ -2137,17 +2144,29 @@ function scx_to_freq(x) (
  * Convert eq dB to screen y
  */
 function db_to_y(db) local(m) (
+gfx_ext_flags == 0 ? (
   m = 1.0 - (((db / DB_EQ_RANGE) / 2) + 0.5);
   TOP_MARGIN+(m * (grf_h - (gfx_texth*2) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM)));
+  ):(
+  m = 1.0 - (((db / DB_EQ_RANGE) / 2) + 0.5); // DEBUG FLAG
+  m*grf_h;//TOP_MARGIN+(m * (grf_h - (gfx_texth*0) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM)));
+  );
 );
 
 /*
  * Get eq dB from screen y
  */
 function y_to_db(y) local(m) (
+gfx_ext_flags == 0 ? (
   m = (y - TOP_MARGIN) / (grf_h - (gfx_texth*2) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM));
   m = (1.0 - (m + 0.5)) * 2 * DB_EQ_RANGE;
   max(min(m, DB_EQ_RANGE), -DB_EQ_RANGE);
+  ):(
+    //m = (y - TOP_MARGIN) / (grf_h - (gfx_texth*0) - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM));
+    m = min(y,grf_h) / grf_h;
+    m = (1.0 - (m + 0.5)) * 2 * DB_EQ_RANGE;
+    max(min(m, DB_EQ_RANGE), -DB_EQ_RANGE);
+  );
 );
 
 function set_filter_from_xy(band, x, y) local(gain, s) (
@@ -2255,14 +2274,21 @@ function draw_node(band, freq, db, enabled, selected) local(x, y, m, scy, transf
   x = get_filter_x(band);
   y = get_filter_y(band);
 
+
+  gfx_ext_flags == 1 ? (y = (1-(db/DB_EQ_RANGE))*grf_h/2); //DEBUG FLAG
+
   //gfx_ext_retina == 2 ? size = 12 : size = 6;
-  gfx_ext_retina == 2 ? size = 18 : size = 9;
+  gfx_ext_flags ==  1 ? size = 4 : size = 9;
+  size *= gfx_ext_retina;
+  //gfx_ext_retina == 2 ? size = 18 : size = 9;
 
   y > grf_h - gfx_texth - BOTTOM_MARGIN - (RAISED_BOTTOM * ENABLE_RAISED_BOTTOM) ? (
     node_alpha = 0.5;
   ) : node_alpha = 1.0;
 
   y > grf_h - gfx_texth - BOTTOM_MARGIN ? node_alpha = 0;
+  
+  node_alpha = 1; // DEBUG FLAG
   
   draw_node_stereo(band, x, y, node_alpha);
 
@@ -2310,6 +2336,7 @@ function draw_node(band, freq, db, enabled, selected) local(x, y, m, scy, transf
   band == 3 ? #S2_node_name = "P3":
   band == 4 ? #S2_node_name = "HS":
   band == 5 ? #S2_node_name = "HP";
+  gfx_ext_flags ==  1 ? #S2_node_name = "";
   
   gfx_measurestr(#S2_node_name, width, height);
   gfx_r = gfx_g = gfx_b = 1; gfx_a = node_alpha;
@@ -2317,7 +2344,7 @@ function draw_node(band, freq, db, enabled, selected) local(x, y, m, scy, transf
   gfx_y = y - gfx_texth * 0.5;
 
   //gfx_drawnumber(band+1,0);
-  gfx_drawstr(#S2_node_name);
+  gfx_ext_flags == 0 ? gfx_drawstr(#S2_node_name);
   gfx_setfont(1);
 
   // Draw band selected indicator
@@ -2571,6 +2598,8 @@ function draw_filter_response(group, red, green, blue)
 
   bottom = grf_h - BOTTOM_MARGIN - gfx_texth;
 
+    gfx_ext_flags == 1 ? (bottom += gfx_texth); // DEBUG FLAG
+
   xo1 = 0;
   yo1 = (grf_h - gfx_texth)*0.5;
   xf = 0;
@@ -2755,7 +2784,7 @@ function draw_grid() local (db, y, scx, size) (
     y > gfx_y ? (
       gfx_r=gfx_g=gfx_b=1; gfx_a=0.3;
       
-      abs(db) <= DB_EQ_RANGE ? (
+      abs(db) <= DB_EQ_RANGE*2 ? (
       !very_compact_height && !very_compact_width ? (
         gfx_line(0, y, grf_w-(gfx_texth*2.2), y, 0);
         ):(
@@ -2767,13 +2796,19 @@ function draw_grid() local (db, y, scx, size) (
         gfx_x = scx-gfx_texth*(gfx_ext_retina == 2 ? 2 : 2); gfx_y = y - gfx_texth/2;
         !very_compact_height && !very_compact_width ? db > 0 ? gfx_printf("+%d", db) : db < 0 ? gfx_printf("%d", db) : gfx_printf("  %d", db);
       ) : (
+
         y < grf_h - gfx_texth*2 - BOTTOM_MARGIN ? gfx_line((gfx_texth*2), y, grf_w - gfx_texth, y, 0);
+
       );
       gfx_y += gfx_texth;
     );
     db -= DB_EQ_RANGE_STEPS;
-
+    
+    gfx_ext_flags == 0 ? ( // DEBUG FLAG
     y < grf_h - gfx_texth*2 - BOTTOM_MARGIN;
+    ):(
+    y <= grf_h;
+    );
 
   );
 );

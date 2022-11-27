@@ -62,8 +62,12 @@ options:gmem=TukanCompressorS2
 options:gfx_idle
 
 @init
-COMPRESSOR_VERSION = 0.5;
-
+COMPRESSOR_VERSION = 0.6;
+/*
+changes 0.6:
+smaller bugfixes (mainly about the orange circle dragging)
+Logarithmic Scope
+*/
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
 gfx_clear=0;
@@ -87,12 +91,12 @@ number_input_sign=1;
 
 
 s2_numbers_of_sliders = 11;
-s2_numbers_of_generics = 1;
+s2_numbers_of_generics = 4;
 group_generics =0; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
 generics_old = sliders_old + 16*64;
 
-
+in_scope = 1; gr_scope = 1; out_scope = 0;
 
 //link_group = 0;
 //link_group_master = 0;
@@ -161,12 +165,18 @@ fftsize=max_fft_size;
 windowtype=-1;
 fftidx=-1;
 
-histsize=max_fft_size + (max_fft_size*0.5 - 1);
-window=histsize;
-fftworkspace=window+(max_fft_size*0.5 + 1);
-integrate_buf = fftworkspace + max_fft_size*2;
+//histsize=max_fft_size + (max_fft_size*0.5 - 1);
+//window=histsize;
+//fftworkspace=window+(max_fft_size*0.5 + 1);
+//integrate_buf = fftworkspace + max_fft_size*2;
 
-
+histsize = 8*(srate);
+hist_in_L = histbuf;;
+hist_in_R = hist_in_L+histsize;
+hist_out_L = hist_in_L+2*histsize;
+hist_out_R = hist_in_L+3*histsize;
+hist_GR = hist_in_L+4 * histsize;
+histpos=0;
   
   
 
@@ -271,8 +281,16 @@ KOutput.Parameter_Boundaries();
 KDrywet.Parameter_Boundaries();
 
  group_generics[1] = SCOPE;
+ group_generics[2] = in_SCOPE;
+ group_generics[3] = out_SCOPE;
+ group_generics[4] = gr_scope;
+
     group_parameters();
   Scope = group_generics[1];
+ in_SCOPE = group_generics[2];
+ out_SCOPE = group_generics[3];
+ gr_scope = group_generics[4];  
+
   
 mode = 0;
 drymix = slider9;
@@ -319,6 +337,7 @@ histpos = 0;
 emptyscope = 0;
 );
 
+caller = 0;
 parameters_update_on = 0;
 );
 
@@ -378,7 +397,8 @@ seriloop += 1;
 
 
 
-
+histsize_out = sgfx_w;// * 10;
+histsize_block = histsize / histsize_out;
 
 
 
@@ -419,8 +439,8 @@ spl2 = vspl2;
 spl3 = vspl3;
 );
 
-histbuf[histpos]=-max(abs(spl0),abs(spl1));// * -zoom_gain;
-histbuf[histpos+histsize]=spl1;// * -zoom_gain;
+hist_in_L[histpos] = max(abs(spl0),hist_in_L[histpos]);
+hist_in_r[histpos] = max(abs(spl1),hist_in_R[histpos]);
 
 
 g_max_u_L=abs(spl0);
@@ -489,8 +509,9 @@ MBC1_grv = ratio2db(MBC1_gr);
 MBC1_grv < MBC1_gr_meter ? MBC1_gr_meter=MBC1_grv : (MBC1_gr_meter*=MBC1_gr_meter_decay; MBC1_gr_meter>1?MBC1_gr_meter=1; );
 MBC1_grmin = min( min(MBC1_cG,MBC1_cG) , MBC1_grmin);
 MBC1_on == 0 ? (MBC1_gr_meter=1);
-histbuf[histpos+histsize+histsize]=MBC1_cL;
+//histbuf[histpos+histsize+histsize]=MBC1_cL;
 
+h
 
 
 ///////////////// IN DIESER VERSION SPIELT NUR DIESE SCHLEIFE !!!
@@ -581,8 +602,8 @@ spl1 *= MBC2_output;
 
 
 
-histpos+=1;
-histpos >= histsize ? histpos=0;
+//histpos+=1;
+//histpos >= histsize ? histpos=0;
 
 
 
@@ -617,12 +638,22 @@ db_g_max_u_R_hold_out = max(db_g_max_u_R_hold_out,db_g_max_u_R_out);
 
 ); //Process ?
 
-GR_Meter.feed_Meter(MBC1_cL);
+GR_Meter.feed_Meter_GR(MBC1_cL);
 
 Left_Meter_Out.feed_Meter(spl0);
 Right_Meter_Out.feed_Meter(spl1);
 
-
+hist_out_L[histpos] = max(abs(spl0),hist_out_L[histpos]);
+hist_out_r[histpos] = max(abs(spl1),hist_out_r[histpos]);
+hist_GR[histpos] = min(MBC1_cL,hist_GR[histpos]);
+block_pos += 1;
+block_pos >= histsize_block ? (
+histpos+=1;
+block_pos = 0;
+histpos >= histsize_out ? histpos=0;
+hist_out_L[histpos] = hist_out_R[histpos] = hist_in_L[histpos] = hist_in_R[histpos] = 0;
+hist_GR[histpos] = 1;
+);
 
 
 
@@ -824,60 +855,127 @@ gfx_blit(logo,zoom,0);
 
 
 scope == 1 ? (
-divi = (srate*size/1000)/10000;
-divi = 4;
-gfx_r=0.2;gfx_g=0.4;gfx_b=0.8;
-ga=0; ///////// SCOPE L
-loop(histsize/divi,
-gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;//lgy;
-gv=2*gbuf[offs];
+
+
+
+zoom_old != zoom ? (
+histpos_clear=0;
+loop(histsize,
+hist_out_L[histpos_clear] = hist_out_R[histpos_clear] = hist_in_L[histpos_clear] = hist_in_R[histpos_clear] = 0;
+hist_GR[histpos_clear] = 1;
+histpos_clear+=1;
+);
+zoom_old = zoom;
+);
+
+
+divi = 1; 
+
+in_scope = 1;
+in_scope == 1 ? ( //in scope on
+
+
+
+gfx_r=0.2;gfx_g=0.4;gfx_b=0.8; gfx_a = 0.6;
+ga=0; offs=histpos;///////// SCOPE L
+loop(histsize_out,
+gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+gv=hist_in_L[offs];
 offs+=divi;
-offs>=histsize?offs=0;
-lgx=ga*gscale;
-lgy=(sgfx_h - gv*zoom_gain*gscale2*-1) +lscope_y;
+offs>=histsize_out?offs=0;
+lgx_old = lgx;
+lgx=ga;//*gscale;
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
 lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
-ga ? gfx_lineto(lgx+lscope_x,lgy,0);// : ( gfx_x=gx; gfx_y=gy; );
+lgy_draw = min(lgy_draw, lgy);
+
+floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+
 ga+=divi;
 );
 
-//////////////////////////// Threshold lines
-gfx_r=gfx_g=gfx_b=0.7;
-g_LThresh = db2ratio(MBC1_Threshold);
-gthr = lscope_y + sgfx_h - sgfx_h * g_LThresh * zoom_gain;
-gfx_line(lscope_x, gthr , lscope_x + sgfx_w,gthr); 
-
-
-
-offs=histpos;   ///////// Gain Rduction L
-gfx_r=0.4;gfx_g=0.8;gfx_b=1;
-ga=0;
-loop(histsize/divi,
-gfx_x = clgx+lscope_x; gfx_y = clgy;
-gv=gbuf[offs+histsize+histsize];
+gfx_r=0.2;gfx_g=0.4;gfx_b=0.8; gfx_a = 0.6;
+ga=0; offs=histpos;///////// SCOPE R
+loop(histsize_out,
+gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+gv=hist_in_R[offs];
 offs+=divi;
-offs>=histsize?offs=0;
-clgx=ga*gscale;
-clgy=2*(sgfx_h/2 - gv*gscale2) +lscope_y;
-clgy = min(max(clgy, lscope_y),lscope_y+sgfx_h);
-ga ? gfx_lineto(clgx+lscope_x,clgy,0);// : ( gfx_x=gx; gfx_y=gy; );
+offs>=histsize_out?offs=0;
+lgx_old = lgx;
+lgx=ga;//*gscale;
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+lgy_draw = min(lgy_draw, lgy);
+
+floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+
+ga+=1;
+);
+
+); // in scope on ?
+gfx_r=0/255;gfx_g=155/255;gfx_b=155/255; gfx_a = 0.4;
+out_scope == 1 ? ( //out scope on
+ga=0; offs=histpos;///////// SCOPE L Out
+loop(histsize_out,
+gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+gv=hist_out_L[offs];
+offs+=divi;
+offs>=histsize_out?offs=0;
+lgx_old = lgx;
+lgx=ga;//*gscale;
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+lgy_draw = lgy;//min(lgy_draw, lgy);
+
+floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+
 ga+=divi;
 );
 
-//g_LThresh = db2ratio(MBC1_Threshold);
-thresholdhandle_x = lscope_x +sgfx_w/2;
-thresholdhandle_y = lscope_y + sgfx_h - sgfx_h * g_LThresh * zoom_gain;
+gfx_r=0/255;gfx_g=155/255;gfx_b=155/255; gfx_a = 0.4;
+ga=0; offs=histpos;///////// SCOPE R Out
+loop(histsize_out,
+gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+gv=hist_out_R[offs];
+offs+=divi;
+offs>=histsize_out?offs=0;
+lgx_old = lgx;
+lgx=ga;//*gscale;
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+lgy_draw = min(lgy_draw, lgy);
+
+floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+
+ga+=divi;
+);
+); // out scope on ?
+gfx_r=0.8;gfx_g=0.8;gfx_b=0.8; gfx_a = 1;
+gv = db2ratio(MBC1_Threshold);
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+gfx_rect(lscope_x, lgy, sgfx_w, 2*zoom);
+
+thresholdhandle_x = lscope_x + sgfx_w/2;
+thresholdhandle_y = lgy;
 
 
-
-
-
-
-
-
-
-
-
-
+gr_scope == 1 ? (
+offs=histpos;   ///////// Gain Rduction L
+gfx_r=0.8;gfx_g=0.8;gfx_b=0.8; gfx_a = 1;
+ga=0;
+loop(histsize_out,
+gfx_x = clgx+lscope_x; gfx_y = clgy;
+gv=hist_GR[offs];
+offs+=divi;
+offs>=histsize_out?offs=0;
+clgx=ga;
+scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+clgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ga > 2 ? gfx_lineto(clgx+lscope_x,clgy,0);// : ( gfx_x=gx; gfx_y=gy; );
+ga+=divi;
+);
+);
 
 
 
@@ -1200,6 +1298,7 @@ BBypass.button(); gfx_x = BBypass.xIn*zoom - 50*zoom; gfx_y = BBypass.yIn*zoom +
 
 
 
+
 lightgrey(); gfx_a=1;
 gfx_roundrect(lscope_x, lscope_y + sgfx_h + 7*zoom, sgfx_w, 230*zoom, 7*zoom);
 gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y, 150*zoom, 240*zoom, 7*zoom);
@@ -1298,6 +1397,13 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
     
     scope == 1 ? (#item2 = "!Scope view|"):(#item2 = "Scope view|");#allitems += #item2;
+    
+    #allitems += ">Scopes|";
+    in_scope == 1 ? (#item2 = "!Input Scope|"):(#item2 = "Input Scope|");#allitems += #item2;
+    out_scope == 1 ? (#item2 = "!Output Scope|"):(#item2 = "Output Scope|");#allitems += #item2;
+    GR_scope == 1 ? (#item2 = "<!Reduction Scope|"):(#item2 = "<Reduction Scope|");#allitems += #item2;
+    
+    
     #allitems += "|Show Info/Help";
     last_clicked_item = gfx_showmenu(#allitems);
   );
@@ -1337,7 +1443,11 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
   
 
   last_clicked_item == 23 ? scope == 1 ? (scope=0):(scope=1);
-  last_clicked_item == 24 ? helpshow = 1;
+  last_clicked_item == 24 ? (in_scope == 1 ? (in_scope=0):(in_scope=1);caller=1);
+  last_clicked_item == 25 ? (out_scope == 1 ? (out_scope=0):(out_scope=1);caller=1);
+  last_clicked_item == 26 ? (GR_scope == 1 ? (gr_scope=0):(gr_scope=1);caller=1);
+  
+  last_clicked_item == 27 ? helpshow = 1;
   
   helpshow == 1 ? (
   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
@@ -1419,10 +1529,10 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
         Left_Meter_in.dB_Val_Max = Right_Meter_in.dB_Val_Max = Left_Meter_out.dB_Val_Max = right_meter_out.dB_Val_Max = -300;
         );
         
-        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8, 8) ? KThreshold.v_dragstart():
+        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8*zoom, 8*zoom) ? KThreshold.v_dragstart():
         g_collision(ratiohandle_x -4*zoom, ratiohandle_y -4*zoom, 8*zoom, 8*zoom) ? Kratio.v_dragstart_ratio();
         ):( //SCOPE = 0
-        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8*zoom, 8*zoom) ? KThreshold.v_dragstart_thresh();
+        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8*zoom, 8*zoom) ? KThreshold.v_dragstart();
         );
         
        ); 
@@ -1466,7 +1576,7 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
 
 
        scope == 0 ? KThreshold.v_dragging ? (KThreshold.v_potdrag(sgfx_h);caller = 1;Kthreshold.readout());
-       scope == 1 ? KThreshold.v_dragging ? (KThreshold.v_potdrag_thresh(sgfx_h);caller = 1;Kthreshold.readout());
+       scope == 1 ? KThreshold.v_dragging ? (KThreshold.v_potdrag(sgfx_h);caller = 1;Kthreshold.readout());
        Kratio.v_dragging ? (Kratio.v_potdrag_ratio(slider1*g_g_L_sz/40);caller = 1;Kratio.readout());
  
       Link_Group == 0 ? (
@@ -1531,8 +1641,18 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
 
 
 
+
+
+
+
+
+
+
+
+
 ):gfx_ext_flags == 1 ? (
-katze = 0;
+retti = gfx_ext_retina;
+scope == 0 ? (
 ////////////////////// COMPRESSOR PLOT
 g_g_L_sz = gfx_h;
 g_g_L_y = lscope_y = 0;
@@ -1572,11 +1692,10 @@ thresholdhandle_y = lscope_y - slider1*g_g_L_sz/40;
 
 ratiohandle_x = lscope_x + gfx_h;
 ratiohandle_y = lscope_y - slider1*g_g_L_sz/40 + (slider1*g_g_L_sz/40)/slider2;
-
 gfx_a = 1;
 g_collision(0,0,gfx_w,gfx_h) ? (
-       orange(); gfx_circle(thresholdhandle_x, thresholdhandle_y,4*zoom);
-       gfx_circle(ratiohandle_x, ratiohandle_y,4*zoom);
+       orange(); gfx_circle(thresholdhandle_x, thresholdhandle_y,4*retti);
+       gfx_circle(ratiohandle_x, ratiohandle_y,4*retti);
        aaa = 2;
 );
 
@@ -1596,10 +1715,10 @@ g_collision(0,0,gfx_w,gfx_h) ? (
         Left_Meter_in.dB_Val_Max = Right_Meter_in.dB_Val_Max = Left_Meter_out.dB_Val_Max = right_meter_out.dB_Val_Max = -300;
         );
         
-        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8*zoom, 8*zoom) ? KThreshold.v_dragstart():
-        g_collision(ratiohandle_x -4*zoom, ratiohandle_y -4*zoom, 8*zoom, 8*zoom) ? Kratio.v_dragstart_ratio();
+        g_collision(thresholdhandle_x -4*retti, thresholdhandle_y -4*retti, 8*retti, 8*retti) ? KThreshold.v_dragstart():
+        g_collision(ratiohandle_x -4*retti, ratiohandle_y -4*retti, 8*retti, 8*retti) ? Kratio.v_dragstart_ratio();
         ):( //SCOPE = 0
-        g_collision(thresholdhandle_x -4*zoom, thresholdhandle_y -4*zoom, 8*zoom, 8*zoom) ? KThreshold.v_dragstart_thresh();
+        g_collision(thresholdhandle_x -4*retti, thresholdhandle_y -4*retti, 8*retti, 8*retti) ? KThreshold.v_dragstart_thresh();
         );
         );
         
@@ -1641,6 +1760,189 @@ g_collision(0,0,gfx_w,gfx_h) ? (
  
  gfx_r=1;gfx_g=0.3;gfx_b=0; gfx_a=1;
  GR_Meter.v_GR_meter_show();
+ 
+ 
+ ):( // SCOPE
+ sgfx_w = gfx_w;//400 * zoom;
+ sgfx_h = gfx_h;//150 * zoom;
+ lscope_x = g_g_l_x = 0;//40 * zoom;
+ lscope_y = g_g_l_y = 0;//40 * zoom;
+ 
+ 
+ zoom_w = gfx_w/400;
+ zoom_h = gfx_h/150;
+ zoom = min(zoom_w,zoom_h);
+ 
+ 
+ 
+      gfx_r=0;gfx_g=0;gfx_b=0;   
+      gfx_rect(lscope_x,lscope_y,sgfx_w,sgfx_h);
+ 
+ offs=histpos;
+ gscale=sgfx_w/histsize_out;
+ gbuf=histbuf;
+ gscale2=sgfx_h;
+ 
+ 
+ gfx_x = g_g_L_x+20*zoom;
+ gfx_y = g_g_L_y + 20*zoom;// + g_g_L_sz;
+ gfx_a=0.6;
+ //gfx_blit(logo,zoom,0);
+ 
+ scope_linear = 0;
+ gfx_r=gfx_g=1;
+ 
+
+ 
+ zoom_old != zoom ? (
+ histpos_clear=0;
+ loop(histsize,
+ hist_out_L[histpos_clear] = hist_out_R[histpos_clear] = hist_in_L[histpos_clear] = hist_in_R[histpos_clear] = 0;
+ hist_GR[histpos_clear] = 1;
+ histpos_clear+=1;
+ );
+ zoom_old = zoom;
+ );
+ 
+ 
+ divi = 1; 
+ 
+ 
+ in_scope == 1 ? ( //in scope on
+ 
+ 
+ 
+gfx_r=0.2;gfx_g=0.4;gfx_b=0.8; gfx_a = 0.6;
+ ga=0; offs=histpos;///////// SCOPE L
+ loop(histsize_out,
+ gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+ gv=hist_in_L[offs];
+ offs+=divi;
+ offs>=histsize_out?offs=0;
+ lgx_old = lgx;
+ lgx=ga;//*gscale;
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ lgy_draw = min(lgy_draw, lgy);
+ 
+ floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+ 
+ ga+=divi;
+ );
+ 
+gfx_r=0.2;gfx_g=0.4;gfx_b=0.8; gfx_a = 0.6;
+ ga=0; offs=histpos;///////// SCOPE R
+ loop(histsize_out,
+ gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+ gv=hist_in_R[offs];
+ offs+=divi;
+ offs>=histsize_out?offs=0;
+ lgx_old = lgx;
+ lgx=ga;//*gscale;
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ lgy_draw = min(lgy_draw, lgy);
+ 
+ floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+ 
+ ga+=1;
+ );
+ 
+ ); // in scope on ?
+ gfx_r=0/255;gfx_g=155/255;gfx_b=155/255; gfx_a = 0.4;
+ out_scope == 1 ? ( //out scope on
+ ga=0; offs=histpos;///////// SCOPE L Out
+ loop(histsize_out,
+ gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+ gv=hist_out_L[offs];
+ offs+=divi;
+ offs>=histsize_out?offs=0;
+ lgx_old = lgx;
+ lgx=ga;//*gscale;
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ lgy_draw = lgy;//min(lgy_draw, lgy);
+ 
+ floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+ 
+ ga+=divi;
+ );
+ 
+ gfx_r=0/255;gfx_g=155/255;gfx_b=155/255; gfx_a = 0.4;
+ ga=0; offs=histpos;///////// SCOPE R Out
+ loop(histsize_out,
+ gfx_x = lgx+lscope_x; gfx_y = lscope_y + sgfx_h;
+ gv=hist_out_R[offs];
+ offs+=divi;
+ offs>=histsize_out?offs=0;
+ lgx_old = lgx;
+ lgx=ga;//*gscale;
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ lgy_draw = min(lgy_draw, lgy);
+ 
+ floor(lgx) != floor(lgx_old) ? (gfx_lineto(lgx_old+lscope_x,lgy_draw,0);lgy_draw = 100000);
+ 
+ ga+=divi;
+ );
+ ); // out scope on ?
+ 
+ gfx_r=1;gfx_g=1;gfx_b=1; gfx_a = 0.8;
+ gv = db2ratio(mbc1_threshold);
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ lgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ gfx_rect(lscope_x, lgy, sgfx_w, max(1,2*zoom));
+ 
+ thresholdhandle_x = lscope_x + sgfx_w/2;
+ thresholdhandle_y = lgy;
+ 
+ 
+ gr_scope == 1 ? (
+ offs=histpos;   ///////// Gain Rduction L
+ gfx_r=1;gfx_g=1;gfx_b=1; gfx_a = 1;
+ ga=0;
+ loop(histsize_out,
+ gfx_x = clgx+lscope_x; gfx_y = clgy;
+ gv=hist_GR[offs];
+ offs+=divi;
+ offs>=histsize_out?offs=0;
+ clgx=ga;
+ scope_linear ? (lgy=(sgfx_h + abs(gv)*zoom_gain*gscale2*-1) +lscope_y):(lgy = lscope_y + min(40,abs(ratio2db(gv))) * sgfx_h/40);
+ clgy = min(max(lgy, lscope_y),lscope_y+sgfx_h);
+ ga > 2 ? gfx_lineto(clgx+lscope_x,clgy,0);// : ( gfx_x=gx; gfx_y=gy; );
+ ga+=divi;
+ );
+ );
+ 
+ 
+ 
+ g_collision(lscope_x, lscope_y, sgfx_w, sgfx_h) ? (
+ orange(); gfx_circle(thresholdhandle_x, thresholdhandle_y,4*retti);
+ );
+ 
+ mouseClick == 1 ? (
+  shift ? (slider(BBypass.slider) == 0 ? slider(BBypass.slider) = 1: slider(BBypass.slider) = 0; caller = 1);
+  
+  !shift ? (
+   g_collision(thresholdhandle_x -4*retti, thresholdhandle_y -4*retti, 8*retti, 8*retti) ? KThreshold.v_dragstart();
+   );
+   
+  ); 
+  
+  mouseclick == -1 ? (
+  KThreshold.dragstop();
+  );
+  
+  miniscope == 0 ? KThreshold.v_dragging ? (KThreshold.v_potdrag(gfx_h);caller = 1;Kthreshold.readout());
+
+ 
+
+ 
+ ); // SCPOE
+ 
+ 
+ 
+ 
  
  #mini_group = sprintf(#, "%i", Link_Group);
  gfx_measurestr(#mini_group, mini_w, mini_h);
