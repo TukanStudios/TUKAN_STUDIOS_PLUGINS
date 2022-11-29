@@ -53,7 +53,11 @@ import S2GFX/tk_lib.jsfx-inc
 @init
 ovrlgain = 1;
 
-EnvelopeShaper_VERSION = 0.5;
+EnvelopeShaper_VERSION = 0.61;
+
+//changes 0.61
+//fixed retine scaling
+//sclaing on/off works now
 
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
@@ -170,7 +174,7 @@ parameters_update_on = 0;
 @gfx 550 280
 s2_zoom_X = gfx_w / 550;
 s2_zoom_y = gfx_h / 280;
-zoom = min(s2_zoom_x, s2_zoom_y);
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
 zoom_off == 1 ? zoom = gfx_ext_retina;
 //zoom = gfx_ext_retina * slider5; // CHANGE THIS!
 mouseHold = mouse_cap & 1;
@@ -570,7 +574,8 @@ gfx_ext_flags == 1 ? (
    );
    
    
-   
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1;
    
    
   
