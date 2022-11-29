@@ -38,7 +38,10 @@ options:gmem=TukanLimiterS2
 
 @init
 
-Limiter_VERSION = 0.5;
+Limiter_VERSION = 0.61;
+
+// 0.61
+//debug: Automatic scaling onn/off works now
 
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
@@ -1385,7 +1388,8 @@ gfx_roundrect(lscope_x + sgfx_w + 12*zoom + 145*zoom, lscope_y,145*zoom, sgfx_h,
   
   
   
-  
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1; 
   
 
   last_clicked_item == 23 ? (scope == 1 ? (scope=0):(scope=1);caller=1);

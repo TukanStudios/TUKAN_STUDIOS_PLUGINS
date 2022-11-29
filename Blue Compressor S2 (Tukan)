@@ -62,8 +62,10 @@ options:gmem=TukanCompressorS2
 options:gfx_idle
 
 @init
-COMPRESSOR_VERSION = 0.6;
+COMPRESSOR_VERSION = 0.61;
 /*
+0.61
+scaling on/off fixed
 changes 0.6:
 smaller bugfixes (mainly about the orange circle dragging)
 Logarithmic Scope
@@ -1439,7 +1441,8 @@ gfx_roundrect(lscope_x+sgfx_w+7*zoom, lscope_y + 247*zoom, 150*zoom, 140*zoom, 7
   
   
   
-  
+  last_clicked_item == 21 ? zoom_off = 0;
+  last_clicked_item == 22 ? zoom_off = 1;
   
 
   last_clicked_item == 23 ? scope == 1 ? (scope=0):(scope=1);

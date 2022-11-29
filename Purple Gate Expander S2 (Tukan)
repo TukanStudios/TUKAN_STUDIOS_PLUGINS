@@ -52,6 +52,8 @@ slider13:0<0,1,1>-Bypass
 @init
 GATE_VERSION = 0.6;
 /*
+0.61
+scaling on/off works now
 changes 0.6:
 smaller bugfixes (mainly about the orange circle dragging)
 */
@@ -861,7 +863,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
   
   
   
-  
+  last_clicked_item == 21 ? zoom_off = 0;
+  last_clicked_item == 22 ? zoom_off = 1;
   
   
 
