@@ -1,0 +1,1133 @@
+desc:Black DeNoiser S2 (Tukan)
+// That's the description of the plugin. This is how it'll show up in the effect
+// search dialog, as well as the text at the start of its user interface. We use
+// it as the first line of the script per the JSFX documentation's
+// recommendation (https://www.reaper.fm/sdk/js/js.php#js_file)
+
+// Define our user interface.
+// Our FFT size will always be the same, so we only need controls for
+// the noise collection mode and the noise scale (k).
+
+// This defines a combo box that allows the user to select "Denoise Input" or
+// "Record Noise Sample". The default value is 0 (Denoise Input). The maximum
+// value is 1 (Record Noise Sample), and it increases in steps of 1.
+slider1:0<0,1,1{Denoise, Detect}>-Mode
+
+// This defines a slider that can be varied between 0.0 and 10.0 in steps of
+// 0.001, with default value 1.0. (If slider2 is equal to 0.0, this plugin
+// shouldn't really do anything to the input audio.)
+slider2:1<0.0,10.0,0.001>-Noise Reduction
+
+
+slider3:78.76529<59.81,97.728,.1>-High Freq
+slider4:0<-24,24,0.24>-High Gain
+slider5:0<0,1,1>-Bypass
+
+
+filename:0,S2GFX/DeNoiser_Back.png
+filename:1,S2GFX/BlueKnob.png
+filename:2,S2GFX/RedKnob.png
+filename:3,S2GFX/SmallKnob.png
+filename:4,S2GFX/button.png
+filename:5,S2GFX/switch.png
+filename:6,S2GFX/gled.png
+filename:7,S2GFX/rled.png
+filename:8,S2GFX/yled.png
+filename:9,S2GFX/oled.png
+filename:10,S2GFX/bled.png
+filename:11,S2GFX/menu.png
+filename:12,S2GFX/S2_logo.png
+
+options:No_meter
+options:gfx_hz=60
+options:gmem=TukanDenoiserS2
+options:gfx_idle
+
+in_pin:L in
+in_pin:R in 
+
+out_pin:L out
+out_pin:R out
+
+import S2GFX/tk_lib.jsfx-inc
+import S2GFX/cookdsp.jsfx-inc
+
+@init
+Denoiser_VERSION = 0.61;
+
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+ext_noinit=1;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 0; while_stopped = 0;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+
+s2_numbers_of_sliders = 5;
+s2_numbers_of_generics = 0;
+group_generics = 500000; // fuer group_generics[bis zu 200]
+sliders_old = group_generics + 16*200;
+generics_old = sliders_old + 16*64;
+
+
+//link_group = 0;
+//link_group_master = 0;
+
+ blueknob = 1;
+ redknob = 2;
+ smallknob = 3;
+ button = 4;
+ switch = 5;
+ gled = 6; rled = 7; yled = 8; oled = 9; bled = 10;
+ menu = 11;  
+ logo = 12;
+ Mouse_Sensivity ();
+
+pdc_set = 0;
+
+
+
+
+
+
+
+
+
+
+
+initial = 1;
+// On initialization, initialize all of our variables.
+
+// The FFT size will always be constant.
+SIZE = 16384;
+
+// We don't do any allocation in this plugin, since we know we start out with 8M
+// words of memory. So all we need to do is construct some pointers to memory,
+// where we'll store our data.
+// Since we have two channels, we'll have 10 buffers of length SIZE.
+bufferI1L = 0; // The left input tile 1 buffer starts at memory address 0.
+bufferI2L = SIZE; // The left input tile 2 buffer starts at memory address SIZE.
+bufferO1L = 2*SIZE; // The left output tile 1 buffer starts at address 2*SIZE.
+bufferO2L = 3*SIZE; // And so on
+noiseBufferL = 4*SIZE; // The FFT of the noise sample uses 2*SIZE memory
+// but taking the norm reduces this to 1*SIZE, and saves time when processing effect
+bufferI1R = 5*SIZE; // Right channels
+bufferI2R = 6*SIZE;
+bufferO1R = 7*SIZE;
+bufferO2R = 8*SIZE;
+noiseBufferR = 9*SIZE;
+// We also use a temporary buffer of complex numbers in order to store our
+// audio signals using complex numbers. REAPER's implementation of JSFX supports
+// fft_real, which allows us to avoid this, as of this writing, but ReaPlugs
+// doesn't have this yet.
+fftBuffer = 10 * SIZE; // length 2*SIZE
+freembuf(12*SIZE + 1);
+
+memalloc(13*size);
+
+// samplesCollected will be our position in the last of the two tiles.
+// As such, it'll range from 0 to (SIZE/2) - 1.
+// (In other words, our position in the first tile will be
+// samplesCollected + SIZE/2, and our position in the second tile will be
+// samplesCollected) 
+samplesCollected = 0;
+
+
+
+function Reset_Buffer () (
+freembuf(12*SIZE + 1);
+index = 0;
+loop(12*SIZE + 1,
+noiseBuffer[index] = 0;
+index += 1;
+);
+);
+
+
+
+
+
+
+
+HSH_tmpx = 16+slider5*1.20103;
+HSH_tmpy = floor(exp(HSH_tmpx*log(1.059))*8.17742);
+
+
+//slider1:1000<100,10000>Center Frequency
+//slider2:1<0.5,20>Filter Q
+//slider3:0<-18,18>Boost/Cut (dB)
+//slider4:0<0,2,1{Peak/Notch,Lowshelf,Highshelf}>Filter type
+
+f1.eq(HSH_tmpy, 0.7, slider6, 2);
+f2.eq(HSH_tmpy, 0.7, slider6, 2);
+f3.eq(HSH_tmpy, 0.7, -slider6, 2);
+f4.eq(HSH_tmpy, 0.7, -slider6, 2);
+
+
+
+
+denoiser_knobs_x = 70;
+denoiser_knobs_y = 60;
+//Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
+      KReduction.parameter_config     (2,       0,        0,    10,   denoiser_knobs_x+350,  denoiser_knobs_y,  150, 200,    1,       blueknob);
+      KHSH_freq.parameter_config    (3,       78.76529,       59.81  ,97.728,    denoiser_knobs_x+100,  denoiser_knobs_y+7, 120, 200,    1,       smallknob); 
+      KHSH_gain.parameter_config (4,       0,       -24,       24,    denoiser_knobs_x+200,  denoiser_knobs_y+7, 120, 200,    1,       smallknob);     
+      BBypass.button_config(5, denoiser_knobs_x + 495, 5);            
+      BDetect.button_config(1, 0,0);            
+                  
+                  
+
+   
+   
+     MAX_FREQ = 44100 / 2.0;
+     MIN_FREQ = 10;
+     FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+   function per_to_freq(x, range) (
+     MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+   );
+   function freq_to_per(freq, range) (
+     range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+   );
+   
+   
+   
+                  
+                  
+parameters_update_on = 0;              
+function parameters_update () (
+parameters_update_on = 1;
+
+KReduction.Parameter_boundaries();
+KHSH_freq.Parameter_boundaries();
+KHSH_gain.Parameter_boundaries();
+
+group_parameters();
+
+bypass = slider5;
+// freHSH_Quency slider scaling
+//HSH_tmpx = 16+slider3*1.20103;
+//HSH_tmpy = floor(exp(HSH_tmpx*log(1.059))*8.17742);
+HSH_tmpy = per_to_freq(slider3,100);
+// filter calculation
+HSH_omega = 2*$pi*HSH_tmpy/srate;
+
+HSH_K = tan(($pi-HSH_omega)/2); //HSF only
+
+HSH_Q = max(min(0.7,4),0.2);
+HSH_V = db2ratio(-slider4);
+
+f1.eq_set_freq(HSH_tmpy); f2.eq_set_freq(HSH_tmpy);
+f1.eq_set_q(0.7); f2.eq_set_q(0.7);
+f1.eq_set_boost(slider4); f2.eq_set_boost(slider4);
+f1.eq_set_type(2); f2.eq_set_type(2);
+
+f3.eq_set_freq(HSH_tmpy); f4.eq_set_freq(HSH_tmpy);
+f3.eq_set_q(0.7); f4.eq_set_q(0.7);
+f3.eq_set_boost(-slider4); f4.eq_set_boost(-slider4);
+f3.eq_set_type(2); f4.eq_set_type(2);
+
+
+// A simple function to zero out the noise buffers when switching mode to "Record Noise Sample"
+// previousMode should default to 0 on first initialization, but setting it to 0 in @init will cause
+// this code to get run again, and the noise profile lost even when switching to "Denoise Input"
+detecting = slider1;
+detecting > 0.5 ? (
+  previousMode < 0.5 ? (
+    bandIndex = 0;
+    memset(noiseBufferL, 0, SIZE);
+    memset(noiseBufferR, 0, SIZE);
+    previousMode = 1;
+  )
+) : previousMode = 0;
+
+parameters_update_on=0;
+caller = 0;
+);
+
+
+
+
+
+@block
+      
+
+
+// Finally, the algorithm we use outputs modified audio SIZE samples after we
+// input it. If we tell REAPER that the plugin has a delay of SIZE samples,
+// REAPER can automatically compensate for this and make it appear as if there's
+// no delay at all.
+process == 1 ? (
+pdc_set == 0 ? (
+pdc_delay = SIZE; 
+pdc_bot_ch=0;
+pdc_top_ch=2;
+pdc_set = 1;
+);
+):(
+pdc_set == 0 ? (
+pdc_delay = 0; 
+pdc_bot_ch=0;
+pdc_top_ch=2;
+pdc_set = 1;
+);
+
+);
+
+
+
+
+@slider
+caller = 1;
+
+
+
+@sample
+// We'll write a function to denoise a single channel, and then we'll call this
+// for each of the channels.
+// In this case, we'll pass in the channel number, the four input and output
+// tiles, and the current sample.
+// We also need to specify which variables will be local to the function (i.e.
+// which variables have local instead of global scope).
+// Note that channels are zero-indexed (so the left channel is channel 0, and
+// the right channel is channel 1).
+// Functions can return values, but this one won't return anything.
+// Swapping tiles and resetting samplesCollected will be managed by the caller.
+
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+
+
+
+
+
+
+
+
+
+function denoiseChannel(channel tileI1 tileI2 tileO1 tileO2 noiseBuffer samplesCollected)
+local(sample tilePos1 tilePos2 hannWindowTile1 hannWindowTile2 index bandIndex
+  kSquared yNorm nNorm attenuationFactor)
+(
+  // Read out input audio and write it into the input buffer.
+  sample = spl(channel); // You can also use spl0 or spl1.
+  
+  // Compute our positions in tile 1 and tile 2 for conciseness
+  tilePos1 = samplesCollected + SIZE/2;
+  tilePos2 = samplesCollected;
+  
+  // We'll apply each tile's envelope as we write the sample into
+  // the tile's buffer.
+  // See https://en.wikipedia.org/wiki/Window_function#Hann_and_Hamming_windows
+  hannWindowTile1 = 0.5 - 0.5 * cos(2*$pi*tilePos1/SIZE);
+  hannWindowTile2 = 0.5 - 0.5 * cos(2*$pi*tilePos2/SIZE);
+  
+  // Write into the input buffers:
+  tileI1[tilePos1] = sample * hannWindowTile1;
+  tileI2[tilePos2] = sample * hannWindowTile2;
+  
+  // For the output audio, read from the two tiles and sum their results.
+  spl(channel) = tileO1[tilePos1] + tileO2[tilePos2];
+  
+  // When we finish a tile, samplesCollected is equal to (SIZE/2) - 1
+  // When that happens, we transform the contents of tile 1 and write them to
+  // output tile 1. Then we swap tiles 1 and 2 for both the input and output tiles.
+  // The code outside of this function will take care of setting samplesCollected
+  // back to 0.
+  samplesCollected == (SIZE/2) - 1 ? (
+    // The first thing we need to do is to copy from our tile of audio signals,
+    // tileI1, into a temporary array that stores the real and imaginary parts
+    // of SIZE complex numbers, and so has 2*SIZE words. This is necessary because
+    // JSFX's fft function operates on complex numbers; JSFX also has fft_real,
+    // but this isn't supported in ReaPlugs yet.
+    //
+    // tileI1 looks like
+    // [audio sample 0, audio sample 1, ..., audio sample SIZE - 1]
+    // and fftBuffer will look like
+    // [audio sample 0, 0, audio sample 1, 0, ..., audio sample SIZE - 1, 0]
+    // (i.e. it'll store the complex numbers (spl0 + 0i, spl1 + 0i, ...).
+    //
+    // Loop over each of the audio samples, from index = 0 to SIZE - 1.
+    index = 0;
+    loop(SIZE,
+      fftBuffer[2 * index + 0] = tileI1[index]; // Real part
+      fftBuffer[2 * index + 1] = 0.0; // Imaginary part
+      index += 1; // Next index
+    );
+    
+    // Now compute the FFT of the buffer in-place:
+    // Note that SIZE specifies the number of complex numbers.
+    fft(fftBuffer, SIZE);
+    // The different frequency bins are now stored in permuted order. We need to
+    // call fft_permute to get them in order of their frequencies.
+    // See https://www.reaper.fm/sdk/js/advfunc.php#js_advanced for more info.
+    fft_permute(fftBuffer, SIZE);
+    
+    // fftBuffer now looks like
+    // [band 0 real part, band 0 imaginary part,
+    //  band 1 real part, band 1 imaginary part,
+    //  ...
+    //  band SIZE-1 real part, band SIZE-1 imaginary part].
+    // Note that we don't get bands SIZE/2 + 1 to SIZE-1 for free - there's no
+    // real extra data there! Those bands are conjugated, reversed versions
+    // of bands 1 to SIZE/2 - 1. In other words, since we put in SIZE words of
+    // information, we get only SIZE words of information out.
+    
+    // If slider1 is greater than 0.5 (i.e. the user selected "Record Noise
+    // Sample", we store the FFTs of each of these buffers.
+    slider1 > 0.5? (
+      // for each band, compare the norm of the noise in this frame.
+      // If it is greater than what's already there for this band, then copy
+      // it into the noiseBuffer
+      
+      index = 0;
+      loop(SIZE,
+        normSquareNew = sqr(fftBuffer[2 * index + 0]) + sqr(fftBuffer[2 * index + 1]);
+        normSquareOld = noiseBuffer[index];
+         normSquareNew >= normSquareOld ? (
+              noiseBuffer[index] = normSquareNew;
+           );
+        index += 1;
+      );
+    );
+    
+    // Apply Norbert Weiner's filtering algorithm,
+    //   X(f) = Y(f) * (|Y(f)|^2)/(|Y(f)|^2 + k^2 |N(f)|^2)
+    // sqr() computes the square of a number, and abs() computes the absolute
+    // value of a number. We also include a factor of 1/SIZE, to normalize the
+    // FFT (so that if we don't do any denoising, the input signal is equal to
+    // the output signal).
+    kSquared = sqr(slider2); // slider2 is the Noise Scale from above.
+    
+    // Loop over each band, from bandIndex = 0 to SIZE - 1.
+    bandIndex = 0;
+    loop(SIZE,
+      // Compute |Y(f)|^2 = real(Y(f))^2 + imaginary(Y(f))^2
+      yNorm = sqr(fftBuffer[2 * bandIndex + 0]) + sqr(fftBuffer[2 * bandIndex + 1]);
+      // The same for the noise component:
+      nNorm = noiseBuffer[bandIndex];
+      
+      attenuationFactor = yNorm / (SIZE * (yNorm + kSquared * nNorm));
+      
+      fftBuffer[2 * bandIndex + 0] *= attenuationFactor;
+      fftBuffer[2 * bandIndex + 1] *= attenuationFactor;
+      bandIndex += 1;
+    );
+    
+    // Now, undo the FFT (i.e. convert back from the frequency domain to the
+    // time domain):
+    fft_ipermute(fftBuffer, SIZE);
+    ifft(fftBuffer, SIZE);
+    
+    // Copy from the complex numbers in fftBuffer to the output tile:
+    index = 0;
+    loop(SIZE,
+      tileO1[index] = fftBuffer[2 * index + 0];
+      index += 1;
+    );
+  )
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+playstates();
+
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+
+bypass ? process = 0;
+
+
+process == 1 ? (
+
+inl = spl0; inr = spl1;
+
+
+detecting < 0.5 ? (
+spl0 = f1.eq_do(spl0);
+spl1 = f2.eq_do(spl1);
+);
+
+// Now, call denoiseChannel for each of the channels.
+
+   
+denoiseChannel(0, bufferI1L, bufferI2L, bufferO1L, bufferO2L, noiseBufferL, samplesCollected);
+denoiseChannel(1, bufferI1R, bufferI2R, bufferO1R, bufferO2R, noiseBufferR, samplesCollected);
+
+tenms = srate / 100;
+schnitt += 1;
+schnitt >= tenms ? (
+inlsum /= schnitt;
+inrsum /= schnitt;
+outlsum /= schnitt;
+outrsum /= schnitt;
+
+redl = inlsum - outlsum;
+
+inlsum = 0;
+inrsum = 0;
+outlsum = 0;
+outrsum = 0;
+schnitt = 0;
+);
+
+inlsum += abs(inl);
+inrsum += abs(inr);
+
+outlsum +=abs(spl0);
+outrsum +=abs(spl1);
+
+// Go to the next sample
+samplesCollected += 1;
+samplesCollected == SIZE/2 ? (
+  samplesCollected = 0;
+  
+  // Finally, swap our tiles:
+  temp = bufferI1L;
+  bufferI1L = bufferI2L;
+  bufferI2L = temp;
+  
+  temp = bufferO1L;
+  bufferO1L = bufferO2L;
+  bufferO2L = temp;
+  
+  temp = bufferI1R;
+  bufferI1R = bufferI2R;
+  bufferI2R = temp;
+  
+  temp = bufferO1R;
+  bufferO1R = bufferO2R;
+  bufferO2R = temp;
+); 
+
+
+detecting < 0.5 ? (
+spl0 = f3.eq_do(spl0);
+spl1 = f4.eq_do(spl1);
+);
+);
+
+
+
+
+
+
+@serialize
+// Sliders are serialized automatically, so all we have to serialize is the two
+// noise buffers. JSFX's serialization works in a clever way: when reading the
+// state of the plugin from a serialized version, these functions copy data into
+// noiseBufferL and noiseBufferR. But when writing out the state of the plugin,
+// they work the other way, copying data out of noiseBufferL and noiseBufferR.
+file_mem(0, noiseBufferL, SIZE);
+file_mem(0, noiseBufferR, SIZE);
+
+
+
+file_var(0, while_playing);
+file_var(0, while_recording);
+file_var(0, while_stopped);
+file_var(0, Denoiser_VERSION);
+file_var(0, link_group);
+
+seriloop = 0;
+loop(64*16 + 27 + 16,
+file_var(0, gmem[seriloop]);
+seriloop += 1;
+);
+
+seriloop = 0;
+loop(200*16,
+file_var(0, group_generics[seriloop]);
+seriloop += 1;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 625 190
+
+//zoom = slider6;
+
+
+s2_zoom_X = gfx_w / 625;
+s2_zoom_y = gfx_h / 190;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+//zoom = gfx_ext_retina * slider5; // CHANGE THIS!
+mouseHold = mouse_cap & 1;
+press_superkey = mouse_cap & 32;
+press_ctrl = mouse_cap & 4;
+press_shift = mouse_cap & 8;
+press_alt = mouse_cap & 16;
+superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+!press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+!press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+!press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+!press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+!press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+
+mouseClick = mouseHold - lastCap;
+lastCap = mouseHold;
+
+
+    function readout_freq () (
+    sprintf(#readout, "%.2f", per_to_freq(slider(this.slider),100));
+    gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+    gfx_measurestr(#readout, rdow, rdoh);
+    gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+    gfx_r=gfx_g=gfx_b=0.8;
+    gfx_x += 3*zoom;
+    gfx_drawstr(#readout);
+    );
+    
+    function Deesser_number_input_start () (
+      number_input_x = this.xin;
+      number_input_y = this.yin;
+           number_input = 1;
+      number_input_slider = this.slider;
+      number_input_min = this.minval;
+      number_input_max = this.maxval;
+      number_input_sign=1;
+    );
+    
+    function OEQ_number_input_show () (
+      gfx_r=gfx_g=gfx_b=0;
+      gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+      gfx_r=0;gfx_g=1;gfx_b=0;
+      gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+      gfx_r=gfx_g=gfx_b=0.7;
+      gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+      gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+      gfx_drawnumber(number_input_use,komma);
+    
+    
+          mouseclick && !shift_alt ? 
+        (
+          g_collision(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5) ?
+          (
+            OEQ_NI == 1 ? number_input_use = freq_to_per(number_input_use, 100);
+           // OEQ_NI == 2 ? number_input_use = q_to_per(number_input_use, 100);
+            valid = 0;
+            number_input_use >= number_input_min && number_input_use <= number_input_max ? valid = 1;
+            valid ? (
+            slider(number_input_slider) = number_input_use;
+            caller = 1;
+            ):(
+            number_input_invalid = 90;
+            );
+            Number_input = 0;
+            number_input_raw = 0;
+            number_input_use = 0;
+            komma = 0;
+            in_key = 0;
+            //number_input_x = 0;
+            //number_input_y=0;
+          ):(
+            Number_input = 0;
+            number_input_raw = 0;
+            number_input_use = 0;
+            komma = 0;
+            in_key = 0;
+            number_input_x = 0;
+            number_input_y=0;
+          );
+        );
+    
+        in_key=gfx_getchar();
+    
+        in_key ? Aaa = in_key;
+          in_key == 8 ? (
+          number_input_raw = floor(number_input_raw/10);
+          komma = max(0,komma-1);
+          komma == 1 ? komma = 0;
+          );
+    
+        in_key == 45 ? number_input_sign*=-1;
+    
+        in_key == 46 ? komma = 1;
+        in_key > 47 ? (
+        in_key < 58 ? (
+            number_input_raw = (number_input_raw*10) + (in_key-48);
+            komma ? komma += 1;
+        );
+        );
+    
+        komma ? (number_input_use = number_input_raw / (10^(komma-1))):(number_input_use = number_input_raw);
+        number_input_use *= number_input_sign;
+    
+      );
+      
+      
+
+
+
+
+
+
+gfx_ext_flags == 0 ? (
+      
+gfx_x=gfx_y=0;
+gfx_blit(0,zoom,0);
+
+
+gfx_a = 1;
+      KReduction.knob();
+      #klabel = "REDUCT"; gfx_measurestr(#klabel, klw, klh); KReduction.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
+      #kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); KReduction.knobmeasureposition(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "0"; gfx_measurestr(#klabel, klw, klh); KReduction.labelposition(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "2.5"; gfx_measurestr(#klabel, klw, klh); KReduction.labelposition(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "5"; gfx_measurestr(#klabel, klw, klh); KReduction.labelposition(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "7.5"; gfx_measurestr(#klabel, klw, klh); KReduction.labelposition(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "10"; gfx_measurestr(#klabel, klw, klh); KReduction.labelposition(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+      
+      
+Khsh_freq.knob();
+      #klabel = "FREQUENCY"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
+      #kmeasure = "Hz"; gfx_measurestr(#kmeasure, klw, klh); Khsh_freq.knobmeasureposition(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "1k"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.labelposition(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      //#klabel = "-50"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.labelposition(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "4.3k"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.labelposition(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      //#klabel = "+50"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.labelposition(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "18.5k"; gfx_measurestr(#klabel, klw, klh); Khsh_freq.labelposition(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+      
+Khsh_gain.knob();
+      #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
+      #kmeasure = "dB"; gfx_measurestr(#kmeasure, klw, klh); Khsh_Gain.knobmeasureposition(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "-24"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.labelposition(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      //#klabel = "-50"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.labelposition(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "0"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.labelposition(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      //#klabel = "+50"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.labelposition(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "+24"; gfx_measurestr(#klabel, klw, klh); Khsh_Gain.labelposition(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+  
+      
+BBypass.button();
+gfx_x = BBypass.xIn*zoom - 56*zoom; gfx_y = BBypass.yIn*zoom + 11*zoom;
+gfx_drawstR("BYPASS");
+
+gfx_roundrect(20*zoom, 42*zoom, 110*zoom, 115*zoom, 7*zoom);
+gfx_roundrect(130*zoom, 42*zoom, 240*zoom, 115*zoom, 7*zoom);
+gfx_roundrect(370*zoom, 42*zoom, 180*zoom, 115*zoom, 7*zoom);
+
+gfx_roundrect(20*zoom, 157*zoom, 110*zoom, 20*zoom, 7*zoom);
+gfx_x = 42*zoom; gfx_y = 161*zoom; gfx_drawstr("DETECTOR");
+gfx_roundrect(130*zoom, 157*zoom, 240*zoom, 20*zoom, 7*zoom);
+gfx_x = 197*zoom; gfx_y = 161*zoom; gfx_drawstr("PRESERVE HIGHS");
+gfx_roundrect(370*zoom, 157*zoom, 180*zoom, 20*zoom, 7*zoom);
+gfx_x = 430*zoom; gfx_y = 161*zoom; gfx_drawstr("DENOISER");
+
+
+gfx_x= 550*zoom; gfx_y=103*zoom;
+gfx_blit(logo,0.6*zoom,0);
+//gfx_blit(1,1,0);
+
+green();
+
+detect_old != slider1 ? (
+blinker = 0;
+);
+detect_old = slider1;
+
+slider1 == 1 ? (
+blinker += 1;
+red();
+blinker < 25 ? (gfx_a=1):(gfx_a=0.6);
+blinker >= 50 ? blinker = 0;
+);
+
+thicker = 0;
+loop(3*zoom,
+gfx_roundrect(30*zoom+thicker/3, 80*zoom+thicker/3, 90*zoom-2*thicker/3, 40*zoom-2*thicker/3,7*zoom);
+thicker+=1;
+);
+gfx_x = 52*zoom; gfx_y = 94*zoom;
+gfx_drawstr("DETECT");
+
+
+
+
+
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+  
+  gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+  //gfx_blit(menu,zoom/2,0);
+  lightgrey(); //red();
+  gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+  gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 4*zoom;
+  gfx_drawstr("TUKAN STUDIOS  -  BLACK DENOISER "); 
+  gfx_setfont(1,"Arial",12*zoom,'i');
+  lakeblue(); gfx_drawstr(" SERIES 2   ");
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+  
+  
+  link_group ? (
+    rgb_palette(Link_group);// gfx_a = 0.7;
+    gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+  );
+  gfx_a = 1;
+  
+  
+   mouseClick ? (
+    g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+     gfx_x = menu_x*zoom;
+     gfx_y = (menu_y+20)*zoom;
+      
+       #item2 =">Processing|";#allitems = #item2;
+      while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+      while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+      while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+  
+      mnu_grp_loop = 1;
+      loop(16,
+  
+        mnu_grp_loop == 16 ? #item2 += "<";
+        gmem[16*64 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+          mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                  #item2 = "!Joins Group ";
+          ):(
+              #item2 = "Add to Group ";
+          );
+        ):(
+          #item2 = "Start Group ";
+        );
+      mnu_grp_loop == 1 ? #item2 += "01";
+      mnu_grp_loop == 2 ? #item2 += "02";
+      mnu_grp_loop == 3 ? #item2 += "03";
+      mnu_grp_loop == 4 ? #item2 += "04";
+      mnu_grp_loop == 5 ? #item2 += "05";
+      mnu_grp_loop == 6 ? #item2 += "06";
+      mnu_grp_loop == 7 ? #item2 += "07";
+      mnu_grp_loop == 8 ? #item2 += "08";
+      mnu_grp_loop == 9 ? #item2 += "09";
+      mnu_grp_loop == 10 ? #item2 += "10";
+      mnu_grp_loop == 11 ? #item2 += "11";
+      mnu_grp_loop == 12 ? #item2 += "12";
+      mnu_grp_loop == 13 ? #item2 += "13";
+      mnu_grp_loop == 14 ? #item2 += "14";
+      mnu_grp_loop == 15 ? #item2 += "15";
+      mnu_grp_loop == 16 ? #item2 += "16";
+      
+      #item2 += "|";
+      #allitems += #item2; //sprintf(#temp, '%f',3); 
+      mnu_grp_loop += 1;
+      );
+      
+      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+  
+      //#allitems += "<#MENU|";
+     #allitems += ">Scaling|";
+     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+     
+ 
+     
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+  
+  
+  
+  
+   
+   last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+   last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+   last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+  
+    cgroup = last_clicked_item - 3;
+   last_clicked_item > 3 && last_clicked_item < 20 ? (
+      Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+          gmem[16*64 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+              //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+              gmem[16*64 + 10 + cgroup] = 1;Link_Group = cgroup;group_update();
+          ):(
+              Link_Group = cgroup;// Gruppe teilnehmen
+          );
+      ):( //Eigene Gruppe angeklickt
+            Link_Group = 0;
+      );
+   
+   );
+   
+    cgroup = last_clicked_item - 3 - 16;
+   last_clicked_item == 20 ? (
+     gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
+   );
+   
+   
+   
+   
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1;
+  
+
+   
+   last_clicked_item == 23 ? helpshow = 1;
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,145*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS DENOISER (Series 2)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(Denoiser_VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("Mouse modifier options:");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Fine tune knobs: [shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset knobs: [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Activate number typing: [alt]+[shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 23*zoom;
+   gfx_drawstr("Original Denoiser plugin by:");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Neil Bickford    -   THANK YOU!");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+   
+   
+
+
+ ////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+ 
+ 
+ 
+       !Number_input ? (
+       
+
+
+       
+      Link_Group == 0 ? (
+      gmem[16*64 + 3] == 0 ? linkstart = 0;
+      !mouse_cap ? (
+      gmem[16*64 + 3] == 1 ? (linkstart == 0 ? link_old = slider(gmem[16*64 + 1]); linkstart = 1);
+      gmem[16*64 + 3] == 1 ? (
+           tmp_val = link_old +  gmem[16*64 + 2];
+      slider(gmem[16*64 + 1]) = tmp_val;
+      slider_automate(slider(gmem[16*64 + 1]));
+      caller = 1;
+      );
+      gmem[16*64 + 3] == 2 ? (
+      slider(gmem[16*64 + 1]) =  gmem[16*64 + 2];
+      caller = 1;
+      );
+      );
+      );
+      
+      
+      mouseClick == 1 ? (
+      OEQ_NI = 0;
+      KReduction.k_collision() ? (slider1=0;KReduction.dragstart());
+      
+      
+      Khsh_freq.k_collision() ? (OEQ_NI = 1;Khsh_freq.dragstart();slider1=0);
+      Khsh_Gain.k_collision() ? (Khsh_Gain.dragstart();slider1=0);
+      
+      BBypass.b_collision() ? (slider1=0; slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button(););
+      
+      g_collision(30*zoom, 80*zoom, 90*zoom, 40*zoom) ? (slider1 == 0 ? (slider1 = 1):(slider1=0); caller = 1);
+      
+       slider1 != slider1_old ? (
+       BDetect.quicklink_button();
+       );
+       slider1_old = slider1;
+      ); 
+      
+      mouseclick == -1 ? (
+      KReduction.dragstop();
+      Khsh_freq.dragstop();
+      Khsh_Gain.dragstop();
+      );
+      
+      
+      mouse_wheel ? 
+          (
+      KReduction.k_collision() ? KReduction.potwheel();
+      Khsh_freq.k_collision() ? Khsh_freq.potwheel();
+      Khsh_Gain.k_collision() ? Khsh_Gain.potwheel();
+      slider1 = 0;
+           mouse_wheel=0;
+           caller = 1;
+          );
+       
+       gfx_a=1;
+      KReduction.dragging ? (KReduction.potdrag(); KReduction.readout();caller = 1;);
+      Khsh_freq.dragging ? (Khsh_freq.potdrag();Khsh_freq.readout_freq();caller = 1;);
+      Khsh_Gain.dragging ? (Khsh_Gain.potdrag();Khsh_Gain.readout();caller = 1;);
+      
+      
+      ); // !number_input
+
+      
+      
+     
+      
+      
+      gfx_a=1;
+      number_input ? OEQ_number_input_show();
+      //OEQ_NI == 1 ? number_input
+      number_input_invalid = max(0,number_input_invalid-1);
+      number_input_invalid ? ( 
+      gfx_r=gfx_g=gfx_b=0;
+      gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+      gfx_r=0;gfx_g=1;gfx_b=0;
+      gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+      red();
+      gfx_rect(zoom*number_input_x + gfx_texth+5,zoom*number_input_y, 200*zoom - (gfx_texth+5), gfx_texth+5);
+      gfx_r=gfx_g=gfx_b=0.7;
+      gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+      gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+      white();
+      gfx_drawstr("NO VALID INPUT!");
+      );
+    
+ ////////////////////////////////////////////////////////////////////////////////////////////// ENDE MAUS STEUERUNG
+ 
+
+
+
+):gfx_ext_flags == 1 ? (
+
+ zoom=(gfx_h/24);
+ 
+detecting ? red():green();
+thicker = 0;
+loop(3*zoom,
+gfx_roundrect(gfx_w / 20, 2*gfx_h / 20, gfx_w / 1.4, 16* gfx_h / 20,0);
+thicker+=1;
+);
+gfx_x = 2*gfx_w/20; gfx_y = 4*gfx_h/20;
+gfx_drawstr("DETECT");
+
+
+retti = gfx_ext_retina;
+ !gen_dragging ? (
+ g_collision(lscope_x, lscope_y, sgfx_w, sgfx_h) ? (
+ gfx_a=1;orange(); gfx_circle(thresholdhandle_x, thresholdhandle_y,4*retti);
+ );
+ );
+ 
+ 
+ 
+       mouseClick == 1 ? (
+       shift ? (slider(BBypass.slider) == 0 ? slider(BBypass.slider) = 1: slider(BBypass.slider) = 0; caller = 1);
+       
+       !shift ? (
+        slider1 == 1 ? slider1 = 0:slider1=1;
+        caller = 1;
+       ); 
+        
+       ); 
+       
+       mouseclick == -1 ? (
+       katze = 0;
+       //KThreshold.dragstop();
+       );
+       
+        
+       //KThreshold.v_dragging ? (KThreshold.v_potdrag(sgfx_h * (4/5)); caller = 1;);
+ 
+ 
+ 
+
+ 
+ gfx_setfont(3,"Arial",12*zoom,'b');
+ 
+       #mini_group = sprintf(#, "%i", Link_Group);
+       gfx_measurestr(#mini_group, mini_w, mini_h);
+       gfx_x = gfx_w - mini_w - 2; gfx_y = 2;
+       Link_Group ? (
+         rgb_palette(Link_group);
+         gfx_drawstr(#mini_group);
+       );
+       
+  bypass == 1 ? (
+  black(); gfx_a=0.4; gfx_rect(0,0,gfx_w,gfx_h);
+  lightgrey();
+  gfx_x=2;gfx_y=gfx_h - mini_h - 2;gfx_a=0.6;
+  gfx_drawstr("BYPASS");
+);
+
+);
+
+
+
+
+S2_sample_on == 0 ? (
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_gfx();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+);
+S2_sample_on = 0;
