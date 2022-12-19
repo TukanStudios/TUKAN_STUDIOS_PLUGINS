@@ -1,0 +1,424 @@
+desc:2nd-order RBJ filter
+// Copyright (C) 2012-2015 Theo Niessink
+// License: GPL - http://www.gnu.org/licenses/gpl.html
+
+// Based on "Cookbook formulae for audio EQ biquad filter coefficients" by
+// Robert Bristow-Johnson.
+// http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
+
+/* Example
+
+   desc:Low-pass filter
+   slider1:1000<20,20000,1>Corner Frequency (Hz)
+   slider2:0.5<0.01,4.0,0.01>Q
+
+   import Tale/rbj_filter.jsfx-inc
+
+   @slider
+   lp.rbj_lp(slider1, slider2);
+
+   @sample
+   mono = 0.5 * (spl0 + spl1);
+   spl0 = spl1 = lp.rbj_df1(mono);
+
+   Setting Functions
+
+    * rbj_lp(freq, q)       -- Low-pass
+    * rbj_hp(freq, q)       -- High-pass
+    * rbj_bp(freq, q)       -- Band-pass (constant skirt gain)
+    * rbj_bp2(freq, q)      -- Band-pass (constant peak gain)
+    * rbj_bs(freq, q)       -- Band-stop
+    * rbj_ap(freq, q)       -- All-pass
+    * rbj_eq(freq, q, gain) -- Peaking EQ
+    * rbj_ls(freq, q, gain) -- Low-shelf
+    * rbj_hs(freq, q, gain) -- High-shelf
+    * rbj_bypass()          -- Bypass
+    * rbj_mute()            -- "None shall pass!"
+      Example: lp.rbj_lp(1000, 0.5);
+      Sets up the filter for the specified cutoff frequency (in Hz), and Q
+      and gain factors, and returns the a0 coefficient.
+
+      (To convert from dB to gain: gain=10^(db/20).)
+
+   Filter Functions
+
+    * rbj_df1(sample) -- Direct Form 1
+    * rbj_df2(sample) -- Direct Form 2
+      Example: output = lp.rbj_df2(input);
+      Sends a sample through the filter, and returns its output.
+
+   Miscellaneous Functions
+
+    * rbj_reset1() -- Direct Form 1
+    * rbj_reset2() -- Direct Form 2
+      Example: lp.rbj_reset2();
+      Resets the filter state.
+
+    * rbj_bwtoq(bw)
+    * rbj_qtobw(q)
+      Example: q = rbj_bwtoq(2.0);
+      Converts bandwidth (in octaves) to Q factor, or vice versa.
+
+    * rbj_scale(a0)
+      Scales the filter coefficients (i.e. divides by a0), and returns a0.
+
+   Instance Variables
+
+    * a1
+    * a2
+    * b0
+    * b1
+    * b2
+      Example: lp2.a1 = lp1.a1; lp2.a2 = lp1.a2; lp2.b0 = lp1.b0; lp2.b1 = lp1.b1; lp2.b2 = lp1.b2;
+      Filter coefficients.
+
+      Note: The first coefficient (a0) is not included here, because all
+      coefficients are scaled (i.e. divided) by a0, after which a0 itself
+      would always be 1. The setting functions return the original a0 value,
+      should you need it (e.g. to get the original, non-scaled
+      coefficients).
+
+    * x0
+    * x1
+    * y0
+    * y1
+      Example: current_input = lp.x0;
+      Example: previous_output = lp.y1;
+      Direct Form 1 inputs/outputs.
+
+    * w0
+    * w1
+      Example: lp2.w0 = lp1.w0; lp2.w1 = lp1.w1;
+      Direct Form 2 filter state.
+
+*/
+
+@init
+
+SAMPLE_RATE = srate;
+
+function rbj_set_sample_rate(rate) (
+  SAMPLE_RATE = rate;
+);
+
+function rbj_bwtoq(bw)
+  local(x)
+(
+  // q = 1/(2 * sinh(log(2) / 2 * bw))
+  x = exp(0.5*log(2) * bw);
+  1/(x - 1/x);
+);
+
+function rbj_qtobw(q)
+  local(x)
+(
+  // bw = 2 * asinh(1/(2 * q)) / log(2)
+  x = 0.5 / q;
+  2/log(2) * log(x + sqrt(sqr(x) + 1));
+);
+
+
+function rbj_scale(a0)
+  instance(a1, a2, b0, b1, b2)
+  local(scale)
+(
+  scale = 1/a0;
+
+  a1 *= scale;
+  a2 *= scale;
+
+  b0 *= scale;
+  b1 *= scale;
+  b2 *= scale;
+
+  a0;
+);
+
+
+// Low-pass
+
+function rbj_lp(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, cos_w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  cos_w0 = cos(w0);
+  alpha = sin(w0) / (2*q);
+
+  b1 = 1 - cos_w0;
+  b0 = b2 = 0.5 * b1;
+  a0 = 1 + alpha;
+  a1 = -2 * cos_w0;
+  a2 = 1 - alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// High-pass
+
+function rbj_hp(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, cos_w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  cos_w0 = cos(w0);
+  alpha = sin(w0) / (2*q);
+
+  b1 = -1 - cos_w0;
+  b0 = b2 = -0.5 * b1;
+  a0 = 1 + alpha;
+  a1 = -2 * cos_w0;
+  a2 = 1 - alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// Band-pass (constant skirt gain, peak gain = Q)
+
+function rbj_bp(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  alpha = sin(w0) / (2*q);
+
+  b0 = q * alpha;
+  b1 = 0;
+  b2 = -b0;
+  a0 = 1 + alpha;
+  a1 = -2 * cos(w0);
+  a2 = 1 - alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// Band-pass (constant 0 dB peak gain)
+
+function rbj_bp2(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  alpha = sin(w0) / (2*q);
+
+  b0 = alpha;
+  b1 = 0;
+  b2 = -alpha;
+  a0 = 1 + alpha;
+  a1 = -2 * cos(w0);
+  a2 = 1 - alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// Band-stop
+
+function rbj_bs(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  alpha = sin(w0) / (2*q);
+
+  b0 = b2 = 1;
+  b1 = a1 = -2 * cos(w0);
+  a0 = 1 + alpha;
+  a2 = 1 - alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// All-pass
+
+function rbj_ap(freq, q)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, alpha, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  alpha = sin(w0) / (2*q);
+
+  b0 = a2 = 1 - alpha;
+  b1 = a1 = -2 * cos(w0);
+  b2 = a0 = 1 + alpha;
+
+  this.rbj_scale(a0);
+);
+
+
+// Peaking EQ
+
+function rbj_eq(freq, q, gain)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, alpha, a, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  alpha = sin(w0) / (2*q);
+  a = gain; //sqrt(gain);
+
+  b0 = 1 + alpha * a;
+  b1 = a1 = -2 * cos(w0);
+  b2 = 1 - alpha * a;
+  a0 = 1 + alpha / a;
+  a2 = 1 - alpha / a;
+
+  this.rbj_scale(a0);
+);
+
+
+// Low-shelf
+
+function rbj_ls(freq, q, gain)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  cos_w0 = cos(w0);
+  a = gain; //sqrt(gain);
+
+  tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
+  tmp1 = (a + 1) - (a - 1) * cos_w0;
+  tmp2 = (a + 1) + (a - 1) * cos_w0;
+
+  b0 = a * (tmp1 + tmp0);
+  b1 = 2 * a * ((a - 1) - (a + 1) * cos_w0);
+  b2 = a * (tmp1 - tmp0);
+  a0 = tmp2 + tmp0;
+  a1 = -2 * ((a - 1) + (a + 1) * cos_w0);
+  a2 = tmp2 - tmp0;
+
+  this.rbj_scale(a0);
+);
+
+
+// High-shelf
+
+function rbj_hs(freq, q, gain)
+  instance(a1, a2, b0, b1, b2)
+  local(w0, cos_w0, a, tmp0, tmp1, tmp2, a0)
+(
+  w0 = 2*$pi * min(freq / SAMPLE_RATE, 0.49);
+  cos_w0 = cos(w0);
+  a = gain; //sqrt(gain);
+
+  tmp0 = 2 * sqrt(a) * sin(w0) / (2 * q);
+  tmp1 = (a + 1) - (a - 1) * cos_w0;
+  tmp2 = (a + 1) + (a - 1) * cos_w0;
+
+  b0 = a * (tmp2 + tmp0);
+  b1 = -2 * a * ((a - 1) + (a + 1) * cos_w0);
+  b2 = a * (tmp2 - tmp0);
+  a0 = tmp1 + tmp0;
+  a1 = 2 * ((a - 1) - (a + 1) * cos_w0);
+  a2 = tmp1 - tmp0;
+
+  this.rbj_scale(a0);
+);
+
+
+// Bypass
+
+function rbj_bypass()
+  instance(a1, a2, b0, b1, b2)
+(
+  a1 = a2 = b1 = b2 = 0;
+  b0 = 1;
+);
+
+
+// Mute
+
+function rbj_mute()
+  instance(a1, a2, b0, b1, b2)
+(
+  a1 = a2 = b0 = b1 = b2 = 0;
+);
+
+
+// Direct Form 1, output 0
+
+function rbj_df1_0(sample)
+  instance(a1, a2, b0, b1, b2, x0_0, x1_0, y0_0, y1_0)
+  local(x2, y2)
+(
+  x2 = x1_0;
+  x1_0 = x0_0;
+  x0_0 = sample;
+
+  y2 = y1_0;
+  y1_0 = y0_0;
+  y0_0 = b0*x0_0 + b1*x1_0 + b2*x2 - a1*y1_0 - a2*y2;
+);
+
+function rbj_reset1_0()
+  instance(x0_0, x1_0, y0_0, y1_0)
+(
+  x0_0 = x1_0 = y0_0 = y1_0 = 0;
+);
+
+// Direct Form 1, output 1
+
+function rbj_df1_1(sample)
+  instance(a1, a2, b0, b1, b2, x0_1, x1_1, y0_1, y1_1)
+  local(x2, y2)
+(
+  x2 = x1_1;
+  x1_1 = x0_1;
+  x0_1 = sample;
+
+  y2 = y1_1;
+  y1_1 = y0_1;
+  y0_1 = b0*x0_1 + b1*x1_1 + b2*x2 - a1*y1_1 - a2*y2;
+);
+
+function rbj_reset1()
+  instance(x0_1, x1_1, y0_1, y1_1)
+(
+  x0_1 = x1_1 = y0_1 = y1_1 = 0;
+);
+
+
+// Direct Form 2
+
+function rbj_df2(sample)
+  instance(a1, a2, b0, b1, b2, w0, w1)
+  local(w2)
+(
+  w2 = w1;
+  w1 = w0;
+  w0 = sample - a1*w1 - a2*w2;
+
+  b0*w0 + b1*w1 + b2*w2;
+);
+
+function rbj_reset2()
+  instance(w0, w1)
+(
+  w0 = w1 = 0;
+);
+
+function magnitude(freq)
+  instance(a1, a2, b0, b1, b2, w0, w1)
+  local(w, numerator, denominator)
+(
+  w = 2.0 * $pi * freq / SAMPLE_RATE;  
+  numerator = b0*b0 + b1*b1 + b2*b2 + 2.0 *(b0*b1 + b1*b2)*cos(w) + 2.0*b0*b2*cos(2.0*w);
+  denominator = 1.0 + a1*a1 + a2*a2 + 2.0 *(a1 + a1*a2)*cos(w) + 2.0*a2*cos(2.0*w);
+
+  // Scalar for the response
+  mag = sqrt(numerator / denominator);
+
+  // Convert to Db
+  //20 * log10(mag);
+);
+
+// Legacy
+
+function rbj_notch(freq, q) ( this.rbj_bs(freq, q) );
+function rbj_peak(freq, q, db_gain) ( this.rbj_eq(freq, q, 10^(0.05 * db_gain)) );
+function rbj_low_shelf(freq, q, db_gain) ( this.rbj_ls(freq, q, 10^(0.05 * db_gain)) );
+function rbj_high_shelf(freq, q, db_gain) ( this.rbj_hs(freq, q, 10^(0.05 * db_gain)) );
