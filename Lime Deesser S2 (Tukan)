@@ -42,8 +42,11 @@ options:gmem=TukanDeesserS2
 options:gfx_idle
 
 @init
-Deesser_VERSION = 0.61;
+Deesser_VERSION = 0.71;
+
 /*
+0.71
+Correct display at higher sample rates
 changes 0.61
 scaling on/off works now
 */
@@ -325,7 +328,7 @@ S2_Floor != lfloor ? (
 );
 ////////// ANALYZER
 
-
+csrate = ceil(srate / 44100);
 
 
 
@@ -725,7 +728,7 @@ gfx_r = 0.5; gfx_g = 1; gfx_b = 0.3;
 gfx_setimgdim(126,sgfx_w,sgfx_h);
 gfx_dest = 126;
 //black(); gfx_rect(0,0,sgfx_w,sgfx_h);
-
+lsrate = 44100;
 small_mode = sgfx_w<200 || sgfx_h < 50;
 gfx_ext_retina>1 ? gfx_setfont(1,"Arial",16*gfx_ext_retina,'b') : gfx_setfont(0);
 
@@ -1024,7 +1027,7 @@ gfx_roundrect(GR_Meter.xIn*zoom, GR_Meter.yIn*zoom- 10*zoom, GR_Meter.width*zoom
 gfx_x = gfx_y = 5;
 perfreqout = per_to_freq(In_Freq_slider,100);
 
-l9x = log(1.0+(perfreqout/44100*2.0)*400)*wsc;
+l9x = log(1.0+(perfreqout/srate*2.0)*400)*wsc;
 gfx_r=gfx_g=gfx_b=1;
 gfx_line(l9x + sgfx_x, sgfx_y + 1, l9x + sgfx_x, sgfx_y + sgfx_h - 1);
 
@@ -1032,7 +1035,7 @@ gfx_line(l9x + sgfx_x, sgfx_y + 1, l9x + sgfx_x, sgfx_y + sgfx_h - 1);
 gfx_x = gfx_y = 5;
 perfreqout = per_to_freq(Out_Freq_slider,100);
 
-l10x = log(1.0+(perfreqout/44100*2.0)*400)*wsc;
+l10x = log(1.0+(perfreqout/srate*2.0)*400)*wsc;
 gfx_r=gfx_g=gfx_b=1;
 gfx_line(l10x + sgfx_x, sgfx_y + 1, l10x + sgfx_x, sgfx_y + sgfx_h - 1);
 
@@ -1193,7 +1196,7 @@ gfx_drawstr("Bypass");
        
        infreq_grab == 1 ? (
        llx9 = (mouse_x-sgfx_x);///a_gfx_w)*10;
-       llx9=((exp(llx9/wsc)-1)/400)*44100*2; //= slider9/44100*2.0
+       llx9=((exp(llx9/wsc)-1)/400)*srate*2; //= slider9/44100*2.0
        llx9 /= 4;
        slider1 = min(max(KinFreq.minval, freq_to_per(llx9,100)),slider2);
        Kinfreq.readout_freq();
@@ -1210,7 +1213,7 @@ gfx_drawstr("Bypass");
        
        outfreq_grab == 1 ? (
        llx9 = (mouse_x-sgfx_x);///a_gfx_w)*10;
-       llx9=((exp(llx9/wsc)-1)/400)*44100*2; //= slider9/44100*2.0
+       llx9=((exp(llx9/wsc)-1)/400)*srate*2; //= slider9/44100*2.0
        llx9 /= 4;
        slider2 = max(min(KoutFreq.maxval, freq_to_per(llx9,100)),slider1);
        Koutfreq.readout_freq();
