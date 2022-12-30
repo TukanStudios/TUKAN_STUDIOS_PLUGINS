@@ -439,6 +439,16 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 			gfx_blit(this.file, this.scaling * zoom / 2, 0, 0, scry, this.size,this.size);
                     );
 
+      function knob_rev()
+                   (
+                    gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+                    weg = abs(minVal - maxVal);
+                     kframe = (this.maxVal - slider(this.slider)) * (this.frames-1) / (this.maxVal - this.minVal);
+                     scry = this.size * floor(kframe);
+                     //gfx_blit(this.file,this.scaling,0,0,scry,this.size,this.size);
+			gfx_blit(this.file, this.scaling * zoom / 2, 0, 0, scry, this.size,this.size);
+                    );
+
 
 	function button () local (on) (
 				slider(this.slider) > 0 ? (on = 1):(on=0);
@@ -725,6 +735,21 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 			gmem[16*64 + 2] = (yOld - mouse_y) * mstep;
                        );
 
+      function potDrag_REV()
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn)
+                       (
+                        mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*gfx_ext_retina);
+                        Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*S2_Mouse_Finetune*gfx_ext_retina);
+			Shift_superkey ? mstep = (this.maxval - this.minval)/(2000*gfx_ext_retina);
+			val = valOld - (yOld - mouse_y) * mstep;
+                        val = min(max(val, minVal), maxVal);
+                        slider(slider) = val;
+                        slider_automate(slider(slider));
+                        gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = -(yOld - mouse_y) * mstep;
+                       );
+
       function potDrag_integer()
             local      (val nachkomma valid)
               instance   (valOld minVal maxVal yOld step slider xIn yIn)
@@ -785,6 +810,17 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
                        mouse_wheel=0;
                         );
 
+	function potWheel_rev()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       valOld=slider(this.slider);
+		       mstep = (this.maxval - this.minval)/200;
+                       val = valOld - (mouse_wheel/36)*mstep;
+                       val = min(max(val, minVal), maxVal);
+		       slider(this.slider) = val;
+                       mouse_wheel=0;
+                        );
 
 
 
