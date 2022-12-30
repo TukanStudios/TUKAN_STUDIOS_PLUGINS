@@ -18,6 +18,7 @@ filename:2,S2GFX/NC76Big.png
 filename:3,S2GFX/NC76Small.png
 filename:4,S2GFX/76button.png
 filename:5,S2GFX/76Back_HDB.png
+filename:6,S2GFX/S2_logo.png
 
 in_pin:left input
 in_pin:right input
@@ -28,12 +29,13 @@ out_pin:right output
 
 
 import S2GFX/tk_lib.jsfx-inc
-import S2GFX/tk-vu_lib.jsfx_inc
+import S2GFX/tk-vu_lib.jsfx-inc
 
 options:no_meter
 options:gfx_hz=60
 options:gmem=TukanNC76S2
 options:gfx_idle
+
 
 
 
@@ -406,6 +408,10 @@ GRmeter.mnmetergfx(zoom, 604*zoom, 53*zoom, 1);
 
 gfx_x = 0; gfx_y = 0; gfx_a = 1;
 bluey == 1 ? gfx_blit(0,0.5*zoom,0) : gfx_blit(5,0.5*zoom,0);
+
+gfx_x = -3*zoom;
+gfx_y = 73*zoom;
+gfx_blit(6,zoom*0.7,0);
 
 KInGain.knob();
 KOutGain.knob();

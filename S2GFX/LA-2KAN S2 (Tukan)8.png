@@ -38,7 +38,7 @@ filename:4,LAgui/screw.png
 filename:5,LAgui/CCVU2.png
 filename:6,LAgui/menu.png
 filename:7,S2GFX/menu.png
-filename:8,S2GFX/S2_logo.png
+filename:8,S2GFX/S2_logo_dark.png
 
 /slider1:-40<-60,0,0.1>-DONT Threshold (dB)
 /slider2:4<1,20,0.1>-Ratio
@@ -61,7 +61,7 @@ slider5:0<0,1,1{On,Bypass}>-Bypass
 slider6:1<0.1,10,0.01>-Zoom
 
 import S2GFX/tk_lib.jsfx-inc
-import tk-vu_lib.jsfx_inc
+import tk-vu_lib.jsfx-inc
 
 
 options:no_meter
@@ -863,6 +863,8 @@ gfx_blit(0,zoom * 0.5, 0);
 gfx_r = gfx_b = gfx_g = 0;
 GRmeter.mnmetergfx(zoom, 305*zoom, 84*zoom, 1);
 gfx_a = 1;
+gfx_x = 0*zoom; gfx_y = 130*zoom;
+gfx_blit(8,0.5*zoom,0);
 Kreduction.knob();
 KGain.knob();
 
