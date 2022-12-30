@@ -50,8 +50,9 @@ slider13:0<0,1,1>-Bypass
 
 
 @init
-GATE_VERSION = 0.6;
+GATE_VERSION = 0.8;
 /*
+0.8 Filter gecheckt, schienen ok zu sein
 0.61
 scaling on/off works now
 changes 0.6:
@@ -163,6 +164,13 @@ clear_LA_buffer();
   pdc_bot_ch=0; pdc_top_ch=2;
   pdc_delay = lookahead_samples;
 
+  exp_attack = exp(-1/(0.1/1000*srate));
+  exp_release = exp(-1/(10/1000*srate));
+  exp_exp_envelope_decay = exp(-1/(10/1000*srate));
+  exp_attack = exp(-1/(0.1/1000*srate));
+  exp_release = exp(-1/(10/1000*srate));
+  exp_exp_envelope_decay = exp(-1/(10/1000*srate));
+
 
   hold = slider5 *0.001*srate;
   expander_factor = slider8;
@@ -179,7 +187,7 @@ clear_LA_buffer();
   
   scFreq = slider3;
   SCL.HPF_Config (scFreq);
-  SCR.HPF_Config (scFreq);
+  SCLL.HPF_Config (scFreq);
 
   sidechain = slider11;
   invert = slider12;
@@ -263,10 +271,10 @@ oldstate = play_state;
     // Store filtered sidechain samples
     sidechain ? (
     KeyL = SCL.HPF_do(spl2);
-    KeyR = SCR.HPF_do(spl3);    
+    KeyR = SCLL.HPF_do(spl3);    
     ):(
     KeyL = SCL.HPF_do(spl0);
-    KeyR = SCR.HPF_do(spl1); 
+    KeyR = KeyRR = SCLL.HPF_do(spl0); 
     );
     key = keyR = max(abs(keyL),abs(KeyR));
     key += 0.0000001;

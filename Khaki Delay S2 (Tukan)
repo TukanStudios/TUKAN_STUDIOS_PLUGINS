@@ -51,8 +51,8 @@ slider11:0<0,2,1>-Sync Option
 
 
 @init
-DELAY_VERSION = 0.7;
-
+DELAY_VERSION = 0.8;
+// 0.8 Filters correct on all sample rates
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
 gfx_clear=0;
@@ -136,7 +136,7 @@ Delay_knobs_y = 205;
     range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
   );
   
-
+   
     HP0.buthp(per_to_freq(slider3,100));
     HP1.buthp(per_to_freq(slider3,100));
     LP0.butlp(per_to_freq(slider4,100));
@@ -210,6 +210,7 @@ punktiert = slider11;
       dry = wet = 1;
     );
         
+        aaaa= per_to_freq(slider3,100);
     HP0.buthp_set_freq(per_to_freq(slider3,100));
     HP1.buthp_set_freq(per_to_freq(slider3,100));
     LP0.butlp_set_freq(per_to_freq(slider4,100));
@@ -246,6 +247,22 @@ seriloop += 1;
 caller = 1;
 
 
+
+@block
+srate != srate_old ? (
+    MAX_FREQ = 44100 / 2.0;
+    MIN_FREQ = 10;
+    FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+    
+    HP0.buthp(per_to_freq(slider3,100));
+    HP1.buthp(per_to_freq(slider3,100));
+    LP0.butlp(per_to_freq(slider4,100));
+    LP1.butlp(per_to_freq(slider4,100));
+    
+caller = 1);
+
+srate_old = srate;
+    
 @sample
 spl2 = spl0; spl3 = spl1;
 

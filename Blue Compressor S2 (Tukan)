@@ -62,8 +62,11 @@ options:gmem=TukanCompressorS2
 options:gfx_idle
 
 @init
-COMPRESSOR_VERSION = 0.61;
+COMPRESSOR_VERSION = 0.8;
 /*
+0.8
+HPF now occret on all sample rates
+...scope könnte samplerate kompensiert sein...
 0.61
 scaling on/off fixed
 changes 0.6:
@@ -478,8 +481,8 @@ MBC1_inR = spl1;
     KeyL = SCL.HPF_do(spl2);
     KeyR = SCR.HPF_do(spl3);    
     ):(
-    KeyL = spl0; // SCL.HPF_do(spl0);
-    KeyR = spl1;//SCR.HPF_do(spl1); 
+    KeyL = SCL.HPF_do(spl0); // SCL.HPF_do(spl0);
+    KeyR = SCR.HPF_do(spl1);//SCR.HPF_do(spl1); 
     );
     MBC1_xL = max(abs(keyL),abs(KeyR));
     MBC1_xL += 0.0000001;

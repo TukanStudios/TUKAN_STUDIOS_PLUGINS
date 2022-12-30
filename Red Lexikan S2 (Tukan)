@@ -9,13 +9,6 @@ out_pin:Ch2
 out_pin:SC Ch1
 out_pin:SC Ch2
 
-
-import S2GFX/cookdsp.jsfx-inc
-import S2GFX/delay-utils.jsfx-inc
-import S2GFX/zdf_filter.jsfx-inc
-import S2GFX/firhalfband.jsfx-inc
-import S2GFX/tk_lib.jsfx-inc
-
 filename:0,S2GFX/HD_Back.png
 filename:1,S2GFX/480knob.png
 filename:2,S2GFX/RedKnob.png
@@ -37,6 +30,12 @@ options:gfx_hz=60
 options:gmem=TukanLexS2
 options:gfx_idle
 
+import S2GFX/spectrum.jsfx-inc
+import S2GFX/zdf_filter.jsfx-inc
+import S2GFX/firhalfband.jsfx-inc
+import S2GFX/tk_lib.jsfx-inc
+import S2GFX/delay-utils.jsfx-inc
+import S2GFX/cookdsp.jsfx-inc
 
 slider1:3<0,4,1{Abmience, Room, Small, Hall, Plate}>-Algorithm
 slider2:100<0,100,.1>-Dry Mix %
@@ -75,8 +74,10 @@ delaysamples4
 
 @init
 srate_c = srate / 44100;
-LEXI_VERSION = 0.7;
-
+LEXI_VERSION = 0.8;
+// 0.8 Filters correct on all sample rates
+//0.71
+//high Contrast + hope for debug zdf_filter issue
 // 0.61
 //debug: Automatic scaling onn/off works now
 
@@ -101,10 +102,10 @@ number_input_max=0;
 number_input_invalid = 0;
 number_input_sign=1;
 
-
+redtext = 1;
 
 s2_numbers_of_sliders = 24;
-s2_numbers_of_generics = 1;
+s2_numbers_of_generics = 2;
 group_generics = 4503970; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
 generics_old = sliders_old + 16*64; //4509218
@@ -588,12 +589,13 @@ KDucking.Parameter_Boundaries();
 
 
 group_generics[1] = page;
+group_generics[2] = redtext;
 // group_generics[2] = punktiert;
 
 group_parameters();
 
 page = group_generics[1];
-// punktiert = group_generics[2];
+redtext = group_generics[2];
     
   algo = slider1;
   algocall();
@@ -707,6 +709,7 @@ file_var(0, link_group);
 file_var(0, LEXI_VERSION);
 
 file_var(0, page);
+file_var(0, redtext);
 
 seriloop = 0;
 loop(64*16 + 27 + 16,
@@ -726,8 +729,30 @@ seriloop += 1;
   
 @block
 srate_c = srate / 44100;
+SAMPLE_RATE != srate ? (
+SAMPLE_RATE = srate;
+  allpass1.band_init();
+  allpass2.band_init();
+  allpass3.band_init();
+  allpass4.band_init();
+  
+  HPF.band_init();
+  LSH.band_init();
+  HSH.band_init();
+  LPF.band_init();
+  EQ1.band_init();
+  EQ2.band_init();
+  
+  GFX_HPF.band_init();
+  GFX_LSH.band_init();
+  GFX_HSH.band_init();
+  GFX_LPF.band_init();
+  GFX_EQ1.band_init();
+  GFX_EQ2.band_init();
+caller = 1;
+);
 
-
+  
 
 @sample
 
@@ -1724,7 +1749,7 @@ button_step = 50*zoom;
  );
  ////////////////////////// DRAW PAGE /////////////////////////////////////////////////////////////
  
- red(); //lightgrey();
+redtext == 1 ? red() : rgb(230,230,230);
  gfx_x = old_gfx_x = 80*zoom; gfx_y = my_slider1_y = 500*zoom + (100 - my_slider1) * zoom * 1.6; gfx_blit(1, zoom/4, 0);
  gfx_y = 435*zoom; gfx_drawstr(my_label1, 0x05, gfx_x+65*zoom, gfx_y + gfx_texth);
  gfx_y += 20*zoom; gfx_x = old_gfx_x; gfx_drawstr(my_value1, 0x05, gfx_x+65*zoom, gfx_y + gfx_texth);
@@ -1756,7 +1781,7 @@ button_step = 50*zoom;
 
   page == 0 || page == 4 ? (
   
-  red(); gfx_a = 1;
+  redtext == 1 ? red() : rgb(230,230,230); gfx_a = 1;
   sgfx_x = grid_x +10*zoom; sgfx_w = grid_w - 20*zoom;
   
   gfx_x = sgfx_x +15*zoom; gfx_y = grid_y + 80*zoom;
@@ -1797,18 +1822,18 @@ button_step = 50*zoom;
   Left_Meter_Out.meter_config(lscope_x/zoom + 1,lscope_y/zoom +70,353,5,60, 60);
   Right_Meter_Out.meter_config(lscope_x/zoom + 1,lscope_y/zoom +85,353,5,60, 60);
   
-  ledloop = 0; gfx_a = 1;
+  ledloop = 0; gfx_a = 1; redtext == 1 ? mled = rled : mled = gled;
   loop(15,
   gfx_x = sgfx_x + 162*zoom + 15*zoom*ledloop;
   gfx_y = grid_y + 3*zoom;
-  left_meter_in.db_val >= -60+ledloop*4 ? gfx_blit(rled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(rled, zoom/6, 0, 0,0, 128,128);
+  left_meter_in.db_val >= -60+ledloop*4 ? gfx_blit(mled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(mled, zoom/6, 0, 0,0, 128,128);
   gfx_y += 15*zoom;
-  right_meter_in.db_val >= -60+ledloop*4 ? gfx_blit(rled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(rled, zoom/6, 0, 0,0, 128,128);
+  right_meter_in.db_val >= -60+ledloop*4 ? gfx_blit(mled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(mled, zoom/6, 0, 0,0, 128,128);
 
   gfx_y += 18*zoom;
-  left_meter_out.db_val >= -60+ledloop*4 ? gfx_blit(rled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(rled, zoom/6, 0, 0,0, 128,128);
+  left_meter_out.db_val >= -60+ledloop*4 ? gfx_blit(mled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(mled, zoom/6, 0, 0,0, 128,128);
   gfx_y += 15*zoom;
-  right_meter_out.db_val >= -60+ledloop*4 ? gfx_blit(rled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(rled, zoom/6, 0, 0,0, 128,128);
+  right_meter_out.db_val >= -60+ledloop*4 ? gfx_blit(mled, zoom/6, 0, 0,128, 128,128) :  gfx_blit(mled, zoom/6, 0, 0,0, 128,128);
 
   
   ledloop += 1;
@@ -1838,7 +1863,7 @@ button_step = 50*zoom;
   gfx_x = sgfx_x + 66*zoom; gfx_y = grid_y+70*zoom;
   gfx_lineto(gfx_x + 65*zoom * cos($pi/2 - ($pi/400)*(100)), gfx_y - 65*zoom * sin($pi/2 - ($pi/400)*(100)));
 
-  red(); gfx_a = 1;
+  redtext == 1 ? red() : rgb(230,230,230); gfx_a = 1;
   gfx_x = sgfx_x + 66*zoom; gfx_y = grid_y+70*zoom;
   gfx_lineto(gfx_x - 65*zoom * cos($pi/2 - ($pi/400)*(slider8)), gfx_y - 65*zoom * sin($pi/2 - ($pi/400)*(slider8)));
   gfx_x = sgfx_x + 66*zoom; gfx_y = grid_y+70*zoom;
@@ -1867,7 +1892,7 @@ button_step = 50*zoom;
  gridloop += 25*zoom;
  );
  
- red(); gfx_a=1;
+ redtext == 1 ? red() : rgb(230,230,230); gfx_a=1;
  gfx_x = sgfx_x; gfx_y = grid_y + grid_h - slider2 * (grid_h/100);
  gfx_rectto(gfx_x+max(3*zoom,1), grid_y+grid_h);
  
@@ -1934,7 +1959,8 @@ button_step = 50*zoom;
 
 
  page == 2 || page == 3 ? (
- slider22 == 0 ? lightgrey() : red();
+ redtext == 1 ? slider22 == 0 ? lightgrey() : red();
+ redtext == 0 ? slider22 == 0 ? rgb(90,90,90) : rgb(230,230,230);
  draw_filter_response(0, 1, 0, 0);
  draw_grid();
  gfx_x = grid_x -15*zoom; gfx_y = grid_y + 10*zoom;
@@ -2080,7 +2106,7 @@ button_step = 50*zoom;
     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
     
-
+    redtext == 0 ? (#item2 = "!High contrast|"):(#item2 = "High contrast|");#allitems += #item2;
     #allitems += "|Show Info/Help";
     last_clicked_item = gfx_showmenu(#allitems);
   );
@@ -2114,12 +2140,18 @@ button_step = 50*zoom;
     gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
   );
   
-  
-  
    last_clicked_item == 21 ? zoom_off = 0;
    last_clicked_item == 22 ? zoom_off = 1; 
 
-  last_clicked_item == 23 ? helpshow = 1;
+  redtext_old = redtext;
+  last_clicked_item == 23 ? redtext == 0 ? redtext = 1 : redtext = 0;
+  redtext_old != redtext ? (
+    gmem[freemem2 + 3] = 4;
+    gmem[freemem2 + 2] = redtext;
+  );
+  
+
+  last_clicked_item == 24 ? helpshow = 1;
   
   
   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
@@ -2188,14 +2220,14 @@ button_step = 50*zoom;
         g_collision(78*zoom+6*button_step,360*zoom,button_step,button_step) ? (slider23 == 0 ? slider23 = 1 : slider23 = 0;caller = 1;button_click = 6;BWet.quicklink_button());
         g_collision(78*zoom+7*button_step,360*zoom,button_step,button_step) ? (slider24 == 0 ? slider24 = 1 : slider24 = 0;caller = 1;button_click = 7;BBypass.quicklink_button());
         
-        page_old = page;
+    page_old = page; 
         g_collision(220*zoom,287*zoom,button_step,button_step) ? (page = 0;caller = 1;button_click = 8);
         g_collision(220*zoom+button_step,287*zoom,button_step,button_step) ? (page = 1;caller = 1;button_click = 9);
         g_collision(220*zoom+2*button_step,287*zoom,button_step,button_step) ? (page = 2;caller = 1;button_click = 10);
         g_collision(220*zoom+3*button_step,287*zoom,button_step,button_step) ? (page = 3;caller = 1;button_click = 11);
         g_collision(220*zoom+4*button_step,287*zoom,button_step,button_step) ? (page = 4;caller = 1;button_click = 12);
         
-        
+    
         superkey ? (
           page_old != page ? (
             gmem[freemem2 + 3] = 3;
@@ -2436,6 +2468,9 @@ button_step = 50*zoom;
          
        gmem[freemem2 + 3] == 3 ? (
        page = gmem[freemem2 + 2];
+       );
+       gmem[freemem2 + 3] == 4 ? (
+       redtext = gmem[freemem2 + 2];
        );
        
        );

@@ -53,7 +53,8 @@ import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
 
 @init
-Denoiser_VERSION = 0.61;
+Denoiser_VERSION = 0.8;
+//0.8 Meldung bei sample rate change
 
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
@@ -102,8 +103,8 @@ pdc_set = 0;
 
 
 
-
-
+SR_old = srate;
+SR_Changed = 0;
 
 
 
@@ -263,9 +264,13 @@ caller = 0;
 
 
 @block
-      
+SR_old != srate ? SR_Changed = 1 : SR_changed = 0;
 
+SR_changed == 1 ? (
+slider5 = 1;
+):(
 
+SR_old = srate;
 // Finally, the algorithm we use outputs modified audio SIZE samples after we
 // input it. If we tell REAPER that the plugin has a delay of SIZE samples,
 // REAPER can automatically compensate for this and make it appear as if there's
@@ -287,7 +292,7 @@ pdc_set = 1;
 
 );
 
-
+);
 
 
 @slider
@@ -985,6 +990,17 @@ gfx_drawstr("DETECT");
       
       mouseClick == 1 ? (
       OEQ_NI = 0;
+      
+      SR_Changed == 1 ? (
+        ctrl ? (
+          SR_changed = 0;
+          Reset_Buffer();
+          slider5 = 0;
+          caller = 1;
+          SR_old = srate;
+        );
+      );
+      
       KReduction.k_collision() ? (slider1=0;KReduction.dragstart());
       
       
@@ -1052,7 +1068,33 @@ gfx_drawstr("DETECT");
  ////////////////////////////////////////////////////////////////////////////////////////////// ENDE MAUS STEUERUNG
  
 
-
+   SR_changed == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;red(); gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,145*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS DENOISER (Series 2)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(Denoiser_VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("BYPASSED: SAMPLE RATED CHANGED!");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Switch back to the original sample rate, or:");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset noise sample by: click + [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("You need to [Detect] again with the new sample rate.");
+   gfx_x = menu_x+3*zoom; gfx_y += 23*zoom;
+   gfx_drawstr("Original Denoiser plugin by:");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Neil Bickford    -   THANK YOU!");
+   );
+   
+   
+   
 
 ):gfx_ext_flags == 1 ? (
 
