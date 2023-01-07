@@ -3,12 +3,27 @@ desc:tukans VU library
 @init
 
 Function mn_meter_reinit(speed_) (
+this.cosp = 0;
+this.dbL = -130;
+this.force = 0;
+this.mnblitscale = 0;
+this.mnmeterpng = -1;
+this.nd_posL = this.nd_posL = 0;
+this.nd_SpeedL = 0;
+this.ph = 0;
+this.r1 = 0;
+this.scnt = 0;
+this.sinP = 0;
+this.smpLL = 0;
+this.w1 = this.w2 = this.x1 = this.x2 = this.xa = this.xd = this.xw = this.y1 = this.y2 = this.ya = this.yd = this.yw = 0;
+
 //mn_Meter_speed = 61;
 mn_meter_speed = speed_;
 mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
 mn_Meter_mom = 0.00010 + 0.00032 *  mn_Meter_speed^3 / 125000;
 mn_Meter_dt = 10 / srate;
 mn_Meter_offset = 0.0074;
+mn_meter_damp = 1 - 0.005 * (48000 / srate);
 );
 
 function mnMetersample(meterIn) //Mom = speed
@@ -26,7 +41,7 @@ this.scnt === 10 ? (
     this.force = this.smpL * mn_Meter_fact_up  -  (this.nd_posL * .1 + mn_Meter_offset);
     
     this.nd_SpeedL += this.force * mn_Meter_dt / mn_Meter_mom;  
-    this.nd_SpeedL = this.nd_SpeedL * 0.995;
+    this.nd_SpeedL = this.nd_SpeedL * mn_meter_damp;
     this.nd_posL += this.nd_SpeedL * mn_Meter_dt;
     this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
   
