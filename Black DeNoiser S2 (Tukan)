@@ -53,7 +53,8 @@ import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
 
 @init
-Denoiser_VERSION = 0.8;
+Denoiser_VERSION = 0.85;
+//085 PDC jetzt richtig!?
 //0.8 Meldung bei sample rate change
 
 ext_nodenorm = 1;
@@ -115,6 +116,9 @@ initial = 1;
 
 // The FFT size will always be constant.
 SIZE = 16384;
+pdc_delay = SIZE; 
+pdc_bot_ch=0;
+pdc_top_ch=2;
 
 // We don't do any allocation in this plugin, since we know we start out with 8M
 // words of memory. So all we need to do is construct some pointers to memory,
@@ -268,6 +272,7 @@ SR_old != srate ? SR_Changed = 1 : SR_changed = 0;
 
 SR_changed == 1 ? (
 slider5 = 1;
+pdc_set = 0;
 ):(
 
 SR_old = srate;
@@ -275,20 +280,28 @@ SR_old = srate;
 // input it. If we tell REAPER that the plugin has a delay of SIZE samples,
 // REAPER can automatically compensate for this and make it appear as if there's
 // no delay at all.
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+
+bypass ? process = 0;
+
+
 process == 1 ? (
-pdc_set == 0 ? (
+//pdc_set == 0 ? (
 pdc_delay = SIZE; 
 pdc_bot_ch=0;
 pdc_top_ch=2;
-pdc_set = 1;
-);
+//pdc_set = 1;
+//);
 ):(
-pdc_set == 0 ? (
+//pdc_set == 0 ? (
 pdc_delay = 0; 
 pdc_bot_ch=0;
 pdc_top_ch=2;
-pdc_set = 1;
-);
+//pdc_set = 1;
+//);
 
 );
 
