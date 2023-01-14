@@ -380,6 +380,36 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
     gfx_x = (this.xIn * zoom) + (this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + (this.size*zoom / 2) - (texth/2);
     );
     
+
+
+
+
+
+
+	function labelposition_scaled (S2_Labelpos, s2label_w, s2label_h) (
+			        S2_xpos = this.xIn*zoom + this.scaling*(this.size*zoom/4) - this.scaling*(this.size*zoom/4)*(cos(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				s2_ypos = this.yIn*zoom + this.scaling*(this.size*zoom/4) - this.scaling*(this.size*zoom/4)*(sin(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				gfx_measurestr(" ", S2add_x, s2add_y);
+      				S2_labelpos < 5 ? (gfx_x = s2_xpos - S2label_w - S2add_x; gfx_y = s2_ypos - s2label_h/2);
+      				S2_labelpos == 5 ? (gfx_x = s2_xpos - S2label_w/2; gfx_y = s2_ypos - s2label_h);
+     				S2_labelpos > 5 ? (gfx_x = s2_xpos + 1.5*S2add_x; gfx_y = s2_ypos - s2label_h/2);
+				//gfx_x = s2_xpos; gfx_y = s2_ypos;
+	);
+
+    function knoblabelposition_scaled (textw) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + this.scaling*(this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + this.scaling*(this.size*zoom / 2) + (5 * zoom);
+    );
+
+    function knobmeasureposition_scaled (textw, texth) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + this.scaling*(this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + this.scaling*(this.size*zoom / 2) - (texth/2);
+    );
+
+
+
+
+
     function readout () (
     sprintf(#readout, "%.2f", slider(this.slider));
     gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
@@ -809,6 +839,7 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 		       slider(this.slider) = val;
                        mouse_wheel=0;
                         );
+
 
 	function potWheel_rev()
         local         (val)
