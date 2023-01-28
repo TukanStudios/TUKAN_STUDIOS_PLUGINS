@@ -51,7 +51,8 @@ slider11:0<0,2,1>-Sync Option
 
 
 @init
-DELAY_VERSION = 0.8;
+DELAY_VERSION = 0.9;
+//Bugfix for Auto Scaling off
 // 0.8 Filters correct on all sample rates
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
@@ -1031,7 +1032,8 @@ gfx_blit(0,zoom,0);
   
   
   
-  
+  last_clicked_item == 21 ? zoom_off = 0;
+  last_clicked_item == 22 ? zoom_off = 1; 
   
   
 
