@@ -75,6 +75,13 @@ slider54:SC5_Release=50<10,400,1>   -Band5 Release
 slider55:<-24,24,.1>    -Band5 Range
 slider56:SC5_On=1<0,1,1{Off, On}>   -Band5 On
 
+slider57:SC1_Input=0<0,5,1{Internal, SC1, SC2, SC3, SC4, SC5}>- Input 1
+slider58:SC2_Input=0<0,5,1{Internal, SC1, SC2, SC3, SC4, SC5}>- Input 2
+slider59:SC3_Input=0<0,5,1{Internal, SC1, SC2, SC3, SC4, SC5}>- Input 3
+slider60:SC4_Input=0<0,5,1{Internal, SC1, SC2, SC3, SC4, SC5}>- Input 4
+slider61:SC5_Input=0<0,5,1{Internal, SC1, SC2, SC3, SC4, SC5}>- Input 5
+
+
 import S2GFX/spectrum.jsfx-inc
 import S2GFX/svf_filter.jsfx-inc
 import S2GFX/firhalfband.jsfx-inc
@@ -82,12 +89,18 @@ import S2GFX/tk_lib.jsfx-inc
 
 in_pin:left input
 in_pin:right input
-in_pin:sc input left
-in_pin:sc input right
+in_pin:sc1 input left
+in_pin:sc1 input right
+in_pin:sc2 input left
+in_pin:sc2 input right
+in_pin:sc3 input left
+in_pin:sc3 input right
+in_pin:sc4 input left
+in_pin:sc4 input right
+in_pin:sc5 input left
+in_pin:sc5 input right
 out_pin:left output
 out_pin:right output
-out_pin:SC L
-out_pin:SC R
 
 filename:0,S2GFX/HD_Back.png
 filename:1,S2GFX/BlueKnob.png
@@ -110,7 +123,8 @@ options:gfx_idle
 
 
 @init
-GEQ_VERSION = 0.92;
+GEQ_VERSION = 0.93;
+//093 Sensitivity!! +SC support, fixed threshold zoom issue
 //09 added auto bypass support
 /*
 0.8 keine changes
@@ -186,7 +200,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 56;
+s2_numbers_of_sliders = 61;
 s2_numbers_of_generics = 8;
 group_generics =1057910; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -294,6 +308,12 @@ generics_old = sliders_old + 16*64;
  SC5_Release.parameter_config       (54,       50,     10,   400,     420, 445, 120, 200,    1,       smallknob);
  SC5_Range.parameter_config         (55,       0,        -24,    24,  290 + 140,  335,  150, 200,    1,       blueknob);
  Sc5_On.button_config               (56, 570, 490);
+ 
+ Sc1_Input.button_config            (57, 570, 490);
+ Sc2_Input.button_config            (58, 570, 490);
+ Sc3_Input.button_config            (59, 570, 490);
+ Sc4_Input.button_config            (60, 570, 490);
+ Sc5_Input.button_config            (61, 570, 490);
  
  function computeGainReduction(x)
  (
@@ -1418,6 +1438,14 @@ file_var(0, while_recording);
 file_var(0, while_stopped);
 file_var(0, link_group);
 file_var(0, GEQ_VERSION);
+file_var(0, listen_node);
+file_var(0, SC_Listen);
+
+//file_var(0, SC1_Input);
+//file_var(0, SC2_Input);
+//file_var(0, SC3_Input);
+//file_var(0, SC4_Input);
+//file_var(0, SC5_Input);
 
 seriloop = 0;
 loop(64*16 + 27 + 16,
@@ -1637,10 +1665,53 @@ process ? (
 
 spl0 += 0.0000000001; // DeNorm fix
 spl1 += 0.0000000001; // DeNorm fix
-
+spl2 += 0.0000000001; // DeNorm fix
+spl3 += 0.0000000001; // DeNorm fix
+spl4 += 0.0000000001; // DeNorm fix
+spl5 += 0.0000000001; // DeNorm fix
+spl6 += 0.0000000001; // DeNorm fix
+spl7 += 0.0000000001; // DeNorm fix
+spl8 += 0.0000000001; // DeNorm fix
+spl9 += 0.0000000001; // DeNorm fix
+spl10+= 0.0000000001; // DeNorm fix
+spl11+= 0.0000000001; // DeNorm fix
 spl0orig = spl0;
 spl1orig = spl1;
 
+SC1_Input == 0 ? (SC1_InL = spl0;  SC1_InR = spl1):
+SC1_Input == 1 ? (SC1_InL = spl2;  SC1_InR = spl3):
+SC1_Input == 2 ? (SC1_InL = spl4;  SC1_InR = spl5):
+SC1_Input == 3 ? (SC1_InL = spl6;  SC1_InR = spl7):
+SC1_Input == 4 ? (SC1_InL = spl8;  SC1_InR = spl9):
+SC1_Input == 5 ? (SC1_InL = spl10;  SC1_InR = spl11);
+
+SC2_Input == 0 ? (SC2_InL = spl0;  SC2_InR = spl1):
+SC2_Input == 1 ? (SC2_InL = spl2;  SC2_InR = spl3):
+SC2_Input == 2 ? (SC2_InL = spl4;  SC2_InR = spl5):
+SC2_Input == 3 ? (SC2_InL = spl6;  SC2_InR = spl7):
+SC2_Input == 4 ? (SC2_InL = spl8;  SC2_InR = spl9):
+SC2_Input == 5 ? (SC2_InL = spl10;  SC2_InR = spl11);
+
+SC3_Input == 0 ? (SC3_InL = spl0;  SC3_InR = spl1):
+SC3_Input == 1 ? (SC3_InL = spl2;  SC3_InR = spl3):
+SC3_Input == 2 ? (SC3_InL = spl4;  SC3_InR = spl5):
+SC3_Input == 3 ? (SC3_InL = spl6;  SC3_InR = spl7):
+SC3_Input == 4 ? (SC3_InL = spl8;  SC3_InR = spl9):
+SC3_Input == 5 ? (SC3_InL = spl10;  SC3_InR = spl11);
+
+SC4_Input == 0 ? (SC4_InL = spl0;  SC4_InR = spl1):
+SC4_Input == 1 ? (SC4_InL = spl2;  SC4_InR = spl3):
+SC4_Input == 2 ? (SC4_InL = spl4;  SC4_InR = spl5):
+SC4_Input == 3 ? (SC4_InL = spl6;  SC4_InR = spl7):
+SC4_Input == 4 ? (SC4_InL = spl8;  SC4_InR = spl9):
+SC4_Input == 5 ? (SC4_InL = spl10;  SC4_InR = spl11);
+
+SC5_Input == 0 ? (SC5_InL = spl0;  SC5_InR = spl1):
+SC5_Input == 1 ? (SC5_InL = spl2;  SC5_InR = spl3):
+SC5_Input == 2 ? (SC5_InL = spl4;  SC5_InR = spl5):
+SC5_Input == 3 ? (SC5_InL = spl6;  SC5_InR = spl7):
+SC5_Input == 4 ? (SC5_InL = spl8;  SC5_InR = spl9):
+SC5_Input == 5 ? (SC5_InL = spl10;  SC5_InR = spl11);
 // Sidechain RMS
 // RMSSidechain.RMS_process(spl2, spl3);
 
@@ -1760,8 +1831,8 @@ DO_OVERSAMPLE ? (
         Band_Group6 == 1 ? (mid0 = band7.filter.svf_svf0(mid0); mid1 = band7.filter.svf_svf0(mid1)) : (side0 = band7.filter.svf_svf1(side0); side1 = band7.filter.svf_svf1(side1));
         decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
       ) : ( // Left and/or Right
-        Band_Group6 == 0 || Band_Group6 == 3 ? (SC1_y0 = band7.filter.svf_svf0(spl0orig); SC1_y1 = band7.filter.svf_svf0(0));
-        Band_Group6 == 0 || Band_Group6 == 4 ? (SC1_y2 = band7.filter.svf_svf1(spl1orig); SC1_y3 = band7.filter.svf_svf1(0));
+        Band_Group6 == 0 || Band_Group6 == 3 ? (SC1_y0 = band7.filter.svf_svf0(SC1_InL); SC1_y1 = band7.filter.svf_svf0(0));
+        Band_Group6 == 0 || Band_Group6 == 4 ? (SC1_y2 = band7.filter.svf_svf1(SC1_InR); SC1_y3 = band7.filter.svf_svf1(0));
         SC1_spl0 = SC1_firL.do_FIR_filter(SC1_y0, SC1_y1);
         SC1_spl1 = SC1_firR.do_FIR_filter(SC1_y2, SC1_y3);
       )
@@ -1773,8 +1844,8 @@ DO_OVERSAMPLE ? (
         Band_Group7 == 1 ? (mid0 = band8.filter.svf_svf0(mid0); mid1 = band8.filter.svf_svf0(mid1)) : (side0 = band8.filter.svf_svf1(side0); side1 = band8.filter.svf_svf1(side1));
         decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
       ) : ( // Left and/or Right
-        Band_Group7 == 0 || Band_Group7 == 3 ? (SC2_y0 = band8.filter.svf_svf0(spl0orig); SC2_y1 = band8.filter.svf_svf0(0));
-        Band_Group7 == 0 || Band_Group7 == 4 ? (SC2_y2 = band8.filter.svf_svf1(spl1orig); SC2_y3 = band8.filter.svf_svf1(0));
+        Band_Group7 == 0 || Band_Group7 == 3 ? (SC2_y0 = band8.filter.svf_svf0(SC2_InL); SC2_y1 = band8.filter.svf_svf0(0));
+        Band_Group7 == 0 || Band_Group7 == 4 ? (SC2_y2 = band8.filter.svf_svf1(SC2_InR); SC2_y3 = band8.filter.svf_svf1(0));
         SC2_spl0 = SC2_firL.do_FIR_filter(SC2_y0, SC2_y1);
         SC2_spl1 = SC2_firR.do_FIR_filter(SC2_y2, SC2_y3);
       )
@@ -1786,8 +1857,8 @@ DO_OVERSAMPLE ? (
         Band_Group8 == 1 ? (mid0 = band9.filter.svf_svf0(mid0); mid1 = band9.filter.svf_svf0(mid1)) : (side0 = band9.filter.svf_svf1(side0); side1 = band9.filter.svf_svf1(side1));
         decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
       ) : ( // Left and/or Right
-        Band_Group8 == 0 || Band_Group8 == 3 ? (SC3_y0 = band9.filter.svf_svf0(spl0orig); SC3_y1 = band9.filter.svf_svf0(0));
-        Band_Group8 == 0 || Band_Group8 == 4 ? (SC3_y2 = band9.filter.svf_svf1(spl1orig); SC3_y3 = band9.filter.svf_svf1(0));
+        Band_Group8 == 0 || Band_Group8 == 3 ? (SC3_y0 = band9.filter.svf_svf0(SC3_InL); SC3_y1 = band9.filter.svf_svf0(0));
+        Band_Group8 == 0 || Band_Group8 == 4 ? (SC3_y2 = band9.filter.svf_svf1(SC3_InR); SC3_y3 = band9.filter.svf_svf1(0));
         SC3_spl0 = SC3_firL.do_FIR_filter(SC3_y0, SC3_y1);
         SC3_spl1 = SC3_firR.do_FIR_filter(SC3_y2, SC3_y3);
       )
@@ -1799,8 +1870,8 @@ DO_OVERSAMPLE ? (
         Band_Group9 == 1 ? (mid0 = band10.filter.svf_svf0(mid0); mid1 = band10.filter.svf_svf0(mid1)) : (side0 = band10.filter.svf_svf1(side0); side1 = band10.filter.svf_svf1(side1));
         decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
       ) : ( // Left and/or Right
-        Band_Group9 == 0 || Band_Group9 == 3 ? (SC4_y0 = band10.filter.svf_svf0(spl0orig); SC4_y1 = band10.filter.svf_svf0(0));
-        Band_Group9 == 0 || Band_Group9 == 4 ? (SC4_y2 = band10.filter.svf_svf1(spl1orig); SC4_y3 = band10.filter.svf_svf1(0));
+        Band_Group9 == 0 || Band_Group9 == 3 ? (SC4_y0 = band10.filter.svf_svf0(SC4_InL); SC4_y1 = band10.filter.svf_svf0(0));
+        Band_Group9 == 0 || Band_Group9 == 4 ? (SC4_y2 = band10.filter.svf_svf1(SC4_InR); SC4_y3 = band10.filter.svf_svf1(0));
         SC4_spl0 = SC4_firL.do_FIR_filter(SC4_y0, SC4_y1);
         SC4_spl1 = SC4_firR.do_FIR_filter(SC4_y2, SC4_y3);
       )
@@ -1812,8 +1883,8 @@ DO_OVERSAMPLE ? (
         Band_Group10 == 1 ? (mid0 = band11.filter.svf_svf0(mid0); mid1 = band11.filter.svf_svf0(mid1)) : (side0 = band11.filter.svf_svf1(side0); side1 = band11.filter.svf_svf1(side1));
         decodeMS(mid0, side0, y0, y2); decodeMS(mid1, side1, y1, y3);
       ) : ( // Left and/or Right
-        Band_Group10 == 0 || Band_Group10 == 3 ? (SC5_y0 = band11.filter.svf_svf0(spl0orig); SC5_y1 = band11.filter.svf_svf0(0));
-        Band_Group10 == 0 || Band_Group10 == 4 ? (SC5_y2 = band11.filter.svf_svf1(spl1orig); SC5_y3 = band11.filter.svf_svf1(0));
+        Band_Group10 == 0 || Band_Group10 == 3 ? (SC5_y0 = band11.filter.svf_svf0(SC5_InL); SC5_y1 = band11.filter.svf_svf0(0));
+        Band_Group10 == 0 || Band_Group10 == 4 ? (SC5_y2 = band11.filter.svf_svf1(SC5_InR); SC5_y3 = band11.filter.svf_svf1(0));
         SC5_spl0 = SC5_firL.do_FIR_filter(SC5_y0, SC5_y1);
         SC5_spl1 = SC5_firR.do_FIR_filter(SC5_y2, SC5_y3);
       )
@@ -1985,8 +2056,8 @@ DO_OVERSAMPLE ? (
         Band_Group6 == 1 ? mid0 = band7.filter.svf_svf0(mid0) : side0 = band7.filter.svf_svf1(side0);
         decodeMS(mid0, side0, spl0, spl1);
       ) : ( // Left and/or Right
-        Band_Group6 == 0 || Band_Group6 == 3 ? SC1_spl0 = band7.filter.svf_svf0(spl0orig);
-        Band_Group6 == 0 || Band_Group6 == 4 ? SC1_spl1 = band7.filter.svf_svf1(spl1orig);
+        Band_Group6 == 0 || Band_Group6 == 3 ? SC1_spl0 = band7.filter.svf_svf0(SC1_InL);
+        Band_Group6 == 0 || Band_Group6 == 4 ? SC1_spl1 = band7.filter.svf_svf1(SC1_InR);
       )
     );
 
@@ -1996,8 +2067,8 @@ DO_OVERSAMPLE ? (
         Band_Group7 == 1 ? mid0 = band8.filter.svf_svf0(mid0) : side0 = band8.filter.svf_svf1(side0);
         decodeMS(mid0, side0, spl0, spl1);
       ) : ( // Left and/or Right
-        Band_Group7 == 0 || Band_Group7 == 3 ? SC2_spl0 = band8.filter.svf_svf0(spl0orig);
-        Band_Group7 == 0 || Band_Group7 == 4 ? SC2_spl1 = band8.filter.svf_svf1(spl1orig);
+        Band_Group7 == 0 || Band_Group7 == 3 ? SC2_spl0 = band8.filter.svf_svf0(SC2_InL);
+        Band_Group7 == 0 || Band_Group7 == 4 ? SC2_spl1 = band8.filter.svf_svf1(SC2_InR);
       )
     );
 
@@ -2008,8 +2079,8 @@ DO_OVERSAMPLE ? (
         Band_Group8 == 1 ? mid0 = band9.filter.svf_svf0(mid0) : side0 = band9.filter.svf_svf1(side0);
         decodeMS(mid0, side0, spl0, spl1);
       ) : ( // Left and/or Right
-        Band_Group8 == 0 || Band_Group8 == 3 ? SC3_spl0 = band9.filter.svf_svf0(spl0orig);
-        Band_Group8 == 0 || Band_Group8 == 4 ? SC3_spl1 = band9.filter.svf_svf1(spl1orig);
+        Band_Group8 == 0 || Band_Group8 == 3 ? SC3_spl0 = band9.filter.svf_svf0(SC3_InL);
+        Band_Group8 == 0 || Band_Group8 == 4 ? SC3_spl1 = band9.filter.svf_svf1(SC3_InR);
       )
     );
 
@@ -2019,8 +2090,8 @@ DO_OVERSAMPLE ? (
         Band_Group9 == 1 ? mid0 = band10.filter.svf_svf0(mid0) : side0 = band10.filter.svf_svf1(side0);
         decodeMS(mid0, side0, spl0, spl1);
       ) : ( // Left and/or Right
-        Band_Group9 == 0 || Band_Group9 == 3 ? SC4_spl0 = band10.filter.svf_svf0(spl0orig);
-        Band_Group9 == 0 || Band_Group9 == 4 ? SC4_spl1 = band10.filter.svf_svf1(spl1orig);
+        Band_Group9 == 0 || Band_Group9 == 3 ? SC4_spl0 = band10.filter.svf_svf0(SC4_InL);
+        Band_Group9 == 0 || Band_Group9 == 4 ? SC4_spl1 = band10.filter.svf_svf1(SC4_InR);
       )
     );
 
@@ -2030,8 +2101,8 @@ DO_OVERSAMPLE ? (
         Band_Group10 == 1 ? mid0 = band11.filter.svf_svf0(mid0) : side0 = band11.filter.svf_svf1(side0);
         decodeMS(mid0, side0, spl0, spl1);
       ) : ( // Left and/or Right
-        Band_Group10 == 0 || Band_Group10 == 3 ? SC5_spl0 = band11.filter.svf_svf0(spl0orig);
-        Band_Group10 == 0 || Band_Group10 == 4 ? SC5_spl1 = band11.filter.svf_svf1(spl1orig);
+        Band_Group10 == 0 || Band_Group10 == 3 ? SC5_spl0 = band11.filter.svf_svf0(SC5_InL);
+        Band_Group10 == 0 || Band_Group10 == 4 ? SC5_spl1 = band11.filter.svf_svf1(SC5_InR);
       )
     );
 
@@ -2219,8 +2290,8 @@ Band_Gain[0] = Node1_Gain + SC1_GR;
 ):(SC1_GR = 0);
 flag_filter_update(0);
 SC_Listen == 1 ? (
-spl0 = SC1_spl0 * db2ratio(SC1_GR);
-spl1 = SC1_spl1 * db2ratio(SC1_GR);
+spl0 = SC1_spl0;// * db2ratio(SC1_GR);
+spl1 = SC1_spl1;// * db2ratio(SC1_GR);
 );
 );
 
@@ -2237,8 +2308,8 @@ Band_Gain[1] = Node2_Gain + SC2_GR;
 ):(SC2_GR = 0);
 flag_filter_update(1);
 SC_Listen == 2 ? (
-spl0 = SC2_spl0 * db2ratio(SC2_GR);
-spl1 = SC2_spl1 * db2ratio(SC2_GR);
+spl0 = SC2_spl0;// * db2ratio(SC2_GR);
+spl1 = SC2_spl1;// * db2ratio(SC2_GR);
 );
 );
 
@@ -2255,8 +2326,8 @@ Band_Gain[2] = Node3_Gain + SC3_GR;
 ):(SC3_GR = 0);
 flag_filter_update(2);
 SC_Listen == 3 ? (
-spl0 = SC3_spl0 * db2ratio(SC3_GR);
-spl1 = SC3_spl1 * db2ratio(SC3_GR);
+spl0 = SC3_spl0;// * db2ratio(SC3_GR);
+spl1 = SC3_spl1;// * db2ratio(SC3_GR);
 );
 );
 
@@ -2273,8 +2344,8 @@ Band_Gain[3] = Node4_Gain + SC4_GR;
 ):(SC4_GR = 0);
 flag_filter_update(3);
 SC_Listen == 4 ? (
-spl0 = SC4_spl0 * db2ratio(SC4_GR);
-spl1 = SC4_spl1 * db2ratio(SC4_GR);
+spl0 = SC4_spl0;// * db2ratio(SC4_GR);
+spl1 = SC4_spl1;// * db2ratio(SC4_GR);
 );
 );
 
@@ -2291,8 +2362,8 @@ Band_Gain[4] = Node5_Gain + SC5_GR;
 ):(SC5_GR = 0);
 flag_filter_update(4);
 SC_Listen == 5 ? (
-spl0 = SC5_spl0 * db2ratio(SC5_GR);
-spl1 = SC5_spl1 * db2ratio(SC5_GR);
+spl0 = SC5_spl0;// * db2ratio(SC5_GR);
+spl1 = SC5_spl1;// * db2ratio(SC5_GR);
 );
 );
 
@@ -5373,7 +5444,7 @@ draw_filter_response(0, 1.0, 1.0, 1.0);
 
 mouse_within_window() && !gen_dragging?  (
 
-  do_listen || listen_node != -1 ? draw_listen_helper();
+  //do_listen || listen_node != -1 ? draw_listen_helper();
 
   !very_compact_height && !very_compact_width ? (
     draw_info_panel();
@@ -5770,7 +5841,7 @@ do_general_mouse ? (
             select_box_y = ree_mouse_y;
           );
         );
-        listen_node = -1;        
+        //listen_node q= -1;        
       );
     );
 
@@ -6959,7 +7030,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       gfx_roundrect(N1_Dyn_x, N1_Dyn_y, 18*zoom, 18*zoom, 0);
       gfx_x = N1_Dyn_x + 5*zoom; gfx_y = N1_Dyn_y + 3*zoom;
       gfx_drawstr("D");
-      SC_Listen == 1 ? rgb(255,0,30) : rgb(150,150,150);
+      listen_node == 0 ? rgb(255,0,30) : rgb(150,150,150);
+      SC_Listen == 1 ? orange(); 
       N1_Solo_x =  N1_gain.size*zoom + N1_Gain.xIn*zoom - 74*zoom; N1_Solo_y = N1_Gain.yin * zoom - 35*zoom + 360*zoom;
       gfx_roundrect(N1_Solo_x, N1_Solo_y, 18*zoom, 18*zoom, 0);
       gfx_x = N1_Solo_x + 5*zoom; gfx_y = N1_Solo_y + 3*zoom;
@@ -6971,7 +7043,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       gfx_roundrect(N2_Dyn_x, N2_Dyn_y, 18*zoom, 18*zoom, 0);
       gfx_x = N2_Dyn_x + 5*zoom; gfx_y = N2_Dyn_y + 3*zoom;
       gfx_drawstr("D");
-      SC_Listen == 2 ? rgb(255,0,30) : rgb(150,150,150);
+      listen_node == 1 ? rgb(255,0,30) : rgb(150,150,150);
+      SC_Listen == 2 ? orange(); 
       N2_Solo_x =  N2_gain.size*zoom + N2_Gain.xIn*zoom - 60*zoom; N2_Solo_y = N2_Gain.yin * zoom - 35*zoom + 246*zoom;
       gfx_roundrect(N2_Solo_x, N2_Solo_y, 18*zoom, 18*zoom, 0);
       gfx_x = N2_Solo_x + 5*zoom; gfx_y = N2_Solo_y + 3*zoom;
@@ -6982,7 +7055,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       gfx_roundrect(N3_Dyn_x, N3_Dyn_y, 18*zoom, 18*zoom, 0);
       gfx_x = N3_Dyn_x + 5*zoom; gfx_y = N3_Dyn_y + 3*zoom;
       gfx_drawstr("D");
-      SC_Listen == 3 ? rgb(255,0,30) : rgb(150,150,150);
+      listen_node == 2 ? rgb(255,0,30) : rgb(150,150,150);
+      SC_Listen == 3 ? orange(); 
       N3_Solo_x =  N3_gain.size*zoom + N3_Gain.xIn*zoom - 60*zoom; N3_Solo_y = N3_Gain.yin * zoom - 35*zoom + 246*zoom;
       gfx_roundrect(N3_Solo_x, N3_Solo_y, 18*zoom, 18*zoom, 0);
       gfx_x = N3_Solo_x + 5*zoom; gfx_y = N3_Solo_y + 3*zoom;
@@ -6993,7 +7067,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       gfx_roundrect(N4_Dyn_x, N4_Dyn_y, 18*zoom, 18*zoom, 0);
       gfx_x = N4_Dyn_x + 5*zoom; gfx_y = N4_Dyn_y + 3*zoom;
       gfx_drawstr("D");
-      SC_Listen == 4 ? rgb(255,0,30) : rgb(150,150,150);
+      listen_node == 3 ? rgb(255,0,30) : rgb(150,150,150);
+      SC_Listen == 4 ? orange(); 
       N4_Solo_x =  N4_gain.size*zoom + N4_Gain.xIn*zoom - 60*zoom; N4_Solo_y = N4_Gain.yin * zoom - 35*zoom + 246*zoom;
       gfx_roundrect(N4_Solo_x, N4_Solo_y, 18*zoom, 18*zoom, 0);
       gfx_x = N4_Solo_x + 5*zoom; gfx_y = N4_Solo_y + 3*zoom;
@@ -7004,7 +7079,8 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       gfx_roundrect(N5_Dyn_x, N5_Dyn_y, 18*zoom, 18*zoom, 0);
       gfx_x = N5_Dyn_x + 5*zoom; gfx_y = N5_Dyn_y + 3*zoom;
       gfx_drawstr("D");
-      SC_Listen == 5 ? rgb(255,0,30) : rgb(150,150,150);
+      listen_node == 4 ? rgb(255,0,30) : rgb(150,150,150);
+      SC_Listen == 5 ? orange(); 
       N5_Solo_x =  N5_gain.size*zoom + N5_Gain.xIn*zoom - 74*zoom; N5_Solo_y = N5_Gain.yin * zoom - 35*zoom + 360*zoom;
       gfx_roundrect(N5_Solo_x, N5_Solo_y, 18*zoom, 18*zoom, 0);
       gfx_x = N5_Solo_x + 5*zoom; gfx_y = N5_Solo_y + 3*zoom;
@@ -7286,11 +7362,11 @@ gfx_setfont(1,"Arial",12*zoom,'b');
  DYN_In_Meter.meter_show();
  
  
- DYN_Box == 1 ? Dyn_Thresh_Handle_x = 200 * zoom + 400*(60+SC1_thresh)/60;
- DYN_Box == 2 ? Dyn_Thresh_Handle_x = 200 * zoom + 400*(60+SC2_thresh)/60;
- DYN_Box == 3 ? Dyn_Thresh_Handle_x = 200 * zoom + 400*(60+SC3_thresh)/60;
- DYN_Box == 4 ? Dyn_Thresh_Handle_x = 200 * zoom + 400*(60+SC4_thresh)/60;
- DYN_Box == 5 ? Dyn_Thresh_Handle_x = 200 * zoom + 400*(60+SC5_thresh)/60;
+ DYN_Box == 1 ? Dyn_Thresh_Handle_x = 200 * zoom + zoom*400*(60+SC1_thresh)/60;
+ DYN_Box == 2 ? Dyn_Thresh_Handle_x = 200 * zoom + zoom*400*(60+SC2_thresh)/60;
+ DYN_Box == 3 ? Dyn_Thresh_Handle_x = 200 * zoom + zoom*400*(60+SC3_thresh)/60;
+ DYN_Box == 4 ? Dyn_Thresh_Handle_x = 200 * zoom + zoom*400*(60+SC4_thresh)/60;
+ DYN_Box == 5 ? Dyn_Thresh_Handle_x = 200 * zoom + zoom*400*(60+SC5_thresh)/60;
  rgb(100, 255, 100);
  gfx_triangle(Dyn_Thresh_Handle_x, 306*zoom, Dyn_Thresh_Handle_x - 8*zoom, 314*zoom, Dyn_Thresh_Handle_x + 8 *zoom, 314*zoom);
  lightgrey();
@@ -7303,7 +7379,7 @@ gfx_setfont(1,"Arial",12*zoom,'b');
  DYN_BOX == 4 ? SC4_Sensivity.knob();
  DYN_BOX == 5 ? SC5_Sensivity.knob();
  gfx_setfont(1,"Arial",12*zoom,'b');
- #klabel = "SENSIVITY"; gfx_measurestr(#klabel, klw, klh); SC1_Sensivity.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
+ #klabel = "SENSITIVITY"; gfx_measurestr(#klabel, klw, klh); SC1_Sensivity.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
  #kmeasure = "over/n"; gfx_measurestr(#kmeasure, klw, klh); SC1_Sensivity.knobmeasureposition(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
  gfx_setfont(2,"Arial",10*zoom,'b');
  #klabel = "0"; gfx_measurestr(#klabel, klw, klh); SC1_Sensivity.labelposition(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
@@ -7407,10 +7483,34 @@ gfx_setfont(1,"Arial",12*zoom,'b');
  gfx_rect(gainresult_x, gainresult_y-5*zoom, gainresult_w, 10*zoom);
  
  gfx_setfont(1);
+ 
+ 
+ DYN_Box == SC_Listen ? rgb(255,0,30) : rgb(150,150,150);
+ Dyn_Solo_x =  580*zoom; Dyn_Solo_y = 460*zoom;
+ gfx_roundrect(Dyn_Solo_x, Dyn_Solo_y, 18*zoom, 18*zoom, 0);
+ gfx_x = dyn_Solo_x + 5*zoom; gfx_y = Dyn_Solo_y + 3*zoom;
+ gfx_drawstr("S");
+ 
+ Dyn_box == 1 ? dyn_Sc_input = SC1_Input;
+ Dyn_box == 2 ? dyn_Sc_input = SC2_Input;
+ Dyn_box == 3 ? dyn_Sc_input = SC3_Input;
+ Dyn_box == 4 ? dyn_Sc_input = SC4_Input;
+ Dyn_box == 5 ? dyn_Sc_input = SC5_Input;
+  
+SC_Input_x = 562*zoom; SC_Input_y = 435*zoom;
+gfx_roundrect(SC_input_x, SC_Input_y, 36*zoom, 18*zoom, 0);
+ gfx_x = SC_Input_x + 5*zoom; gfx_y = SC_Input_y + 3*zoom;
+ dyn_Sc_input == 0 ? (
+ gfx_x += 4*zoom;gfx_drawstr("INT");
+ ):(
+ gfx_drawstr("SC ");
+ gfx_drawnumber(dyn_sc_Input,0);
+ );
+
  ); // Dyn box
  ////////////////////////////////////////////  ENDE DYN BOX /////////////////////////////////////////////////////
  
- 
+ //listen_node > -1 ? draw_listen_helper();
  
  
  
@@ -7422,6 +7522,31 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       DYN_BOX ? (
       g_collision(170*zoom,270*zoom,460*zoom,260*zoom) ? (
       
+      mouseClick == 1 ? (
+      solotouch =0 ;
+      g_collision(Dyn_Solo_x, Dyn_Solo_y , 18*zoom, 18*zoom) ? (
+      DYN_BOX == SC_Listen ?  SC_Listen = 0 : SC_Listen = DYN_Box; 
+      solotouch = 1;
+      );
+      /*
+      g_collision(N2_Solo_x, N2_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 2 ? SC_Listen = 0 : SC_Listen = 2; solotouch = 1);
+      g_collision(N3_Solo_x, N3_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 3 ? SC_Listen = 0 : SC_Listen = 3; solotouch = 1);
+      g_collision(N4_Solo_x, N4_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 4 ? SC_Listen = 0 : SC_Listen = 4; solotouch = 1);
+      g_collision(N5_Solo_x, N5_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 5 ? SC_Listen = 0 : SC_Listen = 5; solotouch = 1);
+      
+      solotouch ? (listen_node = SC_Listen-1; SC_Listen = 0);
+      */
+      //slider26
+      solotouch ? (
+      press_superkey ? (
+      gmem[16*64 + 3] = 2;
+      gmem[16*64 + 1] = 26;
+      gmem[16*64 + 2] = SC_Listen;
+      );
+      caller = 1;
+      );
+      );
+      
       Dyn_box == 1 ? (
       mouseClick == 1 ? (
       OEQ_NI = 0; 
@@ -7431,6 +7556,13 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         SC1_Attack.k_collision() ? SC1_Attack.dragstart();
         SC1_Release.k_collision() ? SC1_Release.dragstart();
         SC1_on.B_collision() ? (SC1_On == 0 ? SC1_On = 1 : sc1_on = 0; SC1_On.quicklink_button(); caller = 1);
+        g_collision(SC_Input_x, SC_Input_y, 36*zoom, 18*zoom) ? (
+        inp_select = -1;
+        inp_select = gfx_showmenu("Internal|SC 1|SC 2|SC 3|SC 4|SC 5|");
+        inp_select > 0 ? (
+        SC1_Input = inp_select-1;
+        );
+        );
       ); // Mouse click
       mouse_wheel ? 
           (
@@ -7452,6 +7584,13 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         SC2_Attack.k_collision() ? SC2_Attack.dragstart();
         SC2_Release.k_collision() ? SC2_Release.dragstart();
         SC2_on.B_collision() ? (SC2_On == 0 ? SC2_On = 1 : SC2_on = 0; SC2_On.quicklink_button(); caller = 1);
+        g_collision(SC_Input_x, SC_Input_y, 36*zoom, 18*zoom) ? (
+        inp_select = -1;
+        inp_select = gfx_showmenu("Internal|SC 1|SC 2|SC 3|SC 4|SC 5|");
+        inp_select > 0 ? (
+        SC2_Input = inp_select-1;
+        );
+        );
       ); // Mouse click
       mouse_wheel ? 
           (
@@ -7473,6 +7612,13 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         SC3_Attack.k_collision() ? SC3_Attack.dragstart();
         SC3_Release.k_collision() ? SC3_Release.dragstart();
         SC3_on.B_collision() ? (SC3_On == 0 ? SC3_On = 1 : SC3_on = 0; SC3_On.quicklink_button(); caller = 1);
+        g_collision(SC_Input_x, SC_Input_y, 36*zoom, 18*zoom) ? (
+        inp_select = -1;
+        inp_select = gfx_showmenu("Internal|SC 1|SC 2|SC 3|SC 4|SC 5|");
+        inp_select > 0 ? (
+        SC3_Input = inp_select-1;
+        );
+        );
       ); // Mouse click
       mouse_wheel ? 
           (
@@ -7494,6 +7640,13 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         SC4_Attack.k_collision() ? SC4_Attack.dragstart();
         SC4_Release.k_collision() ? SC4_Release.dragstart();
         SC4_on.B_collision() ? (SC4_On == 0 ? SC4_On = 1 : SC4_on = 0; SC4_On.quicklink_button(); caller = 1);
+        g_collision(SC_Input_x, SC_Input_y, 36*zoom, 18*zoom) ? (
+        inp_select = -1;
+        inp_select = gfx_showmenu("Internal|SC 1|SC 2|SC 3|SC 4|SC 5|");
+        inp_select > 0 ? (
+        SC4_Input = inp_select-1;
+        );
+        );
       ); // Mouse click
       mouse_wheel ? 
           (
@@ -7515,6 +7668,13 @@ gfx_setfont(1,"Arial",12*zoom,'b');
         SC5_Attack.k_collision() ? SC5_Attack.dragstart();
         SC5_Release.k_collision() ? SC5_Release.dragstart();
         SC5_on.B_collision() ? (SC5_On == 0 ? SC5_On = 1 : SC5_on = 0; SC5_On.quicklink_button(); caller = 1);
+        g_collision(SC_Input_x, SC_Input_y, 36*zoom, 18*zoom) ? (
+        inp_select = -1;
+        inp_select = gfx_showmenu("Internal|SC 1|SC 2|SC 3|SC 4|SC 5|");
+        inp_select > 0 ? (
+        SC5_Input = inp_select-1;
+        );
+        );
       ); // Mouse click
       mouse_wheel ? 
           (
@@ -7529,7 +7689,15 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       
       
       ):( //DYNBOX Collision
-      mouseClick == 1 ? DYN_Box = 0;
+      mouseClick == 1 ? (
+      DYN_Box = 0;
+      SC_Listen = 0;
+      gmem[16*64 + 3] = 2;
+      gmem[16*64 + 1] = 26;
+      gmem[16*64 + 2] = SC_Listen;
+      caller = 1;
+      );
+      
       );
       
       
@@ -7562,31 +7730,31 @@ gfx_setfont(1,"Arial",12*zoom,'b');
       );
       
       
-      SC1_Threshold.h_dragging ? (SC1_Threshold.h_potdrag(400); caller = 1);
+      SC1_Threshold.h_dragging ? (SC1_Threshold.h_potdrag(400*zoom); caller = 1);
       SC1_sensivity.dragging ? (SC1_sensivity.potdrag(); SC1_sensivity.readout();caller = 1;);
       SC1_Range.dragging ? (SC1_Range.potdrag(); SC1_Range.readout();caller = 1;);
       SC1_Attack.dragging ? (SC1_Attack.potdrag(); SC1_Attack.readout();caller = 1;);
       SC1_Release.dragging ? (SC1_Release.potdrag(); SC1_Release.readout();caller = 1;);
       
-      SC2_Threshold.h_dragging ? (SC2_Threshold.h_potdrag(400); caller = 1);
+      SC2_Threshold.h_dragging ? (SC2_Threshold.h_potdrag(400*zoom); caller = 1);
       SC2_sensivity.dragging ? (SC2_sensivity.potdrag(); SC2_sensivity.readout();caller = 1;);
       SC2_Range.dragging ? (SC2_Range.potdrag(); SC2_Range.readout();caller = 1;);
       SC2_Attack.dragging ? (SC2_Attack.potdrag(); SC2_Attack.readout();caller = 1;);
       SC2_Release.dragging ? (SC2_Release.potdrag(); SC2_Release.readout();caller = 1;);
       
-      SC3_Threshold.h_dragging ? (SC3_Threshold.h_potdrag(400); caller = 1);
+      SC3_Threshold.h_dragging ? (SC3_Threshold.h_potdrag(400*zoom); caller = 1);
       SC3_sensivity.dragging ? (SC3_sensivity.potdrag(); SC3_sensivity.readout();caller = 1;);
       SC3_Range.dragging ? (SC3_Range.potdrag(); SC3_Range.readout();caller = 1;);
       SC3_Attack.dragging ? (SC3_Attack.potdrag(); SC3_Attack.readout();caller = 1;);
       SC3_Release.dragging ? (SC3_Release.potdrag(); SC3_Release.readout();caller = 1;);
       
-      SC4_Threshold.h_dragging ? (SC4_Threshold.h_potdrag(400); caller = 1);
+      SC4_Threshold.h_dragging ? (SC4_Threshold.h_potdrag(400*zoom); caller = 1);
       SC4_sensivity.dragging ? (SC4_sensivity.potdrag(); SC4_sensivity.readout();caller = 1;);
       SC4_Range.dragging ? (SC4_Range.potdrag(); SC4_Range.readout();caller = 1;);
       SC4_Attack.dragging ? (SC4_Attack.potdrag(); SC4_Attack.readout();caller = 1;);
       SC4_Release.dragging ? (SC4_Release.potdrag(); SC4_Release.readout();caller = 1;);
       
-      SC5_Threshold.h_dragging ? (SC5_Threshold.h_potdrag(400); caller = 1);
+      SC5_Threshold.h_dragging ? (SC5_Threshold.h_potdrag(400*zoom); caller = 1);
       SC5_sensivity.dragging ? (SC5_sensivity.potdrag(); SC5_sensivity.readout();caller = 1;);
       SC5_Range.dragging ? (SC5_Range.potdrag(); SC5_Range.readout();caller = 1;);
       SC5_Attack.dragging ? (SC5_Attack.potdrag(); SC5_Attack.readout();caller = 1;);
@@ -7632,23 +7800,29 @@ gfx_setfont(1,"Arial",12*zoom,'b');
   g_collision(N4_Dyn_x, N4_Dyn_y , 18*zoom, 18*zoom) ? press_superkey ? (SC4_On == 0 ? SC4_on = 1 : SC4_on = 0; SC4_on.quicklink_button(); caller = 1);
   g_collision(N5_Dyn_x, N5_Dyn_y , 18*zoom, 18*zoom) ? press_superkey ? (SC5_On == 0 ? SC5_on = 1 : SC5_on = 0; SC5_on.quicklink_button(); caller = 1);
        
-       solotouch =0 ;
-       g_collision(N1_Solo_x, N1_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 1 ? SC_Listen = 0 : SC_Listen = 1; solotouch = 1);
-       g_collision(N2_Solo_x, N2_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 2 ? SC_Listen = 0 : SC_Listen = 2; solotouch = 1);
-       g_collision(N3_Solo_x, N3_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 3 ? SC_Listen = 0 : SC_Listen = 3; solotouch = 1);
-       g_collision(N4_Solo_x, N4_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 4 ? SC_Listen = 0 : SC_Listen = 4; solotouch = 1);
-       g_collision(N5_Solo_x, N5_Solo_y , 18*zoom, 18*zoom) ? (SC_Listen == 5 ? SC_Listen = 0 : SC_Listen = 5; solotouch = 1);
+       !alt ? g_collision(N1_Solo_x, N1_Solo_y , 18*zoom, 18*zoom) ? (listen_node == 1-1 ? listen_node = 0-1 : listen_node = 1-1; solotouch = 1; SC_Listen = 0);
+       !alt ? g_collision(N2_Solo_x, N2_Solo_y , 18*zoom, 18*zoom) ? (listen_node == 2-1 ? listen_node = 0-1 : listen_node = 2-1; solotouch = 1; SC_Listen = 0);
+       !alt ? g_collision(N3_Solo_x, N3_Solo_y , 18*zoom, 18*zoom) ? (listen_node == 3-1 ? listen_node = 0-1 : listen_node = 3-1; solotouch = 1; SC_Listen = 0);
+       !alt ? g_collision(N4_Solo_x, N4_Solo_y , 18*zoom, 18*zoom) ? (listen_node == 4-1 ? listen_node = 0-1 : listen_node = 4-1; solotouch = 1; SC_Listen = 0);
+       !alt ? g_collision(N5_Solo_x, N5_Solo_y , 18*zoom, 18*zoom) ? (listen_node == 5-1 ? listen_node = 0-1 : listen_node = 5-1; solotouch = 1; SC_Listen = 0);
        
-       //slider26
-       solotouch ? (
-       press_superkey ? (
-       gmem[16*64 + 3] = 2;
-       gmem[16*64 + 1] = 26;
-       gmem[16*64 + 2] = SC_Listen;
-       );
-       caller = 1;
-       );
-       
+       solotouch = 0;
+       alt ? g_collision(N1_Solo_x, N1_Solo_y , 18*zoom, 18*zoom) ? (listen_node = -1; Sc_Listen == 1 ? SC_Listen = 0 : SC_Listen = 1; solotouch = 1;);
+       alt ? g_collision(N2_Solo_x, N2_Solo_y , 18*zoom, 18*zoom) ? (listen_node = -1; Sc_Listen == 2 ? SC_Listen = 0 : SC_Listen = 2; solotouch = 1;);
+       alt ? g_collision(N3_Solo_x, N3_Solo_y , 18*zoom, 18*zoom) ? (listen_node = -1; Sc_Listen == 3 ? SC_Listen = 0 : SC_Listen = 3; solotouch = 1;);
+       alt ? g_collision(N4_Solo_x, N4_Solo_y , 18*zoom, 18*zoom) ? (listen_node = -1; Sc_Listen == 4 ? SC_Listen = 0 : SC_Listen = 4; solotouch = 1;);
+       alt ? g_collision(N5_Solo_x, N5_Solo_y , 18*zoom, 18*zoom) ? (listen_node = -1; Sc_Listen == 5 ? SC_Listen = 0 : SC_Listen = 5; solotouch = 1;);
+      
+      solotouch ? (
+      press_superkey ? (
+      gmem[16*64 + 3] = 2;
+      gmem[16*64 + 1] = 26;
+      gmem[16*64 + 2] = SC_Listen;
+      );
+      caller = 1;
+      );
+      
+      
        );
        
        mouseclick == -1 ? (
@@ -7836,3 +8010,4 @@ S2_sample_on = 0;
  
 //gfx_x = 20; gfx_y = 20;
 //gfx_drawnumber(per_to_q(Node1_Q, 100),3);
+

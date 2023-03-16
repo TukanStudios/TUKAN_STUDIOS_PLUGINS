@@ -50,7 +50,8 @@ slider13:0<0,1,1>-Bypass
 
 
 @init
-GATE_VERSION = 0.9;
+GATE_VERSION = 0.93;
+//093 fixed PDC in Bypass mode
 //09 added auto bypass support
 /*
 0.8 Filter gecheckt, schienen ok zu sein
@@ -157,7 +158,9 @@ KHold.Parameter_Boundaries();
 KRelease.Parameter_Boundaries();
 KOutput.Parameter_Boundaries();
 
-  lookahead_samples = slider9*srate*0.001;
+  bypass = slider13;
+  
+  bypass ? lookahead_samples = 0 : lookahead_samples = slider9*srate*0.001;
 
   lookahead_R = lookahead_L + lookahead_samples+1;
   expander_buf = lookahead_L + 2*lookahead_samples+2;
@@ -186,7 +189,6 @@ clear_LA_buffer();
   transfer_A = (slider8)-1;
   transfer_B = pow(threshold,-transfer_A);
   expander_on = slider7;
-  bypass = slider13;
   
   scFreq = slider3;
   SCL.HPF_Config (scFreq);

@@ -12,7 +12,7 @@ slider3:1<1,8,1{External, Sinus, Square, RampUp, RampDown, Triangle, 8Step, 16St
 slider4:0<0,360,1>-4 Phase Shift
 slider5:0<0,360,1>-5 Phase Shift R
 slider6:3<0,9,1{8 Bars, 4 bars, 2 Bars, 1 Bars, 1/2, 1/4, 1/8, 1/16, 1/32, Dial}>-6 Time Sync
-slider7:0<0,2,1{Off, Triolic, Dotted}>-7 Triole Dotted
+slider7:0<0,2,1{Off, Triplet, Dotted}>-7 Triole Dotted
 slider8:2<0.05,5,0.001>-8 LFO Rate
 slider9:0<0,1,1{Off, x10}>-12 Rate Multiplikator
 slider10:3<1,6,1{Off, Tremolo, Pan, Filter, Phase, Flangerm, Chorus}>-15 MOD Type
@@ -93,8 +93,8 @@ options:gmem=TukanModulationS2
 options:gfx_idle
 
 @init
-Modulation_VERSION = 0.91;
-
+Modulation_VERSION = 0.93;
+//093 Triolic -> Triplet, Fixed Sync saving, changed fades on jumps, Modultaion -> Modulation
 ext_tail_size = 10;
 ext_nodenorm = 1;
 gfx_ext_retina = 1;
@@ -888,6 +888,14 @@ gmem_step64 = gmem_step16 + 16;
    file_var(0, link_group);
    file_var(0, MODULATION_VERSION);
    file_var(0, sync_on);
+   file_var(0,slider6_old);
+   file_var(0,sync_on);
+   file_var(0,tempo_hz);
+   
+   
+   
+   
+   
    seriloop = 0;
    loop(64*16 + 27 + 16,
    file_var(0, gmem[seriloop]);
@@ -1060,13 +1068,13 @@ process == 1 ? (
    
    //distanz_X = max(distanz, distanz_x);
    
-   distanz > 0.9 ? (
+   distanz > 0.2 ? (
    abs_position_new > abs_position ? fade_on = 2;
    abs_position_new <= abs_position ? fade_on = -2;
    );
-   
+   //fade_on = 0;
    fade_on != 0 ? (
-   abs_position += fade_on / (srate/200);
+   abs_position += fade_on / (srate/50);
    distanz <= 0.05 ? fade_on = 0;
    ):(
    form == 1 ? abs_position = sinus_Position;
@@ -1088,13 +1096,13 @@ process == 1 ? (
    
    //distanz_2_X = max(distanz_2, distanz_2_x);
    
-   distanz_2 > 0.9 ? (
+   distanz_2 > 0.2 ? (
    abs_position_2_new > abs_position_2 ? fade_on_2 = 2;
    abs_position_2_new <= abs_position_2 ? fade_on_2 = -2;
    );
    
    fade_on_2 != 0 ? (
-   abs_position_2 += fade_on_2 / (srate/200);
+   abs_position_2 += fade_on_2 / (srate/50);
    distanz_2 <= 0.05 ? fade_on_2  = 0;
    ):(
    form == 1 ? abs_position_2 = sinus_position_2;
@@ -1780,7 +1788,7 @@ zoom_off == 1 ? zoom = gfx_ext_retina;
    gfx_drawstr("TEMPO:");
    
    time_sync_2 == 0 ? #timesync2 = "- - -";
-   time_sync_2 == 1 ? #timesync2 = "Trilolic";
+   time_sync_2 == 1 ? #timesync2 = "Triplet";
    time_sync_2 == 2 ? #timesync2 = "Dotted";
    !sync_on ? #timesync2 = "- - -";
    
@@ -2333,8 +2341,8 @@ KPH_mix.knob();
        mouseClick == 1 ? (
        KTempo.k_collision() ? KTempo.dragstart();
        KPhaseshift.k_collision() ? KPhaseshift.dragstart();
-       KPhaseshift2.k_collision() ? KPhaseshift2.dragstart();
-
+       !alt ? KPhaseshift2.k_collision() ? KPhaseshift2.dragstart();
+       alt ? KPhaseshift2.k_collision() ? (slider(KPhaseshift2.slider) = 180; caller = 1);
        
        Bx10.b_collision() ? (slider(Bx10.slider) == 0 ? (slider(Bx10.slider) = 1; caller = 1):(slider(Bx10.slider) = 0; caller =1);Bx10.quicklink_button());
        BBypass.b_collision() ? (slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button());
@@ -2441,7 +2449,7 @@ KPH_mix.knob();
       gmem[16*64 + 2] = slider6;
       );
       ):(
-      #allitems = "Off|Triolic|Dotted|";
+      #allitems = "Off|Triplet|Dotted|";
       gfx_x = sync2_box_x; gfx_y = sync2_box_y;
       last_clicked_item = gfx_showmenu(#allitems);
       last_clicked_item > 0 ? slider7 = last_clicked_item-1;
@@ -2744,7 +2752,7 @@ KPH_mix.knob();
    
    gfx_setfont(1,"Arial",12*zoom,'b');
    lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 4*zoom;
-   gfx_drawstr("TUKAN STUDIOS  -  BLACKLIGHT MODULTAION "); 
+   gfx_drawstr("TUKAN STUDIOS  -  BLACKLIGHT MODULATION "); 
    gfx_setfont(1,"Arial",12*zoom,'i');
    lakeblue(); gfx_drawstr(" SERIES 2   ");
    gfx_setfont(1,"Arial",12*zoom,'b');
@@ -2862,7 +2870,7 @@ KPH_mix.knob();
     
     helpshow == 1 ? (
     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
-    gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+    gfx_rect(menu_x,menu_y+0,310*zoom,125*zoom);
     menu_x +=3;
     gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
     gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
@@ -2879,6 +2887,8 @@ KPH_mix.knob();
     gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
     gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
     gfx_drawstr("Activate number typing: [alt]+[shift]");
+    gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("Set Shift R to 180: [alt]+[click]");
     );
     
     
@@ -3290,6 +3300,7 @@ zoom = gfx_h / 135;
  );
  );
  S2_sample_on = 0;
+
 
 
 
