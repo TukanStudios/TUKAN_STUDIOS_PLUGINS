@@ -123,7 +123,8 @@ options:gfx_idle
 
 
 @init
-GEQ_VERSION = 0.93;
+GEQ_VERSION = 0.935;
+//0935 Removed filters_to_sliders() ind @serialize
 //093 Sensitivity!! +SC support, fixed threshold zoom issue
 //09 added auto bypass support
 /*
@@ -726,6 +727,7 @@ function q_to_per(q, range) (
  */
 function filters_to_sliders() (
 caller = 1;
+
   mouse_cap | mouse_wheel ? (
   Node1_Enabled = Band_Enabled[0];
   Node1_Group = Band_Group[0];
@@ -747,7 +749,7 @@ caller = 1;
   Node3_Group = Band_Group[2];
   Node3_Type = Band_Type[2];
   Node3_Frequency = freq_to_per(Band_Frequency[2], 100);
-  Node3_Gain = Band_Gain[2]  - SC3_GR;
+  Node3_Gain = Band_Gain[2] - SC3_GR;
   Node3_Q = q_to_per(Band_Q[2], 100);
   Node3_Slope = Band_Slope[2];
 
@@ -775,6 +777,7 @@ caller = 1;
   Node6_Q = q_to_per(Band_Q[5], 100);
   Node6_Slope = Band_Slope[5];
   );
+
 );
 
 /*
@@ -1356,6 +1359,12 @@ Band_Enabled[3] != Node4_Enabled || Band_Type[3] != Node4_Type || Band_Gain[3] !
 Band_Enabled[4] != Node5_Enabled || Band_Type[4] != Node5_Type || Band_Gain[4] != Node5_Gain || Band_Frequency[4] != per_to_freq(Node5_Frequency,100) || Band_Q[4] != Node5_Q || Band_Slope[4] != Node5_Slope ? flag_filter_update(4);
 Band_Enabled[5] != Node6_Enabled || Band_Type[5] != Node6_Type || Band_Gain[5] != Node6_Gain || Band_Frequency[5] != per_to_freq(Node6_Frequency,100) || Band_Q[5] != Node6_Q || Band_Slope[5] != Node6_Slope ? flag_filter_update(5);
 
+    Node1_Gain_Set = Node1_Gain;
+    Node2_Gain_Set = Node2_Gain;
+    Node3_Gain_Set = Node3_Gain;
+    Node4_Gain_Set = Node4_Gain;
+    Node5_Gain_Set = Node5_Gain;
+    
 // Update any automation
 sliders_to_filters();
 
@@ -1441,6 +1450,17 @@ file_var(0, GEQ_VERSION);
 file_var(0, listen_node);
 file_var(0, SC_Listen);
 
+    Node1_Gain = Node1_Gain_Set;
+    Node2_Gain = Node2_Gain_Set;
+    Node3_Gain = Node3_Gain_Set;
+    Node4_Gain = Node4_Gain_Set;
+    Node5_Gain = Node5_Gain_Set;
+    file_var(0, Node1_Gain);
+    file_var(0, Node2_Gain);
+    file_var(0, Node3_Gain);
+    file_var(0, Node4_Gain);
+    file_var(0, Node5_Gain);
+    
 //file_var(0, SC1_Input);
 //file_var(0, SC2_Input);
 //file_var(0, SC3_Input);
@@ -1478,9 +1498,11 @@ file_avail(handle) >= 0 ? (
     file_mem(0, Band_Green, numBands);
     file_mem(0, Band_Blue, numBands);
     
+    
+    
 flag_filter_update_all();
 
-filters_to_sliders();
+//filters_to_sliders();
 
   ) : (
     // Old version that has no version number
