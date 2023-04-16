@@ -549,6 +549,22 @@ function wgverb(feed cutoff bal)
     this.total = 0.0;
 );
 
+function wgverb_S2(feed cutoff bal offset)
+(
+    this.ny = srate / 2;
+    feed < 0 ? feed = 0 : feed > 1 ? feed = 1;
+    this.feed = feed;
+    cutoff < 20 ? cutoff = 20 : cutoff > this.ny ? cutoff = this.ny;
+    this.cutoff = cutoff;
+    bal < 0 ? bal = 0 : bal > 1 ? bal = 1;
+    this.bal = bal;
+
+    this.c2 = exp(-2 * $pi * this.cutoff / srate);
+    this.ys = offset;//memalloc(8);
+    this._wgverb_init();
+    this.total = 0.0;
+);
+
 function wgverb_set_feed(feed)
 (
     feed < 0 ? feed = 0 : feed > 1 ? feed = 1;
@@ -631,6 +647,7 @@ function wgverb_do(signal)
 
     rev_ = this.total * 0.25;
     signal + (rev_ - signal) * this.bal;
+	
 );
 
 /*******************************************************
@@ -651,7 +668,7 @@ It must be used with a variable name as prefix (object oriented).
 Initializer
 -----------
 
-#### chorus(depth feed bal) ####
+#### chorus(depth feed bal) ###
 
 Initializes the chorus object with a depth factor `depth`,
 between 0 and 2, which is how deep are the delay line modulation.
@@ -802,6 +819,31 @@ function chorus_do(signal)
     this.d8.delay_write(signal + read8_ * this.feed);
 
     sum_ = (read1_+read2_+read3_+read4_+read5_+read6_+read7_+read8_) * 0.125;
+
+    signal + (sum_ - signal) * this.bal;
+);
+
+function chorus_do_2(signal)
+(
+    read1_ = this.d1.delay_fsread2(this.lfo1.sine_do() * this.depth1 + this.center1);
+    //read2_ = this.d2.delay_fsread2(this.lfo2.sine_do() * this.depth2 + this.center2);
+    read3_ = this.d3.delay_fsread2(this.lfo3.sine_do() * this.depth3 + this.center3);
+    //read4_ = this.d4.delay_fsread2(this.lfo4.sine_do() * this.depth4 + this.center4);
+    read5_ = this.d5.delay_fsread2(this.lfo5.sine_do() * this.depth5 + this.center5);
+    //read6_ = this.d6.delay_fsread2(this.lfo6.sine_do() * this.depth6 + this.center6);
+    read7_ = this.d7.delay_fsread2(this.lfo7.sine_do() * this.depth7 + this.center7);
+    //read8_ = this.d8.delay_fsread2(this.lfo8.sine_do() * this.depth8 + this.center8);
+
+    this.d1.delay_write(signal + read1_ * this.feed);
+    //this.d2.delay_write(signal + read2_ * this.feed);
+    this.d3.delay_write(signal + read3_ * this.feed);
+    //this.d4.delay_write(signal + read4_ * this.feed);
+    this.d5.delay_write(signal + read5_ * this.feed);
+    //this.d6.delay_write(signal + read6_ * this.feed);
+    this.d7.delay_write(signal + read7_ * this.feed);
+    //this.d8.delay_write(signal + read8_ * this.feed);
+
+    sum_ = (read1_+read3_+read5_+read7_) *0.5 ; //* 0.707;
 
     signal + (sum_ - signal) * this.bal;
 );
