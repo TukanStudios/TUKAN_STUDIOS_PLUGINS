@@ -1648,6 +1648,24 @@ function _eq_compute_vars(freq q boost)
     this.type == 2 ? this._eq_compute_hs_coeffs();
 );
 
+function _eq_compute_vars_os2(freq q boost)
+(
+    freq <= 1 ? freq = 1 : freq > this.ny ? freq = this.ny;
+    this.freq = freq;
+    q < 0.1 ? q = 0.1;
+    this.q = q;
+    this.boost = boost;
+
+    this.a = pow(10, boost/40);
+    w0 = this.twopi * this.freq / (srate*2);
+    this.c = cos(w0);
+    this.alpha = sin(w0) / (2 * this.q);
+    this.type == 0 ? this._eq_compute_peak_coeffs() :
+    this.type == 1 ? this._eq_compute_ls_coeffs() :
+    this.type == 2 ? this._eq_compute_hs_coeffs();
+);
+
+
 function eq(freq q boost type)
 (
     this.x1 = this.x2 = this.y1 = this.y2 = 0.0;
@@ -1656,6 +1674,16 @@ function eq(freq q boost type)
     type < 0 ? type = 0 : type > 2 ? type = 2;
     this.type = type;
     this._eq_compute_vars(freq, q, boost);
+);
+
+function eq_os2(freq q boost type)
+(
+    this.x1 = this.x2 = this.y1 = this.y2 = 0.0;
+    this.twopi = $pi * 2;
+    this.ny = 2*srate * 0.49;
+    type < 0 ? type = 0 : type > 2 ? type = 2;
+    this.type = type;
+    this._eq_compute_vars_os2(freq, q, boost);
 );
 
 function eq_set_freq(freq)
