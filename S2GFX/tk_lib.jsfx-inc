@@ -539,7 +539,7 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 
         function k_collision  ()
                           (
-                           mouse_x > this.xIn*zoom && mouse_x < this.xIn*zoom + 0.5*this.size*zoom && mouse_y > this.yIn*zoom && mouse_y < this.yIn*zoom + 0.5*this.size*zoom
+                           mouse_x > this.xIn*zoom && mouse_x < this.xIn*zoom + 0.5*this.size*this.scaling*zoom && mouse_y > this.yIn*zoom && mouse_y < this.yIn*zoom + 0.5*this.size*this.scaling*zoom
                           );
       
 	function g_collision  (g_xin g_yin g_w g_h)
