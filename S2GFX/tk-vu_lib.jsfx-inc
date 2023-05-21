@@ -24,6 +24,13 @@ mn_Meter_mom = 0.00010 + 0.00032 *  mn_Meter_speed^3 / 125000;
 mn_Meter_dt = 10 / srate;
 mn_Meter_offset = 0.0074;
 mn_meter_damp = 1 - 0.005 * (48000 / srate);
+
+GR_mn_meter_speed = 40;
+GR_mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
+GR_mn_Meter_mom = 0.00010 + 0.00032 *  GR_mn_Meter_speed^3 / 125000;
+GR_mn_Meter_dt = 10 / srate;
+GR_mn_Meter_offset = 0.0074;
+GR_mn_meter_damp = 1 - 0.005 * (48000 / srate);
 );
 
 function mnMetersample(meterIn) //Mom = speed
@@ -51,6 +58,33 @@ this.scnt === 10 ? (
   
 );
 );
+
+function GR_mnMetersample(meterIn) //Mom = speed
+(
+
+this.smpL = abs(MeterIn);
+ 
+this.scnt += 1;
+
+
+this.scnt === 10 ? (
+    
+  // move needle
+  
+    this.force = this.smpL * GR_mn_Meter_fact_up  -  (this.nd_posL * .1 + GR_mn_Meter_offset);
+    
+    this.nd_SpeedL += this.force * GR_mn_Meter_dt / GR_mn_Meter_mom;  
+    this.nd_SpeedL = this.nd_SpeedL * GR_mn_Meter_damp;
+    this.nd_posL += this.nd_SpeedL * GR_mn_Meter_dt;
+    this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
+  
+    this.nd_posL = min(max(this.nd_posL,0),1);
+  
+    this.scnt = 0;
+  
+);
+);
+
 
 function mn_meter_init () (
 this.cosp = 0;

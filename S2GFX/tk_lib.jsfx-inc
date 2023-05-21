@@ -488,6 +488,14 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
       				gfx_blit(rled, zoom/4, 0, 0, on * 128, 128, 128);
     	);
 
+	function Color_button (color_) local (on) (
+				slider(this.slider) > 0 ? (on = 1):(on=0);
+      				gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+      				gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+      				gfx_x += 28 * zoom; gfx_y += 2*zoom;
+      				gfx_blit(color_, zoom/4, 0, 0, on * 128, 128, 128);
+    	);
+
 	function button3 () local (on) (
 				slider(this.slider) > 0 ? (on = 1):(on=0);
       				gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
