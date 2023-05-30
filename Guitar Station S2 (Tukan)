@@ -243,7 +243,7 @@ options:gfx_idle
 @init
 
 
-GuitarAmp_VERSION = 0.94;
+GuitarAmp_VERSION = 0.96;
        // pit.yin(0.3, 40, 1500, 1500, 80*srate/1000);
 offs = memalloc(250000,1); //150000
 //ext_tail_size = -1;
@@ -706,6 +706,7 @@ HSH_R_Os2.EQ_set_boost(HSH_G);
 );
 
 function amp_switch() (
+amp == 0 ? (Compensation_Gain_amp = 0.9);
 //Amp 1: /////////////////////////////////////////////////////////////
 amp == 1 ? (
 VK = 3;

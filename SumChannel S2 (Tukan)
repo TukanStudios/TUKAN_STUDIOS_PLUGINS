@@ -42,7 +42,7 @@ slider32:0<0,1,1{On, Bypassed}>-32 Bypass
 slider33:0<0,1,1{Standard, Vari}>-33 Type
 slider34:0<0,1,1{VU, Plot}>-34 Comp VU
 
-slider35:-20<-60,0,0.1>-35 Gate Threshold
+slider35:-60<-60,0,0.1>-35 Gate Threshold
 slider36:0<-20,0,0.1>-36 Gate Hysterisis
 slider37:2<0.1,50,0.1>-37 Gate Attack
 slider38:50<0,100,1>-38 Gate Hold
@@ -63,6 +63,9 @@ slider49:0<0,1,1{Hard Off, Hard On}>-Hardclip
 slider50:0<0,1,1{Trim Pre Clipper, Trim Post Clipper}>-Trim Pre
 slider51:0<0,1,1{On, Bypassed}>-51 General Bypass
 slider52:0<0,1,1{On, Bypassed}>-52 Input Stage Bypass
+
+slider53:0<-32,32,0.01>-53 Input Gain
+slider54:0<0,1,1{Show Saturation, Show Gain}>-54 Input Knob Selection
 
 filename:0,S2GFX/HD_Back.png
 filename:1,S2GFX/SC_SSLR.png
@@ -109,17 +112,13 @@ in_pin:Comp SC R
 out_pin:L out
 out_pin:R out
 
-
-
 import S2GFX/tk_lib.jsfx-inc
-import S2GFX/cookdsp.jsfx-inc
-//import S2GFX/st-oversampler.jsfx-inc
-import S2GFX/VT_Filters.jsfx-inc
 import S2GFX/tk-vu_lib.jsfx-inc
-
+import S2GFX/cookdsp.jsfx-inc
+import S2GFX/VT_Filters.jsfx-inc
 
 @init
-sumChan_VERSION = 0.95;
+sumChan_VERSION = 0.96;
 
 ext_tail_size = -1;
 ext_nodenorm = 1;
@@ -144,7 +143,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 52;
+s2_numbers_of_sliders = 54;
 s2_numbers_of_generics = 1;
 group_generics =0; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -375,6 +374,7 @@ Gate_inMeter.dB_Val = - 200;
    
      
      K_I_Saturation.parameter_config (3,       0,  -10,     10,  24+in_stage_x/zoom,   60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     K_I_Gain.parameter_config (53,       0,  -32,     32,  24+in_stage_x/zoom,   60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
      K_I_Noise.parameter_config      (4,       0,  -20,     20,  24+in_stage_x/zoom,   82+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
      K_I_HPF.parameter_config      (5,       0,   0,     40.573,  24+in_stage_x/zoom,   175+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_filter_Knob);
      K_I_LPF.parameter_config      (6,       100, 71.23333,     100,  24+in_stage_x/zoom,   257+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_filter_Knob);
@@ -683,6 +683,17 @@ Gate_inMeter.dB_Val = - 200;
      
      
      my_ST_mode ? (
+     input_knob_selection ? (
+     K_I_GAIN.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-32"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-16"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "+16"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "+32"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    ):(
      K_I_Saturation.knob();
      gfx_setfont(3,"Arial",11*zoom,'b');
        #klabel = "SATURATION"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
@@ -692,7 +703,7 @@ Gate_inMeter.dB_Val = - 200;
        #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
        #klabel = "+5"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
        #klabel = "+10"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
-       
+     );  
      K_I_Noise.knob();
      gfx_setfont(3,"Arial",11*zoom,'b');
        #klabel = "DESK NOISE"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
@@ -957,6 +968,7 @@ function all_Parameter_boundaries() (
      K_E_LMF_Freq.parameter_Boundaries();
      K_E_LMF_Q.parameter_Boundaries();
      K_I_Saturation.parameter_boundaries();
+     K_I_Gain.parameter_boundaries();
      K_I_Noise.parameter_boundaries();
      K_I_HPF.parameter_boundaries();
      K_I_LPF.parameter_boundaries();
@@ -1226,6 +1238,8 @@ mode=1;
   trim_post = slider50;
   general_Bypass = slider51;
   input_Bypass = slider52;
+  input_gain = db2ratio(slider53);
+  !iks_dragging ? input_knob_Selection = slider54;
   
 caller = 0;
 parameters_update_on = 0;
@@ -1465,6 +1479,9 @@ general_bypass == 1 ? process = 0;
 process == 1 ? (
 
 input_bypass == 0 ? ( 
+spl0 *= input_gain;
+spl1 *= input_gain;
+
 my_ST_mode != 0 ? (
 noiselevel=10^(noisedesk/20);
 NoiseWP == 1 ? (
@@ -1657,7 +1674,6 @@ gfx_ext_flags == 0 ? (
 gfx_ext_flags_old == 1 ? (init_knobs(); gfx_ext_flags_old = 0; caller=1);
 
 
-
 //gfx_r = gfx_b=gfx_g = 0.2;
 //gfx_rect(0,0,gfx_w,gfx_h);
 gfx_x = gfx_y = 0;
@@ -1666,6 +1682,7 @@ gfx_blit(0,zoom,0);
 //zoom = slider18;
 //zoom = 1.1;
 
+ 
 zoom != zoom_old ? (
 zoom_old = zoom;
 init_knobs();
@@ -2099,8 +2116,23 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
         mouseClick == 1 ? (
         K_O_Softclip.k_collision() ? (K_O_Softclip.dragstart(); NISlider = 0);
         K_O_Hardclip.k_collision() ? (K_O_Hardclip.dragstart(); NISlider = 0);
+        
+        !alt ? (
+        input_knob_selection ? (
+        K_I_GAIN.k_collision() ? (K_I_GAIN.dragstart(); NISlider = 0);
+        ):(
         K_I_Saturation.k_collision() ? (K_I_Saturation.dragstart(); NISlider = 0);
+        );
+        ):(
+        !input_knob_selection ? (
+        K_I_GAIN.k_collision() ? (K_I_GAIN.dragstart(); NISlider = 0);
+        ):(
         K_I_Saturation.k_collision() ? (K_I_Saturation.dragstart(); NISlider = 0);
+        );
+        iks_dragging = 1;
+        input_knob_selection == 0 ? input_knob_selection = 1 : input_knob_selection = 0;
+        );
+        
         K_I_Noise.k_collision() ? (K_I_Noise.dragstart(); NISlider = 0);
         K_I_HPF.k_collision() ? (K_I_HPF.dragstart(); NISlider = 1);
         K_I_LPF.k_collision() ? (K_I_LPF.dragstart(); NISlider = 1);
@@ -2174,6 +2206,7 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
         
         mouseclick == -1 ? (
         K_I_Saturation.dragstop();
+        K_I_Gain.dragstop();
         K_I_Noise.dragstop();
         K_I_HPF.dragstop();
         K_I_LPF.dragstop();
@@ -2201,13 +2234,15 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
         K_O_Output.dragstop();
         K_O_Softclip.dragstop();
         K_O_Hardclip.dragstop();
+        iks_dragging == 1 ? (iks_dragging = 0; caller = 1);
         );
         
         
         
         mouse_wheel ? 
             (
-        K_I_Saturation.k_collision() ? K_I_Saturation.potwheel();
+        !input_knob_selection ? K_I_Saturation.k_collision() ? K_I_Saturation.potwheel();
+        input_knob_selection ? K_I_Gain.k_collision() ? K_I_Gain.potwheel();
         K_I_Noise.k_collision() ? K_I_Noise.potwheel();
         K_I_HPF.k_collision() ? K_I_HPF.potwheel();
         K_I_LPF.k_collision() ? K_I_LPF.potwheel();
@@ -2241,6 +2276,7 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
          
        
         K_I_Saturation.dragging ? (K_I_Saturation.potdrag(); K_I_Saturation.readout(2);caller = 1;);
+        K_I_Gain.dragging ? (K_I_Gain.potdrag(); K_I_Gain.readout(2);caller = 1;);
         K_I_Noise.dragging ? (K_I_Noise.potdrag(); K_I_Noise.readout(2);caller = 1;);
         K_I_HPF.dragging ? (K_I_HPF.potdrag(); K_I_HPF.readout_f(0);caller = 1;);
         K_I_LPF.dragging ? (K_I_LPF.potdrag(); K_I_LPF.readout_f(0);caller = 1;);
@@ -2403,6 +2439,7 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
 
      
      slider52 == 1 ? #allitems += "!Bypass input stage|" : #allitems +="Bypass input stage|";
+     slider54 == 1 ? #allitems += "!Show input gain|" : #allitems +="Show input gain|";
      #allitems += "|Show Info/Help";
      last_clicked_item = gfx_showmenu(#allitems);
    );
@@ -2446,8 +2483,8 @@ g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_
    last_clicked_item ==24 ? (eflag = 1; caller = 1);
    
    last_clicked_item ==25 ? (slider52 == 0 ? slider52 = 1 : slider52 = 0; caller = 1);
-
-   last_clicked_item == 26 ? helpshow = 1;
+   last_clicked_item ==26 ? (slider54 == 0 ? slider54 = 1 : slider54 = 0; caller = 1);
+   last_clicked_item == 27 ? helpshow = 1;
    
    helpshow == 1 ? (
    gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;

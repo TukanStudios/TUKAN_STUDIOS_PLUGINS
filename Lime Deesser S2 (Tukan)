@@ -42,7 +42,7 @@ options:gmem=TukanDeesserS2
 options:gfx_idle
 
 @init
-Deesser_VERSION = 0.9;
+Deesser_VERSION = 0.96;
 //09 added auto bypass support
 /*
 0.8 keine changes
@@ -141,6 +141,10 @@ max_fft_size=32768;
  fftsize=max_fft_size;
  
  S2_FFT_Size = 8; //{16,32,64,128,256,512,1024,2048,4096,8192,16384,32768}>-FFT size
+ //srate < 100000 ? S2_FFT_Size = 9;
+ //srate < 200000 ? S2_FFT_Size = 10;
+ //srate >= 200000 ? S2_FFT_Size = 11;
+ 
  S2_Floor = -100;
  S2_Show_phase = 0;
  S2_Window = 2;
@@ -783,7 +787,7 @@ f=20;
 gfx_x+=4;
 lx=gfx_x;
 small_mode||while(
-  tx = log(1.0+(f/srate*2.0)*400)*wsc;
+  tx = log(1.0+(f/(srate/(srate/44100))*2.0)*400)*wsc;
   dotext = tx > gfx_x && f!=40 && f!=4000 && f != 15000 &&
      (f<400 || f >= 1000 || f == 500) && (f<6000 || f>=10000);
   tx > lx ? ( lx=tx+4; gfx_line(tx,0,tx,sgfx_h - (dotext ? 0 : gfx_texth+2),0); );
@@ -863,8 +867,9 @@ update ? (
   fftworkspace[1]=0;
 
   ascale=sgfx_h/$pi*0.25;
-  xscale=800/(fftsize-4);
-
+  //xscale=800/(fftsize-4);
+ xscale=(800 - 38*zoom) / ((fftsize-4)/(srate/41000));
+ 
   buf3=fftworkspace;
   buf2=integrate_buf+max_fft_size*0.5;
   i=0;
@@ -1003,7 +1008,7 @@ gfx_r=1;gfx_g=0.2;gfx_b=0.2;  gfx_a=0.7;
 GR_Meter.gr_meter_show();
 gfx_r=gfx_g=0; gfx_b=0;
 GR_Meter.meter_overlay();
-gfx_a = 1;
+gfx_a = 1; 
 
 gfx_setfont(2,"Arial",9*zoom,'b');
 gfx_r=gfx_b=gfx_g = 0.5;
@@ -1029,7 +1034,7 @@ gfx_roundrect(GR_Meter.xIn*zoom, GR_Meter.yIn*zoom- 10*zoom, GR_Meter.width*zoom
 gfx_x = gfx_y = 5;
 perfreqout = per_to_freq(In_Freq_slider,100);
 
-l9x = log(1.0+(perfreqout/srate*2.0)*400)*wsc;
+l9x = log(1.0+((perfreqout/(44100/srate))/srate*2.0)*400)*wsc;
 gfx_r=gfx_g=gfx_b=1;
 gfx_line(l9x + sgfx_x, sgfx_y + 1, l9x + sgfx_x, sgfx_y + sgfx_h - 1);
 
@@ -1037,7 +1042,7 @@ gfx_line(l9x + sgfx_x, sgfx_y + 1, l9x + sgfx_x, sgfx_y + sgfx_h - 1);
 gfx_x = gfx_y = 5;
 perfreqout = per_to_freq(Out_Freq_slider,100);
 
-l10x = log(1.0+(perfreqout/srate*2.0)*400)*wsc;
+l10x = log(1.0+((perfreqout/(44100/srate))/srate*2.0)*400)*wsc;
 gfx_r=gfx_g=gfx_b=1;
 gfx_line(l10x + sgfx_x, sgfx_y + 1, l10x + sgfx_x, sgfx_y + sgfx_h - 1);
 
@@ -1122,6 +1127,8 @@ gfx_drawstr("Bypass");
        ); 
 
        mouseClick == 1 ? (
+       
+       g_collision(GR_Meter.xIn*zoom, GR_Meter.yIn*zoom- 10*zoom, GR_Meter.width*zoom,GR_Meter.height*zoom+10*zoom) ? GR_Meter.dB_Val_Max_GR = 0;
        KThreshold.k_collision() ? KThreshold.dragstart();
        
        //!shift_alt ? (
@@ -1194,11 +1201,11 @@ gfx_drawstr("Bypass");
        //Koutfreq.h_dragging ? (koutfreq.h_potdrag(sgfx_w - 27.573*zoom);Koutfreq.readout();caller = 1;);      
        
        
-       
+       //l9x = log(1.0+((perfreqout/(44100/srate))/srate*2.0)*400)*wsc;
        
        infreq_grab == 1 ? (
        llx9 = (mouse_x-sgfx_x);///a_gfx_w)*10;
-       llx9=((exp(llx9/wsc)-1)/400)*srate*2; //= slider9/44100*2.0
+       llx9=((exp(llx9/wsc)-1)/400)*44100*2; //= slider9/44100*2.0
        llx9 /= 4;
        slider1 = min(max(KinFreq.minval, freq_to_per(llx9,100)),slider2);
        Kinfreq.readout_freq();
@@ -1215,7 +1222,7 @@ gfx_drawstr("Bypass");
        
        outfreq_grab == 1 ? (
        llx9 = (mouse_x-sgfx_x);///a_gfx_w)*10;
-       llx9=((exp(llx9/wsc)-1)/400)*srate*2; //= slider9/44100*2.0
+       llx9=((exp(llx9/wsc)-1)/400)*44100 *2; //= slider9/44100*2.0
        llx9 /= 4;
        slider2 = max(min(KoutFreq.maxval, freq_to_per(llx9,100)),slider1);
        Koutfreq.readout_freq();

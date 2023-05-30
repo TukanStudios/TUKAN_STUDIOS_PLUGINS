@@ -5,28 +5,58 @@ author: Justin Johnson
 license: MIT
 
 
+//slider1:Node1_Enabled=2<0,2,1{Off,Disabled,Enabled}>-LS ON
+//slider2:Node1_Gain=0<-24.0,24.0,0.01>-LS Gain
+//slider3:Node1_Frequency=29.91<9,92.2,0.01>-LS Frequency
+//slider4:Node1_Q=30.5<21,40.0,0.01>-LS Q
+//slider24:Node1_Slope=0<0,15,1>Filter1 Slope
+//slider5:Node2_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P1 ON
+//slider6:Node2_Gain=0<-24.0,24.0,0.01>-P1 Gain
+//slider7:Node2_Frequency=36.456<9,92.2,0.01>-P1 Frequency
+//slider8:Node2_Q=32.647<0,100.0,0.01>-P1 Q
+//slider24:Node1_Slope=0<0,15,1>Filter1 Slope
+//slider9:Node3_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P2 ON
+//slider10:Node3_Gain=0<-24.0,24.0,0.01>-P2 Gain
+//slider11:Node3_Frequency=50.81<9,92.2,0.01>-P2 Frequency
+//slider12:Node3_Q=32.647<0,100.0,0.01>-P2 Q
+//slider24:Node1_Slope=0<0,15,1>Filter1 Slope
+//slider13:Node4_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P3 ON
+//slider14:Node4_Gain=0<-24.0,24.0,0.01>-P3 Gain
+//slider15:Node4_Frequency=65.298<9,92.2,0.01>-P3 Frequency
+//slider16:Node4_Q=32.647<0,100.0,0.01>-P3 Q
+//slider24:Node1_Slope=0<0,15,1>Filter1 Slope
+//slider17:Node5_Enabled=2<0,2,1{Off,Disabled,Enabled}>-HS ON
+//slider18:Node5_Gain=0<-24.0,24.0,0.01>-HS Gain
+//slider19:Node5_Frequency=89.981<9,92.2,0.01>-HS Frequency
+//slider20:Node5_Q=30.563<21,40.0,0.01>-HS Q
+//slider24:Node1_Slope=0<0,15,1>Filter1 Slope
+//slider21:Node6_Enabled=0<0,2,1{Off,Disabled,Enabled}>-HP ON
+//slider22:Node6_Frequency=27.026<9,92.2,0.01>-HP Frequency
+//slider23:Node6_Slope=2<0,15,1>-HP Slope
+
+
 slider1:Node1_Enabled=2<0,2,1{Off,Disabled,Enabled}>-LS ON
-slider2:Node1_Gain=0<-24.0,24.0,0.01>-LS Gain
+slider2:0<-24.0,24.0,0.01>-LS Gain
 slider3:Node1_Frequency=29.91<9,92.2,0.01>-LS Frequency
 slider4:Node1_Q=30.5<21,40.0,0.01>-LS Q
 //slider24:Node1_Slope=0<0,15,1>Filter1 Slope
 slider5:Node2_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P1 ON
-slider6:Node2_Gain=0<-24.0,24.0,0.01>-P1 Gain
+slider6:0<-24.0,24.0,0.01>-P1 Gain
 slider7:Node2_Frequency=36.456<9,92.2,0.01>-P1 Frequency
 slider8:Node2_Q=32.647<0,100.0,0.01>-P1 Q
 //slider24:Node1_Slope=0<0,15,1>Filter1 Slope
 slider9:Node3_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P2 ON
-slider10:Node3_Gain=0<-24.0,24.0,0.01>-P2 Gain
+slider10:0<-24.0,24.0,0.01>-P2 Gain
 slider11:Node3_Frequency=50.81<9,92.2,0.01>-P2 Frequency
 slider12:Node3_Q=32.647<0,100.0,0.01>-P2 Q
 //slider24:Node1_Slope=0<0,15,1>Filter1 Slope
 slider13:Node4_Enabled=2<0,2,1{Off,Disabled,Enabled}>-P3 ON
-slider14:Node4_Gain=0<-24.0,24.0,0.01>-P3 Gain
+slider14:0<-24.0,24.0,0.01>-P3 Gain
 slider15:Node4_Frequency=65.298<9,92.2,0.01>-P3 Frequency
 slider16:Node4_Q=32.647<0,100.0,0.01>-P3 Q
 //slider24:Node1_Slope=0<0,15,1>Filter1 Slope
 slider17:Node5_Enabled=2<0,2,1{Off,Disabled,Enabled}>-HS ON
-slider18:Node5_Gain=0<-24.0,24.0,0.01>-HS Gain
+slider18:0<-24.0,24.0,0.01>-HS Gain
 slider19:Node5_Frequency=89.981<9,92.2,0.01>-HS Frequency
 slider20:Node5_Q=30.563<21,40.0,0.01>-HS Q
 //slider24:Node1_Slope=0<0,15,1>Filter1 Slope
@@ -123,7 +153,7 @@ options:gfx_idle
 
 
 @init
-GEQ_VERSION = 0.935;
+GEQ_VERSION = 0.96;
 //0935 Removed filters_to_sliders() ind @serialize
 //093 Sensitivity!! +SC support, fixed threshold zoom issue
 //09 added auto bypass support
@@ -734,6 +764,7 @@ caller = 1;
   Node1_Type = Band_Type[0];
   Node1_Frequency = freq_to_per(Band_Frequency[0], 100);
   Node1_Gain = Band_Gain[0] - SC1_GR;
+  filter_dragging == 1 ? slider2 = node1_Gain;
   Node1_Q = q_to_per(Band_Q[0], 100);
   Node1_Slope = Band_Slope[0];
 
@@ -742,6 +773,7 @@ caller = 1;
   Node2_Type = Band_Type[1];
   Node2_Frequency = freq_to_per(Band_Frequency[1], 100);
   Node2_Gain = Band_Gain[1] - SC2_GR;
+  filter_dragging == 1 ? slider6 = node2_Gain;
   Node2_Q = q_to_per(Band_Q[1], 100);
   Node2_Slope = Band_Slope[1];
 
@@ -749,7 +781,8 @@ caller = 1;
   Node3_Group = Band_Group[2];
   Node3_Type = Band_Type[2];
   Node3_Frequency = freq_to_per(Band_Frequency[2], 100);
-  Node3_Gain = Band_Gain[2] - SC3_GR;
+   Node3_Gain = Band_Gain[2] - SC3_GR;
+   filter_dragging == 1 ? slider10 = node3_Gain;
   Node3_Q = q_to_per(Band_Q[2], 100);
   Node3_Slope = Band_Slope[2];
 
@@ -758,6 +791,7 @@ caller = 1;
   Node4_Type = Band_Type[3];
   Node4_Frequency = freq_to_per(Band_Frequency[3], 100);
   Node4_Gain = Band_Gain[3] - SC4_GR;
+  filter_dragging == 1 ? slider14 = node4_Gain;
   Node4_Q = q_to_per(Band_Q[3], 100);
   Node4_Slope = Band_Slope[3];
 
@@ -766,6 +800,7 @@ caller = 1;
   Node5_Type = Band_Type[4];
   Node5_Frequency = freq_to_per(Band_Frequency[4], 100);
   Node5_Gain = Band_Gain[4] - SC5_GR;
+  filter_dragging == 1 ? slider18 = node5_Gain;
   Node5_Q = q_to_per(Band_Q[4], 100);
   Node5_Slope = Band_Slope[4];
   
@@ -777,7 +812,7 @@ caller = 1;
   Node6_Q = q_to_per(Band_Q[5], 100);
   Node6_Slope = Band_Slope[5];
   );
-
+filter_dragging = 0;
 );
 
 /*
@@ -1277,6 +1312,11 @@ group_parameters();
   Block_Value = group_generics[7];
   Quality = group_generics[8];
 
+Node1_gain = slider2;
+Node2_Gain = slider6;
+Node3_Gain = slider10;
+Node4_Gain = slider14;
+node5_Gain = slider18;
 
 Node1_Group=0;//<0,2,1{Stereo,Mid,Side,Left,Right}>Filter1 Group
 Node1_Type=3;//<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>Filter1 Type
@@ -1450,6 +1490,7 @@ file_var(0, GEQ_VERSION);
 file_var(0, listen_node);
 file_var(0, SC_Listen);
 
+
     Node1_Gain = Node1_Gain_Set;
     Node2_Gain = Node2_Gain_Set;
     Node3_Gain = Node3_Gain_Set;
@@ -1460,7 +1501,7 @@ file_var(0, SC_Listen);
     file_var(0, Node3_Gain);
     file_var(0, Node4_Gain);
     file_var(0, Node5_Gain);
-    
+
 //file_var(0, SC1_Input);
 //file_var(0, SC2_Input);
 //file_var(0, SC3_Input);
@@ -4059,6 +4100,7 @@ function update_drag_nodes_position(x, y, diffx, diffy) local(i, mmx, mmy, posx,
     );
     i += 1;
   );
+  filter_dragging = 1;
  filters_to_sliders();
 );
 
