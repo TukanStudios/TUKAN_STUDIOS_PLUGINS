@@ -1,0 +1,1087 @@
+desc: Tape Recorder S2 (Tukan)
+
+
+
+filename:0,S2GFX/TAPE_HD.png
+filename:1,S2GFX/tapel_HD.png
+filename:2,S2GFX/VUMeterBIG.png
+filename:3,S2GFX/switch.png
+filename:4,S2GFX/TapeKnob.png
+filename:5,S2GFX/button.png
+filename:6,S2GFX/rled.png
+filename:7,S2GFX/S2_logo_dark.png
+filename:8,S2GFX/tapel_innen.png
+
+slider1:2<1,2,1>-Tape Speed
+slider2:50<0,100,1>-In Drive
+slider3:50<0,100,1>-Tape Age
+slider4:50<0,100,1>-Denoiser
+slider5:0<-20,20,0.01>-Output
+slider6:0<0,1,1>-Bypass
+/slider7:1<0.1,10,0.1>Zoom
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+import S2GFX/cookdsp.jsfx-inc
+import S2GFX/tk_lib.jsfx-inc
+import tk-vu_lib.jsfx-inc
+
+options:no_meter
+options:gfx_hz=60
+options:gmem=TukanTapeS2
+//options:gfx_idle
+
+//==============================================================================
+@init
+//==============================================================================
+TAPE_VERSION = 0.99;
+//0.99 removed options:gfx_idle
+//09 KEIN autobypass ;)
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+ext_noinit=1;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 1; while_stopped = 1;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+
+s2_numbers_of_sliders = 6;
+s2_numbers_of_generics = 0;
+group_generics = 1000000; // fuer group_generics[bis zu 200]
+sliders_old = group_generics + 16*200;
+generics_old = sliders_old + 16*64;
+
+
+ 
+mouse_sensivity();
+
+ 
+  //Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
+        KInDrive.parameter_config     (2,       50,        0,    100,   30,   370,  150, 200,    1,  4);
+        KTapeAge.parameter_config     (3,       50,         0,    100,   130,  430,  150, 200,    1,  4);        
+        KDenoiser.parameter_config    (4,       50,        0,    100,   480,  430,  150, 200,    1,  4); 
+        KOutput.parameter_config      (5,       0,         -20,    20,   580,  370,  150, 200,    1,  4); 
+        BTapeSpeed.button_config(1,0,0);
+        BBypass.button_config(6, 650, 5);
+        button = 5; rled = 6;
+        
+    function deg(r)
+                  ( r / $pi * 180 );
+    function rad(d)
+                  ( d * $pi / 180 );
+  
+  
+function re_init () (
+//set limits
+n = 100000;
+n2 = 2*n;
+n3 = 3*n;
+n4 = 4*n;
+
+//push ar0
+i = 0;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar1
+i = n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar2
+i = 2*n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//push ar3
+i = 3*n;
+loop(n,
+m[i] = (rand(2)-1);
+i += 1;
+);
+
+//sys vars
+pi = 3.1415926535897932384626433832795;
+sr = srate;
+
+//lp coeff
+lpk0 = 0.121;
+lpk1 = -0.56; 
+
+//hp coeff
+// - at 30Hz
+hpk1 = exp(-188.49555921538759430775860299677/sr);
+hpk0 = 1 - hpk1;
+
+//nf coeff
+// - at 2000Hz
+nfk1 = exp(-12566.370614359172953850573533118/sr);
+nfk0 = 1 - nfk1;
+
+//ls coeff
+// - at 300Hz
+lsk0 =  exp(-1884.9555921538759430775860299677/sr);
+lsk1 = 0; //1 - lsk0;
+
+//begin
+i = 0;
+
+  
+  HP0.biquad(50, 0.7, 1);
+  HP1.biquad(50, 0.7, 1);
+  
+  LS0.EQ(150, 0.4, 3, 1);
+  LS1.EQ(150, 0.4, 3, 1);
+  
+  HS0.EQ(3500, 0.4, -2, 2);
+  HS1.EQ(3500, 0.4, -2, 2);
+  
+  LP0.biquad(9000, 1.04, 0);
+  LP1.biquad(9000, 1.04, 0);
+  
+  mn_meter_reinit(61);
+  meter.mn_meter_init();
+  );
+  re_init();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+parameters_update_on = 0;
+function parameters_update () (
+parameters_update_on = 1;
+
+
+KInDrive.Parameter_Boundaries();
+KTapeAge.Parameter_Boundaries();
+KDenoiser.Parameter_Boundaries();
+KOutput.Parameter_Boundaries();
+
+// group_generics[1] = SCOPE;
+// group_generics[2] = in_SCOPE;
+// group_generics[3] = out_SCOPE;
+// group_generics[4] = gr_scope;
+
+    group_parameters();
+    
+    
+tape = slider3; // 0 bis 100
+tapespeed = floor(slider1+0.5); // 1 oder 2
+denaoiser = db2ratio(-slider12);
+denoiser_abs = slider4;
+indrive = slider2;
+output_Pot = slider5;
+Bypass = slider6;
+/*
+vslider1 Saturation amount 0 - 100
+vslider2 Fluctuation 0 - 100
+vslider3 Noise floor in bits
+vslider4 output in db
+vslider5 polarity
+5 & 7 GFX Tapereels
+Slider8 = tapespeed
+slider9 gestorben (Bass boost)
+slider10 In Drive
+slider11 Tape age
+slider12 Denoiser
+slider13 Output %?
+*/
+
+  tapespeed >1 ?(
+  vslider1 = 30+indrive*0.7;
+  vslider2 = 10+tape*0.85;
+  vslider4 = (-11 + tape*0.02)+((100-indrive)*0.03);
+  vslider3 = (10 - tape*0.03)+((denoiser_abs/400)*(32-(10 - tape*0.03)));
+  vslider9 = 0.03 + ((tape/100)*0.4);
+  ) : (
+  vslider1 = 60+indrive*0.4;
+  vslider2 = 30+tape*0.7; //30+tape*0.3;
+  vslider4 = (-11 + tape*0.02)+((100-indrive)*0.03);
+  vslider3 = (8 - tape*0.03)+((denoiser_abs/400)*(32-(10 - tape*0.03)));
+  vslider9 = 0.2 + ((tape/100)*0.32);
+  );
+
+
+  
+//drive
+drv = vslider1/200+0.001;
+pidrv = pi*drv;
+sinpidrv = 1/sin(pidrv);
+
+//ranges
+r1 = vslider2/300;
+r2 = 1/2^(vslider3);
+
+//outgain
+outgain = 10^(vslider4/20);
+outgain *= db2ratio(output_Pot);
+
+
+// SET FILTERS
+tapespeed == 1 ? (
+HP_freq = 57;
+HP_Q = 0.7;
+LP_freq = 8647 - 2352*(tape/100); // hihi
+LP_Q = 1.05 - 0.3 * (tape/100);
+LS_Freq = 187 + 42 * (tape/100);
+LS_Q = 0.38;
+LS_Gain = 1.83 + 1.25 * tape/100;
+HS_Freq = 4563;
+HS_Q = 0.4;
+HS_Gain = 1.8 * (1-(tape/100));
+):(
+HP_freq = 39;
+HP_Q = 1.03;
+LP_freq = 11847 - 1854*(tape/100); // hihi
+LP_Q = 0.93 - 0.3 * (tape/100);
+LS_Freq = 187 + 42 * (tape/100);
+LS_Q = 0.28;
+LS_Gain = 0.3 + 1.25 * tape/100;
+HS_Freq = 4563;
+HS_Q = 0.4;
+HS_Gain = 2.13 * (1-(tape/100));
+);
+HP0.biquad_set_freq(HP_freq);
+HP1.biquad_set_freq(HP_freq);
+LP0.biquad_set_freq(LP_freq);
+LP1.biquad_set_freq(LP_freq);
+HP0.biquad_set_q(HP_q);
+HP1.biquad_set_q(HP_q);
+LP0.biquad_set_q(LP_q);
+LP1.biquad_set_q(LP_q);
+LS0.eq_set_freq(LS_freq);
+LS1.eq_set_freq(LS_freq);
+LS0.eq_set_q(LS_q);
+LS1.eq_set_q(LS_q);
+LS0.eq_set_boost(LS_gain);
+LS1.eq_set_boost(LS_gain);
+HS0.eq_set_freq(HS_freq);
+HS1.eq_set_freq(HS_freq);
+HS0.eq_set_q(HS_q);
+HS1.eq_set_q(HS_q);
+HS0.eq_set_boost(HS_gain);
+HS1.eq_set_boost(HS_gain);
+//// ENDE SET FILTERS
+
+caller = 0;
+parameters_update_on = 0;
+);
+
+  
+  
+  
+  
+  
+  
+//==============================================================================
+@slider
+//==============================================================================
+caller = 1;
+
+
+
+
+
+
+
+
+
+
+@serialize
+file_var(0, while_playing);
+file_var(0, while_recording);
+file_var(0, while_stopped);
+file_var(0, link_group);
+file_var(0, TAPE_VERSION);
+
+seriloop = 0;
+loop(64*16 + 27 + 16,
+file_var(0, gmem[seriloop]);
+seriloop += 1;
+);
+
+seriloop = 0;
+loop(200*16,
+file_var(0, group_generics[seriloop]);
+seriloop += 1;
+);
+
+
+
+
+
+
+
+
+//==============================================================================
+@block
+//==============================================================================
+//average amplitude
+avs = (s0+s1)/2; 
+
+avsl = s0;
+svdr = s1;
+//interpolate ar2 values
+tgt_min2 = avs*m[i+2*n]*r1;
+d_min2 = (tgt_min2-src_min2)/samplesblock;
+min2 = src_min2;
+src_min2 = tgt_min2;
+
+//interpolate ar3 values
+tgt_min3 = avs*m[i+3*n]*r1;
+d_min3 = (tgt_min3-src_min3)/samplesblock;
+min3 = src_min3;
+src_min3 = tgt_min3;
+
+//average for gfx
+min_av = (tgt_min2+tgt_min3)/2;
+
+pdc_delay = 0;
+pdc_bot_ch = 0;
+pdc_top_ch = 2;
+
+srate_old != srate ? (re_init(); caller = 1);
+srate_old = srate;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==============================================================================
+@sample
+//==============================================================================
+
+S2_sample_on = 1;
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+
+
+playstates();
+
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+
+bypass ? process = 0;
+
+
+process == 1 ? (
+
+//spl0 += (rand(2)-1) * db2ratio(-99);
+//spl1 += (rand(2)-1) * db2ratio(-99);
+
+s0 = spl0;
+s1 = spl1;
+player = play_State;
+//seeds
+min0 = m[i]*r2;
+min1 = m[i+n]*r2;
+min2 += d_min2;
+min3 += d_min3;
+min2s = min2*0.05;
+min3s = min3*0.05;
+min2h = min2*0.005;
+min3h = min3*0.005;
+min2d = min2*15;
+min3d = min3*15;
+
+vn=2^(-90/6);
+noise=rand(2)-1;
+s0=s0+noise*0.00125; //eigentlich *vn
+s1=s1+noise*0.00125;
+
+
+//floor reduction & waveshaper
+// (s0 && s1) == 0 ? (
+ // wsoutl = s0;
+ // wsoutr = s1;
+//) : (
+  //fr
+  nfout0 = nfk0*min0 + nfk1*nfout0;
+  nfout1 = nfk0*min1  + nfk1*nfout1;
+  inl = spl0 + nfout0;
+  inr = spl1 + nfout1;
+  //waveshaper
+  wsoutl = sin(pidrv*inl*2)*(sinpidrv+min2d);
+  wsoutr = sin(pidrv*inr*2)*(sinpidrv+min3d);
+//);
+
+//gain = max(abs(wsoutl),abs(wsoutr));
+
+//counter
+i += 1;
+i > n ? i = 0;
+
+//output
+spl0 = wsoutl*outgain;
+spl1 = wsoutr*outgain;
+
+
+spl0 = HP0.biquad_do(spl0);
+spl1 = HP1.biquad_do(spl1);
+
+spl0 = LP0.biquad_do(spl0);
+spl1 = LP1.biquad_do(spl1);
+
+spl0 = LS0.EQ_do(spl0);
+spl1 = LS1.EQ_do(spl1);
+
+spl0 = HS0.EQ_do(spl0);
+spl1 = HS1.EQ_do(spl1);
+
+
+play_state == 1 || play_state == 5 ? (
+Lreel_speed = 4 / tapespeed;
+Lreel_spl += 1;
+Lreel_spl >= srate * LReel_speed ? (
+Lreel_spl = 0;
+);
+
+
+RReel_speed = 3.2 / tapespeed;
+RReel_spl += 1;
+RReel_spl >= srate * RReel_speed ? (
+RReel_spl = 0;
+);
+
+);
+
+abs(spl0) > abs(spl1) ? meter_feed = spl0 : meter_feed = spl1;
+
+meter.mnmetersample(meter_feed*db2ratio(-0.5)*db2ratio(15));
+
+):( // process
+meter.mnmetersample(0);
+
+); // process
+
+
+
+
+
+@gfx 700 540
+s2_zoom_X = gfx_w / 700;
+s2_zoom_y = gfx_h / 540;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+
+
+
+gfx_ext_flags == 0 ? (
+ 
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+gfx_r = gfx_b = gfx_g = 0;
+meter.mnmetergfx(zoom, 245*zoom, 385*zoom, 2);
+gfx_x= 0;gfx_y = 40 * zoom; gfx_a = 1;
+gfx_blit(0,zoom*0.5,0);
+
+//Lreel = 90 - floor(91 * (Lreel_spl / (srate*LReel_speed)));
+RReel = RReel_spl / (srate*RReel_speed);
+Lreel = Lreel_spl / (srate*LReel_speed);
+gfx_x = -70*zoom;
+gfx_y = -110*zoom;
+gfx_blit(1,zoom*0.5, 2*$pi * -LReel, 0 , 0, 800, 800);
+gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
+
+gfx_x = +350*zoom;
+gfx_y = -110*zoom;
+gfx_blit(1,zoom*0.5,2*$pi * -RReel, 0,0, 800, 800);
+gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
+
+
+  gfx_x =315*zoom+2*zoom; gfx_y = 195*zoom-10*zoom;
+  gfx_drawstr("38 cm/s");
+  gfx_x = 315*zoom+1*zoom; gfx_y =195*zoom+50*zoom;
+  gfx_drawstr("19 cm/s");
+gfx_x = 315*zoom; gfx_y = 195*zoom;
+gfx_blit(3,zoom*0.5,0, 0, 120 * (tapespeed-1), 96, 120);
+
+
+//  gfx_x =605*zoom+16*zoom; gfx_y = 465*zoom-10*zoom;
+//  gfx_drawstr("ON");
+//  gfx_x = 605*zoom+1*zoom; gfx_y =465*zoom+50*zoom;
+//  gfx_drawstr("BYPASS");
+//gfx_x = 605*zoom; gfx_y = 465*zoom;
+//gfx_blit(3,zoom*0.5,0, 0, 120 * (1-bypass), 96, 120);
+
+
+
+black();
+Kindrive.knob();
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ #klabel = "IN DRIVE"; gfx_measurestr(#klabel, klw, klh); KInDrive.knoblabelposition(klw); gfx_drawstr(#klabel);
+ #kmeasure = "%"; gfx_measurestr(#kmeasure, klw, klh); KInDrive.knobmeasureposition(klw, klh); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+ gfx_setfont(2,"Arial",10*zoom,'b');
+ #klabel = "0"; gfx_measurestr(#klabel, klw, klh); KInDrive.labelposition(1,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "25"; gfx_measurestr(#klabel, klw, klh); KInDrive.labelposition(3,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "50"; gfx_measurestr(#klabel, klw, klh); KInDrive.labelposition(5,klw, klh); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+ #klabel = "75"; gfx_measurestr(#klabel, klw, klh); KInDrive.labelposition(7,klw, klh); gfx_drawstr(#klabel); 
+ #klabel = "100"; gfx_measurestr(#klabel, klw, klh); KInDrive.labelposition(9,klw, klh); gfx_drawstr(#klabel); 
+ gfx_setfont(1,"Arial",12*zoom,'b');  
+ 
+KTapeAge.knob();
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  #klabel = "TAPE"; gfx_measurestr(#klabel, klw, klh); KTapeAge.knoblabelposition(klw); gfx_drawstr(#klabel);
+  #kmeasure = "%"; gfx_measurestr(#kmeasure, klw, klh); KTapeAge.knobmeasureposition(klw, klh); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+  gfx_setfont(2,"Arial",10*zoom,'b');
+  #klabel = "new"; gfx_measurestr(#klabel, klw, klh); KTapeAge.labelposition(1,klw, klh); gfx_drawstr(#klabel);
+  #klabel = "ok"; gfx_measurestr(#klabel, klw, klh); KTapeAge.labelposition(3,klw, klh); gfx_drawstr(#klabel);
+  #klabel = "worn"; gfx_measurestr(#klabel, klw, klh); KTapeAge.labelposition(5,klw, klh); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+  #klabel = "dirt"; gfx_measurestr(#klabel, klw, klh); KTapeAge.labelposition(7,klw, klh); gfx_drawstr(#klabel); 
+  #klabel = "old"; gfx_measurestr(#klabel, klw, klh); KTapeAge.labelposition(9,klw, klh); gfx_drawstr(#klabel); 
+  gfx_setfont(1,"Arial",12*zoom,'b');
+
+KDenoiser.knob();
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ #klabel = "DENOISER"; gfx_measurestr(#klabel, klw, klh); KDenoiser.knoblabelposition(klw); gfx_drawstr(#klabel);
+ #kmeasure = "%"; gfx_measurestr(#kmeasure, klw, klh); KDenoiser.knobmeasureposition(klw, klh); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+ gfx_setfont(2,"Arial",10*zoom,'b');
+ #klabel = "0"; gfx_measurestr(#klabel, klw, klh); KDenoiser.labelposition(1,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "25"; gfx_measurestr(#klabel, klw, klh); KDenoiser.labelposition(3,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "50"; gfx_measurestr(#klabel, klw, klh); KDenoiser.labelposition(5,klw, klh); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+ #klabel = "75"; gfx_measurestr(#klabel, klw, klh); KDenoiser.labelposition(7,klw, klh); gfx_drawstr(#klabel); 
+ #klabel = "100"; gfx_measurestr(#klabel, klw, klh); KDenoiser.labelposition(9,klw, klh); gfx_drawstr(#klabel); 
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ 
+ 
+KOutput.knob();
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ #klabel = "OUTPUT"; gfx_measurestr(#klabel, klw, klh); KOutput.knoblabelposition(klw); gfx_drawstr(#klabel);
+ #kmeasure = "dB"; gfx_measurestr(#kmeasure, klw, klh); KOutput.knobmeasureposition(klw, klh); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+ gfx_setfont(2,"Arial",10*zoom,'b');
+ #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(1,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(3,klw, klh); gfx_drawstr(#klabel);
+ #klabel = "0"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(5,klw, klh); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+ #klabel = "+10"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(7,klw, klh); gfx_drawstr(#klabel); 
+ #klabel = "+20"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(9,klw, klh); gfx_drawstr(#klabel); 
+ gfx_setfont(1,"Arial",12*zoom,'b'); 
+
+    
+red();
+gfx_x = 290*zoom; gfx_y = 280*zoom;
+
+//hours = floor(play_position / 3600);
+//minutes = floor((play_position / 60)%60)
+
+                 aa=0;
+                 hours=0;
+                 aaa=floor(play_position);
+                 while (aaa >= 60) (
+                 aa += 1;
+                 aaa -= 60; 
+                 );
+                 while (aa >= 60) (
+                 hours+=1;
+                 aa -= 60;
+                 );
+                 #playtime = sprintf(#, "%02d" ,hours);
+                 #playtime += ":";
+#playtime += sprintf(#, "%02d",aa); // %.0f
+#playtime += ":";
+#playtime += sprintf(#, "%02d" ,aaa);
+                 //gfx_drawnumber(aa,0);
+                 //gfx_drawstr(" : ");
+                 //gfx_drawnumber(aaa,0 );
+
+
+gfx_drawstr(#playtime, 1, 390*zoom, 295*zoom);
+    
+    
+    
+    
+    
+black();
+gfx_rect(0,0,gfx_w,40*zoom);
+gfx_rect(700*zoom,0,gfx_w-700*zoom,gfx_h); 
+    
+    BBypass.button();
+    gfx_x = bbypass.xIn*zoom - 48*zoom; gfx_y = bbypass.yIn*zoom+11*zoom;
+    lightgrey(); gfx_drawstr("Bypass");
+    
+    
+    
+    
+    
+    
+gfx_x = 585*zoom; gfx_y = 480*zoom;
+gfx_blit(7,zoom/2,0);
+    
+    
+    
+    
+    
+    //gfx_roundrect(332*zoom, 195*zoom,15*zoom, 50*zoom,0);
+    
+    
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+    
+    
+    
+          !Number_input ? (
+          
+    
+    
+          mouseClick == 1 ? (
+          KInDrive.k_collision() ? KInDrive.dragstart();
+          KTapeAge.k_collision() ? (KTapeAge.dragstart());
+          KDenoiser.k_collision() ? (KDenoiser.dragstart());
+          KOutput.k_collision() ? (KOutput.dragstart());
+          BBypass.b_collision() ? (slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button(););
+    g_collision(332*zoom, 195*zoom,15*zoom, 50*zoom) ? (slider1 == 1 ? slider1 = 2 : slider1 = 1; BTapeSpeed.quicklink_button(); caller = 1);
+    
+          ); 
+          
+          mouseclick == -1 ? (
+          KInDrive.dragstop();
+          KTapeAge.dragstop();
+          KDenoiser.dragstop();
+          KOutput.dragstop();
+          );
+          
+          
+          mouse_wheel ? 
+              (
+          KInDrive.k_collision() ? KInDrive.potwheel();
+          KTapeAge.k_collision() ? KTapeAge.potwheel();
+          KDenoiser.k_collision() ? KDenoiser.potwheel();
+          KOutput.k_collision() ? KOutput.potwheel();
+               mouse_wheel=0;
+               caller = 1;
+              );
+           
+           gfx_a=1;
+          KInDrive.dragging ? (KInDrive.potdrag(); KInDrive.readout();caller = 1;);
+          KTapeAge.dragging ? (KTapeAge.potdrag();KTapeAge.readout();caller = 1;);
+          KDenoiser.dragging ? (KDenoiser.potdrag();KDenoiser.readout();caller = 1;);
+          KOutput.dragging ? (KOutput.potdrag();KOutput.readout();caller = 1;);    
+    
+          
+         Link_Group == 0 ? (
+         gmem[16*64 + 3] == 0 ? linkstart = 0;
+         !mouse_cap ? (
+         gmem[16*64 + 3] == 1 ? (linkstart == 0 ? link_old = slider(gmem[16*64 + 1]); linkstart = 1);
+         gmem[16*64 + 3] == 1 ? (
+              tmp_val = link_old +  gmem[16*64 + 2];
+         slider(gmem[16*64 + 1]) = tmp_val;
+         slider_automate(slider(gmem[16*64 + 1]));
+         caller = 1;
+         );
+         gmem[16*64 + 3] == 2 ? (
+         slider(gmem[16*64 + 1]) =  gmem[16*64 + 2];
+         caller = 1;
+         );
+         );
+         );
+         
+         
+         
+         ); // !number_input
+    
+         
+         
+        
+         
+         
+         gfx_a=1;
+         number_input ? number_input_show();
+         //OEQ_NI == 1 ? number_input
+         number_input_invalid = max(0,number_input_invalid-1);
+         number_input_invalid ? ( 
+         gfx_r=gfx_g=gfx_b=0;
+         gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+         gfx_r=0;gfx_g=1;gfx_b=0;
+         gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+         red();
+         gfx_rect(zoom*number_input_x + gfx_texth+5,zoom*number_input_y, 200*zoom - (gfx_texth+5), gfx_texth+5);
+         gfx_r=gfx_g=gfx_b=0.7;
+         gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+         gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+         white();
+         gfx_drawstr("NO VALID INPUT!");
+         );
+       
+    ////////////////////////////////////////////////////////////////////////////////////////////// ENDE MAUS STEUERUNG
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+
+ 
+ 
+ 
+  ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+  last_clicked_item = -1;
+  Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+  menu_x = 5; menu_y =5;
+ 
+ gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+ //gfx_blit(menu,zoom/2,0);
+ lightgrey(); //red();
+ gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+ gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+ gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+ gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+ 
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 15*zoom;
+ gfx_drawstr("TUKAN STUDIOS  -  TAPE RECORDER "); 
+ gfx_setfont(1,"Arial",12*zoom,'i');
+ lakeblue(); gfx_drawstr(" SERIES 2   ");
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ 
+ 
+ 
+ link_group ? (
+   rgb_palette(Link_group);// gfx_a = 0.7;
+   gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+ );
+ gfx_a = 1;
+ 
+ 
+  mouseClick ? (
+   g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+    gfx_x = menu_x*zoom;
+    gfx_y = (menu_y+20)*zoom;
+     
+      #item2 =">Processing|";#allitems = #item2;
+     while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+     while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+     while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+ 
+     mnu_grp_loop = 1;
+     loop(16,
+ 
+       mnu_grp_loop == 16 ? #item2 += "<";
+       gmem[16*64 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+         mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                 #item2 = "!Joins Group ";
+         ):(
+             #item2 = "Add to Group ";
+         );
+       ):(
+         #item2 = "Start Group ";
+       );
+     mnu_grp_loop == 1 ? #item2 += "01";
+     mnu_grp_loop == 2 ? #item2 += "02";
+     mnu_grp_loop == 3 ? #item2 += "03";
+     mnu_grp_loop == 4 ? #item2 += "04";
+     mnu_grp_loop == 5 ? #item2 += "05";
+     mnu_grp_loop == 6 ? #item2 += "06";
+     mnu_grp_loop == 7 ? #item2 += "07";
+     mnu_grp_loop == 8 ? #item2 += "08";
+     mnu_grp_loop == 9 ? #item2 += "09";
+     mnu_grp_loop == 10 ? #item2 += "10";
+     mnu_grp_loop == 11 ? #item2 += "11";
+     mnu_grp_loop == 12 ? #item2 += "12";
+     mnu_grp_loop == 13 ? #item2 += "13";
+     mnu_grp_loop == 14 ? #item2 += "14";
+     mnu_grp_loop == 15 ? #item2 += "15";
+     mnu_grp_loop == 16 ? #item2 += "16";
+     
+     #item2 += "|";
+     #allitems += #item2; //sprintf(#temp, '%f',3); 
+     mnu_grp_loop += 1;
+     );
+     
+     link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+ 
+     //#allitems += "<#MENU|";
+    #allitems += ">Scaling|";
+    zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+    zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+  
+ 
+    
+    
+    #allitems += "|Show Info/Help";
+    last_clicked_item = gfx_showmenu(#allitems);
+  );
+  );
+ 
+ 
+ 
+ 
+  
+  last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+  last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+  last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+ 
+   cgroup = last_clicked_item - 3;
+  last_clicked_item > 3 && last_clicked_item < 20 ? (
+     Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+         gmem[16*64 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+             //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+             gmem[16*64 + 10 + cgroup] = 1;Link_Group = cgroup;group_update();
+         ):(
+             Link_Group = cgroup;// Gruppe teilnehmen
+         );
+     ):( //Eigene Gruppe angeklickt
+           Link_Group = 0;
+     );
+  
+  );
+  
+   cgroup = last_clicked_item - 3 - 16;
+  last_clicked_item == 20 ? (
+    gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
+  );
+  
+  
+  
+  
+  last_clicked_item == 21 ? zoom_off = 0;
+  last_clicked_item == 22 ? zoom_off = 1;
+ 
+  
+  last_clicked_item == 23 ? helpshow = 1;
+  
+  helpshow == 1 ? (
+  gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+  gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+  menu_x +=3;
+  gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+  gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+  gfx_drawstr("TUKAN STUDIOS TAPE RECORDER (Series 2)");
+  gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+  gfx_drawstr("Version: "); gfx_drawnumber(TAPE_VERSION,2);
+  gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("Mouse modifier options:");
+  gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("Fine tune knobs: [shift]");
+  gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+  gfx_drawstr("Reset knobs: [ctrl] ([cmd] on mac)");
+  gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+  gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+  gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+  gfx_drawstr("Activate number typing: [alt]+[shift]");
+  );
+  
+  
+  ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+ 
+ 
+ ): gfx_ext_flags == 1 ? (
+ lightgrey();
+ gfx_rect(0,0,gfx_w, gfx_h);
+ black(); gfx_a = 0.8;
+ gfx_rect(0,0,gfx_w, gfx_w*0.55);
+ gfx_a = 1;
+ 
+ RReel = RReel_spl / (srate*RReel_speed);
+ Lreel = Lreel_spl / (srate*LReel_speed);
+ gfx_x = -gfx_w/4;
+ gfx_y = -gfx_w/4; //200*(gfx_w / 800);
+ gfx_blit(1,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+ gfx_x = gfx_w - gfx_w/2;
+ gfx_y = -gfx_w/4; //200*(gfx_w / 800);
+ gfx_blit(1,gfx_w/1100, 2*$pi * -RReel, 0 , 0, 800, 800);
+ 
+ gfx_x = gfx_w / 20;
+ gfx_y = gfx_w *0.56;
+ 
+ zoom = gfx_w / 8;
+ gfx_setfont(1,"Arial",zoom,'b');
+ 
+ gfx_drawstr("Tape: ");
+ slider3 < 20 ? (
+ gfx_drawstr("NEW");
+ ): slider3 < 40 ? (
+ gfx_drawstr("OK");
+ ): slider3 < 60 ? (
+ gfx_drawstr("WORN");
+ ): slider3 < 80 ? (
+ gfx_drawstr("DIRT");
+ ):(
+ gfx_drawstr("OLD");
+ );
+ 
+ gfx_x = gfx_w / 20;
+ gfx_y = gfx_w *0.56 + zoom * 1.2;
+ gfx_drawstr("Speed: ");
+ tapespeed == 2 ? (
+ gfx_drawstr("38 cm/s");
+ ):(
+ gfx_drawstr("19 cm/s");
+ );
+ 
+ 
+ #mini_group = sprintf(#, "%i", Link_Group);
+ gfx_measurestr(#mini_group, mini_w, mini_h);
+ gfx_x = gfx_w/2 - mini_w/2; gfx_y = gfx_w*0.4;
+ Link_Group ? (
+   rgb_palette(Link_group);
+   gfx_drawstr(#mini_group);
+ );
+ 
+ 
+ bypass == 1 ? (
+ black(); gfx_a=0.4; gfx_rect(0,0,gfx_w,gfx_h);
+ lightgrey();
+ gfx_x=gfx_w / 4;gfx_y=gfx_h/1.5 - mini_h - 2;gfx_a=1;
+ gfx_drawstr("BYPASS");
+ );
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+       mouseClick == 1 ? (
+       //KInDrive.k_collision() ? KInDrive.dragstart();
+       g_collision(0, gfx_w *0.56,gfx_w, 1.2*zoom) ? (KTapeAge.dragstart());
+       //KDenoiser.k_collision() ? (KDenoiser.dragstart());
+       //KOutput.k_collision() ? (KOutput.dragstart());
+       shift ? (slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button(););
+       g_collision(0, gfx_w *0.56 + zoom * 1.2,gfx_w, 1.2*zoom) ? (slider1 == 1 ? slider1 = 2 : slider1 = 1; BTapeSpeed.quicklink_button(); caller = 1);
+ 
+       ); 
+       
+       mouseclick == -1 ? (
+       KInDrive.dragstop();
+       KTapeAge.dragstop();
+       KDenoiser.dragstop();
+       KOutput.dragstop();
+       );
+       
+       
+       mouse_wheel ? 
+           (
+       //KInDrive.k_collision() ? KInDrive.potwheel();
+       KTapeAge.k_collision() ? KTapeAge.potwheel();
+       //KDenoiser.k_collision() ? KDenoiser.potwheel();
+       //KOutput.k_collision() ? KOutput.potwheel();
+            mouse_wheel=0;
+            caller = 1;
+           );
+        
+        gfx_a=1;
+       //KInDrive.dragging ? (KInDrive.potdrag(); KInDrive.readout();caller = 1;);
+       KTapeAge.dragging ? (KTapeAge.potdrag();KTapeAge.readout();caller = 1;);
+       //KDenoiser.dragging ? (KDenoiser.potdrag();KDenoiser.readout();caller = 1;);
+       //KOutput.dragging ? (KOutput.potdrag();KOutput.readout();caller = 1;);    
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ ); //ext flags
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ S2_sample_on == 0 ? (
+ gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+ group_check_gfx();
+ caller == 1 ? (
+   parameters_update_on == 0 ? (
+     parameters_update();
+   );
+ );
+ );
+ S2_sample_on = 0;
