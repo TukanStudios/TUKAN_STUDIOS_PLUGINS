@@ -1,6 +1,5 @@
 desc:SumChannel S2 (Tukan)
 //author: Tukan
-//version 1.1
 
 slider1:0<0,16,1>-1 SumThing Group
 slider2:2<0,3,1{Off, Desk1, Desk2, Desk3}>-2 SumThing Mode
@@ -100,7 +99,7 @@ filename:28,S2GFX/SC_VU3.png
 options:No_meter
 options:gfx_hz=60
 options:gmem=TukanSumChanelS2
-options:gfx_idle
+//options:gfx_idle
 
 in_pin:L in
 in_pin:R in 
@@ -118,7 +117,8 @@ import S2GFX/cookdsp.jsfx-inc
 import S2GFX/VT_Filters.jsfx-inc
 
 @init
-sumChan_VERSION = 0.96;
+sumChan_VERSION = 0.99;
+//0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
 ext_nodenorm = 1;

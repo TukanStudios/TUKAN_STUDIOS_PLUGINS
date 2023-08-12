@@ -19,7 +19,6 @@ slider16:0<0,2,1{OFF, L Master, R Master}>-Parameter Link
 slider17:0<0,1,1{OFF, ON}>-Sidechain
 slider18:1<0,1,1{OFF, ON}>-Input Transistors
 slider19:1<0,1,1{OFF, ON}>-Output Transistors
-/slider20:1<0.1,10,0.1>Zom
 
 
 in_pin:L in
@@ -31,15 +30,22 @@ out_pin:L out
 out_pin:R out
 
 filename:0,S2GFX/VariBack.png
-filename:1,S2GFX/BusCompVUBack.png
-filename:2,S2GFX/BusCompVU.png
-filename:3,S2GFX/S2_bigssl.png
+filename:1,S2GFX/VU_Frame.png
+//BusCompVUBack.png
+filename:2,S2GFX/SC_VU3.png
+//BusCompVU.png
+filename:3,S2GFX/SC_SSLB.png
+//S2_bigssl.png
 filename:4,S2GFX/switch.png
 filename:5,S2GFX/oled.png
 filename:6,S2GFX/S2_logo.png
 filename:7,S2GFX/button.png
 filename:8,S2GFX/rled.png
-filename:9,S2GFX/S2_bigsslg.png
+filename:9,S2GFX/SC_SSLG.png
+//S2_bigsslg.png
+
+/filename:1,S2GFX/SC_SSLR.png
+/filename:2,S2GFX/SC_SSLG.png
 
 import S2GFX/tk_lib.jsfx-inc
 import S2GFX/tk-vu_lib.jsfx-inc
@@ -51,7 +57,8 @@ options:gmem=TukanBusCompS2
 @init
 
 
-BusComp_VERSION = 0.9;
+BusComp_VERSION = 0.99;
+//0.99 checked if removed options:gfx_idle
 //09 added auto bypass support
 
 ext_tail_size = -1;
@@ -100,19 +107,19 @@ gfx_a = 1;
 R_Knob_offset = 320;
 
   //Parameter_config           (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
-  KLThresh.parameter_config     (1,       -10,        -30,    0,  80,   200, 150,    200,    0.6,       3);
-  KLRatio.parameter_config      (2,       4,           1,    12,  180,  200, 150,    200,    0.6,       3);
-  KLAtt.parameter_config        (3,       5,        0.05,    31,  80,   300, 150,    200,    0.6,       9);
-  KLRel.parameter_config        (4,       100,         50, 1501,  180,  300, 150,    200,    0.6,       9);
-  KLOutput.parameter_config     (5,       0,            0,   24,  80,   400, 150,    200,    0.6,       3);
-  KLHPF.parameter_config        (6,       0,            0,  400,  180,  400, 150,    200,    0.6,       3);
+  KLThresh.parameter_config     (1,       -10,        -30,    0,  80,   200, 120,    200,    0.8,       3);
+  KLRatio.parameter_config      (2,       4,           1,    12,  180,  200, 120,    200,    0.8,       3);
+  KLAtt.parameter_config        (3,       5,        0.05,    31,  80,   300, 120,    200,    0.8,       9);
+  KLRel.parameter_config        (4,       100,         50, 1501,  180,  300, 120,    200,    0.8,       9);
+  KLOutput.parameter_config     (5,       0,            0,   24,  80,   400, 120,    200,    0.8,       3);
+  KLHPF.parameter_config        (6,       0,            0,  400,  180,  400, 120,    200,    0.8,      3);
 
-  KRThresh.parameter_config     (9,       -10,        -30,    0,   R_Knob_offset+80,   200, 150,    200,    0.6,       3);
-  KRRatio.parameter_config      (10,       4,           1,    12,  R_Knob_offset+180,  200, 150,    200,    0.6,       3);
-  KRAtt.parameter_config        (11,       5,        0.05,    31,  R_Knob_offset+80,   300, 150,    200,    0.6,       9);
-  KRRel.parameter_config        (12,       100,         50, 1501,  R_Knob_offset+180,  300, 150,    200,    0.6,       9);
-  KROutput.parameter_config     (13,       0,            0,   24,  R_Knob_offset+80,   400, 150,    200,    0.6,       3);
-  KRHPF.parameter_config        (14,       0,            0,  400,  R_Knob_offset+180,  400, 150,    200,    0.6,       3);
+  KRThresh.parameter_config     (9,       -10,        -30,    0,   R_Knob_offset+80,   200, 120,    200,    0.8,       3);
+  KRRatio.parameter_config      (10,       4,           1,    12,  R_Knob_offset+180,  200, 120,    200,    0.8,       3);
+  KRAtt.parameter_config        (11,       5,        0.05,    31,  R_Knob_offset+80,   300, 120,    200,    0.8,       9);
+  KRRel.parameter_config        (12,       100,         50, 1501,  R_Knob_offset+180,  300, 120,    200,    0.8,       9);
+  KROutput.parameter_config     (13,       0,            0,   24,  R_Knob_offset+80,   400, 120,    200,    0.8,       3);
+  KRHPF.parameter_config        (14,       0,            0,  400,  R_Knob_offset+180,  400, 120,    200,    0.8,       3);
 
   BLBypass.button_config(7, 80, 500);
   BLLinkMaster.button_config(16, 180, 500);
@@ -1254,9 +1261,9 @@ zoom_off == 1 ? zoom = gfx_ext_retina;
  
 gfx_ext_flags == 0 ? (
 
-  KLThresh.parameter_config     (1,       -10,        -30,    0,  80,   200, 150,    200,    0.6,       3);
-  KLRatio.parameter_config      (2,       4,           1,    12,  180,  200, 150,    200,    0.6,       3);
-  KRThresh.parameter_config     (9,       -10,        -30,    0,   R_Knob_offset+80,   200, 150,    200,    0.6,       3);
+  KLThresh.parameter_config     (1,       -10,        -30,    0,  80,   200, 120,    200,    0.8,       3);
+  KLRatio.parameter_config      (2,       4,           1,    12,  180,  200, 120,    200,    0.8,       3);
+  KRThresh.parameter_config     (9,       -10,        -30,    0,   R_Knob_offset+80,   200, 120,    200,    0.8,       3);
   
   
   
@@ -1265,8 +1272,17 @@ gfx_blit(0,zoom*0.5,0*$pi);// HINTERGRUND
   
   
 ///////// METERS
-white();
+//white();
 
+gfx_a = 1;
+gfx_x = 69*zoom; gfx_y = 69*zoom;
+gfx_blit(2,0.45*zoom,0); 
+
+gfx_x = (69+R_Knob_offset)*zoom; gfx_y = 69*zoom;
+gfx_blit(2,0.45*zoom,0); 
+
+
+black();
 GRmeterL.mnmetergfx(zoom*0.9, 69*zoom, 68*zoom, 1);
 GRmeterR.mnmetergfx(zoom*0.9, (69+R_Knob_offset)*zoom, 68*zoom, 1);
 
@@ -1274,13 +1290,6 @@ GRmeterR.mnmetergfx(zoom*0.9, (69+R_Knob_offset)*zoom, 68*zoom, 1);
 //slider15 == 1 ? gfx_rect(75*zoom,65*zoom,150*zoom,88*zoom);
 //slider16 == 1 ? gfx_rect(275*zoom,65*zoom,150*zoom,88*zoom);
 
-
-gfx_a = 1;
-gfx_x = 71*zoom; gfx_y = 60*zoom;
-gfx_blit(2,0.5*zoom,0); 
-
-gfx_x = (71+R_Knob_offset)*zoom; gfx_y = 60*zoom;
-gfx_blit(2,0.5*zoom,0); 
 ////////// METERS
   
   
@@ -1810,8 +1819,8 @@ gfx_drawstr("RIGHT / SIDE");
   zoom2=(gfx_w/85);
   
   ST_Mode == 0 ? (
-  KLThresh.parameter_config     (1,       -10,        -30,     0,   gfx_w/10,   gfx_w*0.6, 150,    200,    gfx_w / 300,       3);
-  KLRatio.parameter_config      (2,       4,           1,    12,    gfx_w/2 + gfx_w / 10,  gfx_w*0.6, 150,    200,    gfx_w/300,       3);
+  KLThresh.parameter_config     (1,       -10,        -30,     0,   gfx_w/10,   gfx_w*0.6, 120,    200,    gfx_w / 240,       3);
+  KLRatio.parameter_config      (2,       4,           1,    12,    gfx_w/2 + gfx_w / 10,  gfx_w*0.6, 120,    200,    gfx_w/240,       3);
   
   lightgrey();
   gfx_setfont(4,"Arial",7*zoom2,'b');
@@ -1825,8 +1834,8 @@ gfx_drawstr("RIGHT / SIDE");
   KLThresh.knob();
   KLRAtio.knob();
   ):(
-  KLThresh.parameter_config     (1,       -10,        -30,     0,   gfx_w/10,   gfx_w*0.6, 150,    200,    gfx_w / 300,       3);
-  KRthresh.parameter_config      (9,       -10,        -30,    0,    gfx_w/2 + gfx_w / 10,  gfx_w*0.6, 150,    200,    gfx_w/300,       3);
+  KLThresh.parameter_config     (1,       -10,        -30,     0,   gfx_w/10,   gfx_w*0.6, 120,    200,    gfx_w / 240,       3);
+  KRthresh.parameter_config      (9,       -10,        -30,    0,    gfx_w/2 + gfx_w / 10,  gfx_w*0.6, 120,    200,    gfx_w/240,       3);
   
   lightgrey();
   gfx_setfont(4,"Arial",7*zoom2,'b');
@@ -1848,12 +1857,28 @@ gfx_drawstr("RIGHT / SIDE");
   //gfx_roundrect(gfx_w/2 + gfx_w / 10, gfx_w*0.6, 25*zoom2,25*zoom2,1);
   //GRmeterL.mnmetergfx((gfx_w/192), 0, 0, 1); //(gfx_w/2) - ((gfx_w/2)*(gfx_w/384)
   
-  white();
+ 
+  
+  gfx_x = (69+R_Knob_offset)*zoom; gfx_y = 69*zoom;
+  gfx_blit(2,0.45*zoom,0);
+  
+  black();
   ST_Mode == 0 ? (
-  GRmeterL.mnmetergfx((gfx_w/192), 0 - 0*gfx_w/20, 0*(gfx_h - 75*(gfx_h/92)), 1);
+  gfx_a = 1;
+  gfx_x = 0; gfx_y = 0;//69*zoom;
+  gfx_blit(2,0.5*(gfx_w/192),0);
+  GRmeterL.mnmetergfx((gfx_w/192), 0 - 0*gfx_w/20, 0*(gfx_h - 75*(gfx_h/92)), 10);
   ):(
-  GRmeterL.mnmetergfx(0.62*(gfx_w/192), 0 - gfx_w/20, gfx_h - 75*(gfx_h/92), 1);
-  GRmeterR.mnmetergfx(0.62*(gfx_w/192), (gfx_w/2)+1-gfx_w/20, gfx_h - 75*(gfx_h/92), 1);
+  gfx_a = 1;
+  gfx_x = 0 - gfx_w/20; gfx_y = gfx_h - 75*(gfx_h/92);//69*zoom;
+  gfx_blit(2,0.62*0.5*(gfx_w/192),0,   0, 0, 341, 184);
+   //gfx_rect(gfx_w /2 - 2,0,1,gfx_h);
+   gfx_a = 1;
+   gfx_x = (gfx_w/2)+1; gfx_y = gfx_h - 75*(gfx_h/92);//69*zoom;
+   gfx_blit(2,0.62*0.5*(gfx_w/192),0,   30, 0, 341, 184);
+   
+  GRmeterL.mnmetergfx(0.62*(gfx_w/192), 0 - gfx_w/20, gfx_h - 75*(gfx_h/92), 10);
+  GRmeterR.mnmetergfx(0.62*(gfx_w/192), (gfx_w/2)+1-gfx_w/20, gfx_h - 75*(gfx_h/92), 10);
   );
   
   
