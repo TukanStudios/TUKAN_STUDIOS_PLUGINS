@@ -1,0 +1,1968 @@
+desc:VariBus Comp S2 (Tukan)
+
+  
+slider1:0<-24,24,0.0048>-L In Gain
+slider2:3<0,10,.01>-L Thresh
+slider3:0<0,24,0.0024>-L Out Gain
+slider4:0<0,5,1>-L Times
+slider5:0<-24,24,0.0048>-R In Gain
+slider6:3<0,10,.01>-R Thresh
+slider7:0<0,24,0.0024>-R Out Gain
+slider8:0<0,5,1>-R Times
+  
+slider9:0<0,2,1{Stereo,Dual,MS}>-Mode
+slider10:0<0,2,1{Unlink, L Master, R Master}>-Link Master
+slider11:20<20,400,1>-L HPF
+slider12:20<20,400,1>-R HPF
+slider13:80<0,100,0.1>-L Knee
+slider14:80<0,100,0.1>-R Knee
+slider15:0<0,1,1>-L Bypass
+slider16:0<0,1,1>-R Bypass
+  
+slider17:1<0,1,1{Off, On}>-Input Tubes
+slider18:1<0,1,1{Off, On}>-Output Tubes
+
+/slider19:1<0.1,10,0.01>Zoom
+
+
+
+in_pin:L in
+in_pin:R in
+out_pin:L out
+out_pin:R out
+
+
+import S2GFX/tk-vu_lib.jsfx-inc
+import S2GFX/tk_lib.jsfx-inc
+import S2GFX/cookdsp.jsfx-inc
+
+filename:0,S2GFX/FairIngain.png
+filename:1,S2GFX/VUMeterBIGVari.png
+filename:2,S2GFX/FairThresh.png
+filename:3,S2GFX/FairSelect6.png
+filename:4,S2GFX/FairOutgain.png
+filename:5,S2GFX/FairHPF.png
+filename:6,S2GFX/FairSelect3.png
+filename:7,S2GFX/switch.png
+filename:8,S2GFX/VariVU.png
+filename:9,S2GFX/VariBack.png
+filename:10,S2GFX/oled.png
+
+filename:11,S2GFX/Tube.png
+filename:12,S2GFX/TubeLight.png
+filename:13,S2GFX/TubeGrill.png
+filename:14,S2GFX/FairKnee.png
+filename:15,S2GFX/S2_logo.png
+
+options:No_meter
+options:gfx_hz=60
+options:gmem=TukanVariBusS2
+
+
+@init
+
+  
+  
+animate_tubes = 1;
+    MAX_FREQ = 44100 / 2.0;
+    MIN_FREQ = 10;
+    FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+  function per_to_freq(x, range) (
+    MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+  );
+  function freq_to_per(freq, range) (
+    range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+  );
+  
+  GRmeterL.mn_meter_init();
+  GRmeterR.mn_meter_init();
+  function re_init () (
+  SAMPLE_RATE = srate;
+  HP0.buthp(per_to_freq(slider11,100));
+  HP1.buthp(per_to_freq(slider12,100));
+  mn_meter_reinit(30);
+  //HPF0.band_init();
+  //HPF1.band_init();
+  caller=1;
+  );
+  re_init();
+  
+  
+
+  
+Varibus_VERSION = 1;
+//0.99 checked if removed options:gfx_idle
+//09 added auto bypass support
+
+ext_tail_size = -1;
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+ext_noinit=1;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 1; while_stopped = 1;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+compensate_in = 0;
+compensate_out = 0;
+
+s2_numbers_of_sliders = 18;
+s2_numbers_of_generics = 3;
+group_generics =0; // fuer group_generics[bis zu 200]
+sliders_old = group_generics + 16*200;
+generics_old = sliders_old + 16*64;
+
+mouse_sensivity();
+
+
+function tanh(x) (
+x=exp(2*x);
+(x-1)/(x+1);
+);
+
+  function dcBlocker () instance (otml, itml)
+  (
+    /*
+    srate < 50000 ? (stateOut *= 0.99); //99988487
+    srate > 50000 ? (stateOut *= 0.99999999);
+    
+    stateOut += this - stateIn;
+    stateIn = this;
+    this = stateOut;
+  */
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  otm1=aab*otm1 + this - itm1; itm1=this; this=otm1;
+
+  );
+  
+ovrlgain = 1; 
+
+// init opto
+
+  log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+  db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+  
+  tenmaxover=0;
+  tenratio=10;
+  tenctenratio=0;
+  tenrundb=0;
+  tenoverdb=0;
+  tenmaxover=0;
+  tenfbacoef=exp(-1000/(2 * srate)); // 2 msec. tenopto attack for feedback tendetection
+  tenfbrcoef=exp(-1000/(200 * srate)); // 200 msec. tenopto release for feedback tendetection
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  //tenopto = 0;
+
+
+// end init opto
+
+
+
+
+
+
+
+
+
+
+  //Parameter_config           (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
+  KLInGain.parameter_config     (1,       0,        -24,    24,    280,  60, 200,    200,    1,       0);
+  KLThresh.parameter_config     (2,       3,        0,      10,    410,  60, 200,    200,    1,       2);
+  KLOutGain.parameter_config    (3,       0,        0,      24,    540,  60, 200,    200,    1,       4);
+  KLTimes.parameter_config      (4,       0,        0,      5,     670,  66, 228,    6,    1,       3);
+  KLBypass.button_config(15,12,85);
+
+  KRInGain.parameter_config     (5,       0,        -24,    24,    280,  60+140, 200,    200,    1,       0);
+  KRThresh.parameter_config     (6,       3,        0,      10,    410,  60+140, 200,    200,    1,       2);
+  KROutGain.parameter_config    (7,       0,        0,      24,    540,  60+140, 200,    200,    1,       4);
+  KRTimes.parameter_config      (8,       0,        0,      5,     670,  66+140, 228,    6,    1,       3);
+  KRBypass.button_config(16,12,85+140);
+
+
+  KMode.parameter_config      (9,       0,        0,      2,     820,  66+70, 228,    3,    1,       6);
+
+  KLHPF.parameter_config      (11,       20,        20,      400,     67,  325, 228,    100,    1,       5);
+  KRHPF.parameter_config      (12,       20,        20,      400,     187,  325, 228,    100,    1,       5);
+  
+  KLKnee.parameter_config      (13,       80,        0,      100,     367,  325, 228,    100,    1,       14);
+  KRKnee.parameter_config      (14,       80,        0,      100,     487,  325, 228,    100,    1,       14);
+  /*
+  
+  
+  slider1:3<0,10,.1>-01 LThresh
+  //slider2:4<1,12,.1>-02 LRatio
+  //slider3:5<0.05,31,0.05>-03 LAttack
+  //slider4:100<50,1501,10>-04 LRelease
+  slider5:80<0,100,0.1>-05 LKnee
+  slider6:0<-24,24,0.0048>-06 LIngain
+  slider7:0<0,24,0.0024>-07 LOutGain
+  slider8:20<20,400,1>-08 L HPF
+  slider9:0<0,1,1>-09 LBypass
+  
+  slider10:3<0,10,.1>-10 RThresh
+  //slider11:4<1,12,.1>-11 RRatio
+  //slider12:5<0.05,31,0.05>-12 RAttack
+  //slider13:100<50,1501,10>-13 RRelease
+  slider14:80<0,100,0.1>-14 Rknee
+  slider15:0<-24,24,0.0048>-15 RIngain
+  slider16:0<0,24,0.0024>-16 ROutGain
+  slider17:20<20,400,1>-17 R HPF
+  slider18:0<0,1,1>-18 RBypass
+  
+  slider19:0<0,2,1>-19 Link Parameters
+  slider20:1<0,2,1{Stereo,Dual,MS}>-20 Mode
+  
+  //slider21:1<0,6,.01>-Scaling
+  slider22:2<0,3,1>-Tubes
+  
+  //slider23:4.9<0.1,10,0.01>-Meterspeed
+  
+  slider24:0<0,5,1>-LTimes
+  slider25:0<0,5,1>-RTimes
+  
+  //slider26:0<0,1,1>-Show Max Reduction
+  
+  //slider27:0<0,2,1>-27 Mode Selecter
+  
+  */
+  
+function parameters_update() (
+parameters_update_on = 1;
+
+
+KLIngain.Parameter_Boundaries();
+KLThresh.Parameter_Boundaries();
+KLOutGain.Parameter_Boundaries();
+KLTimes.Parameter_Boundaries();
+KLHPF.Parameter_Boundaries();
+KLKnee.Parameter_Boundaries();
+//KLBypass.Parameter_Boundaries();
+KRIngain.Parameter_Boundaries();
+KRThresh.Parameter_Boundaries();
+KROutGain.Parameter_Boundaries();
+KRTimes.Parameter_Boundaries();
+KRHPF.Parameter_Boundaries();
+KRKnee.Parameter_Boundaries();
+//KRBypass.Parameter_Boundaries();
+kmode.parameter_boundaries();
+
+ group_generics[1] = animate_tubes;
+ group_generics[2] = compensate_in;
+ group_generics[3] = Compensate_out;
+    group_parameters();
+ animate_tubes = group_generics[1];
+ compensate_in = group_generics[2];
+ compensate_out = group_generics[3];
+
+slider10 = max(0,min(2,slider10));
+slider17 = max(0,min(3,slider17));
+
+
+slider10 == 1 ? (
+slider5 = slider1;
+slider6 = slider2;
+slider7 = slider3;
+slider8 = slider4;
+slider12 = slider11;
+slider14 = slider13;
+slider16 = slider15;
+):slider10 == 2 ? (
+slider1 = slider5;
+slider2 = slider6;
+slider3 = slider7;
+slider4 = slider8;
+slider11 = slider12;
+slider13 = slider14;
+slider15 = slider16;
+);
+
+slider9 == 0 ? (
+slider5 = slider1;
+slider6 = slider2;
+slider7 = slider3;
+slider8 = slider4;
+slider12 = slider11;
+slider14 = slider13;
+slider16 = slider15;
+);
+
+//slider20 = floor(slider27);
+//slider9 != 1 ? slider16 = slider15;
+
+ST_Mode = slider9;
+ST_Mode == 0 ? slider10 = 0;
+
+ratio = 30;//slider2;
+thresh = -slider2*2;
+kneevalue = 50 + slider13/2;
+
+    HP0.buthp_set_freq(slider11);
+    slider10 == 0 ? HP1.buthp_set_freq(slider11) : HP1.buthp_set_freq(slider12);
+    //Fslope = 2; //
+    //slider9 == 0 ? HPF_on = 0 : HPF_on = 1; 
+    //HPF_Freq = per_to_freq(slider9,100);
+    //HPF0.band_set_filter(1, slider11, 0, 1, Fslope);
+    //HPF1.band_set_filter(1, slider12, 0, 1, Fslope);
+// opto slider
+
+  tenthresh = thresh;
+
+  tenthreshv = exp(tenthresh * db2log);
+  tenratio = ratio;
+  tensoftknee = 3&1;
+  tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  tenctenthresh = tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
+  tenctenthreshv = exp(tenctenthresh * db2log);
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+  tenopto = 1;//slider19;
+
+  //vslider7 = slider3/4;
+  autorel = 0;
+  floor(slider4) == 0 ? (vslider7 = 0.2; tenreltime = 300);
+  floor(slider4) == 1 ? (vslider7 = 0.8; tenreltime = 300);
+  floor(slider4) == 2 ? (vslider7 = 0.4; tenreltime = 2000);
+  floor(slider4) == 3 ? (vslider7 = 0.8; tenreltime = 5000);
+  floor(slider4) == 4 ? (vslider7 = 0.4; autorel = 1);
+  floor(slider4) == 5 ? (vslider7 = 0.2; autorel = 2);
+  
+   tenreltime /= 2;
+  
+  tenopto ? vslider7 *= 2;
+
+  tenattime=vslider7/1000;
+  tenreltime= tenreltime/1000;// (50+((slider8-50)))/4000;
+  tenatcoef=exp(-1/(tenattime * srate));
+  tenrelcoef=exp(-1/(tenreltime * srate));
+
+
+
+L_in_Gain = db2ratio(slider1);
+L_out_Gain = db2ratio(slider3);
+Compenstae_L_in_Gain = db2ratio(-slider1);
+Compenstae_L_out_Gain = db2ratio(-slider3);
+L_Bypass = slider15;
+
+
+
+
+R_ratio = 30;//slider11;
+R_thresh = -slider6*2;
+R_kneevalue = 50+slider14/2;
+
+
+// opto slider
+
+  R_tenthresh = R_thresh;
+
+  R_tenthreshv = exp(R_tenthresh * db2log);
+  R_tenratio = 30;//R_gInGain;
+  R_tensoftknee = 3&1;
+  R_tencapsc = (3&2) ? log2db : log2db * 2.08136898;
+  R_tenctenthresh = R_tenthresh; //(tensoftknee ? (tenthresh -3) : tenthresh);
+  R_tenctenthreshv = exp(R_tenctenthresh * db2log);
+  tensidechain = 0;
+  tenautotenmakeup = 0;
+  tenmakeup = 0;
+  tenmakeupv = exp((tenmakeup+tenautogain) * db2log);
+  RMStendet = 0; // 0 = peak 1 = RMS/////////////////////////////////////////////////////////////////
+  tenopto = 1;//slider19;
+
+
+
+  R_autorel = 0;
+  floor(slider8) == 0 ? (R_vslider7 = 0.2; R_tenreltime = 300);
+  floor(slider8) == 1 ? (R_vslider7 = 0.8; R_tenreltime = 300);
+  floor(slider8) == 2 ? (R_vslider7 = 0.4; R_tenreltime = 2000);
+  floor(slider8) == 3 ? (R_vslider7 = 0.8; R_tenreltime = 5000);
+  floor(slider8) == 4 ? (R_vslider7 = 0.4; R_autorel = 1);
+  floor(slider8) == 5 ? (R_vslider7 = 0.2; R_autorel = 2);
+  
+  tenopto ? R_vslider7 *= 2;
+  
+   R_tenreltime /= 2;
+  R_tenattime=R_vslider7/1000;
+  R_tenreltime= R_tenreltime/1000;// (50+((slider8-50)))/4000;
+  R_tenatcoef=exp(-1/(R_tenattime * srate));
+  R_tenrelcoef=exp(-1/(R_tenreltime * srate));
+
+
+
+
+
+
+R_in_Gain = db2ratio(slider5);
+R_out_Gain = db2ratio(slider7);
+Compensate_R_in_Gain = db2ratio(-slider5);
+Compensate_R_out_Gain = db2ratio(-slider7);
+
+//slider20 != 1 ? slider18 = slider9; 
+R_Bypass = slider16;
+
+
+//slider17 != 0 ? (transistor1 = 1):(transistor1 = 0);
+//slider17 > 1 ? (transistor2 = 1):(transistor2 = 0);
+//slider17 == 3 ? transistor1 = 0;
+
+transistor1 = slider17;
+transistor2 = slider18;
+
+parameters_update_on = 0;
+caller = 0;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+//stattslider();
+caller = 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@serialize
+
+file_var(0, while_playing);
+file_var(0, while_recording);
+file_var(0, while_stopped);
+file_var(0, link_group);
+file_var(0, Varibus_VERSION);
+file_var(0, animate_tubes);
+file_var(0, compensate_out);
+file_var(0, compensate_in);
+
+seriloop = 0;
+loop(64*16 + 27 + 16,
+file_var(0, gmem[seriloop]);
+seriloop += 1;
+);
+
+seriloop = 0;
+loop(200*16,
+file_var(0, group_generics[seriloop]);
+seriloop += 1;
+);
+
+
+
+
+
+
+
+
+@block
+
+srate != srate_old ?  re_init();
+srate_old = srate;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+
+
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+playstates();
+
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+
+first_spl0 = spl0;
+first_spl1 = spl1;
+
+process == 1 ? (
+
+
+
+
+//////////////// PINK NOISE FOR DETECTOR
+p1_noise=rand(2)-1;
+p2_noise=rand(2)-1;
+p1_b0 = 0.99886 * p1_b0 + p1_noise * 0.0555179;
+p1_b1 = 0.99332 * p1_b1 + p1_noise * 0.0750759;
+p1_b2 = 0.96900 * p1_b2 + p1_noise * 0.1538520;
+p1_b3 = 0.86650 * p1_b3 + p1_noise * 0.3104856;
+p1_b4 = 0.55000 * p1_b4 + p1_noise * 0.5329522;
+p1_b5 = -0.7616 * p1_b5 - p1_noise * 0.0168980;
+p1_pink = p1_b0 + p1_b1 + p1_b2 + p1_b3 + p1_b4 + p1_b5 + p1_b6 + p1_noise * 0.5362;
+p1_b6 = p1_noise * 0.115926;
+p1_pink *= db2ratio(-75);
+
+p2_b0 = 0.99886 * p2_b0 + p2_noise * 0.0555179;
+p2_b1 = 0.99332 * p2_b1 + p2_noise * 0.0750759;
+p2_b2 = 0.96900 * p2_b2 + p2_noise * 0.1538520;
+p2_b3 = 0.86650 * p2_b3 + p2_noise * 0.3104856;
+p2_b4 = 0.55000 * p2_b4 + p2_noise * 0.5329522;
+p2_b5 = -0.7616 * p2_b5 - p2_noise * 0.0168980;
+p2_pink = p2_b0 + p2_b1 + p2_b2 + p2_b3 + p2_b4 + p2_b5 + p2_b6 + p2_noise * 0.5362;
+p2_b6 = p2_noise * 0.115926;
+p2_pink *= db2ratio(-75);
+//spl0=spl0*vd+(p1_pin5*vp*vn);
+//spl1=spl1*vd+(p2_pink*vp*vn);
+////////////////////////////////////////7
+
+P1_pink *= L_In_Gain;
+ST_Mode == 0 ? (P2_pink *= L_in_gain):(p2_pink *= R_In_Gain);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ST_Mode == 0 ? ( // MODE STEREO
+
+
+spl0 *= L_In_Gain;
+spl1 *= L_In_Gain;
+
+
+
+//************************************ TRANSISTOR 1 *****************
+transistor1 == 1 ? (
+Rp=-0*0.1;
+Vk=(-0-1)+4;
+Vs=10.29;
+
+level=1;
+PreGain=10^(-10/20);
+PostGain=10^((1.6-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+TubeIn.feed_Meter(max(abs(spl0),abs(spl1)));
+);
+//************************************ ENDE TRANSISTOR 1 *****************
+
+
+temp_spl0 = spl0;
+temp_spl1 = spl1;
+
+//tenospl0 = HP0.buthp_do(spl0);;
+//tenospl1 = HP1.buthp_do(spl1);;
+
+  tensidechain ? (
+    tenaspl0 = abs(spl2);
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (
+      tenospl = (tenospl0)^2 + (tenospl1)^2;
+          //tenospl /= 1000000;
+          
+       
+        tenospl > runtenospl ? (
+          runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+      runtenospl=tenospl;
+        
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+      
+    
+    ) : (
+      tenaspl0 = abs(spl0);
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+spl0 = temp_spl0;
+spl1 = temp_spl1;
+
+
+
+
+
+  RMStendet ? (  
+    tenave = (tenaspl0 * tenaspl0) + (tenaspl1 * tenaspl1);
+    runtenave = tenave + tenrmscoef * (runtenave - tenave);
+    tendet = sqrt(max(0,runtenave));
+  ) : (
+    tenmaxspl = max(tenaspl0, tenaspl1);
+    tenmaxspl = tenmaxspl * tenmaxspl;
+    runtenave = tenmaxspl + tenrmscoef * (runtenave - tenmaxspl);
+    tendet = sqrt(max(0,runtenave));
+  );
+  //Stattdessen:
+  tendet = max(tenaspl0,tenaspl1);
+
+ // tenoverdb = log(tendet/tenctenthreshv) * tencapsc;
+ 
+ 
+ 
+ 
+ tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+thresh = tenthresh;
+tenopto == 1 ? (thresh = tenthresh - 3):(thresh = tenthresh);
+
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    //overdb = (mydbin - thresh); //Besser?
+    thi2 = 2;
+    ratior = ratio;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    thi2 = 1;
+    ratior = ratio;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    autoatt ?  tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+    autorel == 1 ? tenreltime = max(0.001,tengrv/3)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    autorel == 2 ? tenreltime = max(0.001,tengrv/1.5)*2;
+    tenrelcoef = exp(-1/(tenreltime * srate));
+    
+    
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (tenratio-1) * min(tenoverdb, 6) / 6; //(tensoftknee ? (1 + (tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (tenratio-1)/(tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+  thi3 = 1;//exp(-corfak*db2log);
+  spl0 = spl0 * tengrv;
+  spl1 = spl1 * tengrv;  
+  
+  report_gr_L = report_gr_R = ratio2db(tengrv);
+  GRmeterL.mnmetersample(tengrv*db2ratio(-3.9));
+  GRmeterR.mnmetersample(tengrv*db2ratio(-3.9));
+ 
+  
+  //tenospl0 = spl0;
+  //tenospl1 = spl1;
+  tenospl0 = HP0.buthp_do(spl0+p1_pink*L_in_Gain);;
+  tenospl1 = HP1.buthp_do(spl1+p2_pink*R_in_Gain);;
+  
+  L_Bypass == 0 ? (spl0 *= L_out_Gain):(spl0 = first_spl0);
+  L_Bypass == 0 ? (spl1 *= L_out_Gain):(spl1 = first_spl1);
+  ); // slider20 == 0 ? ( // MODE STEREO
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ST_Mode != 0 ? ( ////////Nicht im STEREO mode....
+
+
+
+
+
+
+ST_Mode == 2 ? ( // MID SIDE ENCODING
+vspl0 = (spl0+spl1)/2;
+vspl1 = (spl0-spl1)/2;
+spl0 = vspl0;
+spl1 = vspl1;
+);
+
+second_spl0 = spl0;
+second_spl1 = spl1;
+
+spl0 *= L_in_Gain;
+spl1 *= R_In_Gain;
+
+
+//************************************ TRANSISTOR 1 *****************
+transistor1 == 1 ? (
+Rp=-0*0.1;
+Vk=(-0-1)+4;
+Vs=10.29;
+
+level=1;
+PreGain=10^(-10/20);
+PostGain=10^((1.6-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+TubeIn.feed_Meter(max(abs(spl0),abs(spl1)));
+);
+//************************************ ENDE TRANSISTOR 1 *****************
+
+
+
+temp_spl0 = spl0;
+temp_spl1 = spl1;
+
+//tenospl0 = HP0.buthp_do(spl0);;
+//tenospl1 = HP1.buthp_do(spl1);;
+
+  
+  tensidechain ? (
+    tenaspl0 = abs(spl2);       // **************
+    tenaspl1 = 0;//abs(spl3);
+  ) : (
+    tenopto ? (                                                           // FEEDBACK ?     ***********
+      tenospl = (tenospl0)^2 + (tenospl0)^2;
+
+        tenospl > runtenospl ? (
+          runtenospl = tenospl + tenatcoef * (runtenospl - tenospl);
+         ) : (
+          runtenospl = tenospl + tenrelcoef * (runtenospl - tenospl);
+        );
+runtenospl=tenospl;
+      tenospl = sqrt(max(0,runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+    ) : (                                                                // NOT FEEDBACK 
+      tenaspl0 = abs(spl0);               // ********************
+      tenaspl1 = abs(spl0);
+    );
+  );
+
+spl0 = temp_spl0;
+
+tendet = max(tenaspl0,tenaspl1);
+tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+thi1 < mydbin ? thi1 = mydbin;
+
+//Neu ich
+thresh = tenthresh;
+tenopto == 1 ? (thresh = tenthresh - 3):(thresh = tenthresh);
+
+knee_width = abs(thresh*2*kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - ratio) / ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  R_thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    R_thi2 = 2;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    R_thi2 = 1;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > tenmaxover ? (
+    tenmaxover = tenoverdb;
+    // tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    tenatcoef = exp(-1/(tenattime * srate));
+    //tenreltime = (130+((tenreltime-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    tenrelcoef = exp(-1/(tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+
+    autorel == 1 ? tenreltime = max(0.001,tengrv/3)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    autorel == 2 ? tenreltime = max(0.001,tengrv/1.5)*2;
+   tenrelcoef = exp(-1/(tenreltime * srate));
+    
+  tenoverdb > tenrundb ? (
+    tenrundb = tenoverdb + tenatcoef * (tenrundb - tenoverdb);
+  ) : (
+    tenrundb = tenoverdb + tenrelcoef * (tenrundb - tenoverdb);
+  );
+  tenoverdb = tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (tenratio-1) * min(tenoverdb, 6) / 6; //(tensoftknee ? (1 + (R_tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (R_tenratio-1)/(R_tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  tenrunmax = tenmaxover + tenrelcoef * (tenrunmax - tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  tenmaxover = tenrunmax;
+  thi3 = 1;//exp(-corfak*db2log);
+  spl0 = spl0 * tengrv;
+  report_gr_L = ratio2db(tengrv);
+ GRmeterL.mnmetersample(tengrv*db2ratio(-3.9));
+
+  //spl1 *= tengrv;  
+  L_tengrv = tengrv;
+  tenospl0 = HP0.buthp_do(spl0+p1_pink*L_in_Gain);;
+  //tenospl1 = spl1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  tensidechain ? (
+    tenaspl0 = 0; // abs(spl2);        **************
+    tenaspl1 = abs(spl3);
+  ) : (
+    tenopto ? (                                                           // FEEDBACK ?     ***********
+      tenospl = (tenospl1)^2 + (tenospl1)^2;
+
+        tenospl > R_runtenospl ? (
+          R_runtenospl = tenospl + R_tenatcoef * (R_runtenospl - tenospl);
+         ) : (
+          R_runtenospl = tenospl + R_tenrelcoef * (R_runtenospl - tenospl);
+        );
+R_runtenospl=tenospl;
+      tenospl = sqrt(max(0,R_runtenospl));
+
+      tenospl *= 0.5;
+
+      tenaspl0 = abs(tenospl);
+      tenaspl1 = abs(tenospl);
+    ) : (                                                                // NOT FEEDBACK 
+      tenaspl0 = abs(spl1);               // ********************
+      tenaspl1 = abs(spl1);
+    );
+  );
+
+spl1 = temp_spl1;
+
+tendet = max(tenaspl0,tenaspl1);
+tendet=max(tendet,0.0000000001);
+mydbin = ratio2db(tendet);
+R_thi1 < mydbin ? R_thi1 = mydbin;
+
+//Neu ich
+thresh = R_tenthresh;
+tenopto == 1 ? (thresh = R_tenthresh - 3):(thresh = R_tenthresh);
+
+knee_width = abs(thresh*2*R_kneevalue*0.01);
+Thi = (thresh + knee_width / 2);
+Tlo = (thresh - knee_width / 2);
+slope = ((1 - R_ratio) / R_ratio); //oder doch lieber exakt 1?
+knee_factor = (abs(slope) / (knee_width * 2));
+
+//thi -= 10;
+//tlo -= 10;
+
+mydbin < Tlo ? (
+  overdb = 0;
+  R_thi2 = 0;
+):(
+  mydbin >= Thi ? (
+    overdb = abs(slope)*(mydbin - thresh); // *slope
+    R_thi2 = 2;
+  ):(
+    mydelta = mydbin - Tlo;
+    overdb = mydelta * mydelta * (knee_factor);
+    R_thi2 = 1;
+  );
+
+);
+tenoverdb = overdb;
+
+// ende neu ich
+
+
+  
+  tenoverdb > R_tenmaxover ? (
+    R_tenmaxover = tenoverdb;
+    // tenattime = coords[11+max(0,floor(abs(tenoverdb)))];   // attack time per formula
+    R_tenatcoef = exp(-1/(R_tenattime * srate));
+    //tenreltime = (130+((tenreltime-50)/2))/1000; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    R_tenrelcoef = exp(-1/(R_tenreltime * srate));
+  );
+  tenoverdb = max(0,tenoverdb);
+
+
+    R_autorel == 1 ? R_tenreltime = max(0.001,tengrv/3)*2; // tenoverdb / 125;                        // release at constant 125 dB/sec.
+    R_autorel == 2 ? R_tenreltime = max(0.001,tengrv/1.5)*2;
+   R_tenrelcoef = exp(-1/(R_tenreltime * srate));
+    
+  tenoverdb > R_tenrundb ? (
+    R_tenrundb = tenoverdb + R_tenatcoef * (R_tenrundb - tenoverdb);
+  ) : (
+    R_tenrundb = tenoverdb + R_tenrelcoef * (R_tenrundb - tenoverdb);
+  );
+  tenoverdb = R_tenrundb;
+
+  tensoftknee = 0; ///////////////////////////////////////
+
+  tenctenratio = 1 + (R_tenratio-1) * min(R_tenoverdb, 6) / 6; //(tensoftknee ? (1 + (R_tenratio-1) * min(tenoverdb, 6) / 6) : tenratio);
+  
+  tenopto == 1 ? (
+  tengr = -tenoverdb  * R_tenratio;//* (tenctenratio-1)/(tenctenratio); //  *tenratio
+  ):(
+  tengr = -tenoverdb;// * (R_tenratio-1)/(R_tenratio);//(tenctenratio-1)/(tenctenratio);
+  );
+  
+  tengrv = db2ratio(tengr);//exp(tengr * db2log);
+  
+  R_tenrunmax = R_tenmaxover + R_tenrelcoef * (R_tenrunmax - R_tenmaxover);  // highest peak for setting att/rel decays in tenreltime
+  R_tenmaxover = R_tenrunmax;
+  R_thi3 = 1;//exp(-corfak*db2log);
+  //spl0 *= tengrv;
+  spl1 = spl1 * tengrv;
+
+  report_gr_R = ratio2db(tengrv);
+  GRmeterR.mnmetersample(tengrv*db2ratio(-3.9));
+  R_tengrv = tengrv;
+  //tenospl0 = spl0;
+  tenospl1 = HP1.buthp_do(spl1+p2_pink*R_in_Gain);;
+  
+
+  spl0 *= L_out_Gain;
+  spl1 *= R_out_Gain;
+
+
+
+  
+
+); // slider20 != 0
+
+//************************************ TRANSISTOR 2 *****************
+transistor2 == 1 ? (
+Rp=-4.6*0.1;
+Vk=(-0.96-1)+4;
+Vs=2.48;
+
+level=1;
+PreGain=10^(-1/20);
+PostGain=10^((-1.6-3)/20);
+
+in0 = tanh(spl0*PreGain);
+in1 = tanh(spl1*PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+spl0 = (in0 + tanh(out0)*level) * PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*level) * PostGain * 0.5;
+TubeOut.feed_Meter(max(abs(spl0),abs(spl1)));
+);
+//************************************ ENDE TRANSISTOR 2 *****************
+
+
+
+
+
+spl0.dcblocker(); // otm1=0.999*otm1 + spl0 - itm1; itm1=spl0; spl0=otm1;
+spl1.dcblocker(); //otm2=0.999*otm2 + spl1 - itm2; itm2=spl1; spl1=otm2;
+
+compensate_in == 1 ? (
+spl0 *= Compenstae_L_in_Gain;
+spl1 *= Compensate_R_in_Gain;
+);
+  
+compensate_Out == 1 ? (
+spl0 *= Compenstae_L_out_Gain;
+spl1 *= Compensate_R_out_Gain;
+);
+
+
+ ST_Mode != 2 ? (
+ L_Bypass == 1 ? (spl0 = first_spl0;report_gr_L = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ R_Bypass == 1 ? (spl1 = first_spl1;report_gr_R = 0;GRmeterR.mnmetersample(1*db2ratio(-3.9)));
+ ):(
+ L_Bypass == 1 ? (spl0 = second_spl0;report_gr_L = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ R_Bypass == 1 ? (spl1 = second_spl1;report_gr_R = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ vspl0 = spl0 + spl1;// MID SIDE DECODING
+ vspl1 = spl0 - spl1;
+ spl0 = vspl0;
+ spl1 = vspl1;
+ ); 
+ 
+  ext_gr_meter = min(report_gr_r,report_gr_L);
+  ):( //process
+  
+  ext_gr_meter = 0;
+  TubeOut.feed_Meter(0);
+  Tubein.feed_Meter(0);
+  GRmeterL.mnmetersample(1*db2ratio(-3.9));
+  GRmeterR.mnmetersample(1*db2ratio(-3.9));
+  );
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+@gfx 960 450
+       function number_input_show_selecter () (
+         gfx_r=gfx_g=gfx_b=0;
+         gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+         gfx_r=0;gfx_g=1;gfx_b=0;
+         gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+         gfx_r=gfx_g=gfx_b=0.7;
+         gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+         gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+         gfx_drawnumber(number_input_use+1,NI_komma);
+       
+       
+             mouseclick && !shift_alt ? 
+           (
+             g_collision(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5) ?
+             (
+               valid = 0;
+               number_input_use >= number_input_min && number_input_use <= number_input_max ? valid = 1;
+               valid ? (
+               slider(number_input_slider) = number_input_use;
+               caller = 1;
+               ):(
+               number_input_invalid = 90;
+               );
+               Number_input = 0;
+               number_input_raw = 0;
+               number_input_use = 0;
+               NI_komma = 0;
+               in_key = 0;
+               //number_input_x = 0;
+               //number_input_y=0;
+             ):(
+               Number_input = 0;
+               number_input_raw = 0;
+               number_input_use = 0;
+               NI_komma = 0;
+               in_key = 0;
+               number_input_x = 0;
+               number_input_y=0;
+             );
+           );
+       
+           in_key=gfx_getchar();
+       
+           in_key ? Aaa = in_key;
+             in_key == 8 ? (
+             number_input_raw = floor(number_input_raw/10);
+             NI_komma = max(0,komma-1);
+             NI_komma == 1 ? NI_komma = 0;
+             );
+       
+           in_key == 45 ? number_input_sign*=-1;
+       
+           in_key == 46 ? NI_komma = 1;
+           in_key > 47 ? (
+           in_key < 58 ? (
+               number_input_raw = (number_input_raw*10) + (in_key-48);
+               NI_komma ? NI_komma += 1;
+           );
+           );
+       
+           NI_komma ? (number_input_use = number_input_raw / (10^(NI_komma-1))):(number_input_use = number_input_raw);
+           number_input_use *= number_input_sign;
+           number_input_use -=1;
+         );
+      
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+ 
+ 
+
+//gfx_r=gfx_g=gfx_b=0.25;
+//gfx_rect(0,0,gfx_w,gfx_h);
+gfx_x = 0; gfx_y = 0;
+gfx_blit(9,zoom*0.5,0);// HINTERGRUND
+
+gfx_ext_flags == 0 ? (
+
+black();
+  
+//zoom = slider19;
+s2_zoom_X = gfx_w / 960;
+s2_zoom_y = gfx_h / 450;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+
+
+white();
+
+black();
+GRmeterL.mnmetergfx(zoom*0.9, 68*zoom, 68*zoom, 1);
+GRmeterR.mnmetergfx(zoom*0.9, 68*zoom, 208*zoom, 1);
+
+black(); gfx_a = 0.5;
+slider15 == 1 ? gfx_rect(75*zoom,65*zoom,150*zoom,88*zoom);
+slider16 == 1 ? gfx_rect(75*zoom,205*zoom,150*zoom,88*zoom);
+
+
+gfx_a = 1;
+gfx_x = 70*zoom; gfx_y = 60*zoom;
+gfx_blit(8,0.5*zoom,0); 
+
+gfx_x = 70*zoom; gfx_y = 200*zoom;
+gfx_blit(8,0.5*zoom,0); 
+
+  
+  gfx_x = 295*zoom;
+  gfx_y = 350*zoom; gfx_a = 0.7;
+  gfx_blit(15,zoom/1.7,0); //Logo
+  gfx_a = 1;
+  
+  KLInGain.knob();
+  KLThresh.knob();
+  KLOutGain.knob();
+  KLTimes.knob();
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey();
+  gfx_x = KLInGain.xIn*zoom+15*zoom; gfx_y = KLInGain.yIn*zoom+105*zoom;
+  gfx_drawstr("INPUT GAIN");
+  gfx_x = KLThresh.xIn*zoom+11*zoom; gfx_y = KLThresh.yIn*zoom+105*zoom;
+  gfx_drawstr("THRESHOLD");
+  gfx_x = KLOutGain.xIn*zoom+9*zoom; gfx_y = KLOutGain.yIn*zoom+105*zoom;
+  gfx_drawstr("OUTPUT GAIN");
+  
+  gfx_setfont(2,"Arial",10*zoom,'b');
+  gfx_x = KLTimes.xIn*zoom+3*zoom; gfx_y = KLTimes.yIn*zoom+27*zoom;
+  gfx_drawstr("1");
+  gfx_x = KLTimes.xIn*zoom+14*zoom; gfx_y = KLTimes.yIn*zoom+5*zoom;
+  gfx_drawstr("2");
+  gfx_x = KLTimes.xIn*zoom+36*zoom; gfx_y = KLTimes.yIn*zoom-5*zoom;
+  gfx_drawstr("3");
+  gfx_x = KLTimes.xIn*zoom+57*zoom; gfx_y = KLTimes.yIn*zoom-5*zoom;
+  gfx_drawstr("4");
+  gfx_x = KLTimes.xIn*zoom+83*zoom; gfx_y = KLTimes.yIn*zoom+5*zoom;
+  gfx_drawstr("AUTO 1");
+  gfx_x = KLTimes.xIn*zoom+90*zoom; gfx_y = KLTimes.yIn*zoom+27*zoom;
+  gfx_drawstr("AUTO 2");
+  gfx_x = KLTimes.xIn*zoom+9*zoom; gfx_y = KLTimes.yIn*zoom+90*zoom;
+  gfx_drawstr("TIME CONSTANTS");
+  
+  gfx_x = KLBypass.xIn*zoom+16*zoom; gfx_y = KLBypass.yIn*zoom-10*zoom;
+  gfx_drawstr("ON");
+  gfx_x = KLBypass.xIn*zoom+16*zoom; gfx_y = KLBypass.yIn*zoom+50*zoom;
+  gfx_drawstr("OFF");
+  gfx_x = KLBypass.xIn*zoom;// = 80*zoom;
+  gfx_y = KLBypass.yIn*zoom;// = 130*zoom;
+  gfx_blit(7,0.5*zoom,0,0,120*(1-slider15),96,120);
+  
+  gfx_x = KLTimes.xin*zoom+140*zoom; gfx_y = KLTimes.yIn*zoom-10*zoom;
+  slider10 == 1 ? Led_on = 1 : Led_on = 0;
+  gfx_blit(10,zoom*0.25,0, 0, 128*Led_On, 128, 128);
+  
+  gfx_x += 28*zoom; gfx_y += 9*zoom;
+  gfx_drawstr("LINK MASTER");
+  
+  
+  
+  
+  
+  
+  KRInGain.knob();
+  KRThresh.knob();
+  KROutGain.knob();
+  KRTimes.knob();
+  KLHPF.knob();
+  KRHPF.knob();
+  KLKnee.knob();
+  KRKnee.knob();
+
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey();
+  gfx_x = KRInGain.xIn*zoom+15*zoom; gfx_y = KRInGain.yIn*zoom+105*zoom;
+  gfx_drawstr("INPUT GAIN");
+  gfx_x = KRThresh.xIn*zoom+11*zoom; gfx_y = KRThresh.yIn*zoom+105*zoom;
+  gfx_drawstr("THRESHOLD");
+  gfx_x = KROutGain.xIn*zoom+9*zoom; gfx_y = KROutGain.yIn*zoom+105*zoom;
+  gfx_drawstr("OUTPUT GAIN");
+  
+  gfx_setfont(2,"Arial",10*zoom,'b');
+  gfx_x = KRTimes.xIn*zoom+3*zoom; gfx_y = KRTimes.yIn*zoom+27*zoom;
+  gfx_drawstr("1");
+  gfx_x = KRTimes.xIn*zoom+14*zoom; gfx_y = KRTimes.yIn*zoom+5*zoom;
+  gfx_drawstr("2");
+  gfx_x = KRTimes.xIn*zoom+36*zoom; gfx_y = KRTimes.yIn*zoom-5*zoom;
+  gfx_drawstr("3");
+  gfx_x = KRTimes.xIn*zoom+57*zoom; gfx_y = KRTimes.yIn*zoom-5*zoom;
+  gfx_drawstr("4");
+  gfx_x = KRTimes.xIn*zoom+83*zoom; gfx_y = KRTimes.yIn*zoom+5*zoom;
+  gfx_drawstr("AUTO 1");
+  gfx_x = KRTimes.xIn*zoom+90*zoom; gfx_y = KRTimes.yIn*zoom+27*zoom;
+  gfx_drawstr("AUTO 2");
+  gfx_x = KRTimes.xIn*zoom+9*zoom; gfx_y = KRTimes.yIn*zoom+90*zoom;
+  gfx_drawstr("TIME CONSTANTS");
+  
+  gfx_x = KRBypass.xIn*zoom+16*zoom; gfx_y = KRBypass.yIn*zoom-10*zoom;
+  gfx_drawstr("ON");
+  gfx_x = KRBypass.xIn*zoom+16*zoom; gfx_y = KRBypass.yIn*zoom+50*zoom;
+  gfx_drawstr("OFF");
+  gfx_x = KRBypass.xIn*zoom;// = 80*zoom;
+  gfx_y = KRBypass.yIn*zoom;// = 130*zoom;
+  gfx_blit(7,0.5*zoom,0,0,120*(1-slider16),96,120);
+  
+  gfx_x = KRTimes.xin*zoom+140*zoom; gfx_y = KRTimes.yIn*zoom+70*zoom;
+  slider10 == 2 ? Led_on = 1 : Led_on = 0;
+  gfx_blit(10,zoom*0.25,0, 0, 128*Led_On, 128, 128);
+  
+  gfx_x += 28*zoom; gfx_y += 9*zoom;
+  gfx_drawstr("LINK MASTER");
+  
+ 
+   
+  KMode.knob();
+  gfx_x = KMode.xIn*zoom - 30 * zoom; gfx_y = KMode.yIn*zoom + 28*zoom;
+  gfx_drawstr("STEREO");
+  gfx_x = KMode.xIn*zoom + 38 * zoom; gfx_y = KMode.yIn*zoom - 8*zoom;
+  gfx_drawstr("DUAL");
+  gfx_x = KMode.xIn*zoom + 92 * zoom; gfx_y = KMode.yIn*zoom + 28*zoom;
+  gfx_drawstr("M+S");
+  
+  
+  white(); gfx_a=0.1;
+  zloop = 0;
+  loop(10,
+  zscale = zloop * zoom;
+  gfx_roundrect(10*zoom + zscale,45*zoom+zscale,940*zoom-2*zscale,282*zoom-2*zscale,8*zoom);
+  gfx_roundrect(10*zoom + zscale,330*zoom+zscale,940*zoom-2*zscale,110*zoom-2*zscale,8*zoom);
+  gfx_line(20*zoom, 185*zoom + zscale, 780*zoom, 185*zoom+zscale);
+  zloop += 0.1;
+  );
+  
+  
+  
+  TubeIn.meter_config(0,0,0,0,60, 30);
+  TubeOut.meter_config(0,0,0,0,60, 30);
+  gfx_x = 600*zoom; gfx_y = 340*zoom; gfx_a = 1;
+  gfx_blit(11,zoom*0.5,0);
+  transistor1 == 1 ? (
+  gfx_a = Tube_a =  max(0.4,min(1,((30+max(TubeIn.dB_Val,-30))/30)));
+  animate_tubes == 0 ? gfx_a = 0.4;
+  gfx_blit(12,zoom*0.5,0);
+  );
+  gfx_a = 1; gfx_blit(13,zoom*0.5,0);
+  
+  gfx_x = 770*zoom; gfx_y = 340*zoom; gfx_a = 1;
+  gfx_blit(11,zoom*0.5,0);
+  transistor2 == 1 ? (
+  gfx_a = Tube_a =  max(0.4,min(1,((30+max(Tubeout.dB_Val,-30))/30)));
+  animate_tubes == 0 ? gfx_a = 0.4;
+  gfx_blit(12,zoom*0.5,0);
+  );
+  gfx_a = 1; gfx_blit(13,zoom*0.5,0);
+
+  gfx_setfont(2); gfx_a = 1; lightgrey();
+  gfx_x = KLHPF.xIn*zoom + 18*zoom; gfx_y = KLHPF.yin * zoom + 85*zoom;
+  gfx_Drawstr("L DETECTOR");
+  gfx_x = KLHPF.xIn*zoom + 22*zoom; gfx_y = KLHPF.yin * zoom + 97*zoom;
+  gfx_Drawstr("HIGH PASS");
+  gfx_x = KRHPF.xIn*zoom + 18*zoom; gfx_y = KRHPF.yin * zoom + 85*zoom;
+  gfx_Drawstr("R DETECTOR");
+  gfx_x = KRHPF.xIn*zoom + 22*zoom; gfx_y = KRHPF.yin * zoom + 97*zoom;
+  gfx_Drawstr("HIGH PASS");
+  
+  gfx_x = KLKnee.xIn*zoom + 31*zoom; gfx_y = KLKnee.yin * zoom + 85*zoom;
+  gfx_Drawstr("L KNEE");
+  gfx_x = KLKnee.xIn*zoom + 18*zoom; gfx_y = KLKnee.yin * zoom + 97*zoom;
+  gfx_Drawstr("TWEAK VARI");
+  gfx_x = KRKnee.xIn*zoom + 31*zoom; gfx_y = KRKnee.yin * zoom + 85*zoom;
+  gfx_Drawstr("R KNEE");
+  gfx_x = KRKnee.xIn*zoom + 18*zoom; gfx_y = KRKnee.yin * zoom + 97*zoom;
+  gfx_Drawstr("TWEAK VARI");
+  
+  gfx_x = 650*zoom; gfx_y = 420*zoom;
+  gfx_drawstr("INPUT TUBES");
+  gfx_x = 820*zoom; gfx_y = 420*zoom;
+  gfx_drawstr("OUTPUT TUBES");
+  gfx_x = 620*zoom; gfx_y = 410*zoom;
+  transistor1 == 1 ? (Led_on = 1; gfx_a = 0.8): (Led_on = 0; gfx_a = 1);
+  gfx_blit(10,zoom*0.25,0, 0, 128*Led_On, 128, 128);
+  gfx_x = 790*zoom; gfx_y = 410*zoom;
+  transistor2 == 1 ? (Led_on = 1; gfx_a = 0.8): (Led_on = 0; gfx_a = 1);
+  gfx_blit(10,zoom*0.25,0, 0, 128*Led_On, 128, 128);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+
+  linklink = 0;
+  
+        !Number_input ? (
+        
+        mouseClick == 1 ? (
+        KLInGain.k_collision() ?  slider10 == 2 ? KRInGain.dragstart() : KLInGain.dragstart();
+        KLOutGain.k_collision() ? slider10 == 2 ? KROutGain.dragstart() : KLOutGain.dragstart();
+        KLThresh.k_collision() ?  slider10 == 2 ? KRThresh.dragstart() : KLThresh.dragstart();
+        KLTimes.k_collision() ?   slider10 == 2 ? KRTimes.dragstart() : KLTimes.dragstart();
+        KLHPF.k_collision() ?     slider10 == 2 ? KRHPF.dragstart() : KLHPF.dragstart();
+        KLKnee.k_collision() ?    slider10 == 2 ? KRKnee.dragstart() : KLKnee.dragstart();
+        KRInGain.k_collision() ?  slider10 == 1 || ST_Mode == 0 ? KLInGain.dragstart() : KRInGain.dragstart();
+        KROutGain.k_collision() ? slider10 == 1 || ST_Mode == 0 ? KLOutGain.dragstart() : KROutGain.dragstart();
+        KRThresh.k_collision() ?  slider10 == 1 || ST_Mode == 0 ? KLThresh.dragstart() : KRThresh.dragstart();
+        KRTimes.k_collision() ?   slider10 == 1 || ST_Mode == 0 ? KLTimes.dragstart() : KRTimes.dragstart();
+        KRHPF.k_collision() ?     slider10 == 1 || ST_Mode == 0 ? KLHPF.dragstart() : KRHPF.dragstart();
+        KRKnee.k_collision() ?    slider10 == 1 || ST_Mode == 0 ? KLKnee.dragstart() : KRKnee.dragstart();
+        KMode.k_collision() ?     KMode.dragstart();
+        
+        alt ? !superkey ? slider10 == 0 ? ST_Mode != 0 ? (
+        KLInGain.k_collision() ?  KRInGain.dragstart();
+        KLOutGain.k_collision() ? KROutGain.dragstart();
+        KLThresh.k_collision() ?  KRThresh.dragstart();
+        KLTimes.k_collision() ?   KRTimes.dragstart();
+        KLHPF.k_collision() ?     KRHPF.dragstart();
+        KLKnee.k_collision() ?    KRKnee.dragstart();
+        KRInGain.k_collision() ?  KLInGain.dragstart();
+        KROutGain.k_collision() ? KLOutGain.dragstart();
+        KRThresh.k_collision() ?  KLThresh.dragstart();
+        KRTimes.k_collision() ?   KLTimes.dragstart();
+        KRHPF.k_collision() ?     KLHPF.dragstart();
+        KRKnee.k_collision() ?    KLKnee.dragstart();
+        );
+        
+         //gfx_roundrect(KLTimes.xin*zoom+150*zoom, KLTimes.yIn*zoom,12*zoom,12*zoom,0);
+         //gfx_roundrect(KRTimes.xin*zoom+150*zoom, KRTimes.yIn*zoom+80*zoom,12*zoom,12*zoom,0);
+         //gfx_roundrect(630*zoom, 420*zoom,12*zoom,12*zoom,0);
+         //gfx_roundrect(800*zoom, 420*zoom,12*zoom,12*zoom,0);
+         //gfx_roundrect(KLBypass.xIn*zoom + 15*zoom, KLBypass.yIn*zoom, 20*zoom, 50*zoom,0);
+         //gfx_roundrect(KRBypass.xIn*zoom + 15*zoom, KRBypass.yIn*zoom, 20*zoom, 50*zoom,0);  
+         g_collision(KLTimes.xin*zoom+150*zoom, KLTimes.yIn*zoom,12*zoom,12*zoom) ? (slider10 == 1 ? slider10 = 0 : slider10 = 1; Linklink = 1; caller = 1);
+         g_collision(KRTimes.xin*zoom+150*zoom, KRTimes.yIn*zoom+80*zoom,12*zoom,12*zoom) ? (slider10 == 2 ? slider10 = 0 : slider10 = 2; linklink = 1; caller = 1);
+         g_collision(630*zoom, 420*zoom,12*zoom,12*zoom) ? (
+          slider17 == 0 ? slider17 = 1 : slider17 = 0;
+          //slider17 == 1 ? slider17 = 0:
+          //slider17 == 2 ? slider17 = 3:
+          //slider17 == 3 ? slider17 = 2;
+          superkey ? (
+          gmem[16*64 + 3] = 2;
+          gmem[16*64 + 1] = 17;
+          gmem[16*64 + 2] = slider17;
+          );
+          caller = 1;
+         );
+         g_collision(800*zoom, 420*zoom,12*zoom,12*zoom) ? (
+          slider18 == 0 ? slider18 = 1 : slider18 = 0;
+          //slider17 == 1 ? slider17 = 0:
+          //slider17 == 2 ? slider17 = 3:
+          //slider17 == 3 ? slider17 = 2;
+          superkey ? (
+          gmem[16*64 + 3] = 2;
+          gmem[16*64 + 1] = 18;
+          gmem[16*64 + 2] = slider18;
+          );
+          caller = 1;
+         );
+         
+         g_collision(KLBypass.xIn*zoom + 15*zoom, KLBypass.yIn*zoom, 20*zoom, 50*zoom) ? slider10 == 2 ? (slider16 == 0 ? slider16 =1 : slider16 = 0; KLBypass.quicklink_button(); caller = 1) : (slider15 == 0 ? slider15 =1 : slider15 = 0; KLBypass.quicklink_button(); caller = 1);
+         g_collision(KRBypass.xIn*zoom + 15*zoom, KRBypass.yIn*zoom, 20*zoom, 50*zoom) ? slider10 == 1 || ST_Mode == 0 ? (slider15 == 0 ? slider15 =1 : slider15 = 0; KLBypass.quicklink_button(); caller = 1) : (slider16 == 0 ? slider16 =1 : slider16 = 0; KLBypass.quicklink_button(); caller = 1);
+        ); 
+        
+        mouseclick == -1 ? (
+        KLInGain.dragstop();
+        KLOutGain.dragstop();
+        KLThresh.dragstop();
+        
+        KLTimes.dragstop();
+        KLHPF.dragstop();
+        KLKnee.dragstop();
+         KRInGain.dragstop();
+         KROutGain.dragstop();
+         KRThresh.dragstop();
+         KRTimes.dragstop();
+         KRHPF.dragstop();
+         KRKnee.dragstop();
+         KMode.dragstop();
+        );
+        
+        
+        mouse_wheel ? 
+            (
+        KLIngain.k_collision() ?  KLInGain.potwheel();
+        KLOutgain.k_collision() ? KLOutGain.potwheel();
+        KLThresh.k_collision() ?  KLThresh.potwheel();
+        KLTimes.k_collision() ?   KLTimes.potwheel();
+        KLHPF.k_collision() ?     KLHPF.potwheel();
+        KLKnee.k_collision() ?    KLKnee.potwheel();
+        KRIngain.k_collision() ?  KRInGain.potwheel();
+        KROutgain.k_collision() ? KROutGain.potwheel();
+        KRThresh.k_collision() ?  KRThresh.potwheel();
+        KRTimes.k_collision() ?   KRTimes.potwheel();
+        KRHPF.k_collision() ?     KRHPF.potwheel();
+        KRKnee.k_collision() ?    KRKnee.potwheel();
+        //KMode.k_collision() ?    KMode.potwheel();
+             mouse_wheel=0;
+             caller = 1;
+            );
+        
+
+        KLInGain.dragging ?  (KLInGain.potdrag();  KLInGain.readout();caller = 1;);
+        KLOutGain.dragging ? (KLOutGain.potdrag(); KLOutGain.readout();caller = 1;);
+        KLThresh.dragging ?  (KLThresh.potdrag();  KLThresh.readout();caller = 1;);
+        KLTimes.dragging ?   (KLTimes.potdrag(); caller = 1;);
+        KLHPF.dragging ?     (KLHPF.potdrag();     KLHPF.readout();caller = 1;);
+        KLKnee.dragging ?    (KLKnee.potdrag();    KLKnee.readout();caller = 1;);
+        KRInGain.dragging ?  (KRInGain.potdrag();  KRInGain.readout();caller = 1;);
+        KROutGain.dragging ? (KROutGain.potdrag(); KROutGain.readout();caller = 1;);
+        KRThresh.dragging ?  (KRThresh.potdrag();  KRThresh.readout();caller = 1;);
+        KRTimes.dragging ?   (KRTimes.potdrag(); caller = 1;);
+        KRHPF.dragging ?     (KRHPF.potdrag();     KRHPF.readout();caller = 1;);
+        KRKnee.dragging ?    (KRKnee.potdrag();    KRKnee.readout();caller = 1;);
+        Kmode.dragging ?     (KMode.potdrag_integer(); caller = 1;);
+
+
+        superkey ? (
+        linklink == 1 ? (
+        gmem[16*64 + 3] = 2;
+        gmem[16*64 + 1] = 10;
+        gmem[16*64 + 2] = slider10;
+        );
+        );
+
+       Link_Group == 0 ? (
+       gmem[16*64 + 3] == 0 ? linkstart = 0;
+       !mouse_cap ? (
+       gmem[16*64 + 3] == 1 ? (linkstart == 0 ? link_old = slider(gmem[16*64 + 1]); linkstart = 1);
+       gmem[16*64 + 3] == 1 ? (
+            tmp_val = link_old +  gmem[16*64 + 2];
+       slider(gmem[16*64 + 1]) = tmp_val;
+       slider_automate(slider(gmem[16*64 + 1]));
+       caller = 1;
+       );
+       gmem[16*64 + 3] == 2 ? (
+       slider(gmem[16*64 + 1]) =  gmem[16*64 + 2];
+       caller = 1;
+       );
+       );
+       );
+     
+     
+       
+       
+       ); // !number_input
+  
+       
+       
+       
+       gfx_a=1;
+       number_input ? (
+       number_input_slider == 4 ? number_input_show_selecter ():
+       number_input_slider == 8 ? number_input_show_selecter ():
+       number_input_slider == 9 ? number_input_show_selecter ():
+      
+       number_input_show();
+       );
+       //OEQ_NI == 1 ? number_input
+       number_input_invalid = max(0,number_input_invalid-1);
+       number_input_invalid ? ( 
+       gfx_r=gfx_g=gfx_b=0;
+       gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+       gfx_r=0;gfx_g=1;gfx_b=0;
+       gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+       red();
+       gfx_rect(zoom*number_input_x + gfx_texth+5,zoom*number_input_y, 200*zoom - (gfx_texth+5), gfx_texth+5);
+       gfx_r=gfx_g=gfx_b=0.7;
+       gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+       gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+       white();
+       gfx_drawstr("NO VALID INPUT!");
+       );
+     
+  /////////////////////////////////////////////////////////////////////////////
+  
+  
+  
+  
+  
+  
+  
+  
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+  
+  gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+  //gfx_blit(menu,zoom/2,0);
+  lightgrey(); //red();
+  gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+  gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 15*zoom;
+  gfx_drawstr("TUKAN STUDIOS  -  VARIBUS "); 
+  gfx_setfont(1,"Arial",12*zoom,'i');
+  lakeblue(); gfx_drawstr(" SERIES 2   ");
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+  
+  
+  link_group ? (
+    rgb_palette(Link_group);// gfx_a = 0.7;
+    gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+  );
+  gfx_a = 1;
+  
+  
+   mouseClick ? (
+    g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+     gfx_x = menu_x*zoom;
+     gfx_y = (menu_y+20)*zoom;
+      
+       #item2 =">Processing|";#allitems = #item2;
+      while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+      while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+      while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+  
+      mnu_grp_loop = 1;
+      loop(16,
+  
+        mnu_grp_loop == 16 ? #item2 += "<";
+        gmem[16*64 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+          mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                  #item2 = "!Joins Group ";
+          ):(
+              #item2 = "Add to Group ";
+          );
+        ):(
+          #item2 = "Start Group ";
+        );
+      mnu_grp_loop == 1 ? #item2 += "01";
+      mnu_grp_loop == 2 ? #item2 += "02";
+      mnu_grp_loop == 3 ? #item2 += "03";
+      mnu_grp_loop == 4 ? #item2 += "04";
+      mnu_grp_loop == 5 ? #item2 += "05";
+      mnu_grp_loop == 6 ? #item2 += "06";
+      mnu_grp_loop == 7 ? #item2 += "07";
+      mnu_grp_loop == 8 ? #item2 += "08";
+      mnu_grp_loop == 9 ? #item2 += "09";
+      mnu_grp_loop == 10 ? #item2 += "10";
+      mnu_grp_loop == 11 ? #item2 += "11";
+      mnu_grp_loop == 12 ? #item2 += "12";
+      mnu_grp_loop == 13 ? #item2 += "13";
+      mnu_grp_loop == 14 ? #item2 += "14";
+      mnu_grp_loop == 15 ? #item2 += "15";
+      mnu_grp_loop == 16 ? #item2 += "16";
+      
+      #item2 += "|";
+      #allitems += #item2; //sprintf(#temp, '%f',3); 
+      mnu_grp_loop += 1;
+      );
+      
+      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+  
+      //#allitems += "<#MENU|";
+     #allitems += ">Scaling|";
+     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+    
+     #allitems += ">Tubes|";
+     transistor1 == 1 ? (#item2 = "!Input Tubes|"):(#item2 = "Input Tubes|");#allitems += #item2;
+     transistor2 == 1 ? (#item2 = "!Output Tubes|"):(#item2 = "Output Tubes|");#allitems += #item2;
+     animate_tubes == 1 ? (#item2 = "<!Animate Tubes|"):(#item2 = "<Animate Tubes|");#allitems += #item2;
+
+     #allitems += ">Link Master|";
+     slider10 == 1 ? (#item2 = "!Left is Link Master|"):(#item2 = "Left is Link Master|");#allitems += #item2;
+     slider10 == 2 ? (#item2 = "<!Right is Link Master|"):(#item2 = "<Right is Link Master|");#allitems += #item2;     
+     
+     #allitems += ">Compensate|";
+     compensate_in == 1 ? (#item2 = "!Compensate Input Gain|"):(#item2 = "Compensate Input Gain|");#allitems += #item2;
+     compensate_out == 1 ? (#item2 = "<!Compensate Output Gain|"):(#item2 = "<Compensate Output Gain|");#allitems += #item2; 
+     
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+  
+  
+  
+  
+   
+   last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+   last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+   last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+  
+    cgroup = last_clicked_item - 3;
+   last_clicked_item > 3 && last_clicked_item < 20 ? (
+      Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+          gmem[16*64 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+              //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+              gmem[16*64 + 10 + cgroup] = 1;Link_Group = cgroup;group_update();
+          ):(
+              Link_Group = cgroup;// Gruppe teilnehmen
+          );
+      ):( //Eigene Gruppe angeklickt
+            Link_Group = 0;
+      );
+   
+   );
+   
+    cgroup = last_clicked_item - 3 - 16;
+   last_clicked_item == 20 ? (
+     gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
+   );
+   
+   
+   
+    last_clicked_item == 21 ? zoom_off = 0;
+    last_clicked_item == 22 ? zoom_off = 1; 
+   
+  
+   last_clicked_item == 23 ? (slider17 == 0 ? slider17 = 1 : slider17 = 0; caller = 1);
+   last_clicked_item == 24 ? (slider18 == 0 ? slider18 = 1 : slider18 = 0; caller = 1);
+   last_clicked_item == 25 ? (animate_tubes == 1 ? animate_tubes = 0 : animate_tubes = 1; caller = 1);
+   last_clicked_item == 26 ? (slider10 == 1 ? slider10 = 0 : slider10 = 1; caller = 1);
+   last_clicked_item == 27 ? (slider10 == 2 ? slider10 = 0 : slider10 = 2; caller = 1);
+
+   last_clicked_item == 28 ? (compensate_in == 1 ? compensate_in = 0 : compensate_in = 1; caller = 1);
+   last_clicked_item == 29 ? (compensate_out == 1 ? compensate_out = 0 : compensate_out = 1; caller = 1);
+   
+   last_clicked_item == 30 ? helpshow = 1;
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS VARIBUS (Series 2)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(VARIBUS_VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("Mouse modifier options:");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Link L/R knobs: [alt]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Fine tune knobs: [shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset knobs: [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Activate number typing: [alt]+[shift]");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ):gfx_ext_flags == 1 ? (
+  black(); gfx_rect(0,0,gfx_w,gfx_h);
+  
+  gfx_r = gfx_b = gfx_g = 0;
+  //GRmeterL.mnmetergfx((gfx_w/192), 0, 0, 1); //(gfx_w/2) - ((gfx_w/2)*(gfx_w/384)
+  
+  ST_Mode == 0 ? (
+  GRmeterL.mnmetergfx((gfx_w/192), 0 - 0*gfx_w/20, 0*(gfx_h - 75*(gfx_h/92)), 1);
+  ):(
+  GRmeterL.mnmetergfx(0.62*(gfx_w/192), 0 - gfx_w/20, gfx_h - 75*(gfx_h/92), 1);
+  GRmeterR.mnmetergfx(0.62*(gfx_w/192), (gfx_w/2)+1-gfx_w/20, gfx_h - 75*(gfx_h/92), 1);
+  );
+  
+  zoom=(gfx_h/30);
+  
+  
+  mouseClick == 1 ? (
+  shift ? (slider(KLBypass.slider) == 0 ? slider(KLBypass.slider) = 1: slider(KLBypass.slider) = 0; caller = 1);
+  shift ? (slider(KRBypass.slider) == 0 ? slider(KRBypass.slider) = 1: slider(KRBypass.slider) = 0; caller = 1);
+  );
+  
+  gfx_setfont(3,"Arial",12*zoom,'b');
+  
+        #mini_group = sprintf(#, "%i", Link_Group);
+        gfx_measurestr(#mini_group, mini_w, mini_h);
+        gfx_x = gfx_w - mini_w - 2; gfx_y = gfx_h - (gfx_texth - 2);
+        Link_Group ? (
+          black(); gfx_rect(gfx_x- zoom, gfx_y, gfx_w - gfx_x +zoom, gfx_h - gfx_y);
+          rgb_palette(Link_group);
+          gfx_drawstr(#mini_group);
+        );
+        
+   slider(KLBypass.slider) == 1 && slider(KRBypass.slider) == 1 ? (
+   black(); gfx_a=0.4; gfx_rect(0,0,gfx_w,gfx_h);
+   lightgrey();
+   gfx_x=2;gfx_y=gfx_h - mini_h - 2;gfx_r=gfx_b=gfx_g = 1; gfx_a=1;
+   gfx_drawstr("BYPASS");
+   );
+   
+  ); //GFX_EXT_FLAGS
+  
+  
+  
+  S2_sample_on == 0 ? (
+  gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+  group_check_gfx();
+  caller == 1 ? (
+    parameters_update_on == 0 ? (
+      parameters_update();
+    );
+  );
+  );
+  S2_sample_on = 0;
