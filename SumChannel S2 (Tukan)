@@ -117,7 +117,7 @@ import S2GFX/cookdsp.jsfx-inc
 import S2GFX/VT_Filters.jsfx-inc
 
 @init
-sumChan_VERSION = 0.99;
+sumChan_VERSION = 1;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
@@ -1368,11 +1368,14 @@ MBC1_xG = ratio2db(MBC1_xL);
 MBC1_yG = MBC1_computeGain(MBC1_xG);
 MBC1_cG = MBC1_smoothAverage(MBC1_yG, MBC1_aplhaA, MBC1_aplhaER);
 MBC1_cL = db2ratio(MBC1_cG);
+ext_gr_meter = MBC1_cG;
 spl0 *= MBC1_cL*MBC1_output;
 spl1 *= MBC1_cL*MBC1_output;
 ):(
 MBC1_cL = 1;
+ext_gr_meter = 0;
 );
+
 
 GR_Meter.feed_Meter_GR(MBC1_cL);
 GR_VU_meter.GR_mnmetersample(MBC1_cL*db2ratio(-3.9)); //3.7
@@ -1616,7 +1619,7 @@ abs(spl0) >= 1 ? over_Led_L = 3;
 abs(spl1) >= 1 ? over_Led_R = 3;
 
 ):( // Process
-
+ext_gr_meter = 0;
 L_VU_meter.mnmetersample(0);
 R_VU_meter.mnmetersample(0);
 LandR_VU_Meter.mnmetersample(0);

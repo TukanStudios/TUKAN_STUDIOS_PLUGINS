@@ -57,7 +57,7 @@ options:gmem=TukanBusCompS2
 @init
 
 
-BusComp_VERSION = 0.99;
+BusComp_VERSION = 1;
 //0.99 checked if removed options:gfx_idle
 //09 added auto bypass support
 
@@ -1207,12 +1207,13 @@ mode == 0 ? (L_tengrv = R_tengrv = tengrv);
   //mnmetersample(L_tengrv*0.63,R_tengrv*0.63,0,mom); // mode = (0 ST, 1 SumMono, 2 MaxMono), mnmom = speed
   
   
-  
+ext_gr_meter = min(ratio2db(L_tengrv),ratio2db(R_tengrv));
   
   GRmeterL.mnmetersample(L_tengrv*db2ratio(-3.9));
   GRmeterR.mnmetersample(R_tengrv*db2ratio(-3.9));
   
   ):( //process
+  ext_gr_meter = 0;
   GRmeterL.mnmetersample(1*db2ratio(-3.9));
   GRmeterR.mnmetersample(1*db2ratio(-3.9));
   ); // process

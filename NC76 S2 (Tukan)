@@ -40,7 +40,7 @@ options:gmem=TukanNC76S2
 
 
 @init
-NC76_VERSION = 0.99;
+NC76_VERSION = 1;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -315,7 +315,7 @@ grmin = min( min(cG,cG) , grmin);
   );
   
   GRmeter.mnmetersample(grv*db2ratio(-3.9)); //3.7
-  
+  ext_gr_meter = ratio2db(grv);
   
   spl0 += ospl0 * (1-mix); // ????????????????????????? AHHH! DAS IST PARALLEL COMPERSSION!
   spl1 += ospl1 * (1-mix);
@@ -364,6 +364,7 @@ ovrlgain = ovrlg;
 
 ):( //process
 GRmeter.mnmetersample(db2ratio(-3.9));
+ext_gr_meter = ratio2db(0);
 );
 
 

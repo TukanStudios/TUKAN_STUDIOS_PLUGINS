@@ -62,7 +62,7 @@ options:gmem=TukanCompressorS2
 //options:gfx_idle
 
 @init
-COMPRESSOR_VERSION = 0.99;
+COMPRESSOR_VERSION = 1;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 /*
@@ -511,7 +511,7 @@ spl1 = ((((100-drymix)/100)*spl1)+(spl1+((drymix/100)*-spl1 * MBC1_cL))) * MBC1_
 );
 
 
-
+ext_gr_meter = ratio2db(MBC1_cL);
 
 MBC1_gr = db2ratio(MBC1_cL);
 MBC1_grv = ratio2db(MBC1_gr);
@@ -645,7 +645,9 @@ db_g_max_u_R_hold_out = max(db_g_max_u_R_hold_out,db_g_max_u_R_out);
 
 
 
-); //Process ?
+):( //Process ?
+ext_gr_meter = 0;
+);
 
 GR_Meter.feed_Meter_GR(MBC1_cL);
 

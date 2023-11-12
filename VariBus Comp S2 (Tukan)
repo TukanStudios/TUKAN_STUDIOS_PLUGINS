@@ -90,7 +90,7 @@ animate_tubes = 1;
   
 
   
-Varibus_VERSION = 0.99;
+Varibus_VERSION = 1;
 //0.99 checked if removed options:gfx_idle
 //09 added auto bypass support
 
@@ -770,6 +770,7 @@ tenoverdb = overdb;
   spl0 = spl0 * tengrv;
   spl1 = spl1 * tengrv;  
   
+  report_gr_L = report_gr_R = ratio2db(tengrv);
   GRmeterL.mnmetersample(tengrv*db2ratio(-3.9));
   GRmeterR.mnmetersample(tengrv*db2ratio(-3.9));
  
@@ -958,7 +959,9 @@ tenoverdb = overdb;
   tenmaxover = tenrunmax;
   thi3 = 1;//exp(-corfak*db2log);
   spl0 = spl0 * tengrv;
+  report_gr_L = ratio2db(tengrv);
  GRmeterL.mnmetersample(tengrv*db2ratio(-3.9));
+
   //spl1 *= tengrv;  
   L_tengrv = tengrv;
   tenospl0 = HP0.buthp_do(spl0+p1_pink*L_in_Gain);;
@@ -1086,7 +1089,9 @@ tenoverdb = overdb;
   R_tenmaxover = R_tenrunmax;
   R_thi3 = 1;//exp(-corfak*db2log);
   //spl0 *= tengrv;
-  spl1 = spl1 * tengrv;   
+  spl1 = spl1 * tengrv;
+
+  report_gr_R = ratio2db(tengrv);
   GRmeterR.mnmetersample(tengrv*db2ratio(-3.9));
   R_tengrv = tengrv;
   //tenospl0 = spl0;
@@ -1152,21 +1157,21 @@ spl1 *= Compensate_R_out_Gain;
 
 
  ST_Mode != 2 ? (
- L_Bypass == 1 ? (spl0 = first_spl0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
- R_Bypass == 1 ? (spl1 = first_spl1;GRmeterR.mnmetersample(1*db2ratio(-3.9)));
+ L_Bypass == 1 ? (spl0 = first_spl0;report_gr_L = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ R_Bypass == 1 ? (spl1 = first_spl1;report_gr_R = 0;GRmeterR.mnmetersample(1*db2ratio(-3.9)));
  ):(
- L_Bypass == 1 ? (spl0 = second_spl0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
- R_Bypass == 1 ? (spl1 = second_spl1;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ L_Bypass == 1 ? (spl0 = second_spl0;report_gr_L = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
+ R_Bypass == 1 ? (spl1 = second_spl1;report_gr_R = 0;GRmeterL.mnmetersample(1*db2ratio(-3.9)));
  vspl0 = spl0 + spl1;// MID SIDE DECODING
  vspl1 = spl0 - spl1;
  spl0 = vspl0;
  spl1 = vspl1;
  ); 
  
- 
+  ext_gr_meter = min(report_gr_r,report_gr_L);
   ):( //process
   
-  
+  ext_gr_meter = 0;
   TubeOut.feed_Meter(0);
   Tubein.feed_Meter(0);
   GRmeterL.mnmetersample(1*db2ratio(-3.9));

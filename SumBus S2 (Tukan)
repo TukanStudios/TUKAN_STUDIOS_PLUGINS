@@ -86,7 +86,7 @@ options:gmem=TukaSumBusS2
 @init
 
 
-SumBus_VERSION = 0.99;
+SumBus_VERSION = 1;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -942,7 +942,7 @@ tenoverdb = overdb;
   thi3 = 1;//exp(-corfak*db2log);
   spl0 *= tengrv;
   spl1 *= tengrv;  
-  
+  ext_gr_meter = tengr;
   
   tenospl0 = spl0;
   tenospl1 = spl1;
@@ -1067,6 +1067,7 @@ mode == 0 ? (L_tengrv = R_tengrv = tengrv);
   
   L_Bypass == 0 ? GRmeterL.GR_mnmetersample(L_tengrv*db2ratio(-3.9)) : GR_GRmeterL.mnmetersample(db2ratio(-3.9));
   ):( //process
+  ext_gr_meter = 0;
   L_VU_meter.mnmetersample(0);
   R_VU_meter.mnmetersample(0);
   LandR_VU_Meter.mnmetersample(0);

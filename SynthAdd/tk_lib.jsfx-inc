@@ -1,0 +1,867 @@
+desc:tukans library
+
+@init
+
+
+	function Mouse_Sensivity () (
+		S2_Mouse_Sensivity = 300;
+		S2_Mouse_Finetune = 10;
+	);
+
+
+
+
+
+
+
+
+
+
+
+		Function HPF_Config (Hz) instance (CHLP_cx_hp cutoff_hp res_hp n_hp k CHLP_c1 CHLP_c2 CHLP_c3 CHLP_a0_hp CHLP_a1_hp CHLP_a2_hp CHLP_b1_hp CHLP_b2_hp) (
+			CHLP_cx_hp = Hz*(3/4); N_hp = 5;
+			cutoff_hp = 2*CHLP_cx_hp/srate;
+			res_hp = 10^(0.05*(-0/n_hp+1.5));
+
+			k = 0.55*res_hp*sin($pi*cutoff_hp);
+			CHLP_c1 = 0.5*(1-k)/(1+k);
+			CHLP_c2 = (0.5+CHLP_c1)*cos($pi*cutoff_hp);
+			CHLP_c3 = (0.5+CHLP_c1+CHLP_c2)*0.25;
+
+			CHLP_a0_hp = 2*CHLP_c3;
+			CHLP_a1_hp = -4*CHLP_c3;
+			CHLP_a2_hp = 2*CHLP_c3;
+			CHLP_b1_hp = -2*CHLP_c2;
+			CHLP_b2_hp = 2*CHLP_c1;
+		);
+
+		Function HPF_do(signal) instance (CHLP_cx_hp cutoff_hp res_hp n_hp k CHLP_c1 CHLP_c2 CHLP_c3 CHLP_a0_hp CHLP_a1_hp CHLP_a2_hp CHLP_b1_hp CHLP_b2_hp CHLP_hp_l_11 CHLP_hp_l_12 CHLP_hp_l_13 CHLP_hp_l_14 CHLP_hp_l_21 CHLP_hp_l_22 CHLP_hp_l_23 CHLP_hp_l_24 CHLP_hp_l_31 CHLP_hp_l_32 CHLP_hp_l_33 CHLP_hp_l_34 CHLP_hp_l_41 CHLP_hp_l_42 CHLP_hp_l_43 CHLP_hp_l_44 CHLP_hp_l_51 CHLP_hp_l_52 CHLP_hp_l_53 CHLP_hp_l_54 CHLP_hp_l_61 CHLP_hp_l_62 CHLP_hp_l_63 CHLP_hp_l_64 CHLP_out_hp_l CHLP_out_hp_l_1 CHLP_out_hp_l_2 CHLP_out_hp_l_3 CHLP_out_hp_l_4 CHLP_out_hp_l_5 CHLP_out_hp_l_6) (
+CHLP_cx_hp > 7.5 ? ( //wenn mehr als 10Hz
+n_hp > 0 ? (
+CHLP_out_hp_l_1 = CHLP_a0_hp*signal+CHLP_a1_hp*CHLP_hp_l_11+CHLP_a2_hp*CHLP_hp_l_12-CHLP_b1_hp*CHLP_hp_l_13-CHLP_b2_hp*CHLP_hp_l_14;
+CHLP_hp_l_12 = CHLP_hp_l_11;
+CHLP_hp_l_11 = signal;
+CHLP_hp_l_14 = CHLP_hp_l_13;
+CHLP_hp_l_13 = CHLP_out_hp_l_1;
+CHLP_out_hp_l = CHLP_out_hp_l_1;
+n_hp > 1 ? (
+CHLP_out_hp_l_2 = CHLP_a0_hp*CHLP_out_hp_l_1+CHLP_a1_hp*CHLP_hp_l_21+CHLP_a2_hp*CHLP_hp_l_22-CHLP_b1_hp*CHLP_hp_l_23-CHLP_b2_hp*CHLP_hp_l_24;
+CHLP_hp_l_22 = CHLP_hp_l_21;
+CHLP_hp_l_21 = CHLP_out_hp_l_1;
+CHLP_hp_l_24 = CHLP_hp_l_23;
+CHLP_hp_l_23 = CHLP_out_hp_l_2;
+CHLP_out_hp_l = CHLP_out_hp_l_2;
+);
+n_hp > 2 ? (
+CHLP_out_hp_l_3 = CHLP_a0_hp*CHLP_out_hp_l_2+CHLP_a1_hp*CHLP_hp_l_31+CHLP_a2_hp*CHLP_hp_l_32-CHLP_b1_hp*CHLP_hp_l_33-CHLP_b2_hp*CHLP_hp_l_34;
+CHLP_hp_l_32 = CHLP_hp_l_31;
+CHLP_hp_l_31 = CHLP_out_hp_l_2;
+CHLP_hp_l_34 = CHLP_hp_l_33;
+CHLP_hp_l_33 = CHLP_out_hp_l_3;
+CHLP_out_hp_l = CHLP_out_hp_l_3;
+);
+n_hp > 3 ? (
+CHLP_out_hp_l_4 = CHLP_a0_hp*CHLP_out_hp_l_3+CHLP_a1_hp*CHLP_hp_l_41+CHLP_a2_hp*CHLP_hp_l_42-CHLP_b1_hp*CHLP_hp_l_43-CHLP_b2_hp*CHLP_hp_l_44;
+CHLP_hp_l_42 = CHLP_hp_l_41;
+CHLP_hp_l_41 = CHLP_out_hp_l_3;
+CHLP_hp_l_44 = CHLP_hp_l_43;
+CHLP_hp_l_43 = CHLP_out_hp_l_4;
+CHLP_out_hp_l = CHLP_out_hp_l_4;
+);
+n_hp > 4 ? (
+CHLP_out_hp_l_5 = CHLP_a0_hp*CHLP_out_hp_l_4+CHLP_a1_hp*CHLP_hp_l_51+CHLP_a2_hp*CHLP_hp_l_52-CHLP_b1_hp*CHLP_hp_l_53-CHLP_b2_hp*CHLP_hp_l_54;
+CHLP_hp_l_52 = CHLP_hp_l_51;
+CHLP_hp_l_51 = CHLP_out_hp_l_4;
+CHLP_hp_l_54 = CHLP_hp_l_53;
+CHLP_hp_l_53 = CHLP_out_hp_l_5;
+CHLP_out_hp_l = CHLP_out_hp_l_5;
+);
+n_hp > 5 ? (
+CHLP_out_hp_l_6 = CHLP_a0_hp*CHLP_out_hp_l_5+CHLP_a1_hp*CHLP_hp_l_61+CHLP_a2_hp*CHLP_hp_l_62-CHLP_b1_hp*CHLP_hp_l_63-CHLP_b2_hp*CHLP_hp_l_64;
+CHLP_hp_l_62 = CHLP_hp_l_61;
+CHLP_hp_l_61 = CHLP_out_hp_l_5;
+CHLP_hp_l_64 = CHLP_hp_l_63;
+CHLP_hp_l_63 = CHLP_out_hp_l_6;
+CHLP_out_hp_l = CHLP_out_hp_l_6;
+);
+);
+CHLP_out_hp_l;
+):(
+CHLP_out_hp_l = signal;
+CHLP_out_hp_l;
+);
+		);
+
+
+
+ function v_meter_show() 
+ instance (xIn yIn width height dB_range dB_Val dB_Val_Max)
+ local (dB_clipped dB_Max_clipped)
+ (
+  db_clipped = min(0, this.dB_Val);
+  db_Max_clipped = min(0, this.db_Val_Max);
+ db_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom, this.yIn*zoom - db_clipped*(this.height*zoom/this.db_range), this.width *zoom,this.height*zoom- db_clipped*(this.height*zoom/this.db_range));
+ db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom, this.yIn*zoom - db_max_clipped*(this.height*zoom/this.db_range),this.width*zoom, min(1,2*zoom));
+ );
+
+ function v_gr_meter_show() 
+ instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max dB_Val_Max_GR)
+ local (dB_clipped dB_Max_clipped)
+ (
+  db_clipped = min(0, this.dB_Val);
+  db_Max_clipped = min(0, this.db_Val_Max_GR);
+	gfx_x = ceil(this.xIn*zoom); gfx_y = this.yIn*zoom;
+ db_clipped >= -this.db_range ? (
+			gfx_rectto(this.xIn*zoom+this.width *zoom ,this.yIn*zoom + this.height*zoom*0 - db_clipped*(this.height*zoom/this.db_range));
+				):(
+			Katie = 0;//gfx_rectto(this.xIn*zoom,this.yIn*zoom + this.height*zoom);
+				);
+ db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom, this.yIn*zoom - db_max_clipped*(this.height*zoom/this.db_range), this.width*zoom, min(1,2*zoom));
+ );
+
+ function meter_show() 
+ instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max)
+ local (dB_clipped dB_Max_clipped)
+ (
+  db_clipped = min(0, this.dB_Val);
+  db_Max_clipped = min(0, this.db_Val_Max);
+ db_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom, this.yIn*zoom, this.width *zoom + db_clipped*(this.width*zoom/this.db_range),this.height*zoom);
+ db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom+this.width *zoom + db_max_clipped*(this.width*zoom/this.db_range), this.yIn*zoom, min(1,2*zoom),this.height*zoom);
+ );
+ 
+
+
+ function gr_meter_show() 
+ instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max dB_Val_Max_GR)
+ local (dB_clipped dB_Max_clipped)
+ (
+  db_clipped = min(0, this.dB_Val);
+  db_Max_clipped = min(0, this.db_Val_Max_GR);
+	gfx_x = ceil(this.xIn*zoom+ this.width*zoom); gfx_y = this.yIn*zoom;
+ db_clipped >= -this.db_range ? (
+			gfx_rectto(ceil(this.xIn*zoom+this.width *zoom + db_clipped*(this.width*zoom/this.db_range)),this.yIn*zoom + this.height*zoom);
+				):(
+			gfx_rectto(this.xIn*zoom,this.yIn*zoom + this.height*zoom);
+				);
+ db_max_clipped >= -this.db_range ? gfx_rect(this.xIn*zoom+this.width *zoom + db_max_clipped*(this.width*zoom/this.db_range), this.yIn*zoom, min(1,2*zoom),this.height*zoom);
+ );
+
+
+
+
+ function meter_overlay ()
+ instance (xIn yIn width heihgt dB_range dB_Val dB_Val_Max)
+ local(loop_step)
+ (
+  loop_step = 0;
+  loop(this.width * zoom,
+    gfx_a = 1 - loop_step*2/(this.width * zoom);
+   //gfx_rect(this.xIn*zoom+ loop_step, this.yIn*zoom, 1, this.height*zoom);
+    gfx_line(this.xIn*zoom+ loop_step, this.yIn*zoom,this.xIn*zoom+ loop_step, this.yIn*zoom+this.height*zoom);
+  loop_step +=0.5;
+  );
+ );
+ 
+ function meter_config(xIn_ yIn_ width_ height_ db_range_ S2_meter_fallback_) 
+ instance (xIn yIn width heihgt dB_range S2_meter_fallback)
+ (
+ this.xIn = xIn_;
+ this.yIn = yIn_;
+ this.width = width_;
+ this.height = height_;
+ this.db_range = dB_range_;
+ this.S2_meter_fallback = S2_meter_fallback_;
+ );
+
+
+
+function db2ratio(d) ( 10^(d/20); );
+function ratio2db(r) ( log(abs(r))*(20/log(10)); );
+
+function feed_meter(in_spl) 
+instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
+(
+    this.U_Val=abs(in_spl);
+        ratio2db(this.U_Val) > this.dB_Val ? (
+        this.dB_Val = ratio2db(this.U_Val);
+    ):(
+        this.dB_Val -= this.S2_meter_fallback/srate; // db pro sec
+    );
+    this.dB_Val_Max = max(this.dB_Val_Max,this.dB_Val);
+	this.dB_Val_Max_GR = min(this.dB_Val_Max_GR,this.dB_Val);
+);
+
+
+function feed_meter_gr(in_spl) 
+instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
+(
+    this.U_Val=abs(in_spl);
+        ratio2db(this.U_Val) < this.dB_Val ? (
+        this.dB_Val = ratio2db(this.U_Val);
+    ):(
+        this.dB_Val += this.S2_meter_fallback/srate; // db pro sec
+    );
+    this.dB_Val_Max = max(this.dB_Val_Max,this.dB_Val);
+	this.dB_Val_Max_GR = min(this.dB_Val_Max_GR,this.dB_Val);
+);
+
+
+	function labelposition (S2_Labelpos, s2label_w, s2label_h) (
+			        S2_xpos = this.xIn*zoom + (this.size*zoom/4) - (this.size*zoom/4)*(cos(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				s2_ypos = this.yIn*zoom + (this.size*zoom/4) - (this.size*zoom/4)*(sin(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				gfx_measurestr(" ", S2add_x, s2add_y);
+      				S2_labelpos < 5 ? (gfx_x = s2_xpos - S2label_w - S2add_x; gfx_y = s2_ypos - s2label_h/2);
+      				S2_labelpos == 5 ? (gfx_x = s2_xpos - S2label_w/2; gfx_y = s2_ypos - s2label_h);
+     				S2_labelpos > 5 ? (gfx_x = s2_xpos + 1.5*S2add_x; gfx_y = s2_ypos - s2label_h/2);
+				//gfx_x = s2_xpos; gfx_y = s2_ypos;
+	);
+
+
+
+
+
+
+
+	function group_parameters () (
+		link_group ? (
+			gmem[16*64 + 10 + link_group] == 1 ? (
+					While_Playing = gmem[16*64 + 27 + link_group];
+					While_Recording = gmem[16*64 + 27 + 16 + link_group];
+					While_Stopped = gmem[16*64 + 27 + 32 + link_group];
+      				slider_loop_temp = 1;
+      				loop(S2_numbers_of_sliders,
+        				sliders_old[slider_loop_temp] == slider(slider_loop_temp) ? (
+          					gmem[(Link_Group-1)*64+ slider_loop_temp-1] != slider(slider_loop_temp) ? ( 
+            						slider(slider_loop_temp) = sliders_old[slider_loop_temp] = gmem[(Link_Group-1)*64+ slider_loop_temp-1];
+          					);
+        				):(
+          					gmem[(Link_Group-1)*64+ slider_loop_temp-1] = slider(slider_loop_temp);
+          					sliders_old[slider_loop_temp] = slider(slider_loop_temp);
+        				);
+        			slider_loop_temp += 1;
+      				);
+      				slider_loop_temp = 1;
+      				loop(S2_numbers_of_generics,
+        				generics_old[slider_loop_temp] == group_generics[slider_loop_temp] ? (
+          					gmem[16*64+27+48+slider_loop_temp+(Link_Group-1)*200] != group_generics[slider_loop_temp] ? ( 
+            						group_generics[slider_loop_temp] = generics_old[slider_loop_temp] = gmem[16*64+27+48+slider_loop_temp+(Link_Group-1)*200];
+          					);
+        				):(
+          					gmem[16*64+27+48+slider_loop_temp+(Link_Group-1)*200] = group_generics[slider_loop_temp];
+          					generics_old[slider_loop_temp] = group_generics[slider_loop_temp];
+        				);
+        			slider_loop_temp += 1;
+      				);
+			):(link_group = 0;
+			);
+
+		);
+	);
+
+
+	function group_check_smpl () (
+			S2_sample_on = 1;
+			link_group ? (
+      			slider_loop_temp_smpl = 1;
+      			loop(S2_numbers_of_sliders,
+        				gmem[(Link_Group-1)*64+ slider_loop_temp_smpl-1] != slider(slider_loop_temp_smpl) ? caller = 1;
+        				slider_loop_temp_smpl += 1;
+      			);
+			slider_loop_temp_smpl = 1;
+      			loop(S2_numbers_of_generics,
+        				gmem[16*64+27+48+slider_loop_temp_smpl+(Link_Group-1)*200] != group_generics[slider_loop_temp_smpl] ? caller = 1;
+        				slider_loop_temp_smpl += 1;
+      			);
+			gmem[16*64 + 27 + link_group] != While_Playing ? Caller = 1;
+			gmem[16*64 + 27 + 16+link_group] != While_Recording ? Caller = 1;
+			gmem[16*64 + 27 + 32+link_group] != While_Stopped ? Caller = 1;
+			);
+	);
+
+
+	function group_check_gfx () (
+      			slider_loop_temp_gfx = 1;
+			link_group ? (
+      			loop(S2_numbers_of_sliders,
+        				gmem[(Link_Group-1)*64+ slider_loop_temp_gfx-1] != slider(slider_loop_temp_gfx) ? caller = 1;
+        				slider_loop_temp_gfx += 1;
+      			);
+			slider_loop_temp_gfx = 1;
+      			loop(S2_numbers_of_generics,
+        				gmem[16*64+27+48+slider_loop_temp_gfx+(Link_Group-1)*200] != group_generics[slider_loop_temp_gfx] ? caller = 1;
+        				slider_loop_temp_gfx += 1;
+      			);
+			gmem[16*64 + 27 + link_group] != While_Playing ? Caller = 1;
+			gmem[16*64 + 27 + 16+link_group] != While_Recording ? Caller = 1;
+			gmem[16*64 + 27 + 32+link_group] != While_Stopped ? Caller = 1;
+			);
+	);
+
+
+
+	function processing_update() (
+		link_group ? (
+			gmem[16*64 + 27 + link_group] = While_Playing;
+			gmem[16*64 + 27 + 16+link_group] = While_Recording;
+			gmem[16*64 + 27 + 32+link_group] = While_Stopped;
+		);
+	);
+
+
+
+	Function group_matching () local(tmp)  (
+		Link_Group ? (
+			gmem[16*64 + 10 + link_group] == 1 ? (
+				tmp = 1;
+				loop(s2_numbers_of_sliders,
+		  			slider(tmp) != gmem[(Link_Group-1)*64+tmp-1] ? (slider(tmp) = gmem[(Link_Group-1)*64+tmp-1]; caller = 1);
+					tmp +=1;
+				);
+					While_Playing = gmem[16*64 + 27 + link_group];
+					While_Recording = gmem[16*64 + 27 + 16 + link_group];
+					While_Stopped = gmem[16*64 + 27 + 32 + link_group];
+					tmp = 1;
+					loop(s2_numbers_of_generics,
+		  				group_generics[tmp] != gmem[16*64+27+48+tmp+(Link_Group-1)*200] ? (group_generics[tmp] = gmem[16*64+27+48+tmp+(Link_Group-1)*200]; caller = 1);
+					tmp +=1;
+					);
+			):(
+				link_group = 0;
+			);
+		);
+	);
+
+	Function group_master_collision () local(tmp)  (
+		Link_Group ? (
+				tmp = 1;
+				loop(s2_numbers_of_sliders,
+		  			slider(tmp) != gmem[(Link_Group-1)*64+tmp-1] ? link_group_master = 0;
+					tmp +=1;
+				);
+		);
+	);
+
+	Function group_update () local(tmp)  (
+		Link_Group ? (
+		gmem[16*64 + 10 + link_group] = 1; // Group ON
+		gmem[16*64 + 27 + link_group] = While_Playing;
+		gmem[16*64 + 27 + 16 + link_group] = While_Recording;
+		gmem[16*64 + 27 + 32 + link_group] = While_Stopped;
+		tmp = 1;
+		loop(s2_numbers_of_sliders,
+		  slider(tmp) != gmem[(Link_Group-1)*64+tmp-1] ? (gmem[(Link_Group-1)*64+tmp-1] = slider(tmp));
+			tmp +=1;
+		);
+		tmp = 1;
+		loop(s2_numbers_of_generics,
+		  group_generics[tmp] != gmem[16*64+27+48+tmp+(Link_Group-1)*200] ? (gmem[16*64+27+48+tmp+(Link_Group-1)*200] = group_generics[tmp]);
+			tmp +=1;
+		);
+		);
+	);
+
+
+     function playstates () (
+	play_state == 0 ? (is_recording = 0; is_playing = 0; is_stopped = 1);     
+	play_state == 1 ? (is_recording = 0; is_playing = 1; is_stopped = 0); 
+	play_state == 2 ? (is_recording = 0; is_playing = 0; is_stopped = 1); 
+	play_state == 5 ? (is_recording = 1; is_playing = 0; is_stopped = 0);
+	play_state == 6 ? (is_recording = 0; is_playing = 0; is_stopped = 1);
+	);
+
+
+    function knoblabelposition (textw) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + (this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + (this.size*zoom / 2) + (5 * zoom);
+    );
+
+    function knobmeasureposition (textw, texth) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + (this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + (this.size*zoom / 2) - (texth/2);
+    );
+    
+
+
+
+
+
+
+	function labelposition_scaled (S2_Labelpos, s2label_w, s2label_h) (
+			        S2_xpos = this.xIn*zoom + this.scaling*(this.size*zoom/4) - this.scaling*(this.size*zoom/4)*(cos(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				s2_ypos = this.yIn*zoom + this.scaling*(this.size*zoom/4) - this.scaling*(this.size*zoom/4)*(sin(-$pi*-((S2_labelpos-1)*0.7775 -1.1)/4));
+      				gfx_measurestr(" ", S2add_x, s2add_y);
+      				S2_labelpos < 5 ? (gfx_x = s2_xpos - S2label_w - S2add_x; gfx_y = s2_ypos - s2label_h/2);
+      				S2_labelpos == 5 ? (gfx_x = s2_xpos - S2label_w/2; gfx_y = s2_ypos - s2label_h);
+     				S2_labelpos > 5 ? (gfx_x = s2_xpos + 1.5*S2add_x; gfx_y = s2_ypos - s2label_h/2);
+				//gfx_x = s2_xpos; gfx_y = s2_ypos;
+	);
+
+    function knoblabelposition_scaled (textw) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + this.scaling*(this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + this.scaling*(this.size*zoom / 2) + (5 * zoom);
+    );
+
+    function knobmeasureposition_scaled (textw, texth) (
+    gfx_setfont(1,"Arial",12*zoom,'b');
+    gfx_x = (this.xIn * zoom) + this.scaling*(this.size*zoom/4) - (textw / 2); gfx_y = (this.yIn * zoom) + this.scaling*(this.size*zoom / 2) - (texth/2);
+    );
+
+
+
+
+
+    function readout () (
+    sprintf(#readout, "%.2f", slider(this.slider));
+    gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+    gfx_measurestr(#readout, rdow, rdoh);
+    gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+    gfx_r=gfx_g=gfx_b=0.8;
+    gfx_x += 3*zoom;
+    gfx_drawstr(#readout);
+    );
+
+	function Parameter_Boundaries () 
+		instance (minVal maxVal slider)
+		(
+		katze=0;
+			slider(this.slider) = min(max(slider(this.slider), this.minval), this.maxval);
+		);
+
+
+      function Parameter_config  (slider_ default_ minVal_ maxVal_ xIn_ yIn_ wIn frames_ scaling_ file_)
+        instance        (default minVal maxVal slider xIn yIn size frames scaling file)
+                        (
+                         default = default_;
+                         minVal = minVal_;
+                         maxVal = maxVal_;
+                         slider = slider_;
+			//slider(slider) = default; Caller = 1;
+                        xIn = xIn_;
+                        yIn = yIn_;
+                        size= wIn;
+                        frames = frames_;
+                        scaling = scaling_;
+                        file = file_;
+                        );
+
+	function button_config  (slider_ xIn_ yIn_)
+        instance        (xIn yIn slider)
+                        (
+                        xIn = xIn_;
+                        yIn = yIn_;
+			slider = slider_;
+                        );
+
+	function switch_config  (xIn_ yIn_)
+        instance        (xIn yIn)
+                        (
+                        xIn = xIn_;
+                        yIn = yIn_;
+                        );
+
+      function knob()
+                   (
+                    gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+                    weg = abs(minVal - maxVal);
+                     kframe = (slider(this.slider) - this.minVal) * (this.frames-1) / (this.maxVal - this.minVal);
+                     scry = this.size * floor(kframe);
+                     //gfx_blit(this.file,this.scaling,0,0,scry,this.size,this.size);
+			gfx_blit(this.file, this.scaling * zoom / 2, 0, 0, scry, this.size,this.size);
+                    );
+
+      function knob_rev()
+                   (
+                    gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+                    weg = abs(minVal - maxVal);
+                     kframe = (this.maxVal - slider(this.slider)) * (this.frames-1) / (this.maxVal - this.minVal);
+                     scry = this.size * floor(kframe);
+                     //gfx_blit(this.file,this.scaling,0,0,scry,this.size,this.size);
+			gfx_blit(this.file, this.scaling * zoom / 2, 0, 0, scry, this.size,this.size);
+                    );
+
+
+	function button () local (on) (
+				slider(this.slider) > 0 ? (on = 1):(on=0);
+      				gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+      				gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+      				gfx_x += 28 * zoom; gfx_y += 2*zoom;
+      				gfx_blit(rled, zoom/4, 0, 0, on * 128, 128, 128);
+    	);
+
+	function Color_button (color_) local (on) (
+				slider(this.slider) > 0 ? (on = 1):(on=0);
+      				gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+      				gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+      				gfx_x += 28 * zoom; gfx_y += 2*zoom;
+      				gfx_blit(color_, zoom/4, 0, 0, on * 128, 128, 128);
+    	);
+
+	function button3 () local (on) (
+				slider(this.slider) > 0 ? (on = 1):(on=0);
+      				gfx_x=this.xIn*zoom; gfx_y=this.yIn*zoom;
+      				gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+      				gfx_x += 28 * zoom; gfx_y += 2*zoom;
+      				slider(this.slider) == 0 ? gfx_blit(rled, zoom/4, 0, 0, on * 128, 128, 128);
+				slider(this.slider) == 1 ? gfx_blit(oled, zoom/4, 0, 0, on * 128, 128, 128);
+				slider(this.slider) == 2 ? gfx_blit(rled, zoom/4, 0, 0, on * 128, 128, 128);
+    	);
+
+
+		      function b_collision  ()
+                          (
+                	           mouse_x > this.xIn*zoom && mouse_x < this.xIn*zoom + 35 * zoom && mouse_y > this.yIn*zoom + 8 * zoom && mouse_y < this.yIn*zoom + 28 * zoom
+                          );
+
+
+	function black() (gfx_r=gfx_g=gfx_b=0);
+	function white() (gfx_r=gfx_g=gfx_b=1);
+    	function lightgrey() (gfx_r=gfx_g=gfx_b=0.65);
+    	function lakeblue() (gfx_r=13/255;gfx_g=189/255;gfx_b=208/255);  
+    	function orange () (gfx_r = 1; gfx_g=0.5; gfx_b=0;);
+	function red () (gfx_r = 1; gfx_g=0; gfx_b=0;);
+	function green () (gfx_r = 0; gfx_g=1; gfx_b=0;);
+	function blue () (gfx_r = 0; gfx_g=0; gfx_b=1);
+
+	function xy(x y) (gfx_x = x; gfx_y = y);
+	function rgb(r, g, b) (gfx_r = r / 255; gfx_g = g / 255; gfx_b = b / 255);
+
+          function rgb_palette (S2_Palette) (
+                  S2_Palette == 8 ? rgb(255,255,2): // Yellow
+                  S2_Palette == 2 ? rgb(153,255,51): // lime
+                  S2_Palette == 3 ? rgb(102,255,255): //cyan
+                  S2_Palette == 4 ? rgb(255,204,1): // orange
+                  S2_Palette == 5 ? rgb(255,0,255): // pink
+                  S2_Palette == 6 ? rgb(255,51,1): // red
+                  S2_Palette == 7 ? rgb(203,255,255): //babyblue
+                  S2_Palette == 15 ? rgb(204,102,255): // purple
+                  S2_Palette == 9 ? rgb(255,153,204): // rosa
+                  S2_Palette == 10 ? rgb(0,204,0): // green
+                  S2_Palette == 11 ? rgb(255,204,204): // beige
+                  S2_Palette == 12 ? rgb(51,153,255): // blue
+                  S2_Palette == 13 ? rgb(102,255,204): // turkies
+                  S2_Palette == 14 ? rgb(255,255,153): // light Yellow
+                  S2_Palette == 1 ? rgb(255,153,102): // rost
+                  S2_Palette == 16 ? rgb(204,204,0); // Olive
+          );
+
+
+        function k_collision  ()
+                          (
+                           mouse_x > this.xIn*zoom && mouse_x < this.xIn*zoom + 0.5*this.size*this.scaling*zoom && mouse_y > this.yIn*zoom && mouse_y < this.yIn*zoom + 0.5*this.size*this.scaling*zoom
+                          );
+      
+	function g_collision  (g_xin g_yin g_w g_h)
+                          (
+                           mouse_x > g_xin && mouse_x < g_xin + g_w && mouse_y > g_yin && mouse_y < g_yin + g_h
+                          );
+
+
+
+
+	function number_input_show () (
+		gfx_r=gfx_g=gfx_b=0;
+		gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+		gfx_r=0;gfx_g=1;gfx_b=0;
+		gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+		gfx_r=gfx_g=gfx_b=0.7;
+		gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+		gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+		gfx_drawnumber(number_input_use,NI_komma);
+
+
+  			mouseclick && !shift_alt ? 
+			(
+				g_collision(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5) ?
+				(
+					valid = 0;
+					number_input_use >= number_input_min && number_input_use <= number_input_max ? valid = 1;
+					valid ? (
+					slider(number_input_slider) = number_input_use;
+					caller = 1;
+					):(
+					number_input_invalid = 90;
+					);
+					Number_input = 0;
+					number_input_raw = 0;
+					number_input_use = 0;
+					NI_komma = 0;
+					in_key = 0;
+					//number_input_x = 0;
+					//number_input_y=0;
+				):(
+					Number_input = 0;
+					number_input_raw = 0;
+					number_input_use = 0;
+					NI_komma = 0;
+					in_key = 0;
+					number_input_x = 0;
+					number_input_y=0;
+				);
+			);
+
+			in_key=gfx_getchar();
+
+			in_key ? Aaa = in_key;
+  			in_key == 8 ? (
+  			number_input_raw = floor(number_input_raw/10);
+  			NI_komma = max(0,komma-1);
+  			NI_komma == 1 ? NI_komma = 0;
+  			);
+
+			in_key == 45 ? number_input_sign*=-1;
+
+			in_key == 46 ? NI_komma = 1;
+			in_key > 47 ? (
+			in_key < 58 ? (
+    			number_input_raw = (number_input_raw*10) + (in_key-48);
+    			NI_komma ? NI_komma += 1;
+			);
+			);
+
+			NI_komma ? (number_input_use = number_input_raw / (10^(NI_komma-1))):(number_input_use = number_input_raw);
+			number_input_use *= number_input_sign;
+
+		);
+
+
+	function number_input_start () (
+		number_input_x = this.xin;
+		number_input_y = this.yin;
+     		number_input = 1;
+		number_input_slider = this.slider;
+		number_input_min = this.minval;
+		number_input_max = this.maxval;
+		number_input_sign=1;
+	);
+	
+
+
+
+
+
+      function dragStart ()
+        instance          (dragging yOld default slider valold)
+                          (
+			   !shift_alt ? (
+                           !ctrl ? (
+                           yOld = mouse_y;xOld = mouse_x;link_yOld = mouse_y;
+                           dragging = 1;
+                           valold = slider(slider); 
+				gmem[16*64 + 2] = 0;
+                          ) : 
+                           (slider(slider) = default;caller = 1;
+			    gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            valold = slider(slider);
+                            slider_automate(slider(slider));
+                          );
+			  ):(this.number_input_start());
+			  superkey ? (gmem[16*64 + 3] = 1);
+			  shift_superkey ? (gmem[16*64 + 3] = 1);
+				ctrl_superkey ? (
+					gmem[16*64 + 1] = slider;
+					gmem[16*64 + 3] = 2;
+					gmem[16*64 + 2] = default;
+					slider(slider) = default;
+			    		gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            		valold = slider(slider);
+                            		slider_automate(slider(slider));
+				);
+				gen_dragging = 1;
+				knob_dragging = 1;
+			 );
+      
+      function v_dragStart ()
+        instance          (v_dragging yOld xOld default slider valold)
+                          (
+			!shift_alt ? (
+                           !ctrl ? (
+                           yOld = mouse_y;xOld = mouse_x;link_yOld = mouse_y;
+                           v_dragging = 1;
+                           valold = slider(slider);
+				gmem[16*64 + 2] = 0;
+                          ) : 
+                           (slider(slider) = default;caller = 1;
+			    gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            valold = slider(slider);
+                            slider_automate(slider(slider));
+                          );
+			  );
+			  superkey ? (gmem[16*64 + 3] = 1);
+			  shift_superkey ? (gmem[16*64 + 3] = 1);
+				ctrl_superkey ? (
+					gmem[16*64 + 1] = slider;
+					gmem[16*64 + 3] = 2;
+					gmem[16*64 + 2] = default;
+					slider(slider) = default;
+			    		gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            		valold = slider(slider);
+                            		slider_automate(slider(slider));
+				);
+				gen_dragging = 1;
+			);
+
+      function h_dragStart ()
+        instance          (h_dragging yOld xOld default slider valold)
+                          (
+			!shift_alt ? (
+                           !ctrl ? (
+                           yOld = mouse_y;xOld = mouse_x;link_yOld = mouse_y;
+                           h_dragging = 1;
+                           valold = slider(slider);
+				gmem[16*64 + 2] = 0;
+                          ) : 
+                           (slider(slider) = default;caller = 1;
+			    gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            valold = slider(slider);
+                            slider_automate(slider(slider));
+				gmem[16*64 + 1] = slider;
+				_global.linked_slider = slider;
+				_global.linked_reset = 1;
+				_global.linked_force = default;
+                          );
+			  );
+			  superkey ? (gmem[16*64 + 3] = 1);
+			  shift_superkey ? (gmem[16*64 + 3] = 1);
+				ctrl_superkey ? (
+					gmem[16*64 + 1] = slider;
+					gmem[16*64 + 3] = 2;
+					gmem[16*64 + 2] = default;
+					slider(slider) = default;
+			    		gmem[(Link_Group-1)*64+slider-1] = slider(slider);
+                            		valold = slider(slider);
+                            		slider_automate(slider(slider));
+				);
+				gen_draggingg = 1;
+			);
+
+	function quicklink_button () instance(slider)
+			(
+				superkey ? (
+					gmem[16*64 + 1] = slider;
+					gmem[16*64 + 3] = 2;
+					gmem[16*64 + 2] = slider(slider);
+				);
+			);
+
+
+      function dragStop()
+        instance        (dragging h_dragging v_dragging val valOld)
+                        (
+                         dragging = 0;
+			 h_dragging = 0;
+			 v_dragging = 0;
+                         valOld = val;
+				This.val = slider(slider);
+			gmem[16*64 + 2] = 0;
+			gmem[16*64 + 3] = 0;
+			gen_dragging = 0;
+			knob_dragging = 0;
+                        );
+      
+      function potDrag()
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn)
+                       (
+                        mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*gfx_ext_retina);
+                        Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*S2_Mouse_Finetune*gfx_ext_retina);
+			Shift_superkey ? mstep = (this.maxval - this.minval)/(2000*gfx_ext_retina);
+			val = valOld + (yOld - mouse_y) * mstep;
+                        val = min(max(val, minVal), maxVal);
+                        slider(slider) = val;
+                        slider_automate(slider(slider));
+                        gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = (yOld - mouse_y) * mstep;
+                       );
+
+      function potDrag_REV()
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn)
+                       (
+                        mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*gfx_ext_retina);
+                        Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*S2_Mouse_Finetune*gfx_ext_retina);
+			Shift_superkey ? mstep = (this.maxval - this.minval)/(2000*gfx_ext_retina);
+			val = valOld - (yOld - mouse_y) * mstep;
+                        val = min(max(val, minVal), maxVal);
+                        slider(slider) = val;
+                        slider_automate(slider(slider));
+                        gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = -(yOld - mouse_y) * mstep;
+                       );
+
+      function potDrag_integer()
+            local      (val nachkomma valid)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn)
+                       (
+                        mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*gfx_ext_retina);
+                        Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*S2_Mouse_Finetune*gfx_ext_retina);
+			Shift_superkey ? mstep = (this.maxval - this.minval)/(2000*gfx_ext_retina);
+			val = valOld + (yOld - mouse_y) * mstep;
+			abs(slider(slider) - val) >= 0.5 ? (val = floor(val+0.5); valid = 1):(valid=0);
+                        val = min(max(val, minVal), maxVal);
+                        valid != 0 ? slider(slider) = val;
+                        slider_automate(slider(slider));
+                        gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = floor((yOld - mouse_y) * mstep + 0.5);
+                       );
+
+
+      function v_potDrag(pixels)
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn)
+                       (
+                         mstep = (this.maxval - this.minval)/(pixels);
+                         Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Finetune*pixels);
+                         Shift_superkey ? mstep = (this.maxval - this.minval)/(10*pixels);
+                        val = valOld + (yOld - mouse_y) * mstep;
+                        val = min(max(val, minVal), maxVal);
+                        slider(slider) = val;
+                        slider_automate(slider(slider));
+			gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = (yOld - mouse_y) * mstep;
+                       );
+
+      function h_potDrag(pixels)
+            local      (val nachkomma)
+              instance   (valOld minVal maxVal yOld xOld step slider xIn yIn)
+                       (
+
+                         mstep = (this.maxval - this.minval)/(pixels);
+                         Shift ? mstep = (this.maxval - this.minval)/(10*pixels);
+                         Shift_superkey ? mstep = (this.maxval - this.minval)/(S2_Mouse_Finetune*pixels);
+                        val = valOld - (xOld - mouse_x) * mstep;
+                        val = min(max(val, minVal), maxVal);
+                        slider(slider) = val;
+                        slider_automate(slider(slider));
+			gmem[16*64 + 1] = slider;
+			gmem[16*64 + 2] = -(xOld - mouse_x) * mstep;
+	              );
+
+	function potWheel()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       valOld=slider(this.slider);
+		       mstep = (this.maxval - this.minval)/200;
+                       val = valOld + (mouse_wheel/36)*mstep;
+                       val = min(max(val, minVal), maxVal);
+		       slider(this.slider) = val;
+                       mouse_wheel=0;
+                        );
+
+
+	function potWheel_rev()
+        local         (val)
+        instance      (valOld minVal maxVal step)
+                      (
+                       valOld=slider(this.slider);
+		       mstep = (this.maxval - this.minval)/200;
+                       val = valOld - (mouse_wheel/36)*mstep;
+                       val = min(max(val, minVal), maxVal);
+		       slider(this.slider) = val;
+                       mouse_wheel=0;
+                        );
+
+
+
+
+

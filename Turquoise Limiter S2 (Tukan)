@@ -38,7 +38,7 @@ options:gmem=TukanLimiterS2
 
 @init
 
-Limiter_VERSION = 0.99;
+Limiter_VERSION = 1;
 //0.99 checked if removed options:gfx_idle
 
 //09 added auto bypass support
@@ -579,7 +579,7 @@ spl0 = smpl_l[pos] * gain * out_gain;
 spl1 = smpl_r[pos] * gain * out_gain;
 
 GR_Meter.feed_Meter_GR(gain);
-
+ext_gr_meter = ratio2db(gain);
 Left_Meter_Out.feed_Meter(spl0);
 Right_Meter_Out.feed_Meter(spl1);
 
@@ -625,7 +625,7 @@ Left_Meter_in.feed_Meter(spl0);
 Right_Meter_in.feed_Meter(spl1);
 
 GR_Meter.feed_Meter(1);
-
+ext_gr_meter = 0;
 Left_Meter_Out.feed_Meter(spl0);
 Right_Meter_Out.feed_Meter(spl1);
 
