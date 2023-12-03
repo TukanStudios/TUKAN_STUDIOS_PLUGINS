@@ -1,0 +1,1111 @@
+desc:December Synth (Tukan)
+
+slider5:0<-10,10,0.01>                -OSC 1 Sine Level
+slider6:1<1,8,1>                      -OSC 1 Sine Octave
+slider7:0<0,2,1{OFF, SIGMA, EXPLOG}>  -OSC 1 Sine Shape
+slider8:0<-10,10,0.1>                 -OSC 1 Sine Shape Factor
+slider9:0<-10,10,0.01>                -OSC 1 Triangle Level
+slider10:1<1,8,1>                     -OSC 1 Triangle Octave
+slider11:0<0,2,1{OFF, SIGMA, EXPLOG}> -OSC 1 Triangle Shape
+slider12:0<-10,10,0.1>                -OSC 1 Triangle Shape Factor
+slider13:7<-10,10,0.01>               -OSC 1 SAW Level
+slider14:1<1,8,1>                     -OSC 1 SAW Octave
+slider15:0<0,2,1{OFF, SIGMA, EXPLOG}> -OSC 1 SAW Shape
+slider16:0<-10,10,0.1>                -OSC 1 SAW Shape Factor
+slider17:0<-10,10,0.01>               -OSC 1 SAW ALT Level
+slider18:1<1,8,1>                     -OSC 1 SAW ALT Octave
+slider19:0<0,2,1{OFF, SIGMA, EXPLOG}> -OSC 1 SAW ALT Shape
+slider20:0<-10,10,0.1>                -OSC 1 SAW ALT Shape Factor
+slider21:0<-10,10,0.01>               -OSC 1 Square Level
+slider22:1<1,8,1>                     -OSC 1 Square Octave
+slider23:5<0,10,.1>                   -OSC 1 Square Width
+
+
+
+import DecemberSynthAdd/fft_real_synth.jsfx-inc
+import DecemberSynthAdd/wavetable.jsfx-inc
+import DecemberSynthAdd/tk_lib.jsfx-inc
+import DecemberSynthAdd/svf_filter.jsfx-inc
+import DecemberSynthAdd/cookdsp.jsfx-inc
+
+
+@init
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////  MAYBE END UP IN A LIBRARY  //////////////////////////////////////////////////////////////////////
+
+
+  function dcBlocker () instance ()
+  (
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  this.otm1=aab*this.otm1 + this - this.itm1; this.itm1=this; this=this.otm1;
+
+  );
+
+
+function sigma (input, sigma_steep) local (tmp_x) (  // turns 0 - 1 into a sigma from 0 - 1
+    tmp_x = 1/sigma_steep; // Sigma 1/x -> je größer X, desto weniger linear
+    tmp_factor = 0.5 / ((0.5 * (tanh(((0.5))/tmp_x))));
+     ((0.5 * (tanh(((input-0.5))/tmp_x)))*tmp_factor + 0.5);
+);
+
+function explog (input, factor) (
+input^factor; // 1=linear, < 1 = log (schnell rein), > 1 = exp (langsam rein)
+);
+
+
+
+
+
+function band_set_filter(t, f, g, qval, slope)
+ instance (enabled, type, frequency, gain, q, filter, color) (
+  type = t; frequency = f; gain = g; q = qval;
+  type == 0 ? filter.svf_eq(frequency, q, db_to_gain(gain)) :
+    type == 1 ? filter.svf_hp(frequency, q, slope) :
+      type == 2 ? filter.svf_hpb(frequency, slope) :
+        type == 3 ? filter.svf_ls(frequency, q, db_to_gain(gain)) :
+          type == 4 ? filter.svf_hs(frequency, q, db_to_gain(gain)) :
+            type == 5 ? filter.svf_lp(frequency, q, slope) :
+              type == 6 ? filter.svf_lpb(frequency, slope) :
+                type == 7 ? filter.svf_bs(frequency, q) :
+                  type == 8 ? filter.svf_bp2(frequency, q) :
+                    type == 9 ? filter.svf_st(frequency, q, gain) :
+                      type == 10 ? filter.svf_pultecls(frequency, q, gain) :
+                        type == 11 ? filter.svf_ap(frequency, q) :
+                          type == 12 ? filter.svf_analog_lowcut(frequency, q, gain) :
+                            type == 13 ? filter.svf_analog_highcut(frequency, q, gain);
+);
+
+  MAX_FREQ = 44100 / 2.0;
+  MIN_FREQ = 10;
+  FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+
+  MAX_Q = 4;
+  MIN_Q = 0.10;
+  Q_LOG_MAX = log(MAX_Q / MIN_Q);
+  
+/*
+ * Convert slider % to frequency
+ */
+function per_to_freq(x, range) (
+  MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+);
+
+/*
+ * Convert frequency to slider %
+ */
+function freq_to_per(freq, range) (
+  range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+);
+
+
+function per_to_q(x, range) (
+  MIN_Q * exp(Q_LOG_MAX * x / range);LFO
+);
+
+/*
+ * Convert frequency to slider %
+ */
+function q_to_per(q, range) (
+  range * log(q / MIN_Q) / Q_LOG_MAX;
+);
+
+function band_init()
+  instance (enabled, type, frequency, gain, q, filter, color) ( 
+  filter.svf_set_sample_rate(SAMPLE_RATE);
+  filter.svf_bypass();
+  //color.create_color(0,0,0);
+
+  filter.a1 = filter.t_a1;
+  filter.a2 = filter.t_a2;
+  filter.a3 = filter.t_a3;
+
+  filter.m0 = filter.t_m0;
+  filter.m1 = filter.t_m1;
+  filter.m2 = filter.t_m2;
+  filter.iter_t = 1.0;
+);
+
+
+
+
+function sub_midi_in () (
+         msg3 != 0 ? (
+         this.on = this.update = this.start_trigger = 1; this.release_trigger = 0; 
+         this.note = this.note_running = msg2; this.velocity = msg3)
+         : 
+         (this.release_trigger = 1; this.start_trigger = 0; this.on = 0; this.note = 0;
+          );
+);
+
+function sub_midi_in_mono () (
+
+         this..msg3 != 0 ? (
+         
+            this..mono_note_1_old == 0 ? (
+              this.on = this.update = this.start_trigger = 1; this.release_trigger = 0; 
+              this.note = this.note_running = msg2; this.velocity = msg3; this..mono_note_1_old = 1;
+              this.note_distance = 0; this.note_target = this..msg2;
+            ):(
+              this.note_distance = this..msg2 - this.note_running;
+              this.note_target = this..msg2;
+            );
+         
+         ):( 
+          this.release_trigger = 1; this.start_trigger = 0;
+          this..mono_note_1_old = 0;
+           this.on = 0; this.note = 0;
+          );
+          
+);
+
+
+function midi_in () (
+
+MonoOrPoly ? (
+
+msg3 != 0 ? (
+this.mono_note_1 == 0 ? (this.mono_note_1 = msg2; this.last_msg3 = msg3) :
+this.mono_note_2 == 0 ? this.mono_note_2 = msg2:
+this.mono_note_3 == 0 ? this.mono_note_3 = msg2:
+this.mono_note_4 == 0 ? this.mono_note_4 = msg2:
+this.mono_note_5 == 0 ? this.mono_note_5 = msg2:
+this.mono_note_6 == 0 ? this.mono_note_6 = msg2:
+this.mono_note_7 == 0 ? this.mono_note_7 = msg2:
+this.mono_note_8 == 0 ? this.mono_note_8 = msg2:
+this.mono_note_9 == 0 ? this.mono_note_9 = msg2:
+this.mono_note_10 == 0 ? this.mono_note_10 = msg2:
+this.mono_note_11 == 0 ? this.mono_note_11 = msg2:
+this.mono_note_12 == 0 ? this.mono_note_12 = msg2;
+
+):(
+this.note_release = 1;
+this.mono_note_1 == msg2 ? (this.mono_note_1 = 0; this.mono_sort = 1):
+this.mono_note_2 == msg2 ? (this.mono_note_2 = 0; this.mono_sort = 1):
+this.mono_note_3 == msg2 ? (this.mono_note_3 = 0; this.mono_sort = 1):
+this.mono_note_4 == msg2 ? (this.mono_note_4 = 0; this.mono_sort = 1):
+this.mono_note_5 == msg2 ? (this.mono_note_5 = 0; this.mono_sort = 1):
+this.mono_note_6 == msg2 ? (this.mono_note_6 = 0; this.mono_sort = 1):
+this.mono_note_7 == msg2 ? (this.mono_note_7 = 0; this.mono_sort = 1):
+this.mono_note_8 == msg2 ? (this.mono_note_8 = 0; this.mono_sort = 1):
+this.mono_note_9 == msg2 ? (this.mono_note_9 = 0; this.mono_sort = 1):
+this.mono_note_10 == msg2 ? (this.mono_note_10 = 0; this.mono_sort = 1):
+this.mono_note_11 == msg2 ? (this.mono_note_11 = 0; this.mono_sort = 1):
+this.mono_note_12 == msg2 ? (this.mono_note_12 = 0; this.mono_sort = 1);
+);
+
+
+this.mono_sort ? (
+this.mono_note_1 == 0 ? (
+this.mono_note_1 = this.mono_note_2;
+this.mono_note_2 = this.mono_note_3;
+this.mono_note_3 = this.mono_note_4;
+this.mono_note_4 = this.mono_note_5;
+this.mono_note_5 = this.mono_note_6;
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_2 == 0 ? (
+this.mono_note_2 = this.mono_note_3;
+this.mono_note_3 = this.mono_note_4;
+this.mono_note_4 = this.mono_note_5;
+this.mono_note_5 = this.mono_note_6;
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_3 == 0 ? (
+this.mono_note_3 = this.mono_note_4;
+this.mono_note_4 = this.mono_note_5;
+this.mono_note_5 = this.mono_note_6;
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_4 == 0 ? (
+this.mono_note_4 = this.mono_note_5;
+this.mono_note_5 = this.mono_note_6;
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_5 == 0 ? (
+this.mono_note_5 = this.mono_note_6;
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_6 == 0 ? (
+this.mono_note_6 = this.mono_note_7;
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_7 == 0 ? (
+this.mono_note_7 = this.mono_note_8;
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_8 == 0 ? (
+
+this.mono_note_8 = this.mono_note_9;
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_9 == 0 ? (
+this.mono_note_9 = this.mono_note_10;
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_10 == 0 ? (
+this.mono_note_10 = this.mono_note_11;
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+):
+this.mono_note_11 == 0 ? (
+this.mono_note_11 = this.mono_note_12;
+this.mono_note_12 = 0;
+);
+this.mono_sort = 0;
+);
+
+
+
+
+this.mono_note_12 != 0 ? this.mono_note_last = this.mono_note_12:
+this.mono_note_11 != 0 ? this.mono_note_last = this.mono_note_11:
+this.mono_note_10 != 0 ? this.mono_note_last = this.mono_note_10:
+this.mono_note_9 != 0 ? this.mono_note_last = this.mono_note_9:
+this.mono_note_8 != 0 ? this.mono_note_last = this.mono_note_8:
+this.mono_note_7 != 0 ? this.mono_note_last = this.mono_note_7:
+this.mono_note_6 != 0 ? this.mono_note_last = this.mono_note_6:
+this.mono_note_5 != 0 ? this.mono_note_last = this.mono_note_5:
+this.mono_note_4 != 0 ? this.mono_note_last = this.mono_note_4:
+this.mono_note_3 != 0 ? this.mono_note_last = this.mono_note_3:
+this.mono_note_2 != 0 ? this.mono_note_last = this.mono_note_2:
+this.mono_note_1 != 0 ? this.mono_note_last = this.mono_note_1:
+(this.mono_note_last = 0; this.mono_note_1_old = 0);
+
+this.mono_note_last == 0 ? (this.msg3 = 0) : (
+msg3 != 0 ? (this.last_msg3 = msg3; this.msg3 = msg3);
+msg3 == 0 ? this.msg3 = this.last_msg3;
+//this.msg3 = msg3;
+);
+
+//msg2 != this.mono_note_last ? (
+this.msg2 = this.mono_note_last;
+//!this.note_release ? (this.subosc_1.sub_midi_in()):(this.note_release = 0; this.mono_note_last == 0 ? this.subosc_1.sub_midi_in());
+this.mono_note_last_old != this.mono_note_last ? (
+this.mono_note_last_old = this.mono_note_last;
+this.subosc_1.sub_midi_in_mono();
+);
+
+//);
+
+
+):( // POLY
+msg3 == 0 ? (
+this.subosc_1.note == msg2 ? this.subosc_1.sub_midi_in():
+this.subosc_2.note == msg2 ? this.subosc_2.sub_midi_in():
+this.subosc_3.note == msg2 ? this.subosc_3.sub_midi_in():
+this.subosc_4.note == msg2 ? this.subosc_4.sub_midi_in():
+this.subosc_5.note == msg2 ? this.subosc_5.sub_midi_in():
+this.subosc_6.note == msg2 ? this.subosc_6.sub_midi_in():
+this.subosc_7.note == msg2 ? this.subosc_7.sub_midi_in():
+this.subosc_8.note == msg2 ? this.subosc_8.sub_midi_in():
+this.subosc_9.note == msg2 ? this.subosc_9.sub_midi_in():
+this.subosc_10.note == msg2 ? this.subosc_10.sub_midi_in():
+this.subosc_11.note == msg2 ? this.subosc_11.sub_midi_in():
+this.subosc_12.note == msg2 ? this.subosc_12.sub_midi_in();
+);
+
+
+caught = 0;
+this.subosc_1.note == msg2 ? (this.subosc_1.sub_midi_in(); caught = 1):
+this.subosc_2.note == msg2 ? (this.subosc_2.sub_midi_in(); caught = 1):
+this.subosc_3.note == msg2 ? (this.subosc_3.sub_midi_in(); caught = 1):
+this.subosc_4.note == msg2 ? (this.subosc_4.sub_midi_in(); caught = 1):
+this.subosc_5.note == msg2 ? (this.subosc_5.sub_midi_in(); caught = 1):
+this.subosc_6.note == msg2 ? (this.subosc_6.sub_midi_in(); caught = 1):
+this.subosc_7.note == msg2 ? (this.subosc_7.sub_midi_in(); caught = 1):
+this.subosc_8.note == msg2 ? (this.subosc_8.sub_midi_in(); caught = 1):
+this.subosc_9.note == msg2 ? (this.subosc_9.sub_midi_in(); caught = 1):
+this.subosc_10.note == msg2 ? (this.subosc_10.sub_midi_in(); caught = 1):
+this.subosc_11.note == msg2 ? (this.subosc_11.sub_midi_in(); caught = 1):
+this.subosc_12.note == msg2 ? (this.subosc_12.sub_midi_in(); caught = 1);
+
+    //this.subosc_1.note == 0 || this.subosc_1.note == msg2 ?
+    caught == 0 ? (
+    !this.subosc_1.on ? this.subosc_1.sub_midi_in():
+    !this.subosc_2.on ? this.subosc_2.sub_midi_in():
+    !this.subosc_3.on ? this.subosc_3.sub_midi_in():
+    !this.subosc_4.on ? this.subosc_4.sub_midi_in():
+    !this.subosc_5.on ? this.subosc_5.sub_midi_in():
+    !this.subosc_6.on ? this.subosc_6.sub_midi_in():
+    !this.subosc_7.on ? this.subosc_7.sub_midi_in():
+    !this.subosc_8.on ? this.subosc_8.sub_midi_in():
+    !this.subosc_9.on ? this.subosc_9.sub_midi_in():
+    !this.subosc_10.on ? this.subosc_10.sub_midi_in():
+    !this.subosc_11.on ? this.subosc_11.sub_midi_in():
+    !this.subosc_12.on ? this.subosc_12.sub_midi_in();
+  
+  
+    );
+
+); // MONOPOLY
+
+);
+
+
+function fetch_subosc () (
+this.subosc_number == 1 ? (
+  this.note_running = Synth.Subosc_1.note_running;
+  this.note_target = synth.subosc_1.note_target;
+  this.note_distance = Synth.Subosc_1.note_distance;
+  this.velocity = Synth.Subosc_1.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 2 ? (
+  this.note_running = Synth.Subosc_2.note_running;
+  this.velocity = Synth.Subosc_2.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 3 ? (
+  this.note_running = Synth.Subosc_3.note_running;
+  this.velocity = Synth.Subosc_3.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 4 ? (
+  this.note_running = Synth.Subosc_4.note_running;
+  this.velocity = Synth.Subosc_4.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 5 ? (
+  this.note_running = Synth.Subosc_5.note_running;
+  this.velocity = Synth.Subosc_5.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 6 ? (
+  this.note_running = Synth.Subosc_6.note_running;
+  this.velocity = Synth.Subosc_6.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 7 ? (
+  this.note_running = Synth.Subosc_7.note_running;
+  this.velocity = Synth.Subosc_7.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 8 ? (
+  this.note_running = Synth.Subosc_8.note_running;
+  this.velocity = Synth.Subosc_8.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 9 ? (
+  this.note_running = Synth.Subosc_9.note_running;
+  this.velocity = Synth.Subosc_9.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 10 ? (
+  this.note_running = Synth.Subosc_10.note_running;
+  this.velocity = Synth.Subosc_10.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 11 ? (
+  this.note_running = Synth.Subosc_11.note_running;
+  this.velocity = Synth.Subosc_11.Velocity;
+  this.starttrigger = 1;
+):this.subosc_number == 12 ? (
+  this.note_running = Synth.Subosc_12.note_running;
+  this.velocity = Synth.Subosc_12.Velocity;
+  this.starttrigger = 1;
+);
+); //Function
+
+
+
+
+function make_osc () (
+memory_point = this.GFXosc.four_init(memory_point, 2048);
+memory_point = this.subosc_1.four_init(memory_point, 2048);
+memory_point = this.subosc_2.four_init(memory_point, 2048);
+memory_point = this.subosc_3.four_init(memory_point, 2048);
+memory_point = this.subosc_4.four_init(memory_point, 2048);
+memory_point = this.subosc_5.four_init(memory_point, 2048);
+memory_point = this.subosc_6.four_init(memory_point, 2048);
+memory_point = this.subosc_7.four_init(memory_point, 2048);
+memory_point = this.subosc_8.four_init(memory_point, 2048);
+memory_point = this.subosc_9.four_init(memory_point, 2048);
+memory_point = this.subosc_10.four_init(memory_point, 2048);
+memory_point = this.subosc_11.four_init(memory_point, 2048);
+memory_point = this.subosc_12.four_init(memory_point, 2048);
+this.subosc_1.band_init();
+this.subosc_2.band_init();
+this.subosc_3.band_init();
+this.subosc_4.band_init();
+this.subosc_5.band_init();
+this.subosc_6.band_init();
+this.subosc_7.band_init();
+this.subosc_8.band_init();
+this.subosc_9.band_init();
+this.subosc_10.band_init();
+this.subosc_11.band_init();
+this.subosc_12.band_init();
+this.subosc_1.subosc_number = 1;
+this.subosc_2.subosc_number = 2;
+this.subosc_3.subosc_number = 3;
+this.subosc_4.subosc_number = 4;
+this.subosc_5.subosc_number = 5;
+this.subosc_6.subosc_number = 6;
+this.subosc_7.subosc_number = 7;
+this.subosc_8.subosc_number = 8;
+this.subosc_9.subosc_number = 9;
+this.subosc_10.subosc_number = 10;
+this.subosc_11.subosc_number = 11;
+this.subosc_12.subosc_number = 12;
+);
+
+
+
+
+function mono_glide() (
+          note_glide == 0 ? (
+            this.note = this.note_running = this.note_target;
+          ):(
+            abs(this.note_running - this.note_target) < 0.01 ? this.note_running = this.note_target:
+            this.note_running += (this.note_distance/(srate*0.001*note_glide));
+            abs(this.note - this.note_running) > max(0.01,this.note_distance/100) ? this.note = this.note_running;
+          );
+);
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////  DAS  HIER  LANDET  IN  DER LIBRARY  ////////////////////////////////////////////////////////////////////// 
+
+
+
+
+function render_waveform()
+  local(x, dx, loopy, count, buf, size, gain)
+(
+
+buf = this.buf; size = this.size;
+  
+this..sine_level != 0 ? (
+  x = 0;
+  loopy = 0; gain = this..sine_level;
+  dx = 2*$pi / (size/this..sine_octave);
+  loop(this..sine_octave,
+    loop(size / this..sine_octave,
+      buf[loopy] = this..sine_mod == 0 ? gain * sin(x) : this..sine_mod == 1 ? gain * sign(sin(x)) * sigma(abs(sin(x)), this..sine_coef) : this..sine_mod == 2 ? gain * sign(sin(x)) * explog(abs(sin(x)), this..sine_coef);
+      loopy += 1;
+      x += dx;
+    );
+  );
+):(
+loopy = 0;
+loop(size,
+  buf[loopy] = 0;
+  loopy += 1;
+);
+);
+
+
+this..triangle_level != 0 ? (
+  gain = this..triangle_level / this..triangle_octave;
+  x = 0;
+  count = 0;
+  dx = (4) / (size);
+  loopy = 0;
+  loop(this..triangle_octave,
+    loopy = 0; x = 0;
+    loop(size,
+      buf[count*size/this..triangle_octave + loopy/this..triangle_octave] += this..triangle_mod == 0 ? gain * x : 
+      this..triangle_mod == 1 ? gain * sign(x) * sigma(abs(x), this..triangle_coef) : 
+      this..triangle_mod == 2 ? gain * sign(x) * explog(abs(x), this..triangle_coef);
+      loopy += 1;
+      loopy <= (size)/4 ? x += dx :
+      loopy <= (size)*0.75 ? x -= dx :
+      x += dx;
+    );
+    count += 1;
+  );
+);
+
+this..saw_level != 0 ? (
+  gain = this..saw_level; loopy = 0;
+  dx = 2 / (size / this..saw_octave);
+  loop(this..saw_octave,
+    x = 1;
+    loop(size / this..saw_octave,
+      buf[loopy] += this..saw_mod == 0 ? gain * x : 
+      this..saw_mod == 1 ? gain * sigma((x+1)/2, this..saw_coef) - this..saw_level/2 : 
+      this..saw_mod == 2 ? gain * (explog((x + 1)/2, this..saw_coef)-0.5);
+      loopy += 1;
+      x -= dx;
+    );
+  );
+);
+
+osc1.saw_alt_level != 0 ? (
+  gain = this..saw_alt_level; loopy = 0;
+  dx = 2 / (size / this..saw_alt_octave);
+  counter = 1;
+  loop(this..saw_alt_octave,
+    x = 1;
+    loopy = (counter-1)*size/this..saw_alt_octave;
+    loop(0.5*size / this..saw_alt_octave,
+      loopy - loopy*(counter-1) <= 0.5*size/this..saw_alt_octave ? buf[loopy] += this..saw_alt_mod == 0 ? gain * x : this..saw_alt_mod == 1 ? gain * sign(x) * sigma(abs(x), this..saw_alt_coef) : this..saw_alt_mod == 2 ? gain * sign(x) * explog(abs(x), this..saw_alt_coef);;  buf[loopy + (0.5*size / this..saw_alt_octave)] -= this..saw_alt_mod == 0 ? gain * x : this..saw_alt_mod == 1 ? gain * sign(x) * sigma(abs(x), this..saw_alt_coef) : this..saw_alt_mod == 2 ? gain * sign(x) * explog(abs(x), this..saw_alt_coef);;
+      loopy += 1;
+      x -= dx;
+    );
+  counter += 1;
+  );
+);
+
+this..pulse_level != 0 ? (
+  gain = this..pulse_level; counter = 0;
+  loop(this..pulse_octave,
+    loopy = 0; x = 1;
+    loop(size/this..pulse_octave,
+      buf[loopy + counter*size/this..pulse_octave] += gain * x;
+      loopy < this..pulse_width*(size/this..pulse_octave) ? x = 1 : x = -1;
+      loopy += 1;
+    );
+    counter += 1;
+  );
+);
+
+loopy = 0;
+loop(size,
+  buf[loopy] = min(1,max(-1,buf[loopy]));
+  loopy += 1;
+);
+
+this.four_fft();
+
+); // Function
+
+
+
+
+
+
+
+
+function play_suboscillator () (
+
+this.fetch_subosc();
+
+ this..want_update || abs(this.note_running + pitchwheel / 63 - this.pitch_old) > 0.01 ? (
+ this.freq = main_tuning*(osc_a0^(this.note_running - 48 + 12 * pitchwheel / 63));
+ this.four_setf(this.freq);
+ this.four_update() ? this.four_ifft();
+ this..want_update = 0;
+ this.pitch_old = abs(this.note_running + pitchwheel / 63)
+ );
+ 
+ this.output = this.wave_trunc();
+);
+
+
+
+
+function play_oscillator() (
+
+
+synth.subosc_1.on ? this.subosc_1.play_suboscillator() : (this.subosc_1.tone = 0; this.subosc_1.note = this.subosc_1.note_distance = 0);
+synth.subosc_2.on ? this.subosc_2.play_suboscillator() : this.subosc_2.tone = 0;
+synth.subosc_3.on ? this.subosc_3.play_suboscillator() : this.subosc_3.tone = 0;
+synth.subosc_4.on ? this.subosc_4.play_suboscillator() : this.subosc_4.tone = 0;
+synth.subosc_5.on ? this.subosc_5.play_suboscillator() : this.subosc_5.tone = 0;
+synth.subosc_6.on ? this.subosc_6.play_suboscillator() : this.subosc_6.tone = 0;
+synth.subosc_7.on ? this.subosc_7.play_suboscillator() : this.subosc_7.tone = 0;
+synth.subosc_8.on ? this.subosc_8.play_suboscillator() : this.subosc_8.tone = 0;
+synth.subosc_9.on ? this.subosc_9.play_suboscillator() : this.subosc_9.tone = 0;
+synth.subosc_10.on ? this.subosc_10.play_suboscillator() : this.subosc_10.tone = 0;
+synth.subosc_11.on ? this.subosc_11.play_suboscillator() : this.subosc_11.tone = 0;
+synth.subosc_12.on ? this.subosc_12.play_suboscillator() : this.subosc_12.tone = 0;
+
+this.output =
+this.subosc_1.output +
+this.subosc_2.output +
+this.subosc_3.output +
+this.subosc_4.output +
+this.subosc_5.output +
+this.subosc_6.output +
+this.subosc_7.output +
+this.subosc_8.output +
+this.subosc_9.output +
+this.subosc_10.output +
+this.subosc_11.output +
+this.subosc_12.output;
+
+this.output *= this.Level;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///// INITIALIZE
+
+ext_noinit = 1;
+gfx_ext_retina = 1;
+osc_a0 = (2)^(1/12);
+mouse_sensivity();
+
+memory_point = 0;
+manipulation_buffer = memory_point;
+memory_point += 2048;
+osc1.make_osc();
+osc1.osc_number = 1;
+
+///////////////
+
+
+
+
+
+
+
+
+function parameters_update() (
+
+parameters_update_on = 1;
+
+
+note_glide = 0;//slider2; //Global glide in ms
+main_tuning = 110;//slider1 / 2;
+MonoOrPoly = 0;//slider3; // 1 = Mono, 0 = Poly
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+osc1.startslider = 4;
+
+osc1.level = 2;//slider(osc1.startslider)/5;
+
+osc1.sine_level = slider(Osc1.startslider + 1)/10;
+osc1.sine_octave = slider(Osc1.startslider + 2);
+osc1.sine_mod = slider(Osc1.startslider + 3); // 0 Linear, 1 sigma, 2 ExpLog
+Osc1.sine_mod == 1 ? (osc1.sine_coef = slider(osc1.startslider + 4) == 0 ? 0.05 : abs(slider(osc1.startslider + 4))*1.5):(osc1.sine_coef = slider(osc1.startslider + 4) < 0 ? 1/(abs(slider(osc1.startslider + 4)-1)) : slider(osc1.startslider + 4) + 1);
+
+osc1.triangle_level = slider(Osc1.startslider + 5)/10;
+osc1.triangle_octave = slider(Osc1.startslider + 6);
+osc1.triangle_mod = slider(Osc1.startslider + 7); // 0 Linear, 1 sigma, 2 ExpLog
+Osc1.triangle_mod == 1 ? (osc1.triangle_coef = slider(osc1.startslider + 8) == 0 ? 0.05 : abs(slider(osc1.startslider + 8))*1.5):(osc1.triangle_coef = slider(osc1.startslider + 8) < 0 ? 1/(abs(slider(osc1.startslider + 8)-1)) : slider(osc1.startslider + 8) + 1);
+
+osc1.saw_level = slider(Osc1.startslider + 9)/10;
+osc1.saw_octave = slider(Osc1.startslider + 10);
+osc1.saw_mod = slider(Osc1.startslider + 11); // 0 Linear, 1 sigma, 2 ExpLog
+Osc1.saw_mod == 1 ? (osc1.saw_coef = slider(osc1.startslider + 12) == 0 ? 0.05 : abs(slider(osc1.startslider + 12))*1.5):(osc1.saw_coef = slider(osc1.startslider + 12) < 0 ? 1/(abs(slider(osc1.startslider + 12)-1)) : slider(osc1.startslider + 12) + 1);
+
+osc1.saw_alt_level = slider(Osc1.startslider + 13)/10;
+osc1.saw_alt_octave = slider(Osc1.startslider + 14);
+osc1.saw_alt_mod = slider(Osc1.startslider + 15); // 0 Linear, 1 sigma, 2 ExpLog
+Osc1.saw_alt_mod == 1 ? (osc1.saw_alt_coef = slider(osc1.startslider + 16) == 0 ? 0.05 : abs(slider(osc1.startslider + 16))*1.5):(osc1.saw_alt_coef = slider(osc1.startslider + 16) < 0 ? 1/(abs(slider(osc1.startslider + 16)-1)) : slider(osc1.startslider + 16) + 1);
+
+osc1.pulse_level = slider(Osc1.startslider + 17)/10;
+osc1.pulse_octave = slider(Osc1.startslider + 18);
+osc1.pulse_width = slider(Osc1.startslider + 19)/10;
+
+osc1.want_update = 1;
+
+osc1.subosc_1.render_waveform();
+osc1.subosc_2.render_waveform();
+osc1.subosc_3.render_waveform();
+osc1.subosc_4.render_waveform();
+osc1.subosc_5.render_waveform();
+osc1.subosc_6.render_waveform();
+osc1.subosc_7.render_waveform();
+osc1.subosc_8.render_waveform();
+osc1.subosc_9.render_waveform();
+osc1.subosc_10.render_waveform();
+osc1.subosc_11.render_waveform();
+osc1.subosc_12.render_waveform();
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+   callER = 0;
+   parameters_update_on = 0;
+   
+);
+
+
+
+
+@slider
+
+caller = 1;
+
+@serialize
+
+
+
+@block
+
+
+@sample
+
+caller == 1 ? (
+    parameters_update_on == 0 ? (
+        parameters_update();  
+    );
+);
+
+  
+    pitchwheel_old = pitchwheel;
+    while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax while()
+       msg1==$x80 ? (msg1=$x90; msg3 = 0); // Noteoff to NoteOn Value 0
+       
+       msg1==$x90 ? ( //&& msg3!=0 ? (
+         msg3 == 0 ? noteon_cnt-=1 : noteon_cnt+=1; // count note-ons
+         noteon_cnt = max(0,noteon_cnt);
+         
+         Synth.midi_in();
+         
+       ) : msg1==$xD0 ? (
+       aftertouch = msg2;
+       ) : msg1==$xE0 ? (
+       Pitchwheel = msg3-64 + msg2 / 127;
+       ) : msg1==$xB0 && msg2 == 1 ? (
+       modwheel = msg3 / 127;
+       ):(
+         midisend(offset,msg1,msg2,msg3); // passthrough other events
+       );
+       //midisend(offset,msg1,msg2,msg3);
+    );
+    
+    
+    //Global Start- stop- and Retriggers
+    noteon_cnt_old == 0 && noteon_cnt ? starttrigger = 1 : starttrigger = 0;
+    noteon_cnt_old && noteon_cnt == 0 ? stoptrigger = 1 : stoptrigger = 0;
+    noteon_cnt_old < noteon_cnt ? retrigger = 1 : retrigger = 0;
+    noteon_cnt_old = noteon_cnt;
+    /////////////////////////////////////
+ 
+    MonoOrPoly ? Synth.Subosc_1.Mono_glide();
+    osc1.play_oscillator();
+    
+    spl0 = osc1.output * 0.1;
+    spl0.dcblocker();
+    spl1 = spl0;
+    
+
+
+
+
+@gfx 430 138
+size = zoom*0.95;
+/*
+ gfx_x = x + 5*(w/6); gfx_y = (h/2)+y+2*zoom;
+ gfx_drawstr(sprintf(#, "%i", slider(this.startslider + 24)), 0x05, gfx_x+w/6, gfx_y + gfx_texth);
+ 
+*/
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+
+ 
+ 
+ 
+lightgrey();
+gfx_rect(0,0,gfx_w,gfx_h);
+osc1.GFXosc.render_waveform();
+zoom = 1;
+
+sgfx_x = 10*zoom; sgfx_y = 20*zoom; sgfx_w = 200*zoom; sgfx_h = 100*zoom;
+
+black();
+gfx_rect(sgfx_x, sgfx_y, sgfx_w, sgfx_h);
+white();
+gfx_a = 0.6; gfx_line(sgfx_x, sgfx_y + sgfx_h / 2, sgfx_x + sgfx_w, sgfx_y + sgfx_h / 2); gfx_a = 1;
+
+gfx_x = sgfx_x; gfx_y = sgfx_y + sgfx_h/2;
+
+rgb(0,255,255);
+tmp_loop = 0;
+loop(sgfx_w,
+gfx_lineto(sgfx_x + tmp_loop, sgfx_y + sgfx_h/2 - (sgfx_h/2)*osc1.GFXosc.buf[tmp_loop * osc1.GFXosc.size / sgfx_w]);
+tmp_loop += 1;
+);
+white(); gfx_roundrect(sgfx_x, sgfx_y, sgfx_w, sgfx_h, 0);
+
+gfx_setfont(1,"Arial",11*size,'b');
+black();
+gfx_rect(sgfx_x + 21*sgfx_w / 20, sgfx_y, sgfx_w, sgfx_h);
+
+lightgrey();
+gfx_a = 0.6;
+gfx_line(sgfx_x + 21*sgfx_w / 20, sgfx_y + sgfx_h / 5, sgfx_x + 21*sgfx_w / 20 + sgfx_w, sgfx_y + sgfx_h / 5);
+gfx_line(sgfx_x + 21*sgfx_w / 20, sgfx_y + 2*sgfx_h / 5, sgfx_x + 21*sgfx_w / 20 + sgfx_w, sgfx_y + 2*sgfx_h / 5);
+gfx_line(sgfx_x + 21*sgfx_w / 20, sgfx_y + 3*sgfx_h / 5, sgfx_x + 21*sgfx_w / 20 + sgfx_w, sgfx_y + 3*sgfx_h / 5);
+gfx_line(sgfx_x + 21*sgfx_w / 20, sgfx_y + 4*sgfx_h / 5, sgfx_x + 21*sgfx_w / 20 + sgfx_w, sgfx_y + 4*sgfx_h / 5);
+gfx_line(sgfx_x + 21*sgfx_w / 20 + sgfx_w / 6, sgfx_y, sgfx_x + 21*sgfx_w / 20 + sgfx_w / 6, sgfx_y + sgfx_h);
+gfx_line(sgfx_x + 21*sgfx_w / 20 + 2*sgfx_w / 6, sgfx_y, sgfx_x + 21*sgfx_w / 20 + 2*sgfx_w / 6, sgfx_y + sgfx_h);
+gfx_line(sgfx_x + 21*sgfx_w / 20 + 3*sgfx_w / 6, sgfx_y, sgfx_x + 21*sgfx_w / 20 + 3*sgfx_w / 6, sgfx_y + sgfx_h);
+gfx_line(sgfx_x + 21*sgfx_w / 20 + 4*sgfx_w / 6, sgfx_y, sgfx_x + 21*sgfx_w / 20 + 4*sgfx_w / 6, sgfx_y + sgfx_h);
+gfx_line(sgfx_x + 21*sgfx_w / 20 + 5*sgfx_w / 6, sgfx_y, sgfx_x + 21*sgfx_w / 20 + 5*sgfx_w / 6, sgfx_y + sgfx_h);
+gfx_a = 1;
+rgb(0,255,255);
+nsgfx_x = sgfx_x + 21*sgfx_w/20; sgfx_d = sgfx_w/6; sgfx_dy = sgfx_h/5;
+gfx_x = nsgfx_x; gfx_y = sgfx_y + sgfx_dy;
+gfx_drawstr("LVL", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x; gfx_y = sgfx_y + 2*sgfx_dy;
+gfx_drawstr("No", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x; gfx_y = sgfx_y + 3*sgfx_dy;
+gfx_drawstr("DEF", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x; gfx_y = sgfx_y + 4*sgfx_dy;
+gfx_drawstr("DEF#", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+
+gfx_x = nsgfx_x + sgfx_d; gfx_y = sgfx_y;
+gfx_drawstr("SINE", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_g = abs(slider(osc1.startslider + 1)) / 40 + 0.75; gfx_r = abs(slider(osc1.startslider + 1)) / 20;
+gfx_x = nsgfx_x + sgfx_d; gfx_y = sgfx_y + sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", slider(osc1.startslider + 1)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + sgfx_d; gfx_y = sgfx_y + 2*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%i", slider(osc1.startslider + 2)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + sgfx_d; gfx_y = sgfx_y + 3*sgfx_dy;
+ gfx_drawstr(slider(osc1.startslider + 3) == 0 ? "LIN" : slider(osc1.startslider + 3) == 1 ? "S" : slider(osc1.startslider + 3) == 2 ? "EXP" : "Err", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + sgfx_d; gfx_y = sgfx_y + 4*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", osc1.sine_coef), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+ 
+gfx_a = 1;
+gfx_x = nsgfx_x + 2*sgfx_d; gfx_y = sgfx_y; rgb(0,255,255);
+gfx_drawstr("TRI", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_g = abs(slider(osc1.startslider + 5)) / 40 + 0.75; gfx_r = abs(slider(osc1.startslider + 5)) / 20;
+gfx_x = nsgfx_x + 2*sgfx_d; gfx_y = sgfx_y + sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", slider(osc1.startslider + 5)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 2*sgfx_d; gfx_y = sgfx_y + 2*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%i", slider(osc1.startslider + 6)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 2*sgfx_d; gfx_y = sgfx_y + 3*sgfx_dy;
+ gfx_drawstr(slider(osc1.startslider + 7) == 0 ? "LIN" : slider(osc1.startslider + 7) == 1 ? "S" : slider(osc1.startslider + 7) == 2 ? "EXP" : "Err", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 2*sgfx_d; gfx_y = sgfx_y + 4*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", osc1.triangle_coef), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+ 
+gfx_x = nsgfx_x + 3*sgfx_d; gfx_y = sgfx_y; rgb(0,255,255);
+gfx_drawstr("SAW", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_g = abs(slider(osc1.startslider + 9)) / 40 + 0.75; gfx_r = abs(slider(osc1.startslider + 9)) / 20;
+gfx_x = nsgfx_x + 3*sgfx_d; gfx_y = sgfx_y + sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", slider(osc1.startslider + 9)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 3*sgfx_d; gfx_y = sgfx_y + 2*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%i", slider(osc1.startslider + 10)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 3*sgfx_d; gfx_y = sgfx_y + 3*sgfx_dy;
+ gfx_drawstr(slider(osc1.startslider + 11) == 0 ? "LIN" : slider(osc1.startslider + 11) == 1 ? "S" : slider(osc1.startslider + 11) == 2 ? "EXP" : "Err", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 3*sgfx_d; gfx_y = sgfx_y + 4*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", osc1.saw_coef), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+ 
+gfx_x = nsgfx_x + 4*sgfx_d; gfx_y = sgfx_y; rgb(0,255,255);
+gfx_drawstr("ALT", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_g = abs(slider(osc1.startslider + 13)) / 40 + 0.75; gfx_r = abs(slider(osc1.startslider + 13)) / 20;
+gfx_x = nsgfx_x + 4*sgfx_d; gfx_y = sgfx_y + sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", slider(osc1.startslider + 13)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 4*sgfx_d; gfx_y = sgfx_y + 2*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%i", slider(osc1.startslider + 14)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 4*sgfx_d; gfx_y = sgfx_y + 3*sgfx_dy;
+ gfx_drawstr(slider(osc1.startslider + 15) == 0 ? "LIN" : slider(osc1.startslider + 15) == 1 ? "S" : slider(osc1.startslider + 15) == 2 ? "EXP" : "Err", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 4*sgfx_d; gfx_y = sgfx_y + 4*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", osc1.saw_alt_coef), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+ 
+gfx_x = nsgfx_x + 5*sgfx_d; gfx_y = sgfx_y; rgb(0,255,255);
+gfx_drawstr("SQR", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_g = abs(slider(osc1.startslider + 17)) / 40 + 0.75; gfx_r = abs(slider(osc1.startslider + 17)) / 20;
+gfx_x = nsgfx_x + 5*sgfx_d; gfx_y = sgfx_y + sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", slider(osc1.startslider + 17)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 5*sgfx_d; gfx_y = sgfx_y + 2*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%i", slider(osc1.startslider + 18)), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 5*sgfx_d; gfx_y = sgfx_y + 3*sgfx_dy;
+ gfx_drawstr(slider(osc1.startslider + 19) == 5 ? "OFF" : "PWM", 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+gfx_x = nsgfx_x + 5*sgfx_d; gfx_y = sgfx_y + 4*sgfx_dy;
+ gfx_drawstr(sprintf(#, "%.2f", osc1.pulse_width*2), 0x05, gfx_x+sgfx_d, gfx_y + sgfx_dy);
+
+ 
+   !Number_input ? (
+   mouseClick == 1 ? (
+      
+       g_collision(nsgfx_x + sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_sine_level.dragstart();
+       g_collision(nsgfx_x + sgfx_d, sgfx_y + 2*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_sine_Octave.dragstart();
+       g_collision(nsgfx_x + sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_sine_factor.dragstart();
+       g_collision(nsgfx_x + sgfx_d, sgfx_y + 3*sgfx_dy, sgfx_d, sgfx_dy) ? (gfx_x = mouse_x; gfx_y = mouse_y; selection = gfx_showmenu("LINEAR|S-SHAPE|EXP");
+       selection ? slider(osc1.startslider+3) = selection - 1;
+       selection = 0; caller = 1;
+       );
+            
+       g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_triangle_level.dragstart();
+       g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + 2*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_triangle_Octave.dragstart();
+       g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_triangle_factor.dragstart();
+       g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + 3*sgfx_dy, sgfx_d, sgfx_dy) ? (gfx_x = mouse_x; gfx_y = mouse_y; selection = gfx_showmenu("LINEAR|S-SHAPE|EXP");
+       selection ? slider(osc1.startslider+7) = selection - 1;
+       selection = 0; caller = 1;
+       );
+       
+       g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_level.dragstart();
+       g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + 2*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_Octave.dragstart();
+       g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_factor.dragstart();
+       g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + 3*sgfx_dy, sgfx_d, sgfx_dy) ? (gfx_x = mouse_x; gfx_y = mouse_y; selection = gfx_showmenu("LINEAR|S-SHAPE|EXP");
+       selection ? slider(osc1.startslider+11) = selection - 1;
+       selection = 0; caller = 1;
+       );
+       
+       g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_alt_level.dragstart();
+       g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + 2*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_alt_Octave.dragstart();
+       g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_saw_alt_factor.dragstart();
+       g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + 3*sgfx_dy, sgfx_d, sgfx_dy) ? (gfx_x = mouse_x; gfx_y = mouse_y; selection = gfx_showmenu("LINEAR|S-SHAPE|EXP");
+       selection ? slider(osc1.startslider+15) = selection - 1;
+       selection = 0; caller = 1;
+       );
+       
+       g_collision(nsgfx_x + 5*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_Square_level.dragstart();
+       g_collision(nsgfx_x + 5*sgfx_d, sgfx_y + 2*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_Square_Octave.dragstart();
+       g_collision(nsgfx_x + 5*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy) ? osc1.gfx_Square_PWM.dragstart();
+       
+   ); // click
+  
+  mouseclick == -1 ? (
+  osc1.gfx_sine_level.dragstop();
+  osc1.gfx_sine_octave.dragstop();
+  osc1.gfx_sine_factor.dragstop();
+  osc1.gfx_triangle_level.dragstop();
+  osc1.gfx_triangle_octave.dragstop();
+  osc1.gfx_triangle_factor.dragstop();
+  osc1.gfx_saw_level.dragstop();
+  osc1.gfx_saw_octave.dragstop();
+  osc1.gfx_saw_factor.dragstop();
+  osc1.gfx_saw_alt_level.dragstop();
+  osc1.gfx_saw_alt_octave.dragstop();
+  osc1.gfx_saw_alt_factor.dragstop();
+  osc1.gfx_Square_level.dragstop();
+  osc1.gfx_Square_octave.dragstop();
+  osc1.gfx_Square_PWM.dragstop();
+  );
+  
+  mouse_wheel ? 
+      (
+          g_collision(nsgfx_x + sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_sine_level.potwheel(); caller = 1);
+          g_collision(nsgfx_x + sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_sine_factor.potwheel(); caller = 1);
+          
+          g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_triangle_level.potwheel(); caller = 1);
+          g_collision(nsgfx_x + 2*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_triangle_factor.potwheel(); caller = 1);
+          
+          g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_saw_level.potwheel(); caller = 1);
+          g_collision(nsgfx_x + 3*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_saw_factor.potwheel(); caller = 1);
+          
+          g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_saw_alt_level.potwheel(); caller = 1);
+          g_collision(nsgfx_x + 4*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_saw_alt_factor.potwheel(); caller = 1);
+          
+          g_collision(nsgfx_x + 5*sgfx_d, sgfx_y + sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_Square_level.potwheel(); caller = 1);
+          g_collision(nsgfx_x + 5*sgfx_d, sgfx_y + 4*sgfx_dy, sgfx_d, sgfx_dy)  ? (osc1.gfx_Square_PWM.potwheel(); caller = 1);
+      );
+      
+  osc1.gfx_sine_level.dragging ?  (osc1.gfx_sine_level.potdrag(); caller = 1);
+  osc1.gfx_sine_octave.dragging ?  (osc1.gfx_sine_octave.potdrag_integer(); caller = 1);
+  osc1.gfx_sine_factor.dragging ?  (osc1.gfx_sine_factor.potdrag(); caller = 1);
+  osc1.gfx_triangle_level.dragging ?  (osc1.gfx_triangle_level.potdrag(); caller = 1);
+  osc1.gfx_triangle_octave.dragging ?  (osc1.gfx_triangle_octave.potdrag_integer(); caller = 1);
+  osc1.gfx_triangle_factor.dragging ?  (osc1.gfx_triangle_factor.potdrag(); caller = 1);
+  osc1.gfx_saw_level.dragging ?  (osc1.gfx_saw_level.potdrag(); caller = 1);
+  osc1.gfx_saw_octave.dragging ?  (osc1.gfx_saw_octave.potdrag_integer(); caller = 1);
+  osc1.gfx_saw_factor.dragging ?  (osc1.gfx_saw_factor.potdrag(); caller = 1);
+  osc1.gfx_saw_alt_level.dragging ?  (osc1.gfx_saw_alt_level.potdrag(); caller = 1);
+  osc1.gfx_saw_alt_octave.dragging ?  (osc1.gfx_saw_alt_octave.potdrag_integer(); caller = 1);
+  osc1.gfx_saw_alt_factor.dragging ?  (osc1.gfx_saw_alt_factor.potdrag(); caller = 1);
+  osc1.gfx_Square_level.dragging ?  (osc1.gfx_Square_level.potdrag(); caller = 1);
+  osc1.gfx_Square_octave.dragging ?  (osc1.gfx_Square_octave.potdrag_integer(); caller = 1);
+  osc1.gfx_Square_PWM.dragging ?  (osc1.gfx_Square_PWM.potdrag(); caller = 1);
+  );//number input
+
+
+
+
+ ////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+ OSC1.gfx_sine_level.parameter_config      (osc1.startslider+1,       0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_sine_octave.parameter_config     (osc1.startslider+2,       1,        1,     8,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_sine_factor.parameter_config     (osc1.startslider+4,       0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_triangle_level.parameter_config  (osc1.startslider+5,       0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_triangle_octave.parameter_config (osc1.startslider+6,       1,        1,     8,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_triangle_factor.parameter_config (osc1.startslider+8,       0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_level.parameter_config       (osc1.startslider+9,       0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_octave.parameter_config      (osc1.startslider+10,      1,        1,     8,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_factor.parameter_config      (osc1.startslider+12,      0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_ALT_level.parameter_config   (osc1.startslider+13,      0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_ALT_octave.parameter_config  (osc1.startslider+14,      1,        1,     8,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SAW_ALT_factor.parameter_config  (osc1.startslider+16,      0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SQUARE_level.parameter_config    (osc1.startslider+17,      0,      -10,    10,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SQUARE_octave.parameter_config   (osc1.startslider+18,      1,        1,     8,  0, 0, 0,  0,  0,  0);
+ OSC1.gfx_SQUARE_PWM.parameter_config      (osc1.startslider+19,      5,      0,    10,  0, 0, 0,  0,  0,  0);
+ 
+ 
+ mouse_wheel = 0;
+ 
+ 
+ 
+ 
+ caller == 1 ? (
+     parameters_update_on == 0 ? (
+         parameters_update();  
+     );
+ );
