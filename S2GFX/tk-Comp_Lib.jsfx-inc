@@ -1,0 +1,1132 @@
+desc:tk-Comp_Lib
+
+
+import tk_lib.jsfx-inc
+import tk-obj_vu_lib.jsfx-inc
+
+
+
+@init
+
+
+
+  //////////////////////////////////////////////////////// ONLY FOR VCA  //////////////////////////////////////////////
+  
+  function explog (input, factor) (
+  input^factor; // 1=linear, < 1 = log (schnell rein), > 1 = exp (langsam rein)
+  );
+  
+  
+  /* Gain computer */
+  function calcGain(xG)
+    instance(kWidth, quadF, thresh, ratio, iratio)
+    local(diff, tmp)
+    global()
+    (
+      diff = xG - thresh;
+      
+      // With knee?
+      (kWidth > 0) ? (
+        ( 2*diff < -kWidth ) ? (
+          xG
+        ) : ( (2 * abs(diff)) <= kWidth ) ? (
+          tmp = (diff + 0.5*kWidth);
+          xG + tmp*tmp*quadF
+        ) : (
+          thresh + diff * iratio
+        );
+      ) : (
+        ( xG >= thresh ) ? (
+          thresh + diff * iratio
+        ) : (
+          xG
+        );
+      );
+    );
+    
+  function setCompressorOptions( thr, rat, atk, release, knee, makeupToggle )
+    instance( rt, at, thresh, ratio, iratio, kWidth, makeUp, quadF )
+    global(srate)
+    local(csrate)
+    (
+      csrate        = srate;
+      thresh        = thr;
+      ratio         = rat;//exp(rat*rat);
+      iratio        = 1/ratio;
+      at            = exp(-1/(.5*.001*atk*csrate));
+      rt            = exp(-1/(.5*.001*release*csrate));
+      kWidth        = knee;
+      quadF         = ((1/ratio)-1)/(2*kWidth);
+      makeUp        = makeupToggle ? -this.calcGain(0) : 0;
+    );  
+  
+  // Topology 3:
+  /* Level detection log domain */
+  function compressor(mx)
+    instance( rt, at, yL, makeUp, 
+              xG, c, ya, outGain )
+    global()
+    local(xL, yG)
+    (
+      xG  = 20 * log10(max(abs(mx), 0.000001)); /* Peak */
+     
+      /* Calculate the gain curve */
+      yG = this.calcGain(xG);
+      xL  = xG - yG;
+     
+      // Update smooth peak detector (peak)
+      xL > yL ? (
+        yL = at * yL + (1.0-at) * xL;
+      ) : (
+        ya = max( xL, rt * ya + (1.0-rt) * xL );
+        yL = at * yL + (1.0-at) * ya;
+      );
+     
+      // Calculate gain correction
+      c   = -yL;
+     
+      // Determine current gain correction
+      //outGain = 10^((c + makeUp)/20);
+      outGain = exp(.11512925464970228420089957273422 * (c + makeUp)); //log(10)/20 = .11512925464970228420089957273422;
+    );  
+    
+    
+  // Topology 3:
+  // Level detection linear domain
+  function compressor2(mx)
+    instance(rt, at, c, xG, yL, ratio, makeUp, outGain)
+    global()
+    local(xL, yG, ya)
+    (
+      xG = 20*log10(yL);
+      yG = this.calcGain(xG);
+      
+      xL = max(abs(mx), 0.000001);
+      xL > yL ? (
+        yL = at * yL + (1.0-at) * xL;
+      ) : (
+        ya = max( xL, rt * ya + (1.0-rt) * xL );
+        yL = at * yL + (1.0-at) * ya;
+      );
+      
+      c = yG - xG;
+      
+      //outGain = 10^((c + makeUp)/20);
+      outGain = exp(.11512925464970228420089957273422 * (c + makeUp)); //log(10)/20 = .11512925464970228420089957273422;
+    );  
+    
+  // Topology 3:
+  /* Level detection log domain (decoupled) */
+  function compressor_dc(mx)
+    instance( rt, at, yL, makeUp, 
+              xG, c, ya, outGain )
+    global()
+    local(xL, yG)
+    (
+      xG  = 20 * log10(max(abs(mx), 0.000001)); /* Peak */
+     
+      /* Calculate the gain curve */
+      yG = this.calcGain(xG);
+      xL = xG - yG;
+     
+      // Update smooth peak detector (peak)
+      xL > yL ? (
+        yL = at * yL + (1.0-at) * xL;
+      ) : (
+        yL = rt * yL + (1.0-rt) * xL;
+      );
+     
+      // Calculate gain correction
+      c   = -yL;
+     
+      // Determine current gain correction
+      //outGain = 10^((c + makeUp)/20);
+      outGain = exp(.11512925464970228420089957273422 * (c + makeUp)); //log(10)/20 = .11512925464970228420089957273422;
+    );
+    
+    
+  // Topology 3:
+  // Level detection linear domain (decoupled)
+  function compressor2_dc(mx)
+    instance(rt, at, c, xG, yL, ratio, makeUp, outGain)
+    global()
+    local(xL, yG, ya)
+    (
+      xG = 20*log10(yL);
+      yG = this.calcGain(xG);
+      
+      xL = max(abs(mx), 0.000001);
+      xL > yL ? (
+        yL = at * yL + (1.0-at) * xL;
+      ) : (
+        yL = rt * yL + (1.0-rt) * xL;
+      );
+      
+      c = yG - xG;
+      
+      //outGain = 10^((c + makeUp)/20);
+      outGain = exp(.11512925464970228420089957273422 * (c + makeUp)); //log(10)/20 = .11512925464970228420089957273422;
+    );    
+  
+
+    
+    //////////////////////////////////////////////////////// ONLY FOR VCA  //////////////////////////////////////////////
+    
+    
+
+
+
+function VCA_sample(_process _spl2 _spl3)
+    //global(Topology, outL, outR, LinkStereo,
+    //       cL.compressor, cR.compressor, cL.compressor2, cR.compressor2, 
+    //       cL.compressor_dc, cR.compressor_dc, cL.compressor2_dc, cR.compressor2_dc)
+    local(G)
+    (
+    
+    _process && !this.bypass ? (
+    
+    this.inL = spl0;
+    this.inR = spl1;
+    this.OperatingMode == 0 ? (
+    this.measL = spl0;
+    this.measR = spl1;
+    ):(
+    this.measL = _spl2;
+    this.measR = _spl3;
+    );
+    
+      this.LinkStereo ? (
+        ( this.Topology == 0 ) ? (
+          G = this.cL.compressor(max(abs(this.measL), abs(this.measR)));
+        ) : ( this.Topology == 1 ) ? (
+          G = this.cL.compressor2(max(abs(this.measL), abs(this.measR)));
+        ) : ( this.Topology == 2 ) ? (
+          G = this.cL.compressor_dc(max(abs(this.measL), abs(this.measR)));
+        ) : ( this.Topology == 3 ) ? (
+          G = this.cL.compressor2_dc(max(abs(this.measL), abs(this.measR)));
+        );
+        this.outL = G * this.inL;
+        this.outR = G * this.inR;
+        
+      ) : (
+        ( this.Topology == 0 ) ? (
+          this.utL = this.cL.compressor(this.measL) * this.inL;
+          this.outR = this.cR.compressor(this.measR) * this.inR;
+        ) : ( this.Topology == 1 ) ? (
+          this.outL = this.cL.compressor2(this.measL) * this.inL;
+          this.outR = this.cR.compressor2(this.measR) * this.inR;
+        ) : ( this.Topology == 2 ) ? (
+          this.outL = this.cL.compressor_dc(this.measL) * this.inL;
+          this.outR = this.cR.compressor_dc(this.measR) * this.inR;
+        ) : ( this.Topology == 3 ) ? (
+          this.outL = this.cL.compressor2_dc(this.measL) * this.inL;
+          this.outR = this.cR.compressor2_dc(this.measR) * this.inR;
+        );
+      );
+      
+      spl0 = this.outL * this.postGainLin;
+      spl1 = this.outR * this.postGainLin;
+      
+      this.report_GR = min(this.cL.c, this.cR.c);
+	this.gfx_gr = min(min(this.report_gr, this.gfx_gr + 30 / srate), 0);
+	this.gfx_gr > -0.02 ? this.gfx_gr = 0;
+	this.gfx_GR_max >= this.gfx_gr ? (this.gfx_GR_max = this.gfx_gr; this.gfx_gr_reset = srate / 1);
+	this.gfx_gr_reset -= 1; this.gfx_gr_reset <= 0 ? (this.gfx_gr_max = 0; gthis.fx_gr_reset = 0);
+
+
+	//ol4 = ol3;
+	//ol3 = ol2;
+	//ol2 = ol1;
+	//ol1 = out;
+
+  ext_gr_meter = this.gfx_gr;//report_GR;
+  ):( //process
+  this.report_GR = 0;
+  this.gfx_GR = this.gfx_GR_max = 0;
+  ext_gr_meter = 0;
+  ); // process
+
+);
+
+
+
+
+
+function VCA_init() (
+
+  
+  caller = 1;
+
+  this.MIN_ATTACK = .1;
+  this.MAX_ATTACK = 100;
+  
+  this.MIN_DECAY = 15;
+  this.MAX_DECAY = 500;
+
+  ); // Re_init
+  
+  
+  
+  
+  
+  
+  
+    function VCA_parameters_update(_slider2, _slider3, _slider4, _slider5, _slider6, _slider7, _slider8, _slider9, _slider11) (
+      this.Treshold1 = _slider2;
+      this.knee1 = _slider7 == 0 ? 0 : 15;
+      this.sAttack1 = _slider4;
+      this.sDecay1 = _slider5;
+      this.MakeUp1 = 0;
+      this.PreGain = 0;
+      this.PostGain = _slider6;
+      this.Topology = _slider9;
+      this.LinkStereo = 1;
+      this.OperatingMode = _slider8;
+      this.DryWet = 1;
+      
+      this.preGainLin      = 10^(this.PreGain/20);
+      this.postGainLin     = 10^(this.PostGain/20);
+      
+      
+      this.ratio1 = _slider3 == 0 ? 2 : _slider3 == 0 ? 2 : _slider3 == 1 ? 4 : _slider3 == 2 ? 6 : _slider3 == 3 ? 8 : _slider3 == 4 ? 12 : _slider3 == 5 ? 20;
+      
+      
+      this.skala = 1.5;
+      this.Attack1         = (this.MAX_ATTACK-this.Min_ATTACK)*explog(this.sAttack1,this.skala) + this.MIN_ATTACK; // pow(skala, alpha * sAttack1 + beta);// - 1;
+      //beta            = log(MIN_DECAY);
+      //alpha           = log(MAX_DECAY)-beta;
+      this.Decay1          = (this.MAX_decay-this.Min_decay)*explog(this.sdecay1,2.5) + this.MIN_decay;//exp(alpha * sDecay1 + beta);
+      
+      
+      this.cL.setCompressorOptions( this.Treshold1, this.Ratio1, this.Attack1, this.Decay1, this.Knee1, this.MakeUp1 );
+      this.cR.setCompressorOptions( this.Treshold1, this.Ratio1, this.Attack1, this.Decay1, this.Knee1, this.MakeUp1 );
+      
+      //this.fallbacktime = db2ratio(-50/srate);
+      
+      this.bypass = _slider11;
+
+    );
+  
+  
+  
+  
+ 
+  
+  
+  
+  
+  
+  
+  
+  function NC76_sample(_process _spl2 _spl3) (
+  
+    this.bypass ? _process = 0;
+    
+    
+    _process == 1 ? (
+    
+    
+      this.ospl0 = spl0;
+      this.ospl1 = spl1;
+      this.sidechain == 0 ? (
+      spl0*=this.ingain;
+      spl1*=this.ingain;
+      this.aspl0 = abs(spl0);
+      this.aspl1 = abs(spl1);
+      ):(
+      _spl2*=this.ingain;
+      _spl3*=this.ingain;
+      this.aspl0 = abs(_spl2);
+      this.aspl1 = abs(_spl3); 
+      );
+      
+      this.maxspl = max(this.aspl0, this.aspl1);
+      this.maxspl = this.maxspl * this.maxspl;
+      this.runave = this.maxspl + this.rmscoef * (this.runave - this.maxspl);
+      this.det = sqrt(max(0,this.runave));
+    
+      this.overdb = max(0, this.capsc * log(this.det/this.cthreshv));
+    
+      this.overdb - this.rundb > 5 ? (this.averatio = 4;);
+    
+      this.overdb > this.rundb ? (
+        this.rundb = this.overdb + this.atcoef * (this.rundb - this.overdb);
+        this.runratio = this.averatio + this.ratatcoef * (this.runratio - this.averatio);
+      ) : (
+        this.rundb = this.overdb + this.relcoef * (this.rundb - this.overdb);
+        this.runratio = this.averatio + this.ratrelcoef * (this.runratio - this.averatio);
+      );
+      this.overdb = this.rundb;
+      this.averatio = this.runratio;
+    
+      this.allin ? (
+        this.cratio = 4 + this.averatio;
+      ) : (
+        this.cratio = this.ratio;
+      );
+      this.allin == 1 ? (this.allratio=1.4):(this.allratio=1);
+      this.gr = -this.overdb * this.allratio *  (this.cratio-1)/this.cratio;
+      this.grv = exp(this.gr * this.db2log);
+      
+      this.runmax =this.maxover + this.relcoef * (this.runmax - this.maxover);  // highest peak for setting att/rel decays in reltime
+      this.maxover = this.runmax;
+    this.grgr = (1/this.gr_meter)/20;
+    
+    this.gr_meter_decay = 1.1;
+    this.grv < this.gr_meter ? this.gr_meter=grv : ( this.gr_meter = this.grv; this.gr_meter>1?this.gr_meter=1; );// gr_meter*=gr_meter_decay
+    this.grmin = min( min(this.cG,this.cG) , this.grmin);
+    
+    
+  
+      spl0 *= this.grv * this.makeupv;
+      spl1 *= this.grv * this.makeupv;  
+  
+      
+      this.GRmeter.obj_mnmetersample(this.grv*db2ratio(-3.9));
+      //ext_gr_meter = ratio2db(grv);
+      
+    
+    /// LIMITER ///////////////
+    /*
+    ovrlParam1=1.5; //ovrlthresh
+    ovrlParam2=0.5; //output
+    ovrlParam3=0.5+0*0.5; //ovrlattack
+    ovrlParam4=0.5+0*0.5; //ovrlrelease
+    ovrlParam5=0; //softknee
+    
+    //hard knee
+    ovrlthresh = pow(10, (2 * ovrlParam1) - 2);
+    
+    ovrltrim = pow(10, (2 * ovrlParam2) - 1);
+    ovrlatt = pow(10, -0.01 - (2 * ovrlParam3));
+    ovrlrel = pow(10, -2 - (3 * ovrlParam4));
+    
+    
+    ovrlth = ovrlthresh;
+    ovrlg = ovrlgain;
+    ovrlat = ovrlatt;
+    ovrlre = ovrlrel;
+    ovrltr = ovrltrim;
+    
+    ovrlol = spl0;
+    ovrlor = spl1;
+    
+    ovrllev = (0.5 * ovrlg * abs(ovrlol + ovrlor));
+    
+    (ovrllev > ovrlth) ?
+    (
+    ovrlg = ovrlg - (ovrlat * (ovrllev - ovrlth));
+    )
+    : //below ovrlthreshold
+    (
+    ovrlg = ovrlg + (ovrlre * (1 - ovrlg));
+    );
+    
+    spl0 = (ovrlol * ovrltr * ovrlg);
+    spl1 = (ovrlor * ovrltr * ovrlg);
+    
+    ovrlgain = ovrlg;
+    */
+    ):( //process
+    this.GRmeter.obj_mnmetersample(db2ratio(-3.9));
+    //ext_gr_meter = ratio2db(0);
+    );
+  
+  );
+  
+  
+  
+  
+  
+  function NC76_init() (
+  
+    
+    caller = 1;
+  
+    this.ovrlgain = 1;
+    
+      this.log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+      this.db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+      this.attime=0.010;
+      this.reltime=0.100;
+      this.ratio=0;
+      this.cratio=0;
+      this.rundb=0;
+      this.overdb=0;
+      this.ratatcoef = exp(-1/(0.00001 * srate));
+      this.ratrelcoef = exp(-1/(0.5 * srate));
+      this.atcoef=exp(-1/(attime * srate));
+      this.relcoef=exp(-1/(reltime * srate));
+      this.mix=1;
+      this.grk = 0;
+      this.softknee = 0;
+      this.bluey = 0;
+      
+      this.meterspeed76 = 40;
+    this.GRMeter.obj_mn_meter_reinit(this.meterspeed76);
+    this.GRmeter.obj_mn_meter_init();
+    
+    ); // Re_init
+    
+    
+    
+    
+    
+    
+    
+      function NC76_parameters_update(_slider2, _slider3, _slider4, _slider5, _slider6, _slider7, _slider8, _slider10) (
+  
+         this.bluey = 0;
+         this.sidechain = _slider8;
+         this.trick = 0;
+         this.thresh = -20;
+         this.threshv = exp(this.thresh * this.db2log);
+         this.capsc = this.log2db;
+   
+         _slider2 == 1 ? (this.ratio = 4);
+         _slider2 == 2 ? (this.ratio = 8);
+         _slider2 == 3 ? (this.ratio = 12);
+         _slider2 == 4 ? (this.ratio = 20);
+         _slider2 == 5 ? (this.allin=1; this.cratio=12;) : (this.allin=0; this.cratio = this.ratio;);
+         _slider2 == 0 ? (this.ratio=2);
+         
+         this.cthresh = (this.softknee ? (this.thresh -3) : this.thresh);
+         this.cthreshv = exp(this.cthresh * this.db2log);
+         this.makeup = _slider4;
+         this.makeupv = exp((this.makeup+this.autogain) * this.db2log);
+         this.attime = 2*_slider5 / 1000000;
+         _slider7==1?(this.attime+=0.012);
+         this.reltime = _slider6 / 1000; this.allin == 1 ? (this.reltime=_slider6/10000);
+         this.ratatcoef = exp(-1/(0.00001 * srate));
+         this.ratrelcoef = exp(-1/(0.5 * srate));
+         this.atcoef=exp(-1/(this.attime * srate));
+         this.relcoef=exp(-1/(this.reltime * srate));
+         this.mix=1;//slider6/100;
+         this.ingain=exp(this.db2log*_slider3);
+   
+          this.bypass = _slider10;
+  
+      );
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      function LA2_sample(_process _spl2 _spl3) (
+      
+      _spl0 = spl0;
+      _spl1 = spl1;
+      
+      this.bypass ? _process = 0;
+      
+      
+      _process == 1 ? (
+      
+      
+        //  ospl0 = spl0;
+         // ospl1 = spl1;
+          this.opto = 0;
+      this.osplini == 0 ? (
+       this.aspl0 = abs(_spl0*10);
+       this.aspl1 = abs(_spl1*10);
+      );
+      //cratio > 1 ? (osplini=1);
+      
+        this.sidechain ? (
+          this.opto ? (
+          
+            this.ospl = this.ospl0 * this.ospl0 + this.ospl1 * this.ospl1;
+            //osplini = 1;
+            
+            this.ospl > this.runospl ? (
+              this.runospl = this.ospl + this.atcoef * (this.runospl - this.ospl);
+            ) : (
+              this.runospl = this.ospl + this.relcoef * (this.runospl - this.ospl);
+            );
+            
+            this.ospl = sqrt(max(0,this.runospl));
+      
+            this.ospl *= 0.5;
+      
+            
+            this.aspl0 = abs(this.ospl);
+            this.aspl1 = abs(this.ospl);
+            //aspl0 = abs(spl0*10);
+            //aspl1 = abs(spl1*10);
+          ) : (
+            this.aspl0 = abs(this.ospl0);
+            this.aspl1 = abs(this.ospl1);
+          );
+        ) : (
+          this.opto ? (
+            this.ospl = this.ospl0 * this.ospl0 + this.ospl1 * this.ospl1;
+            //osplini = 1;
+            
+            this.ospl > this.runospl ? (
+              this.runospl = this.ospl + this.atcoef * (this.runospl - this.ospl);
+            ) : (
+              this.runospl = this.ospl + this.relcoef * (this.runospl - this.ospl);
+            );
+            this.ospl = sqrt(max(0,this.runospl));
+            
+            this.runospl * 1000 > 0 ? (
+            this.ospl = sqrt(this.runospl);
+            
+            );
+            
+      this.ospl *= 0.5;
+           this.aspl0 = abs(this.ospl);
+           this.aspl1 = abs(this.ospl);
+          ) : (
+            this.aspl0 = abs(this.ospl0);
+            this.aspl1 = abs(this.ospl1);
+          );
+        );
+        /*
+      osplini == 0 ? (
+       aspl0 = abs(spl0);
+       aspl1 = abs(spl1);
+      );
+      */
+      
+        this.RMSDet ? (  
+          this.ave = (this.aspl0 * this.aspl0) + (this.aspl1 * this.aspl1);
+          this.runave = this.ave + this.rmscoef * (this.runave - this.ave);
+          this.det = sqrt(max(0,this.runave));
+        ) : (
+          this.maxspl = max(this.aspl0, this.aspl1);
+          this.maxspl = this.maxspl * this.maxspl;
+          this.runave = this.maxspl + this.rmscoef * (this.runave - this.maxspl);
+          this.det = sqrt(max(0,this.runave));
+        );
+        
+        
+        
+      //  overdb = log(det/cthreshv) * capsc;
+      
+         this.det=max(this.det,0.0000000001);
+        this.mydbin = ratio2db(this.det);
+        this.thi1 < this.mydbin ? this.thi1 = this.mydbin;
+        
+        //Neu ich
+        //thresh = tenthresh;
+        
+        this.kneevalue = 10;
+        this.knee_width = abs(this.thresh*2*this.kneevalue*0.01);
+        this.Thi = (this.thresh + this.knee_width / 2);
+        this.Tlo = (this.thresh - this.knee_width / 2);
+        this.slope = ((1 - this.ratio) / this.ratio); //oder doch lieber exakt 1?
+        this.knee_factor = (abs(this.slope) / (this.knee_width * 2));
+        
+        //thi -= 10;
+        //tlo -= 10;
+        
+        this.mydbin < this.Tlo ? (
+          this.overdb = 0;
+          this.thi2 = 0;
+        ):(
+          this.mydbin >= this.Thi ? (
+            this.overdb = abs(this.slope)*(this.mydbin - this.thresh); // *slope
+            this.thi2 = 2;
+            this.ratior = this.ratio;
+          ):(
+            this.mydelta = this.mydbin - this.Tlo;
+            this.overdb = this.mydelta * this.mydelta * (this.knee_factor);
+            this.thi2 = 1;
+            this.ratior = this.ratio;
+          );
+        
+        );
+        //tenoverdb = overdb;
+        
+        // ende neu ich
+        
+        
+        
+        
+        
+        
+        
+        
+        this.overdb > this.maxover ? (
+          this.maxover = this.overdb;
+          this.attime = this.attimes[max(0,floor(abs(this.overdb)))];   // attack time per formula
+          this.atcoef2 = max(this.atcoef2, this.attime);
+          this.atcoef = exp(-1/(this.attime * srate));
+          this.reltime = this.overdb / 25;                        // release at constant 125 dB/sec.
+          this.relcoef = exp(-1/(this.reltime * srate));
+        );
+        this.overdb = max(0,this.overdb);
+      
+        this.overdb > this.rundb ? (
+          this.rundb = this.overdb + this.atcoef * (this.rundb - this.overdb);
+        ) : (
+          this.rundb = this.overdb + this.relcoef * (this.rundb - this.overdb);
+        );
+        this.overdb = this.rundb;
+      
+        this.cratio = (this.oftknee ? (1 + (this.atio-1) * min(this.overdb, 6) / 6) : this.ratio);
+        
+        this.gr = -this.overdb*this.cratio *(this.cratio-1)/this.cratio;
+        this.grv = exp(this.gr * this.db2log);
+        
+        this.runmax = this.maxover + this.relcoef * (this.runmax - this.maxover);  // highest peak for setting att/rel decays in reltime
+        this.maxover = this.runmax;
+      
+      
+      
+      
+        this.Sidechain ? (
+        this.ospl0 = _spl2*=this.grv;
+        this.ospl1 = _spl3*=this.grv;
+        ):(
+        this.ospl0 = _spl0*this.grv;//*makeupv;
+        this.ospl1 = _spl1*this.grv;//*makeupv;
+        );
+        this.SCLC_inA = this.ospl0;
+        this.SCLC_inB = this.ospl1;
+        
+        //Left
+        this.SCLC_x2A = this.SCLC_x1A;
+        this.SCLC_x1A = this.SCLC_x0A;
+        this.SCLC_x0A = this.SCLC_inA;
+        
+        this.SCLC_y2A = this.SCLC_y1A;
+        this.SCLC_y1A = this.SCLC_y0A;
+        this.SCLC_y0A = this.SCLC_b0*this.SCLC_x0A + this.SCLC_b1*this.SCLC_x1A + this.SCLC_b2*this.SCLC_x2A - this.SCLC_a1*this.SCLC_y1A - this.SCLC_a2*this.SCLC_y2A;
+        
+        //Right
+        this.SCLC_x2B = this.SCLC_x1B;
+        this.SCLC_x1B = this.SCLC_x0B;
+        this.SCLC_x0B = this.SCLC_inB;
+        
+        this.SCLC_y2B = this.SCLC_y1B;
+        this.SCLC_y1B = this.SCLC_y0B;
+        this.SCLC_y0B = this.SCLC_b0*this.SCLC_x0B + this.SCLC_b1*this.SCLC_x1B + this.SCLC_b2*this.SCLC_x2B - this.SCLC_a1*this.SCLC_y1B - this.SCLC_a2*this.SCLC_y2B;
+        
+        //Output
+        this.ospl0 = this.SCLC_y0A;
+        this.ospl1 = this.SCLC_y0B;
+        
+        this.SCHC_inA = this.ospl0;
+        this.SCHC_inB = this.ospl1;
+        
+        //Left
+        this.SCHC_x2A = this.SCHC_x1A;
+        this.SCHC_x1A = this.SCHC_x0A;
+        this.SCHC_x0A = this.SCHC_inA;
+        
+        this.SCHC_y2A = this.SCHC_y1A;
+        this.SCHC_y1A = this.SCHC_y0A;
+        this.SCHC_y0A = this.SCHC_b0*this.SCHC_x0A + this.SCHC_b1*this.SCHC_x1A + this.SCHC_b2*this.SCHC_x2A - this.SCHC_a1*this.SCHC_y1A - this.SCHC_a2*this.SCHC_y2A;
+        
+        //Right
+        this.SCHC_x2B = this.SCHC_x1B;
+        this.SCHC_x1B = this.SCHC_x0B;
+        this.SCHC_x0B = this.SCHC_inB;
+        
+        this.SCHC_y2B = this.SCHC_y1B;
+        this.SCHC_y1B = this.SCHC_y0B;
+        this.SCHC_y0B = this.SCHC_b0*this.SCHC_x0B + this.SCHC_b1*this.SCHC_x1B + this.SCHC_b2*this.SCHC_x2B - this.SCHC_a1*this.SCHC_y1B - this.SCHC_a2*this.SCHC_y2B;
+        
+        //Output
+        this.ospl0 = this.SCHC_y0A;
+        this.ospl1 = this.SCHC_y0B;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        _spl0 *= this.grv * this.makeupv;
+        _spl1 *= this.grv * this.makeupv; 
+        
+        
+        ///////////////// HIGH SHELV ///////////////////////////////
+        this.HS_inA = _spl0;
+        this.HS_inB = _spl1;
+        
+        //Left
+        this.HS_x2A = this.HS_x1A;
+        this.HS_x1A = this.HS_x0A;
+        this.HS_x0A = this.HS_inA;
+        
+        this.HS_y2A = this.HS_y1A;
+        this.HS_y1A = this.HS_y0A;
+        this.HS_y0A = this.HS_b0*this.HS_x0A + this.HS_b1*this.HS_x1A + this.HS_b2*this.HS_x2A - this.HS_a1*this.HS_y1A - this.HS_a2*this.HS_y2A;
+        
+        //Right
+        this.HS_x2B = this.HS_x1B;
+        this.HS_x1B = this.HS_x0B;
+        this.HS_x0B = this.HS_inB;
+        
+        this.HS_y2B = this.HS_y1B;
+        this.HS_y1B = this.HS_y0B;
+        this.HS_y0B = this.HS_b0*this.HS_x0B + this.HS_b1*this.HS_x1B + this.HS_b2*this.HS_x2B - this.HS_a1*this.HS_y1B - this.HS_a2*this.HS_y2B;
+        
+        //Output
+        _spl0 = this.HS_y0A;
+        _spl1 = this.HS_y0B;
+        /////////////////////////////////////////////////////////////
+        
+        //////////////////// LOW SHELV ///////////////////////////
+        this.LS_inA = _spl0;
+        this.LS_inB = _spl1;
+        
+        //Left
+        this.LS_x2A = this.LS_x1A;
+        this.LS_x1A = this.LS_x0A;
+        this.LS_x0A = this.LS_inA;
+        
+        this.LS_y2A = this.LS_y1A;
+        this.LS_y1A = this.LS_y0A;
+        this.LS_y0A = this.LS_b0*this.LS_x0A + this.LS_b1*this.LS_x1A + this.LS_b2*this.LS_x2A - this.LS_a1*this.LS_y1A - this.LS_a2*this.LS_y2A;
+        
+        //Right
+        this.LS_x2B = this.LS_x1B;
+        this.LS_x1B = this.LS_x0B;
+        this.LS_x0B = this.LS_inB;
+        
+        this.LS_y2B = this.LS_y1B;
+        this.LS_y1B = this.LS_y0B;
+        this.LS_y0B = this.LS_b0*this.LS_x0B + this.LS_b1*this.LS_x1B + this.LS_b2*this.LS_x2B - this.LS_a1*this.LS_y1B - this.LS_a2*this.LS_y2B;
+        
+        //Output
+        _spl0 = this.LS_y0A;
+        _spl1 = this.LS_y0B;
+        //////////////////////////////////////////////////////////
+        
+        
+        
+        //maximax > 0.08 ? (osplini = 1);
+        //ospl > maximax ? (Maximax=ospl);
+      
+        
+        _spl0 = min(max(_spl0,-1),1);
+        _spl1 = min(max(_spl1,-1),1);
+        
+        spl0 = this.volcompdist*(1+this.foo)*_spl0/(1+this.foo*abs(_spl0));
+        spl1 = this.Volcompdist*(1+this.foo)*_spl1/(1+this.foo*abs(_spl1));
+        
+        ):(this.grv = 1); //Process
+        
+        
+        //ext_gr_meter = ratio2db(grv); //////////////////////////////  SOLLTE NOCH EINFLIESSEN
+        
+        
+        this.GRmeter.obj_mnmetersample(this.grv*db2ratio(-3.9)); //3.7
+        
+        
+      );
+      
+      
+      
+      
+      
+      
+      function LA2_init(_alloc) (
+      this.attimes = _alloc;
+        this.log2db = 8.6858896380650365530225783783321; // 20 / ln(10)
+        this.db2log = 0.11512925464970228420089957273422; // ln(10) / 20 
+        this.i=0;
+        loop(
+          120,
+          this.attimes[this.i] = 2*(((0.08924 / this.i) + (0.60755 / (this.i ^ 2)) - 0.00006)); //*0.1 
+          //attimes[i] /= 2;
+          this.i+=1;
+        );
+        this.attime=0.01;//0.010;
+        this.reltime=0.5;
+        this.maxover=0;
+        this.ratio=4;
+        this.cratio=4;
+        this.rundb=0;
+        this.runospl=1;
+        this.overdb=0;
+        this.maxover=0;
+        this.atcoef=exp(-1/(this.attime * srate));
+        this.relcoef=exp(-1/(this.reltime * srate));
+        this.fbacoef=exp(-1000/(40 * srate)); // 2 msec. opto attack for feedback detection
+        this.fbrcoef=exp(-1000/(200 * srate)); // 200 msec. opto release for feedback detection
+        this.sidechain = 0;
+        this.automakeup = 0;
+        this.ospl0 = 0; this.ospl1=0;
+        this.osplini = 0;
+        
+        caller = 1;
+      
+        this.gr_meter=1;
+        this.gr_meter_decay = exp(1/(1*srate)); 
+        
+        
+        
+        this.hdistr = min(7.8/100,.999);
+        this.foo = 2*this.hdistr/(1-this.hdistr);
+        this.volcompdist = 1-(7.8/110); 
+        
+        this.maximax = 0;
+        
+        ///////////////////////////////////////// HSHLV OUTPUT
+        this.HSSLDR1 = 85.24;
+        this.HSSLDR2 = 0.42;
+        this.HSSLDR3=2;
+        this.HSSLDR4=8;
+        this.HSSLDR5=0;
+        // freHS_Quency HSSLDR scaling
+        this.HS_tmpx = 16+this.HSSLDR1*1.20103;
+        this.HS_tmpy = floor(exp(this.HS_tmpx*log(1.059))*8.17742);
+        
+        // filter calculation
+        this.HS_omega = 2*$pi*this.HS_tmpy/srate;
+        this.HSSLDR4 < 8 ? (
+        this.HS_K = tan(this.HS_omega/2);
+        ):(
+        this.HS_K = tan(($pi-this.HS_omega)/2); //HSF only
+        );
+        this.HS_Q = max(min(this.HSSLDR2,4),0.2);
+        this.HS_V = 10^(-this.HSSLDR3/20);
+        
+        this.HS_outHS_Vol = 10^(this.HSSLDR5/20);
+       
+        this.HSSLDR4==8?(
+        //HSH:
+        //boost:
+        this.HS_b0 = 1 + sQrt(this.HS_V)*this.HS_K/this.HS_Q + this.HS_V*this.HS_K^2;
+        this.HS_b1 = -2*(this.HS_V*this.HS_K^2 - 1);
+        this.HS_b1 = 1 - sQrt(this.HS_V)*this.HS_K/this.HS_Q + this.HS_V*this.HS_K^2;
+        this.HS_a0 = 1 + this.HS_K/this.HS_Q +this.HS_K^2;
+        this.HS_a1 = -2*(this.HS_K^2 - 1);
+        this.HS_a2 = 1 - this.HS_K/this.HS_Q + this.HS_K^2;
+        
+        //cut:
+        this.HS_b0 = 1 + this.HS_K/this.HS_Q + this.HS_K^2;
+        this.HS_b1 = -2*(this.HS_K^2 - 1);
+        this.HS_b2 = 1 - this.HS_K/this.HS_Q + this.HS_K^2;
+        this.HS_a0 = 1 + sQrt(this.HS_V)*this.HS_K/this.HS_Q + this.HS_V*this.HS_K^2;
+        this.HS_a1 = -2*(this.HS_V*this.HS_K^2 - 1);
+        this.HS_a2 = 1 - sQrt(this.HS_V)*this.HS_K/this.HS_Q + this.HS_V*this.HS_K^2;
+        );
+        
+        this.HS_a1 /= this.HS_a0;
+        this.HS_a2 /= this.HS_a0;
+        this.HS_b0 /= this.HS_a0;
+        this.HS_b1 /= this.HS_a0;
+        this.HS_b2 /= this.HS_a0;
+        
+        ///////////////////////////////////////// HSHLVOUT END
+        
+        
+        
+        ///////////////////////////////////////// LSHLV OUT
+        
+        this.LSSLDR1 = 35.78;
+        this.LSSLDR2 = 0.282;
+        this.LSSLDR3=-0;
+        this.LSSLDR4=7;
+        this.LSSLDR5=0;
+        
+        // freLS_Quency LSSLDR scaling
+        this.LS_tmpx = 16+this.LSSLDR1*1.20103;
+        this.LS_tmpy = floor(exp(this.LS_tmpx*log(1.059))*8.17742);
+        
+        // filter calculation
+        this.LS_omega = 2*$pi*this.LS_tmpy/srate;
+        this.LSSLDR4 < 8 ? (
+        this.LS_K = tan(this.LS_omega/2);
+        ):(
+        this.LS_K = tan(($pi-this.LS_omega)/2); //LSF only
+        );
+        this.LS_Q = max(min(this.LSSLDR2,4),0.2);
+        this.LS_V = 10^(-this.LSSLDR3/20);
+        
+        this.LS_outLS_Vol = 10^(this.LSSLDR5/20);
+       
+        this.LSSLDR4==7?(
+        //LSH:
+        //boost:
+        this.LS_b0 = 1 + sQrt(this.LS_V)*this.LS_K/this.LS_Q + this.LS_V*this.LS_K^2;
+        this.LS_b1 = 2*(this.LS_V*this.LS_K^2 - 1);
+        this.LS_b2 = 1 - sQrt(this.LS_V)*this.LS_K/this.LS_Q + this.LS_V*this.LS_K^2;
+        this.LS_a0 = 1 + this.LS_K/this.LS_Q + this.LS_K^2;
+        this.LS_a1 = 2*(this.LS_K^2 - 1);
+        this.LS_a2 = 1 - this.LS_K/this.LS_Q + this.LS_K^2;
+        
+        //cut:
+        this.LS_b0 = 1 + this.LS_K/this.LS_Q + this.LS_K^2;
+        this.LS_b1 = 2*(this.LS_K^2 - 1);
+        this.LS_b2 = 1 - this.LS_K/this.LS_Q + this.LS_K^2;
+        this.LS_a0 = 1 + sQrt(this.LS_V)*this.LS_K/this.LS_Q + this.LS_V*this.LS_K^2;
+        this.LS_a1 = 2*(this.LS_V*this.LS_K^2 - 1);
+        this.LS_a2 = 1 - sQrt(this.LS_V)*this.LS_K/this.LS_Q + this.LS_V*this.LS_K^2;
+        );
+      
+        this.LS_a1 /= this.LS_a0;
+        this.LS_a2 /= this.LS_a0;
+        this.LS_b0 /= this.LS_a0;
+        this.LS_b1 /= this.LS_a0;
+        this.LS_b2 /= this.LS_a0;
+        /////////////////////////////////////////////////////////LOWSHELV
+        
+        
+        
+        
+        
+        this.SCLCSLDR1 = 27.5;
+        this.SCLCSLDR2 = 1.685;
+        this.SCLCSLDR3 = -2.5;
+        this.SCLCSLDR4=1;
+        this.SCLCSLDR5=0;
+        
+        // freSCLC_Quency SCLCSLDR scaling
+        this.SCLC_tmpx = 16+this.SCLCSLDR1*1.20103;
+        this.SCLC_tmpy = floor(exp(this.SCLC_tmpx*log(1.059))*8.17742);
+        
+        // filter calculation
+        this.SCLC_omega = 2*$pi*this.SCLC_tmpy/srate;
+        this.SCLCSLDR4 < 8 ? (
+        this.SCLC_K = tan(this.SCLC_omega/2);
+        ):(
+        this.SCLC_K = tan(($pi-this.SCLC_omega)/2); //SCLCF only
+        );
+        this.SCLC_Q = max(min(this.SCLCSLDR2,4),0.2);
+        this.SCLC_V = 10^(-this.SCLCSLDR3/20);
+        
+        this.SCLC_outSCLC_Vol = 10^(this.SCLCSLDR5/20);
+        
+        this.SCLCSLDR4==1?(
+        //HPF:
+        this.SCLC_b0 = 1;
+        this.SCLC_b1 = -2;
+        this.SCLC_b2 = 1;
+        this.SCLC_a0 = 1 + this.SCLC_K/this.SCLC_Q + this.SCLC_K^2;
+        this.SCLC_a1 = 2*(this.SCLC_K^2 - 1);
+        this.SCLC_a2 = 1 - this.SCLC_K/this.SCLC_Q + this.SCLC_K^2;
+        );
+        
+        this.SCLC_a1 /= this.SCLC_a0;
+        this.SCLC_a2 /= this.SCLC_a0;
+        this.SCLC_b0 /= this.SCLC_a0;
+        this.SCLC_b1 /= this.SCLC_a0;
+        this.SCLC_b2 /= this.SCLC_a0;
+        
+        
+        
+        this.SCHCSLDR1 = 84.59;;
+        this.SCHCSLDR2 = 0.76;
+        this.SCHCSLDR3= 2.5;
+        this.SCHCSLDR4=0;
+        this.SCHCSLDR5=0;
+        
+        // freSCHC_Quency SCHCSLDR scaling
+        this.SCHC_tmpx = 16+this.SCHCSLDR1*1.20103;
+        this.SCHC_tmpy = floor(exp(this.SCHC_tmpx*log(1.059))*8.17742);
+        
+        // filter calculation
+        this.SCHC_omega = 2*$pi*this.SCHC_tmpy/srate;
+        this.SCHCSLDR4 < 8 ? (
+        this.SCHC_K = tan(this.SCHC_omega/2);
+        ):(
+        this.SCHC_K = tan(($pi-this.SCHC_omega)/2); //SCHCF only
+        );
+        this.SCHC_Q = max(min(this.SCHCSLDR2,4),0.2);
+        this.SCHC_V = 10^(-this.SCHCSLDR3/20);
+        
+        this.SCHC_outSCHC_Vol = 10^(this.SCHCSLDR5/20);
+        
+        this.SCHCSLDR4==0?(
+        //LPF:
+        this.SCHC_b0 = this.SCHC_K^2;
+        this.SCHC_b1 = 2*this.SCHC_K^2;
+        this.SCHC_b2 = this.SCHC_K^2;
+        this.SCHC_a0 = 1 + this.SCHC_K/this.SCHC_Q + this.SCHC_K^2;
+        this.SCHC_a1 = 2*(this.SCHC_K^2 - 1);
+        this.SCHC_a2 = 1 - this.SCHC_K/this.SCHC_Q + this.SCHC_K^2;
+        );
+        
+        this.SCHC_a1 /= this.SCHC_a0;
+        this.SCHC_a2 /= this.SCHC_a0;
+        this.SCHC_b0 /= this.SCHC_a0;
+        this.SCHC_b1 /= this.SCHC_a0;
+        this.SCHC_b2 /= this.SCHC_a0;
+        
+        this.GRMeter.obj_mn_meter_reinit(50);
+        this.GRmeter.obj_mn_meter_init();
+        ); // Re_init
+        
+        
+        
+        
+        
+        
+        
+          function LA2_parameters_update(_slider1,_slider2,_slider3,_slider4,_slider5) local (vslider1, vslider3) (
+            vslider1 = ((_slider1/100) * 60);
+            vslider3 = ((_slider3/100) * 30)-10;
+            this.thresh = (-1*vslider1)/1.2;//-1*slider9;
+            this.threshv = exp(this.thresh * this.db2log);
+            _slider2 < 0.5 ? (this.ratio=4):(this.ratio=8);
+            this.softknee = 3&1;//slider4&1;
+            this.capsc = (3&2) ? this.log2db : this.log2db * 2.08136898;
+            this.cthresh = (this.softknee ? (this.thresh -3) : this.thresh);
+            this.cthreshv = exp(this.cthresh * this.db2log);
+            this.sidechain = _slider4;
+            this.autogain = 0;
+            this.makeup = vslider3;
+            this.makeupv = exp((this.makeup+this.autogain) * this.db2log);
+            this.rmscoef=exp(-1000/(0.0025 * srate));  // 2.5 us Peak detector
+            this.opto = 1; 
+            this.bypass = _slider5;
+          );
+        
+        
+        
+        
+      
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
