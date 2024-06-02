@@ -151,7 +151,7 @@ import S2GFX/VT_Filters.jsfx-inc
 import S2GFX/tk-Comp_Lib.jsfx-inc
 
 @init
-sumChan_VERSION = 1.1;
+sumChan_VERSION = 1.13;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
@@ -2378,8 +2378,9 @@ last_x = floor(gfx_x);
 gcl+=0.1;
 );
 
+   GR_Meter.meter_config(lscope_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
 red(); gfx_a = 0.7;
-GR_Meter.gr_meter_show();
+ GR_Meter.gr_meter_show();
 gfx_x = lscope_x + 2*zoom;
 gfx_y = lscope_y + g_g_l_sz + 1* zoom;
 gfx_setfont(2,"Arial",8*zoom,'b');
@@ -2394,7 +2395,6 @@ g_collision(lscope_x,lscope_y,g_g_L_sz+1,g_g_L_sz+10*zoom) ? GR_Meter.dB_Val_Max
 );
 
 ):(
-   GR_Meter.meter_config(lscope_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
    gfx_r = gfx_b = gfx_g = 0;
    GR_VU_meter.mnmetergfx(0.8*zoom, lscope_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
    gfx_x = lscope_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);

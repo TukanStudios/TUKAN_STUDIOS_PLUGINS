@@ -38,11 +38,15 @@ slider24:Gain=0<-24,24,0.01>-Trim
 
 slider25:0<0,1,1>-Bypass
 
+slider26:0<0,1,1{Regular, Linear Phase}>-Mode
+slider27:0<0,1,1{Show Curve, Show Bins}>-Lin Plot Mode
+slider28:1<0,1,1{Precise, Preview}>-Record Mode EQ
 
 import S2GFX/spectrum.jsfx-inc
 import S2GFX/svf_filter.jsfx-inc
 import S2GFX/firhalfband.jsfx-inc
 import S2GFX/tk_lib.jsfx-inc
+import S2GFX/cookdsp.jsfx-inc
 
 in_pin:left input
 in_pin:right input
@@ -64,15 +68,17 @@ filename:9,S2GFX/oled.png
 filename:10,S2GFX/bled.png
 filename:11,S2GFX/menu.png
 filename:12,S2GFX/S2_logo.png
+filename:13,S2GFX/Ice_knob.png
 
 options:No_meter
-options:gfx_hz=60
+//options:gfx_hz=60
 options:gmem=TukanOrangeEQS2
 //options:gfx_idle
 
 
 @init
-OEQ_VERSION = 0.99;
+OEQ_VERSION = 1.13;
+//1.13 added LinPhase EQ Mode
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 /*
@@ -123,7 +129,7 @@ Node6_Group=0;//<0,2,1{Stereo,Mid,Side,Left,Right}>Filter1 Group
 Node6_Type=2;//<0,10,1{Peak,Low Cut,Low Cut (Butterworth),Low Shelf,High Shelf,High Cut,High Cut (Butterworth),Notch,Band Pass,Tilt Shelf,Pultec Low Shelf,All Pass,Low Cut Analog,High Cut Analog}>Filter1 Type
 
 // This should be the same as in the comment header
-#VERSION = "1.2.0";
+#VERSION = "1.3.0";
 
 
 ext_tail_size = 64;
@@ -149,7 +155,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 26;
+s2_numbers_of_sliders = 28;
 s2_numbers_of_generics = 8;
 group_generics =1057910; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -172,10 +178,13 @@ generics_old = sliders_old + 16*64;
  
  
  
+ 
+ 
+ 
  Mouse_Sensivity ();
  
  
- 
+ function knobs_config () (
  //Q = 76.87 = 10Q
  OEQ_knobs_y = 270;
  OEQ_knobs_x = 60;
@@ -213,7 +222,7 @@ generics_old = sliders_old + 16*64;
       BBypass.button_config(25,740,0);
  
  
- 
+  );
  
  
  
@@ -249,6 +258,75 @@ function alloc_memory(amount) instance(index) local(i) (
   i;
 );
 
+ function FFT_filter(filtarray size) local (k state band freq hi_freq transfer val)
+ (
+     // Generate a random filter
+     k = 0; //floor(size / 800);
+     while (k < size) (
+         //k < size / 20 ? val = 1 : val = 0.3;// min(rand(1), rand(1));
+         val_before = 0;
+        
+        
+        AAA_Katz = size;
+        hi_freq = ((k+1)/(size*2)) * srate;
+        freq = (k/(size*2)) * srate;
+        freq_dist = (hi_freq-freq)/(100);
+        aafreqhi = ((4+1)/(size*2)) * srate;
+        aafreq = (4/(size*2)) * srate;
+      while (freq < hi_freq) (
+      val = 1;band = 0;
+                    loop(NUM_BANDS,
+                        state = Band_Enabled[band];
+                        state == BAND_STATE_ENABLED ? ( 
+             
+                            transfer = (
+                            band == 0 ? fft_band1.filter.svf_magnitude(freq) :
+                              band == 1 ? fft_band2.filter.svf_magnitude(freq) :
+                                band == 2 ? fft_band3.filter.svf_magnitude(freq) :
+                                  band == 3 ? fft_band4.filter.svf_magnitude(freq) :
+                                    band == 4 ? fft_band5.filter.svf_magnitude(freq) :
+                                      band == 5 ? fft_band6.filter.svf_magnitude(freq) :
+                                        band == 6 ? fft_band7.filter.svf_magnitude(freq) :
+                                          band == 7 ? fft_band8.filter.svf_magnitude(freq) :
+                                            band == 8 ? fft_band9.filter.svf_magnitude(freq) :
+                                              band == 9 ? fft_band10.filter.svf_magnitude(freq) :
+                                                band == 10 ? fft_band11.filter.svf_magnitude(freq) :
+                                                  band == 11 ? fft_band12.filter.svf_magnitude(freq) :
+                                                    band == 12 ? fft_band13.filter.svf_magnitude(freq) :
+                                                      band == 13 ? fft_band14.filter.svf_magnitude(freq) :
+                                                        band == 14 ? fft_band15.filter.svf_magnitude(freq) :
+                                                          band == 15 ? fft_band16.filter.svf_magnitude(freq);
+                              ); // transfer
+            
+                      // Prevent magnitude from blowing up
+                       transfer < 0.001 ? transfer = 0.001;
+            
+                       
+                          ):(transfer = 1); // state
+                       
+                    band += 1;
+                    
+                    val *= transfer;
+                    );
+        
+        db_val = ratio2db(val);
+        abs(val_before) < abs(db_val) ? val_before = db_val;
+        
+        hi_freq < 170 ? freq+=0.1 : freq = hi_freq;
+         
+        );//while
+         
+         filtarray[k] = db2ratio(val_before);
+         k += 1;
+     );
+     k = 1;
+     while (k < floor(size/800)) (
+     //filtarray[k] = filtarray[floor(size/800)];
+     k += 1;
+     );
+     
+ );
+ 
 /*
  * Round number up or down
  */
@@ -383,6 +461,7 @@ function set_oversample(os) (
     pdc_bot_ch = 0;
     pdc_top_ch = 2;
   );
+  //!preview_recording_mode && operate_mode ? (pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = LinFFT_size;);
 );
 
 /*
@@ -410,20 +489,29 @@ function update_state() local (blocks, fade, fill_r, fill_g, fill_b, fill_a, lin
   listline_b = (76 / 255) * 0.80;
 
   Display_Mode == 0 ? (
-    fill_r = 46 / 255;
-    fill_g = 71 / 255;
-    fill_b = 83 / 255;
-    fill_a = 1.0;
+    
+
+    //fill_r = 46 / 255;
+    //fill_g = 71 / 255;
+    //fill_b = 83 / 255;
+    operate_mode ? spectrum.custom_colors = 1 : spectrum.custom_colors = 0;
+    fill_r = 0.65;
+    fill_g = 0.75;
+    fill_b = 1;
+    
+    fill_a = 0.42;
     spectrum.set_fill(0, 1);
     spectrum.set_color(0, fill_r*fade, fill_g*fade, fill_b*fade, fill_a);
 
     spectrum.set_fill(2, 0);
-    spectrum.set_color(2, 0.5, 0.5, 0.5, 1);
+    spectrum.set_color(2, 1, 0.1, 0.1, 1);
+
 
     fill_r = 96 / 255;
     fill_g = 223 / 255;
-    fill_b = 255 / 255;
+    fill_b = 25 / 255;
     fill_a = 0.5;
+
     spectrum.set_fill(1, 1); 
     spectrum.set_color(1, fill_r*fade, fill_g*fade, fill_b*fade, fill_a);
 
@@ -696,6 +784,7 @@ function sliders_to_filters() (
 function flag_filter_update(band) ( 
   Band_Update[band] = 1;
   Band_GfxUpdate[band] = 1;
+  Band_FFTUpdate[band] = 1;
  );
 
 function flag_filter_update_all() ( 
@@ -715,6 +804,22 @@ function flag_filter_update_all() (
   Band_Update[13] = 1; Band_GfxUpdate[13] = 1;
   Band_Update[14] = 1; Band_GfxUpdate[14] = 1;
   Band_Update[15] = 1; Band_GfxUpdate[15] = 1;
+  Band_fftUpdate[0] = 1;
+  Band_fftUpdate[1] = 1;
+  Band_fftUpdate[2] = 1;
+  Band_fftUpdate[3] = 1;
+  Band_fftUpdate[4] = 1;
+  Band_fftUpdate[5] = 1;
+  Band_fftUpdate[6] = 1;
+  Band_fftUpdate[7] = 1;
+  Band_fftUpdate[8] = 1;
+  Band_fftUpdate[9] = 1;
+  Band_fftUpdate[10] = 1;
+  Band_fftUpdate[11] = 1;
+  Band_fftUpdate[12] = 1;
+  Band_fftUpdate[13] = 1;
+  Band_fftUpdate[14] = 1;
+  Band_fftUpdate[15] = 1;
  );
 
 /*
@@ -741,6 +846,28 @@ function update_visual_filters() local (band_scalar) (
   Band_GfxUpdate[15] ? (Band_GfxUpdate[15] = 0; gfx_band16.band_set_filter(Band_Type[15], Band_Frequency[15], Band_Gain[15] * band_scalar, Band_Q[15], Band_Slope[15]); gfx_band16.filter.svf_set_to_target(); );
 );
 
+function update_fft_filters () local (band_scalar) (
+ band_scalar = Scale / 100.0;
+
+
+  Band_fftUpdate[0] ? (Band_fftUpdate[0] = 0; fft_band1.band_set_filter(Band_Type[0], Band_Frequency[0], Band_Gain[0] * band_scalar, Band_Q[0], Band_Slope[0]); fft_band1.filter.svf_set_to_target(); );
+  Band_fftUpdate[1] ? (Band_fftUpdate[1] = 0; fft_band2.band_set_filter(Band_Type[1], Band_Frequency[1], Band_Gain[1] * band_scalar, Band_Q[1], Band_Slope[1]); fft_band2.filter.svf_set_to_target(); );
+  Band_fftUpdate[2] ? (Band_fftUpdate[2] = 0; fft_band3.band_set_filter(Band_Type[2], Band_Frequency[2], Band_Gain[2] * band_scalar, Band_Q[2], Band_Slope[2]); fft_band3.filter.svf_set_to_target(); );
+  Band_fftUpdate[3] ? (Band_fftUpdate[3] = 0; fft_band4.band_set_filter(Band_Type[3], Band_Frequency[3], Band_Gain[3] * band_scalar, Band_Q[3], Band_Slope[3]); fft_band4.filter.svf_set_to_target(); );
+  Band_fftUpdate[4] ? (Band_fftUpdate[4] = 0; fft_band5.band_set_filter(Band_Type[4], Band_Frequency[4], Band_Gain[4] * band_scalar, Band_Q[4], Band_Slope[4]); fft_band5.filter.svf_set_to_target(); );
+  Band_fftUpdate[5] ? (Band_fftUpdate[5] = 0; fft_band6.band_set_filter(Band_Type[5], Band_Frequency[5], Band_Gain[5] * band_scalar, Band_Q[5], Band_Slope[5]); fft_band6.filter.svf_set_to_target(); );
+  Band_fftUpdate[6] ? (Band_fftUpdate[6] = 0; fft_band7.band_set_filter(Band_Type[6], Band_Frequency[6], Band_Gain[6] * band_scalar, Band_Q[6], Band_Slope[6]); fft_band7.filter.svf_set_to_target(); );
+  Band_fftUpdate[7] ? (Band_fftUpdate[7] = 0; fft_band8.band_set_filter(Band_Type[7], Band_Frequency[7], Band_Gain[7] * band_scalar, Band_Q[7], Band_Slope[7]); fft_band8.filter.svf_set_to_target(); );
+  Band_fftUpdate[8] ? (Band_fftUpdate[8] = 0; fft_band9.band_set_filter(Band_Type[8], Band_Frequency[8], Band_Gain[8] * band_scalar, Band_Q[8], Band_Slope[8]); fft_band9.filter.svf_set_to_target(); );
+  Band_fftUpdate[9] ? (Band_fftUpdate[9] = 0; fft_band10.band_set_filter(Band_Type[9], Band_Frequency[9], Band_Gain[9] * band_scalar, Band_Q[9], Band_Slope[9]); fft_band10.filter.svf_set_to_target(); );
+  Band_fftUpdate[10] ? (Band_fftUpdate[10] = 0; fft_band11.band_set_filter(Band_Type[10], Band_Frequency[10], Band_Gain[10] * band_scalar, Band_Q[10], Band_Slope[10]); fft_band11.filter.svf_set_to_target(); );
+  Band_fftUpdate[11] ? (Band_fftUpdate[11] = 0; fft_band12.band_set_filter(Band_Type[11], Band_Frequency[11], Band_Gain[11] * band_scalar, Band_Q[11], Band_Slope[11]); fft_band12.filter.svf_set_to_target(); );
+  Band_fftUpdate[12] ? (Band_fftUpdate[12] = 0; fft_band13.band_set_filter(Band_Type[12], Band_Frequency[12], Band_Gain[12] * band_scalar, Band_Q[12], Band_Slope[12]); fft_band13.filter.svf_set_to_target(); );
+  Band_fftUpdate[13] ? (Band_fftUpdate[13] = 0; fft_band14.band_set_filter(Band_Type[13], Band_Frequency[13], Band_Gain[13] * band_scalar, Band_Q[13], Band_Slope[13]); fft_band14.filter.svf_set_to_target(); );
+  Band_fftUpdate[14] ? (Band_fftUpdate[14] = 0; fft_band15.band_set_filter(Band_Type[14], Band_Frequency[14], Band_Gain[14] * band_scalar, Band_Q[14], Band_Slope[14]); fft_band15.filter.svf_set_to_target(); );
+  Band_fftUpdate[15] ? (Band_fftUpdate[15] = 0; fft_band16.band_set_filter(Band_Type[15], Band_Frequency[15], Band_Gain[15] * band_scalar, Band_Q[15], Band_Slope[15]); fft_band16.filter.svf_set_to_target(); );
+);
+
 function update_audio_filters() local (band_scalar) (
   band_scalar = Scale / 100.0;
 
@@ -760,7 +887,9 @@ function update_audio_filters() local (band_scalar) (
   Band_Update[13] ? (Band_Update[13] = 0; Band_Enabled[13] != BAND_STATE_ENABLED ? band14.filter.svf_bypass() : band14.band_set_filter(Band_Type[13], Band_Frequency[13], Band_Gain[13] * band_scalar, Band_Q[13], Band_Slope[13]); );
   Band_Update[14] ? (Band_Update[14] = 0; Band_Enabled[14] != BAND_STATE_ENABLED ? band15.filter.svf_bypass() : band15.band_set_filter(Band_Type[14], Band_Frequency[14], Band_Gain[14] * band_scalar, Band_Q[14], Band_Slope[14]); );
   Band_Update[15] ? (Band_Update[15] = 0; Band_Enabled[15] != BAND_STATE_ENABLED ? band16.filter.svf_bypass() : band16.band_set_filter(Band_Type[15], Band_Frequency[15], Band_Gain[15] * band_scalar, Band_Q[15], Band_Slope[15]); );
+
 );
+
 
 init_rate != srate ? (
   init_rate = srate;
@@ -769,10 +898,31 @@ init_rate != srate ? (
 
   MEMORY.init_memory();
 
+ //memtemp = 2000000;//MEMORY.alloc_memory(1000000);
   spectrum.init();
 
-  MEMORY.index = spectrum.get_memory_index();
+  MEMORY.index = spectrum.get_memory_index();// + memtemp;
 
+ ///////////////////////////////// INIT FFT for LinPhase
+ spectrum_things = memalloc(Memory.index + 10);
+ srate < 88200 ? fft_os_fact = 1:
+ srate < 88200*2 ? fft_os_fact = 2: fft_os_fact = 3;
+ LinFFT_size = pow(2, fft_os_fact+7+5);
+ LinFFT_hsize = LinFFT_size / 2;
+ fin.fftin(LinFFT_size, 4);
+ fin2.fftin(LinFFT_size, 4);
+ fout.fftout(LinFFT_size, 4);
+ fout2.fftout(LinFFT_size, 4);
+ //FFT_Things = MEMORY.alloc_memory(LinFFT_size*16);
+ LinFFT_filter = memalloc(LinFFT_hsize); // MEMORY.alloc_memory(LinFFT_hsize);
+ filt.fftfilter(LinFFT_filter, LinFFT_hsize);
+ filt2.fftfilter(LinFFT_filter, LinFFT_hsize);
+ filt.fftfilter_set_filtarray(LinFFT_filter);
+ filt2.fftfilter_set_filtarray(LinFFT_filter);
+ 
+ //////////////////////////////////////////////////////
+ aa_katze = MEMORY.index = (memalloc(100) - MEMORY.index) * 4;
+ 
   BAND_STATE_OFF = 0;
   BAND_STATE_DISABLED = 1;
   BAND_STATE_ENABLED = 2;
@@ -783,6 +933,7 @@ init_rate != srate ? (
 
   Band_Update = MEMORY.alloc_memory(NUM_BANDS);
   Band_GfxUpdate = MEMORY.alloc_memory(NUM_BANDS);
+  
   Band_Enabled = MEMORY.alloc_memory(NUM_BANDS);
   Band_Group = MEMORY.alloc_memory(NUM_BANDS);
   Band_Type = MEMORY.alloc_memory(NUM_BANDS);
@@ -794,12 +945,15 @@ init_rate != srate ? (
   Band_Red = MEMORY.alloc_memory(NUM_BANDS);
   Band_Green = MEMORY.alloc_memory(NUM_BANDS);
   Band_Blue = MEMORY.alloc_memory(NUM_BANDS);
-
+ 
   Band_Selected = MEMORY.alloc_memory(NUM_BANDS);
   Band_Drag_OffsetX = MEMORY.alloc_memory(NUM_BANDS);
   Band_Drag_OffsetY = MEMORY.alloc_memory(NUM_BANDS);
   Band_Invert_dB = MEMORY.alloc_memory(NUM_BANDS);
   Band_Selected_States = MEMORY.alloc_memory(NUM_BANDS);
+  
+  Band_fftUpdate = MEMORY.alloc_memory(NUM_BANDS);
+  
   band = 0;
   while (band < NUM_BANDS) (
     Band_Selected[band] = 0;
@@ -851,6 +1005,23 @@ sliders_to_filters();
   gfx_band15.band_init();
   gfx_band16.band_init();
 
+  fft_band1.band_init();
+  fft_band2.band_init();
+  fft_band3.band_init();
+  fft_band4.band_init();
+  fft_band5.band_init();
+  fft_band6.band_init();
+  fft_band7.band_init();
+  fft_band8.band_init();
+  fft_band9.band_init();
+  fft_band10.band_init();
+  fft_band11.band_init();
+  fft_band12.band_init();
+  fft_band13.band_init();
+  fft_band14.band_init();
+  fft_band15.band_init();
+  fft_band16.band_init();
+  
   color_band0.create_color(231, 33, 75);
   color_band1.create_color(241, 111, 50);
   color_band2.create_color(253, 199, 50);
@@ -1051,8 +1222,17 @@ sliders_to_filters();
 
 
 
-function color_OEQ () (gfx_r=1; gfx_g = 0.5; gfx_b = 0);
+function color_OEQ () (
+  operate_mode ? ( // Lin
+      gfx_r=0.7; gfx_g = 0.8; gfx_b = 1;
+  ):( //regular
+      gfx_r=1; gfx_g = 0.5; gfx_b = 0;
+  );
+);
+
+
 function color_OEQ_dark () (gfx_r=7; gfx_g = 0.2; gfx_b = 0);
+
 
 
 parameters_update_on = 0;              
@@ -1155,12 +1335,41 @@ Band_Enabled[3] != Node4_Enabled || Band_Type[3] != Node4_Type || Band_Gain[3] !
 Band_Enabled[4] != Node5_Enabled || Band_Type[4] != Node5_Type || Band_Gain[4] != Node5_Gain || Band_Frequency[4] != per_to_freq(Node5_Frequency,100) || Band_Q[4] != Node5_Q || Band_Slope[4] != Node5_Slope ? flag_filter_update(4);
 Band_Enabled[5] != Node6_Enabled || Band_Type[5] != Node6_Type || Band_Gain[5] != Node6_Gain || Band_Frequency[5] != per_to_freq(Node6_Frequency,100) || Band_Q[5] != Node6_Q || Band_Slope[5] != Node6_Slope ? flag_filter_update(5);
 
-
+//flag_filter_update(0);
 // Update any automation
 sliders_to_filters();
 
-update_state();
 bypass = slider(BBypass.slider);
+
+tmploop = 1;
+loop(16,
+Band_fftUpdate[tmploop] = 1;
+tmploop += 1;
+);
+
+preview_recording_mode = slider28;
+
+update_fft_filters();
+ operate_mode = slider26;
+ plot_mode = min(slider27, slider26);
+ operate_mode ?  (
+    //set_oversample(1);
+    //flag_filter_update_all();
+    //filters_to_sliders();
+    
+    filt.fftfilter_set_filtarray(LinFFT_filter);
+    filt2.fftfilter_set_filtarray(LinFFT_filter);
+    FFT_filter(LinFFT_filter, LinFFT_hsize);
+    sample_operate_mode ? (pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = LinFFT_size);// : (pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = get_FIR_pdc());
+    
+    blueknob = 13;
+ ):(
+ blueknob = 1;
+ );
+knobs_config();
+
+update_state();
+play_state_old_sample = -10;
 
 caller = 0;
 parameters_update_on = 0; 
@@ -1282,6 +1491,71 @@ filters_to_sliders();
 
 @block
 
+play_state != play_state_old_sample ? (
+play_state_old_sample = play_state;
+playstates();
+
+        process ? (
+            srate != srate_old || operate_mode != operate_mode_old ? (
+                srate_old = srate; operate_mode_old = operate_mode;
+                
+                srate < 88200 ? fft_os_fact = 1:
+                srate < 88200*2 ? fft_os_fact = 2: fft_os_fact = 3;
+                LinFFT_size = pow(2, fft_os_fact+7+5);
+                LinFFT_hsize = LinFFT_size / 2;
+                fin.fftin_resize(LinFFT_size, 4);
+                fin2.fftin_resize(LinFFT_size, 4);
+                fout.fftout_resize(LinFFT_size, 4);
+                fout2.fftout_resize(LinFFT_size, 4);
+                //FFT_Things = MEMORY.alloc_memory(LinFFT_size*16);
+                //LinFFT_filter = memalloc(LinFFT_hsize); // MEMORY.alloc_memory(LinFFT_hsize);
+                filt.fftfilter_resize(LinFFT_hsize);
+                filt2.fftfilter_resize(LinFFT_hsize);
+                filt.fftfilter_set_filtarray(LinFFT_filter);
+                filt2.fftfilter_set_filtarray(LinFFT_filter);
+                
+                //caller = 1;
+                FFT_filter(LinFFT_filter, LinFFT_hsize);
+                //operate_mode ? (
+                //  pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = LinFFT_size;
+                //):(
+                //  set_oversample(Quality);
+                //);
+            );
+
+    is_recording || is_stopped ? (
+      preview_recording_mode ? (
+      aaa_katze += 1;
+        //!operate_mode ? (
+                         //quality = 0;
+                         set_oversample(Quality);
+                         //flag_filter_update_all();
+                         //filters_to_sliders();
+                         operate_mode ? (sample_operate_mode = 0; pdc_bot_ch = 0; pdc_top_ch = 2; quality ? pdc_delay = get_FIR_pdc() : pdc_delay = 0);// OMO = 1; pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = 0;);
+                         
+      ):(
+                         operate_mode ? (sample_operate_mode = 1; pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = LinFFT_size;);
+                         !operate_mode ? (sample_operate_mode = 0; pdc_bot_ch = 0; pdc_top_ch = 2; quality ? pdc_delay = get_FIR_pdc() : pdc_delay = 0);
+      );
+    ):(
+      aaa_katze -= 1;
+      //!operate_mode ? (
+                       //Quality = 1;
+                       //set_oversample(Quality);
+                       //flag_filter_update_all();
+                       //filters_to_sliders();
+                       operate_mode ? (sample_operate_mode = 1; pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = LinFFT_size;);
+                       !operate_mode ? (sample_operate_mode = 0; pdc_bot_ch = 0; pdc_top_ch = 2; quality ? pdc_delay = get_FIR_pdc() : pdc_delay = 0);
+      //);
+      
+    );
+    
+    ):( // process
+    pdc_bot_ch = 0; pdc_top_ch = 2; pdc_delay = 0; aaa_katze += 10;
+    ); //process 
+    
+);
+
 // Get array accessed variables per block to make access faster
 // in @sample section
 
@@ -1384,12 +1658,6 @@ bypass == 1 ? process = 0;
 
 
 
-
-
-
-
-
-
 function encodeMS(l, r, mid*, side*) ( 
   mid = (l+r) * 0.5;
   side = (l-r) * 0.5;
@@ -1416,13 +1684,14 @@ process ? (
 spl0 += 0.0000000001; // DeNorm fix
 spl1 += 0.0000000001; // DeNorm fix
 
-spl0orig = spl0;
-spl1orig = spl1;
-
+spl0orig = ospl0 = spl0;
+spl1orig = ospl1 = spl1;
+ 
 // Sidechain RMS
 // RMSSidechain.RMS_process(spl2, spl3);
 
 // Feed the correct buffers depending on spectrum modes
+
 Show_PreEQ ? (
   Spectrum_Mode == 0 ? spectrum.sample2(spl0 + spl1) :
   Spectrum_Mode == 1 ? spectrum.sample2((spl0 + spl1) * 0.5) :
@@ -1432,6 +1701,40 @@ Show_PreEQ ? (
   Spectrum_Mode == 5 ? spectrum.sample2(spl1) :
   Spectrum_Mode == 6 ? (spectrum.sample2(spl0); spectrum.sample3(spl1));
 );
+
+
+
+sample_operate_mode ? (
+
+fin.fftin_do(ospl0);
+fin2.fftin_do(ospl1);
+spl0 = fout.fftout_get_output(fin.count) * db2ratio(2.5);
+spl1 = fout2.fftout_get_output(fin2.count) * db2ratio(2.5);
+// Overall gains
+spl0 *= gainDb;
+spl1 *= gainDb;
+// Feed the correct buffers depending on spectrum modes
+!Show_PreEQ ? (
+Spectrum_Mode == 0 ? spectrum.sample0(spl0 + spl1) :
+Spectrum_Mode == 1 ? spectrum.sample0((spl0 + spl1) * 0.5) :
+Spectrum_Mode == 2 ? spectrum.sample0((spl0 - spl1) * 0.5) :
+Spectrum_Mode == 3 ? (spectrum.sample0((spl0 + spl1) * 0.5); spectrum.sample1((spl0 - spl1) * 0.5)) :
+Spectrum_Mode == 4 ? spectrum.sample0(spl0);
+Spectrum_Mode == 5 ? spectrum.sample0(spl1) :
+Spectrum_Mode == 6 ? (spectrum.sample0(spl0); spectrum.sample1(spl1));
+);
+
+fin.ready ? (
+ // New buffers ready for processing.
+    filt.fftfilter_do(fin.real, fin.imag);
+    filt2.fftfilter_do(fin2.real, fin2.imag);
+    // compute the inverse FFT.
+    fout.fftout_do(filt.real, filt.imag);
+    fout2.fftout_do(filt2.real, filt2.imag);
+//):(
+);
+
+):(
 
 // Interpolate filter coefficients
 
@@ -1969,6 +2272,8 @@ LimitOutput ? (
 );
 
 
+); // operate_mode - LinEQ
+
 
 
 ); //precess playstate
@@ -2442,13 +2747,27 @@ function draw_thick_line(x1, y1, x2, y2)
   x2 = floor(x2);
   y2 = floor(y2);
   color_OEQ();
+  
+  operate_mode ? (
+  gfx_a = 0.15;
+  gfx_line(x1-1, y1-1, x2+1, y2-1, 1);
+  gfx_line(x1-1, y1+1, x2+1, y2+1, 1);
+  gfx_line(x1-2, y1-2, x2, y2, 1);
+  gfx_line(x1-2, y1+2, x2, y2, 1);
+  gfx_a = 0.25;
+  gfx_line(x1-1, y1-1, x2, y2, 1);
+  gfx_line(x1-1, y1+1, x2, y2, 1);
+  gfx_a = 1;
+  white(); gfx_line(x1, y1, x2, y2, 1); 
+  ):(
   gfx_a = 1;
   gfx_line(x1, y1, x2, y2, 1); 
   gfx_a = 0.25;
   gfx_line(x1-1, y1-1, x2, y2, 1);
   gfx_line(x1-1, y1+1, x2, y2, 1);
-  //gfx_line(x1-1, y1-1, x2+1, y2-1, 1);
-  //gfx_line(x1-1, y1+1, x2+1, y2+1, 1);
+  );
+  
+  
 );
 
 /*
@@ -2472,8 +2791,11 @@ function draw_filter_bands()
   midp = db_to_y(0);
 
   band = 0;
-
-  loop(NUM_BANDS, (
+  
+  plot_mode ? gfx_turns = 1 : gfx_turns = NUM_BANDS;
+  
+  //gfx_turns = operate_mode ? 1 : NUM_BANDS;
+  loop(gfx_turns, (
       state = Band_Enabled[band];
       state == BAND_STATE_ENABLED ? ( 
 
@@ -2484,7 +2806,8 @@ function draw_filter_bands()
         xf = 0;
         while (
           freq = scx_to_freq(xf);
-
+          
+ 
           transfer = (
             band == 0 ? gfx_band1.filter.svf_magnitude(freq) :
               band == 1 ? gfx_band2.filter.svf_magnitude(freq) :
@@ -2502,8 +2825,12 @@ function draw_filter_bands()
                                       band == 13 ? gfx_band14.filter.svf_magnitude(freq) :
                                         band == 14 ? gfx_band15.filter.svf_magnitude(freq) :
                                           band == 15 ? gfx_band16.filter.svf_magnitude(freq);
-          );
+             );
 
+            plot_mode ? (
+            transfer = LinFFT_filter[freq / (srate/LinFFT_size)];
+            );
+           
           // Prevent magnitude from blowing up
           transfer < 0.001 ? transfer = 0.001;
 
@@ -2583,7 +2910,8 @@ function draw_filter_response(group, red, green, blue)
   gfx_y = (grf_h / 2) - gfx_texth;
 
   gfx_r = red; gfx_g = green; gfx_b = blue; gfx_a = 1.0;
-
+  
+  
   be0 = (Band_Enabled[0] == BAND_STATE_ENABLED) && (Band_Group[0] == group);
   be1 = (Band_Enabled[1] == BAND_STATE_ENABLED) && (Band_Group[1] == group);
   be2 = (Band_Enabled[2] == BAND_STATE_ENABLED) && (Band_Group[2] == group);
@@ -2632,6 +2960,11 @@ function draw_filter_response(group, red, green, blue)
     be14 ? m *= gfx_band15.filter.svf_magnitude(freq);
     be15 ? m *= gfx_band16.filter.svf_magnitude(freq);
 
+
+            plot_mode ? (
+            m = (LinFFT_filter[freq / (srate/LinFFT_size)]);// + LinFFT_filter[scx_to_freq(xf+step) / (srate/LinFFT_size)])/2;
+            );
+            
     // Prevent magnitude from blowing up
     m < 0.001 ? m = 0.001;
 
@@ -6328,6 +6661,13 @@ gfx_dest = -1;
 gfx_x = gfx_y = 0;
 gfx_blit(0,zoom,0);
 
+operate_mode ? (
+gfx_r = 0.08; gfx_b = 0.14; gfx_g = 0.1;
+//gfx_a = 0.1;
+gfx_rect(0,38*zoom, gfx_w, gfx_h);
+gfx_a = 1;
+);
+
 gfx_x = ree_offset_x * zoom;
 gfx_y = ree_offset_y * zoom;
 gfx_blit(127,1,0,0,0,grf_w,grf_h);
@@ -6586,7 +6926,7 @@ gfx_setfont(1,"Arial",12*zoom,'b');
  
  gfx_setfont(1,"Arial",12*zoom,'b');
  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 4*zoom;
- gfx_drawstr("TUKAN STUDIOS  -  ORANGE EQ"); 
+ !operate_mode ? gfx_drawstr("TUKAN STUDIOS  -  ORANGE EQ") : gfx_drawstr("TUKAN STUDIOS  -  LINEAR PHASE IceBerg EQ (ORANGE EQ)"); 
  gfx_setfont(1,"Arial",12*zoom,'i');
  lakeblue(); gfx_drawstr(" SERIES 2   ");
  gfx_setfont(1,"Arial",12*zoom,'b');
@@ -6645,7 +6985,7 @@ gfx_setfont(1,"Arial",12*zoom,'b');
      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
 
      //#allitems += "<#MENU|";
-    #allitems += ">Scaling|";
+    #allitems += ">Plugin GUI Scaling|";
     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
     
@@ -6684,7 +7024,22 @@ gfx_setfont(1,"Arial",12*zoom,'b');
      Block_Value == 3 ? #menu += "!"; #menu += "<16384|<|";
     #allitems += #menu;
     
-    Quality==1 ? (#item2 = "!Oversample (Decramp)|"):(#item2 = "Oversample (Decramp)|");#allitems += #item2;  
+    Quality==1 ? (#item2 = "!Oversample (Decramp)|"):(#item2 = "Oversample (Decramp)|");#allitems += #item2; 
+    slider26 == 1 ? #allitems += "|!Linear Phase IceBerg EQ|" : #allitems += "|Linear Phase IceBerg EQ|";
+    
+    slider26 == 1 ? (
+    #allitems += ">Live monitoring latency|";
+    slider28 == 0 ? #allitems += "!Precision mode (Latency)|" : #allitems += "|Precision mode (Latency)|";
+    slider28 == 1 ? #allitems += "<!Preview mode (no/min latency)|" : #allitems += "<Preview mode (no/min latency)|";
+    slider27 == 1 ? #allitems += "!Show curve FFT-bins|" : #allitems += "Show curve FFT-bins|";
+    ):(
+    #allitems += ">#Live monitoring latency|";
+    slider28 == 0 ? #allitems += "#!Precision mode (Latency)|" : #allitems += "#Precision mode (Latency)|";
+    slider28 == 1 ? #allitems += "<#!Preview mode (no/min latency)|" : #allitems += "<#Preview mode (no/min latency)|";
+    slider27 == 1 ? #allitems += "#!Show curve FFT-bins|" : #allitems += "#Show curve FFT-bins|";
+    );
+    
+    
     #allitems += "|Show Info/Help";
     last_clicked_item = gfx_showmenu(#allitems);
   );
@@ -6754,7 +7109,11 @@ gfx_setfont(1,"Arial",12*zoom,'b');
                                   filters_to_sliders();
                                   );
   
-  last_clicked_item == 20 + 25 ? helpshow = 1;
+  last_clicked_item == 20 + 26 ? (slider28 == 1 ? slider28 = 0 : slider28 = 1; caller = 1);
+  last_clicked_item == 20 + 27 ? (slider28 == 0 ? slider28 = 1 : slider28 = 0; caller = 1);
+  last_clicked_item == 20 + 25 ? (slider26 == 1 ? slider26 = 0 : slider26 = 1; caller = 1);
+  last_clicked_item == 20 + 28 ? (slider27 == 1 ? slider27 = 0 : slider27 = 1; caller = 1);
+  last_clicked_item == 20 + 29 ? helpshow = 1;
   
   helpshow == 1 ? (
   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
