@@ -1,0 +1,3543 @@
+desc:SumChannel S2 (Tukan)
+//author: Tukan
+
+slider1:0<0,16,1>-1 SumThing Group
+slider2:2<0,3,1{Off, Desk1, Desk2, Desk3}>-2 SumThing Mode
+slider3:0<-10,10,0.01>-3 Desk distortion Amount
+slider4:0<-20,20,0.01>-4 Desk Noise Amount
+slider5:0<0,40.573,0.1->-5 HP Filter
+slider6:100<71.23333,100,0.1>-6 LP Filter
+
+slider7:25.3<17.5,49.4,0.1>-7 Low Freq
+slider8:0<-18,18,0.1>-8 Low Gain
+slider9:0<0,1,1{Narrow, Wide}>-9 Low Q
+slider10:0<0,1,1{Shelv, Bell}>-10 Low Type
+slider11:1<0,1,1{Off, On}>-11 Low On
+
+slider12:37.5<22.6666,75.346,0.1>-12 LM Freq
+slider13:0<-18,18,0.1>-13 LM Gain
+slider14:0.707<0.3,6,.01>-14 LM Q
+slider15:1<0,1,1{Off, On}>-15 LM On
+
+slider16:61.4<42.4666,88.4333,0.1>-16 HM Freq
+slider17:0<-18,18,0.1>-17 HM Gain
+slider18:0.707<0.3,6,.01>-18 HM Q
+slider19:1<0,1,1{Off, On}>-19 HM On
+
+slider20:88.5<61.333,91.03,0.1>-20 High Freq
+slider21:0<-18,18,0.1>-21 High Gain
+slider22:0<0,1,1{Narrow, Wide}>-22 High Q
+slider23:0<0,1,1{Shelv, Bell}>-23 High Type
+slider24:1<0,1,1{Off, On}>-24 High On
+
+slider25:0<-40,0,0.1>-25 Threshold
+slider26:4<1,15,0.1>-26 Ratio
+slider27:12.5<.1,50,0.1>-27 Attack
+slider28:100<10,1000,1>-28 Release
+slider29:0<0,1,1{Hard, Soft}>-29 Knee
+slider30:0<0,24,0.1>-30 Output
+slider31:0<0,1,1{Off, Active}>-31 Sidechain
+slider32:0<0,1,1{On, Bypassed}>-32 Bypass
+slider33:0<0,1,1{Standard, Vari}>-33 Type
+slider34:0<0,1,1{VU, Plot}>-34 Comp VU
+
+slider35:-60<-60,0,0.1>-35 Gate Threshold
+slider36:0<-20,0,0.1>-36 Gate Hysterisis
+slider37:2<0.1,50,0.1>-37 Gate Attack
+slider38:50<0,100,1>-38 Gate Hold
+slider39:200<10,1000,2>-39 Gate Release
+slider40:0<0,1,1>-40 Gate Sidechain
+slider41:0<0,1,1>-41 Gate Bypass
+
+slider42:0<0,1,1>-42 EQ Bypass
+
+slider43:0<0,5,1{Gate - Compressor - EQ, Gate - EQ - Compressor, Compressor - Gate - EQ, Compressor - EQ - Gate, EQ - Gate - Compressor , EQ - Compressor - Gate}>-42 Module Order
+slider44:-20<-40,0,0.1>-44 VU Calib
+slider45:0<-32,32,0.01>-45 Output
+
+slider46:-3<-18,0,0.01>-Softclip
+slider47:0<-10,10,0.01>-Hardclip
+slider48:1<0,1,1{Soft Off, Soft On}>-Softclip
+slider49:0<0,1,1{Hard Off, Hard On}>-Hardclip
+slider50:0<0,1,1{Trim Pre Clipper, Trim Post Clipper}>-Trim Pre
+slider51:0<0,1,1{On, Bypassed}>-51 General Bypass
+slider52:0<0,1,1{On, Bypassed}>-52 Input Stage Bypass
+
+slider53:0<-32,32,0.01>-53 Input Gain
+slider54:0<0,1,1{Show Saturation, Show Gain}>-54 Input Knob Selection
+
+slider55:2<0,6,1{Strip Compressor, Strip VariR, VCA, LA-2Kan, NC76, LA-2Kan - NC76, NC76 - LA2-Kan}>-55 Compressor Selection
+
+//VCA COMPRESSOR
+slider56:-20<-40,0,.1>-Threshold (dB)
+slider57:1<0,5,1,{2:1,4:1,6:1,8:1,12:1,20:1}>-Ratio (-)
+slider58:0.1<0,1,.00001>-Attack (log 0-1)
+slider59:0.1<0,1,.00001>-Release (log 0-1)
+slider60:0<0,24,0.01>-Post-Gain
+slider61:0<0,1,1{Off, On}>-SoftKnee
+slider62:0<0,1,1{Self,Sidechain}>-Sidechain
+slider63:1<0,1,1{Smooth, Punch}>-Character
+slider64:0<0,1,1{ON, BYPASS}>-Bypass
+//LA-2Kan
+slider65:33.333<0,100,0.5>-65 Peak Reduction
+slider66:0<0,1,1{Compress, Limit}>-Ratio
+slider67:33.333<0,100,0.1>-Gain
+slider68:0<0,1,1{Internal,Sidechain}>-Side chain
+slider69:0<0,1,1{On,Bypass}>-Bypass
+//NC76
+slider70:1<0,5,1{All Out 2:1, 4:1, 8:1, 12:1, 20:1, All In}>-70 Ratio
+slider71:0<-20,30,0.01>-IN GAIN
+slider72:0<-20,30,0.1>-OUT Gain (dB)
+slider73:100<20,800,10>-Attack (uS)
+slider74:250<10,1100,1>-Release (mS)
+slider75:0<0,1,1{Off, On}>-Punch
+slider76:0<0,1,1{Off, On}>-Sidechain
+slider77:0<0,1,1{On, Bypass}>-Bypass
+
+slider78:1<0,1,1{OFF,ON}>-78 Use Main Meters for Compressors
+slider79:1<0,2,1{OFF,ON,Always}>-Use LED Meters on Stacked Compressors
+slider80:0<0,1,1{LA-2Kan,NC76}>-MCP TCP Stack Meter
+
+filename:0,S2GFX/HD_Back.png
+filename:1,S2GFX/SC_SSLR.png
+filename:2,S2GFX/SC_SSLG.png
+filename:3,S2GFX/SC_SSLB.png
+filename:4,S2GFX/SC_SSLS.png
+filename:5,S2GFX/SC_BlackNev.png
+filename:6,S2GFX/gled.png
+filename:7,S2GFX/rled.png
+filename:8,S2GFX/yled.png
+filename:9,S2GFX/oled.png
+filename:10,S2GFX/bled.png
+filename:11,S2GFX/button.png
+filename:12,S2GFX/S2_logo.png
+filename:13,S2GFX/VUMeterBIG.png
+filename:14,S2GFX/VU_Frame.png
+filename:15,S2GFX/SC_BlackNev.png
+filename:16,S2GFX/SC_BlackNev2.png
+filename:17,S2GFX/SC_RedNev.png
+filename:18,S2GFX/SC_RedNev2.png
+filename:19,S2GFX/SC_GreyNev.png
+filename:20,S2GFX/SC_GreyNev2.png
+filename:21,S2GFX/SC_Chick.png
+filename:22,S2GFX/SC_BlueKnob.png
+filename:23,S2GFX/SC_RedKnob.png
+filename:24,S2GFX/SC_SmallKnob.png
+filename:25,S2GFX/SC_VU0.png
+filename:26,S2GFX/SC_VU1.png
+filename:27,S2GFX/SC_VU2.png
+filename:28,S2GFX/SC_VU3.png
+filename:29,S2GFX/76button.png
+
+options:No_meter
+options:gfx_hz=60
+options:gmem=TukanSumChanelS2
+//options:gfx_idle
+
+in_pin:L in
+in_pin:R in 
+in_pin:Gate SC L
+in_pin:Gate SC R
+in_pin:Comp SC L
+in_pin:Comp SC R
+
+out_pin:L out
+out_pin:R out
+
+import S2GFX/tk_lib.jsfx-inc
+import S2GFX/tk-vu_lib.jsfx-inc
+import S2GFX/cookdsp.jsfx-inc
+import S2GFX/VT_Filters.jsfx-inc
+import S2GFX/tk-Comp_Lib.jsfx-inc
+
+@init
+sumChan_VERSION = 1.14;
+//0.99 removed options:gfx_idle
+
+ext_tail_size = -1;
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+ext_noinit=1;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 1; while_stopped = 1;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+
+s2_numbers_of_sliders = 54;
+s2_numbers_of_generics = 1;
+group_generics =0; // fuer group_generics[bis zu 200]
+sliders_old = group_generics + 16*200;
+generics_old = sliders_old + 16*64;
+
+LA_alloc = Generics_old + 200;
+
+Gate_inMeter.dB_Val_Max = - 200;
+Gate_inMeter.dB_Val = - 200;
+
+ blueknob = 1;
+ redknob = 2;
+ smallknob = 3;
+ button = 11;
+ switch = 5;
+ gled = 6; rled = 6; yled = 8; oled = 9; bled = 10;
+ menu = 11;  
+ logo = 12;
+ Mouse_Sensivity ();
+  GR_VU_meter.mn_meter_init();
+ L_VU_meter.mn_meter_init();
+ R_VU_meter.mn_meter_init();
+ mn_meter_reinit(61);
+ 
+ 
+ 
+ MAX_FREQ = 22500; //44100 / 2.0;
+ MIN_FREQ = 20.4;
+ FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+ 
+ /*
+  * Convert slider % to frequency
+  */
+ function per_to_freq(x, range) (
+   MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+ );
+ 
+ /*
+  * Convert frequency to slider %
+  */
+ function freq_to_per(freq, range) (
+   range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+ );
+ 
+ 
+ L_low_sh.eq(per_to_freq(slider7,100), 0.707, slider8, 1);
+ R_low_sh.eq(per_to_freq(slider7,100), 0.707, slider8, 1);
+ L_high_sh.eq(per_to_freq(slider20,100), 0.707, slider21, 2);
+ R_high_sh.eq(per_to_freq(slider20,100), 0.707, slider21, 2);
+ 
+ //Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)
+  // KHPF.parameter_config           (1,       0,        0,     100,    50,  50,  150,  200,    1,       redknob);
+  // KLPF.parameter_config           (2,       100,     0,     100,    50,  170, 150,  200,    1,       redknob);
+
+   //Kbypass.button_config            (17, 830, 0);
+   
+   
+   
+   
+
+   
+   
+   Function init_knobs () (
+
+  o_EQ   == 1 ? (eq_x = 110*zoom; second_place = 430*zoom);
+  o_comp == 1 ? (comp_x = 110*zoom; second_place = 310*zoom);
+  o_gate == 1 ? (gate_x = 110*zoom; second_place = 310*zoom);
+  
+  o_EQ   == 2 ? (eq_x = second_place; third_place = 320*zoom+second_place);
+  o_comp == 2 ? (comp_x = second_place; third_place = 200*zoom+second_place);
+  o_gate == 2 ? (gate_x = second_place; third_place = 200*zoom+second_place);
+  
+  o_EQ == 3 ? eq_x = third_place;
+  o_comp == 3 ? comp_x = third_place;
+  o_gate == 3 ? gate_x = third_place;
+  
+  eq_y = comp_y = gate_y = 50*zoom;
+  
+  in_stage_x = 10*zoom;
+  in_stage_y = 50*zoom;
+  out_stage_x = 830*zoom;
+  out_stage_y = 50*zoom;
+  
+   my_ST_mode == 0 ? (
+   c_thresh_knob = 22;
+   c_ratio_knob = 23;
+   c_times_knob = 24;
+   c_output_knob = 22;
+   
+   G_thresh_knob = 22;
+   G_hyst_knob = 23;
+   g_times_knob = 24;
+   
+   EQ_HighGain_Knob = 22;
+   EQ_HMFGain_Knob = 22;
+   EQ_LMFGain_KNOB = 22;
+   EQ_LowGain_Knob = 22;
+   EQ_HighFreq_knob = EQ_HMFFreq_Knob = EQ_HMFQ_Knob = EQ_LMFFreq_Knob = EQ_LMFQ_Knob = EQ_LowFreq_Knob = 24;
+   
+   input_st_knob = 22;
+   input_filter_knob = 23;
+   
+   o_output_knob = 22;
+   o_Calib_knob = 24; 
+   knob_positions = 200;
+   );
+   
+   my_ST_mode == 1 ? (
+   c_thresh_knob = 21;
+   c_ratio_knob = 21;
+   c_times_knob = 21;
+   c_output_knob = 21;
+   
+   G_thresh_knob = 21;
+   G_hyst_knob = 21;
+   g_times_knob = 21;
+   
+   EQ_HighGain_Knob = 21;
+   EQ_HMFGain_Knob = 21;
+   EQ_LMFGain_KNOB = 21;
+   EQ_LowGain_Knob = 21;
+   EQ_HighFreq_knob = EQ_HMFFreq_Knob = EQ_HMFQ_Knob = EQ_LMFFreq_Knob = EQ_LMFQ_Knob = EQ_LowFreq_Knob = 21;
+   
+   input_st_knob = 21;
+   input_filter_knob = 21;
+   
+   o_output_knob = 21;
+   o_Calib_knob = 21; 
+   knob_positions = 200;
+   );
+   
+   my_ST_mode == 2 ? (
+   c_thresh_knob = 18;
+   c_ratio_knob = 16;
+   c_times_knob = 20;
+   c_output_knob = 18;
+   
+   G_thresh_knob = 18;
+   G_hyst_knob = 20;
+   g_times_knob = 20;
+   
+   EQ_HighGain_Knob = 16;
+   EQ_HMFGain_Knob = 16;
+   EQ_LMFGain_KNOB = 16;
+   EQ_LowGain_Knob = 16;
+   EQ_HighFreq_knob = EQ_HMFFreq_Knob = EQ_HMFQ_Knob = EQ_LMFFreq_Knob = EQ_LMFQ_Knob = EQ_LowFreq_Knob = 20;
+   
+   input_st_knob = 16;
+   input_filter_knob = 18;
+   
+   o_output_knob = 18;
+   o_Calib_knob = 20; 
+   knob_positions = 101;
+   );
+   
+   my_ST_mode == 3 ? (
+    c_thresh_knob = 3;
+    c_ratio_knob = 3;
+    c_times_knob = 4;
+    c_output_knob = 4;
+    
+    G_thresh_knob = 3;
+    G_hyst_knob = 4;
+    g_times_knob = 4;
+    
+    EQ_HighGain_Knob = 1;
+    EQ_HMFGain_Knob = 2;
+    EQ_LMFGain_KNOB = 3;
+    EQ_LowGain_Knob = 4;
+    EQ_HighFreq_knob = 1;
+    EQ_HMFFreq_Knob = EQ_HMFQ_Knob = 2;
+    EQ_LMFFreq_Knob = EQ_LMFQ_Knob = 3;
+    EQ_LowFreq_Knob = 4;
+    
+    input_st_knob = 3;
+    input_filter_knob = 4;
+    
+    o_output_knob = 3;
+    o_Calib_knob = 4; 
+   knob_positions = 200;
+   );
+   
+     //Parameter_config           (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
+     Comp_Type == 0 ? threshx = 30 : threshx = 75;
+     K_C_Thresh.parameter_config     (25,       0,      -40,    0,  threshx+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       C_thresh_knob);
+     K_C_Ratio.parameter_config      (26,       4,      1,    15,  90+30+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       C_ratio_knob);
+     K_C_Attack.parameter_config     (27,       12.5,      .1,    50,  30+comp_x/zoom,   90+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_C_Release.parameter_config    (28,       100,      10,    1000,  90+30+comp_x/zoom,   90+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     Comp_Type == 0 ? coutx = 120 : coutx = 75;
+     K_C_Output.parameter_config     (30,       0,      0,    24,  coutx+comp_x/zoom,   180+160+comp_y/zoom, 120,    knob_positions,    0.85, comp_type == 0 ? C_output_knob : c_ratio_knob);
+     B_C_Knee.button_config(29, comp_x/zoom + 31, comp_y/zoom + 340); // comp_x/zoom + 15 80 140, comp_y/zoom + 440
+     B_C_Varimu.button_config(33, comp_x/zoom + 31, comp_y/zoom + 385);
+     B_C_Plot.button_config(34, comp_x/zoom + 15, comp_y/zoom + 440);
+     B_C_Sidechain.button_config(31, comp_x/zoom + 80, comp_y/zoom + 440);
+     B_C_Bypass.button_config(32, comp_x/zoom + 140, comp_y/zoom + 440);
+   
+     K_VCA_Thresh.parameter_config     (56,       0,      -40,    0,  90+30++comp_x/zoom,   70+comp_y/zoom, 120,    knob_positions,    0.85,       C_ratio_knob);
+     //K_VCA_Ratio.parameter_config      (57,       4,      1,    15,  90+30+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       C_ratio_knob);
+     K_VCA_Attack.parameter_config     (58,       .1,      0,    1,  90+30+comp_x/zoom,   160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_VCA_Release.parameter_config    (59,       .1,      0,    1,  90+30+comp_x/zoom,   90+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_VCA_Output.parameter_config     (60,       0,      0,    24,  90+30+comp_x/zoom,   180+160+comp_y/zoom, 120,    knob_positions,    0.85,       C_output_knob);
+     B_VCA_Knee.button_config          (61, comp_x/zoom + 50, comp_y/zoom + 65); // comp_x/zoom + 15 80 140, comp_y/zoom + 440
+     B_VCA_Punch.button_config         (63, comp_x/zoom + 50, comp_y/zoom + 110);
+     B_VCA_Sidechain.button_config     (62, comp_x/zoom + 80, comp_y/zoom + 440);
+     B_VCA_Bypass.button_config        (64, comp_x/zoom + 140, comp_y/zoom + 440);
+     B_VCA_Ratio.button_config         (57, comp_x/zoom + 140, comp_y/zoom + 440);
+   
+     my_ST_mode == 2 ? la_knob = C_ratio_knob : la_knob = C_Output_knob;
+     K_LA2_Reduct.parameter_config     (65,       33.333,      0,    100,  75+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     K_LA2_Gain.parameter_config       (67,       33.333,      0,    100,  75+comp_x/zoom,   250+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     B_LA2_Limit.button_config         (66, comp_x/zoom + 80, comp_y/zoom + 340);
+     B_LA2_Sidechain.button_config     (68, comp_x/zoom + 80, comp_y/zoom + 440);
+     B_LA2_Bypass.button_config        (69, comp_x/zoom + 140, comp_y/zoom + 440);
+   
+     K_NC_Input.parameter_config      (71,       0,      -20,    30,  30+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     K_NC_Attack.parameter_config     (73,       100,      20,    800,  30+comp_x/zoom,   135+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Release.parameter_config    (74,       250,      10,    1100,  90+30+comp_x/zoom,   135+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Output.parameter_config     (72,       0,      -20,    30,  90+30+comp_x/zoom,   160+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     B_NC_Punch.button_config         (75, comp_x/zoom + 20, comp_y/zoom + 440);
+     B_NC_Sidechain.button_config     (76, comp_x/zoom + 80, comp_y/zoom + 440);
+     B_NC_Bypass.button_config        (77, comp_x/zoom + 140, comp_y/zoom + 440);
+     B_NC_Ratio.button_config         (70, comp_x/zoom + 140, comp_y/zoom + 440);
+     
+     comp_selection == 5 ? (
+     
+     K_LA2_Reduct.parameter_config     (65,       33.333,      0,    100,  120+comp_x/zoom,   50+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     K_LA2_Gain.parameter_config       (67,       33.333,      0,    100,  30+comp_x/zoom,   50+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     B_LA2_Limit.button_config         (66, comp_x/zoom + 20, comp_y/zoom + 150);
+     B_LA2_Sidechain.button_config     (68, comp_x/zoom + 80, comp_y/zoom + 150);
+     B_LA2_Bypass.button_config        (69, comp_x/zoom + 140, comp_y/zoom + 150);
+     
+     K_NC_Input.parameter_config      (71,       0,      -20,    30,  30+comp_x/zoom,   50+160+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     K_NC_Attack.parameter_config     (73,       100,      20,    800,  30+comp_x/zoom,   60+135+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Release.parameter_config    (74,       250,      10,    1100,  90+30+comp_x/zoom,   60+135+160+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Output.parameter_config     (72,       0,      -20,    30,  90+30+comp_x/zoom,   50+160+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     B_NC_Punch.button_config         (75, comp_x/zoom + 20, comp_y/zoom + 440);
+     B_NC_Sidechain.button_config     (76, comp_x/zoom + 80, comp_y/zoom + 440);
+     B_NC_Bypass.button_config        (77, comp_x/zoom + 140, comp_y/zoom + 440);
+     B_NC_Ratio.button_config         (70, comp_x/zoom + 140, comp_y/zoom + 440);
+     
+     
+     );
+     
+     comp_selection == 6 ? (
+     
+     K_LA2_Reduct.parameter_config     (65,       33.333,      0,    100,  120+comp_x/zoom,   50+comp_y/zoom+290, 120,    knob_positions,    0.85,       la_knob);
+     K_LA2_Gain.parameter_config       (67,       33.333,      0,    100,  30+comp_x/zoom,   50+comp_y/zoom+290, 120,    knob_positions,    0.85,       la_knob);
+     B_LA2_Limit.button_config         (66, comp_x/zoom + 20, comp_y/zoom + 150 +290);
+     B_LA2_Sidechain.button_config     (68, comp_x/zoom + 80, comp_y/zoom + 150 +290);
+     B_LA2_Bypass.button_config        (69, comp_x/zoom + 140, comp_y/zoom + 150 +290);
+     
+     K_NC_Input.parameter_config      (71,       0,      -20,    30,  30+comp_x/zoom,   50+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     K_NC_Attack.parameter_config     (73,       100,      20,    800,  30+comp_x/zoom,   60+135+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Release.parameter_config    (74,       250,      10,    1100,  90+30+comp_x/zoom,   60+135+comp_y/zoom, 120,    200,    0.85,       C_times_knob);
+     K_NC_Output.parameter_config     (72,       0,      -20,    30,  90+30+comp_x/zoom,   50+comp_y/zoom, 120,    knob_positions,    0.85,       la_knob);
+     B_NC_Punch.button_config         (75, comp_x/zoom + 20, comp_y/zoom + 440-160);
+     B_NC_Sidechain.button_config     (76, comp_x/zoom + 80, comp_y/zoom + 440-160);
+     B_NC_Bypass.button_config        (77, comp_x/zoom + 140, comp_y/zoom + 440-160);
+     B_NC_Ratio.button_config         (70, comp_x/zoom + 140, comp_y/zoom + 440-160);
+     
+     
+     );
+     
+     
+     K_G_Thresh.parameter_config      (35,       -20,  -60,     0,  50+30+gate_x/zoom,   60+gate_y/zoom, 120,    knob_positions,    0.85,       G_thresh_knob);
+     K_G_Hyst.parameter_config        (36,       0,      -20,   0,  90+30+gate_x/zoom,   130+gate_y/zoom, 120,    200,    0.85,       G_hyst_knob);
+     K_G_Attack.parameter_config      (37,       2,     .1,    50,  50+30+gate_x/zoom,   215+gate_y/zoom, 120,    200,    0.85,       G_times_knob);
+     K_G_Hold.parameter_config        (38,       50,     0,    100,  90+30+gate_x/zoom,  285+gate_y/zoom, 120,    200,    0.85,       G_times_knob);
+     K_G_Release.parameter_config      (39,       200,    10,  1000, 50+30+gate_x/zoom,   355+gate_y/zoom, 120,    200,    0.85,       G_times_knob);
+     B_G_Sidechain.button_config(40, gate_x/zoom + 80, gate_y/zoom + 440);
+     B_G_Bypass.button_config(41, gate_x/zoom + 140, gate_y/zoom + 440);
+   
+   
+     K_E_High_Gain.parameter_config      (21,       0,  -18,     18,  95+75+eq_x/zoom,   60+eq_y/zoom, 120,    knob_positions,    0.85,       EQ_HighGain_Knob);
+     K_E_High_Freq.parameter_config      (20,       88.5,  61.333,    91.03,  20+75+eq_x/zoom,   80+eq_y/zoom, 120,    200,    0.85,       EQ_HighFreq_Knob);
+     B_E_High_Bell.button_config(23, eq_x/zoom + 15, eq_y/zoom + 25);
+     B_E_High_Wide.button_config(22, eq_x/zoom + 15, eq_y/zoom + 70);
+     B_E_High_On.button_config(24, eq_x/zoom + 15, eq_y/zoom + 115);
+     
+     K_E_HMF_Gain.parameter_config      (17,       0,  -18,     18,  95+75+eq_x/zoom,   150+eq_y/zoom, 120,    knob_positions,    0.85,       EQ_HMfGain_Knob);
+     K_E_HMF_Freq.parameter_config      (16,       61.4,  42.4666,   88.4333,  20+75+eq_x/zoom,   170+eq_y/zoom, 120,   200,    0.85,       EQ_HMFFreq_Knob);
+     K_E_HMF_Q.parameter_config         (18,       0.7,  .3,     6,  170+75+eq_x/zoom,  170+eq_y/zoom, 120,   200,    0.85,       EQ_HMFQ_Knob);
+     B_E_HMF_On.button_config(19, eq_x/zoom + 15, eq_y/zoom + 175);
+     
+     K_E_LMF_Gain.parameter_config      (13,       0,  -18,     18,  95+75+eq_x/zoom,   240+eq_y/zoom, 120,    knob_positions,    0.85,       EQ_LMfGain_Knob);
+     K_E_LMF_Freq.parameter_config      (12,       37.5,  22.6666,   75.346,  20+75+eq_x/zoom,   260+eq_y/zoom, 120,    200,    0.85,       EQ_LMFFreq_Knob);
+     K_E_LMF_Q.parameter_config         (14,       0.7,  .3,     6,  170+75+eq_x/zoom,   260+eq_y/zoom, 120,   200,    0.85,       EQ_LMFQ_Knob);
+     B_E_LMF_On.button_config(15, eq_x/zoom + 15, eq_y/zoom + 265);
+    
+     K_E_low_Gain.parameter_config      (8,       0,  -18,     18,  95+75+eq_x/zoom,   330+eq_y/zoom, 120,    knob_positions,    0.85,       EQ_lowGain_Knob);
+     K_E_low_Freq.parameter_config      (7,       25.3,  17.5,    49.4,  20+75+eq_x/zoom,   350+eq_y/zoom, 120,    200,    0.85,       EQ_lowFreq_Knob);
+     B_E_low_Bell.button_config(10, eq_x/zoom + 15, eq_y/zoom + 415);
+     B_E_low_Wide.button_config(9, eq_x/zoom + 15, eq_y/zoom + 370);
+     B_E_low_On.button_config(11, eq_x/zoom + 15, eq_y/zoom + 325);
+    
+     B_E_Bypass.button_config(42, eq_x/zoom + 260, eq_y/zoom + 440);
+   
+   
+     
+     K_I_Saturation.parameter_config (3,       0,  -10,     10,  24+in_stage_x/zoom,   60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     K_I_Gain.parameter_config (53,       0,  -32,     32,  24+in_stage_x/zoom,   60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     K_I_Noise.parameter_config      (4,       0,  -20,     20,  24+in_stage_x/zoom,   82+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     K_I_HPF.parameter_config      (5,       0,   0,     40.573,  24+in_stage_x/zoom,   175+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_filter_Knob);
+     K_I_LPF.parameter_config      (6,       100, 71.23333,     100,  24+in_stage_x/zoom,   257+60+in_stage_y/zoom, 120,    knob_positions,    0.85,       Input_filter_Knob);
+     
+     K_O_Calib.parameter_config (44,       -20,  -40,     0,  150+out_stage_x/zoom,   150+out_stage_y/zoom, 120,    200,    0.85,       o_Calib_knob);
+     K_O_Output.parameter_config (45,       0,  -32,     32,  150+out_stage_x/zoom,   265+out_stage_y/zoom, 120,    knob_positions,    0.85,       o_Output_Knob);
+
+     K_O_Softclip.parameter_config (46,       -9,  -18,     0,  100+out_stage_x/zoom,   385+out_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     K_O_Hardclip.parameter_config (47,       0,  -10,     10,  200+out_stage_x/zoom,   385+out_stage_y/zoom, 120,    knob_positions,    0.85,       Input_st_Knob);
+     
+     B_O_Trimpost.button_config(50, 158+out_stage_x/zoom,   330+out_stage_y/zoom);
+     B_O_Softclip.button_config(48, 100+out_stage_x/zoom,   448+out_stage_y/zoom);
+     B_O_Hardclip.button_config(49, 200+out_stage_x/zoom,   448+out_stage_y/zoom);
+     B_Bypass.button_config(51, out_stage_x/zoom - 60,   out_stage_y/zoom-41);
+     
+     B_GR_Meters.button_config(78, out_stage_x/zoom + 13,   out_stage_y/zoom);
+     
+     B_Comp_Select.button_config(55, out_stage_x/zoom + 13,   out_stage_y/zoom);
+   );
+   
+   zoom = 1;
+   init_knobs();
+   
+   
+   Function draw_all_knobs () (
+   
+   
+  comp_selection < 2 ? (
+   K_C_Thresh.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "THRESH"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "-40"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_C_Thresh.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   Comp_Type == 0 ? (
+   K_C_Ratio.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "RATIO"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "1"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "4.5"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "8"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "11.5"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "15"; gfx_measurestr(#klabel, klw, klh); K_C_Ratio.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   );
+   
+   K_C_Attack.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = ".1"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "12.5"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "37.5"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_C_Attack.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   K_C_Release.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "RELEASE"; gfx_measurestr(#klabel, klw, klh); K_C_Release.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "10"; gfx_measurestr(#klabel, klw, klh); K_C_Release.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "260"; gfx_measurestr(#klabel, klw, klh); K_C_Release.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "500"; gfx_measurestr(#klabel, klw, klh); K_C_Release.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "750"; gfx_measurestr(#klabel, klw, klh); K_C_Release.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "1K"; gfx_measurestr(#klabel, klw, klh); K_C_Release.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   K_C_Output.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_C_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_C_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "8"; gfx_measurestr(#klabel, klw, klh); K_C_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "12"; gfx_measurestr(#klabel, klw, klh); K_C_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "18"; gfx_measurestr(#klabel, klw, klh); K_C_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "24"; gfx_measurestr(#klabel, klw, klh); K_C_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   
+   gfx_setfont(3,"Arial",11*zoom,'b');
+   Comp_Type == 0 ? (
+   B_C_Knee.Color_button(10);
+   gfx_x = B_C_Knee.xIn*zoom+2*zoom; gfx_y = B_C_Knee.yIn*zoom - 8*zoom;
+   gfx_drawstr("Softknee");
+   );
+   //B_C_Varimu.Color_button(10);
+   //gfx_x = B_C_Varimu.xIn*zoom+2*zoom; gfx_y = B_C_Varimu.yIn*zoom - 8*zoom;
+   //gfx_drawstr("VariR");
+   B_C_Plot.Color_button(10);
+   gfx_x = B_C_plot.xIn*zoom+2*zoom; gfx_y = B_C_plot.yIn*zoom - 8*zoom;
+   gfx_drawstr("Plot");
+   B_C_Sidechain.Color_button(6);
+   gfx_x = B_C_Sidechain.xIn*zoom+2*zoom; gfx_y = B_C_Sidechain.yIn*zoom - 8*zoom;
+   gfx_drawstr("SC-In");
+   B_C_Bypass.Color_button(7);
+   gfx_x = B_C_Bypass.xIn*zoom+2*zoom; gfx_y = B_C_Bypass.yIn*zoom - 8*zoom;
+   gfx_drawstr("Bypass");
+   
+   ); //Comp_selection < 2
+   
+   comp_selection == 2 ? (
+   K_VCA_Thresh.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "THRESH"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "-40"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_VCA_Thresh.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   K_VCA_Attack.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = ".1"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "13"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "36"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "64"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_VCA_Attack.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   K_VCA_Release.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "RELEASE"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "15"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "200"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "500"; gfx_measurestr(#klabel, klw, klh); K_VCA_Release.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   K_VCA_Output.knob();
+         gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "8"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "12"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "18"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "24"; gfx_measurestr(#klabel, klw, klh); K_VCA_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+   gfx_setfont(3,"Arial",11*zoom,'b');
+   B_VCA_Knee.Color_button(10);
+   gfx_x = B_VCA_Knee.xIn*zoom+2*zoom; gfx_y = B_VCA_Knee.yIn*zoom - 8*zoom;
+   gfx_drawstr("Softknee");
+   B_VCA_Punch.Color_button(10);
+   gfx_x = B_VCA_Punch.xIn*zoom+2*zoom; gfx_y = B_VCA_Punch.yIn*zoom - 8*zoom;
+   gfx_drawstr("Punch");
+   B_VCA_Sidechain.Color_button(6);
+   gfx_x = B_VCA_Sidechain.xIn*zoom+2*zoom; gfx_y = B_VCA_Sidechain.yIn*zoom - 8*zoom;
+   gfx_drawstr("SC-In");
+   B_VCA_Bypass.Color_button(7);
+   gfx_x = B_VCA_Bypass.xIn*zoom+2*zoom; gfx_y = B_VCA_Bypass.yIn*zoom - 8*zoom;
+   gfx_drawstr("Bypass");
+   
+   //////////////////////////////////  BUTTONS
+   gfx_x = ratiobuttons_x = B_VCA_Knee.xIn*zoom+8*zoom;
+   gfx_y = ratiobuttons_y = B_VCA_Knee.yIn*zoom + 114*zoom;
+   vca_comp.ratio1 == 20 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   gfx_y += 35*zoom;
+   vca_comp.ratio1 == 12 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   gfx_y += 35*zoom;
+   vca_comp.ratio1 == 8 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   gfx_y += 35*zoom;
+   vca_comp.ratio1 == 6 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   gfx_y += 35*zoom;
+   vca_comp.ratio1 == 4 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   gfx_y += 35*zoom;
+   vca_comp.ratio1 == 2 ? button_on = 1 : button_on = 0;
+   gfx_blit(29,zoom/2,0, 17, 70*button_on, 35, 70);
+   
+   gfx_setfont(1,"Arial",11*zoom,'b'); Lightgrey();
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom;
+   gfx_drawstr("20:1");
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom + 35*zoom;
+   gfx_drawstr("12:1");
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom + 70*zoom;
+   gfx_drawstr("8:1");
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom + 105*zoom;
+   gfx_drawstr("6:1");
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom + 140*zoom;
+   gfx_drawstr("4:1");
+   gfx_x = ratiobuttons_x + 25*zoom;
+   gfx_y = ratiobuttons_y + 11*zoom + 175*zoom;
+   gfx_drawstr("2:1");
+   gfx_y += 30*zoom;
+   gfx_x -= 37*zoom;
+   gfx_drawstr("RATIO");
+   /////////////////////////////////////////////////////////////
+   
+   );
+    
+    
+    comp_selection == 3 ? (
+    K_LA2_Reduct.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "PEAK REDUCT"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "75"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    K_LA2_Gain.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "75"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_LA2_Limit.Color_button(10);
+    gfx_x = B_LA2_Limit.xIn*zoom+2*zoom; gfx_y = B_LA2_Limit.yIn*zoom - 8*zoom;
+    gfx_drawstr("Limit");
+    B_LA2_Sidechain.Color_button(6);
+    gfx_x = B_LA2_Sidechain.xIn*zoom+2*zoom; gfx_y = B_LA2_Sidechain.yIn*zoom - 8*zoom;
+    gfx_drawstr("SC-In");
+    B_LA2_Bypass.Color_button(7);
+    gfx_x = B_LA2_Bypass.xIn*zoom+2*zoom; gfx_y = B_LA2_Bypass.yIn*zoom - 8*zoom;
+    gfx_drawstr("Bypass");
+    
+    );
+    
+    
+    
+    comp_selection == 4 ? (
+    
+    K_NC_Input.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "INPUT"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "-8"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "+ 5"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "+30"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    K_NC_Attack.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "SLOW"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "FAST"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_NC_Release.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "RELEASE"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "SLOW"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "FAST"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_NC_Output.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "OUTPUT"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "-8"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "+ 5"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "+30"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          B_NC_Punch.Color_button(10);
+          gfx_x = B_NC_Punch.xIn*zoom+2*zoom; gfx_y = B_NC_Punch.yIn*zoom - 8*zoom;
+          gfx_drawstr("Punch");
+          B_NC_Sidechain.Color_button(6);
+          gfx_x = B_NC_Sidechain.xIn*zoom+2*zoom; gfx_y = B_NC_Sidechain.yIn*zoom - 8*zoom;
+          gfx_drawstr("SC-In");
+          B_NC_Bypass.Color_button(7);
+          gfx_x = B_NC_Bypass.xIn*zoom+2*zoom; gfx_y = B_NC_Bypass.yIn*zoom - 8*zoom;
+          gfx_drawstr("Bypass");
+    );
+    
+    
+    comp_selection > 4 ? (
+    
+    K_LA2_Reduct.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "PEAK REDUCT"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "75"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_LA2_Reduct.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    K_LA2_Gain.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "75"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_LA2_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_LA2_Limit.Color_button(10);
+    gfx_x = B_LA2_Limit.xIn*zoom+2*zoom; gfx_y = B_LA2_Limit.yIn*zoom - 8*zoom;
+    gfx_drawstr("Limit");
+    B_LA2_Sidechain.Color_button(6);
+    gfx_x = B_LA2_Sidechain.xIn*zoom+2*zoom; gfx_y = B_LA2_Sidechain.yIn*zoom - 8*zoom;
+    gfx_drawstr("SC-In");
+    B_LA2_Bypass.Color_button(7);
+    gfx_x = B_LA2_Bypass.xIn*zoom+2*zoom; gfx_y = B_LA2_Bypass.yIn*zoom - 8*zoom;
+    gfx_drawstr("Bypass");
+          
+          
+    K_NC_Input.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "INPUT"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "-8"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "+ 5"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "+30"; gfx_measurestr(#klabel, klw, klh); K_NC_Input.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    K_NC_Attack.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "SLOW"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "FAST"; gfx_measurestr(#klabel, klw, klh); K_NC_Attack.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_NC_Release.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "RELEASE"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "SLOW"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = ""; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "FAST"; gfx_measurestr(#klabel, klw, klh); K_NC_Release.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_NC_Output.knob();
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          #klabel = "OUTPUT"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+          gfx_setfont(2,"Arial",8*zoom,'b');
+          #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "-8"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+          #klabel = "+ 5"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+          #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          #klabel = "+30"; gfx_measurestr(#klabel, klw, klh); K_NC_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+          
+          gfx_setfont(3,"Arial",11*zoom,'b');
+          B_NC_Punch.Color_button(10);
+          gfx_x = B_NC_Punch.xIn*zoom+2*zoom; gfx_y = B_NC_Punch.yIn*zoom - 8*zoom;
+          gfx_drawstr("Punch");
+          B_NC_Sidechain.Color_button(6);
+          gfx_x = B_NC_Sidechain.xIn*zoom+2*zoom; gfx_y = B_NC_Sidechain.yIn*zoom - 8*zoom;
+          gfx_drawstr("SC-In");
+          B_NC_Bypass.Color_button(7);
+          gfx_x = B_NC_Bypass.xIn*zoom+2*zoom; gfx_y = B_NC_Bypass.yIn*zoom - 8*zoom;
+          gfx_drawstr("Bypass");
+    );
+    
+    
+    K_G_Thresh.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "THRESH"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-60"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-45"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_G_Thresh.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_G_Hyst.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "HYSTERESIS"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = " -5"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_G_Hyst.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_G_Attack.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = ".1"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "12"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "37"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_G_Attack.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_G_Hold.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "HOLD"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "0"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "25"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "50"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "75"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "100"; gfx_measurestr(#klabel, klw, klh); K_G_Hold.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_G_Release.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "RELEASE"; gfx_measurestr(#klabel, klw, klh); K_G_Release.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "10"; gfx_measurestr(#klabel, klw, klh); K_G_Release.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "250"; gfx_measurestr(#klabel, klw, klh); K_G_Release.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "500"; gfx_measurestr(#klabel, klw, klh); K_G_Release.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "750"; gfx_measurestr(#klabel, klw, klh); K_G_Release.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "1K"; gfx_measurestr(#klabel, klw, klh); K_G_Release.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_G_Sidechain.Color_button(6);
+    gfx_x = B_G_Sidechain.xIn*zoom+2*zoom; gfx_y = B_G_Sidechain.yIn*zoom - 8*zoom;
+    gfx_drawstr("SC-In");
+    B_G_Bypass.Color_button(7);
+    gfx_x = B_G_Bypass.xIn*zoom+2*zoom; gfx_y = B_G_Bypass.yIn*zoom - 8*zoom;
+    gfx_drawstr("Bypass");
+    
+    
+   
+     
+    K_E_High_Gain.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "HF"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-18"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-9"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "±0"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "+9"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_E_High_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_E_High_Freq.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "kHz"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "1.5"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "2.6"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "4.2"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "7.0"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "12"; gfx_measurestr(#klabel, klw, klh); K_E_High_Freq.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    
+    K_E_HMF_Gain.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "HMF"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-18"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-9"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "±0"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "+9"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "+18"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     K_E_HMF_freq.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+     #klabel = "kHz"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+     gfx_setfont(2,"Arial",8*zoom,'b');
+     #klabel = ".4"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = ".9"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = "2.0"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+     #klabel = "4.5"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     #klabel = "10"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Freq.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    K_E_HMF_Q.knob();
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "Q"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = ".3"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "1.7"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "3"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "4.5"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "6"; gfx_measurestr(#klabel, klw, klh);K_E_HMF_Q.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    K_E_LMF_Gain.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+     #klabel = "LMF"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+     gfx_setfont(2,"Arial",8*zoom,'b');
+     #klabel = "-18"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = "-9"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = "±0"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+     #klabel = "+9"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     #klabel = "+18"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      K_E_LMF_freq.knob();
+      gfx_setfont(3,"Arial",11*zoom,'b');
+      #klabel = "kHz"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+      gfx_setfont(2,"Arial",8*zoom,'b');
+      #klabel = ".1"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = ".25"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = ".6"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "1.5"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "4.0"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Freq.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     K_E_LMF_Q.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+     #klabel = "Q"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+     gfx_setfont(2,"Arial",8*zoom,'b');
+     #klabel = ".3"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = "1.7"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+     #klabel = "3"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+     #klabel = "4.5"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     #klabel = "6"; gfx_measurestr(#klabel, klw, klh);K_E_LMF_Q.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     
+     K_E_Low_Gain.knob();
+      gfx_setfont(3,"Arial",11*zoom,'b');
+      #klabel = "LF"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+      gfx_setfont(2,"Arial",8*zoom,'b');
+      #klabel = "-18"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-9"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "±0"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "+9"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "+18"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Gain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+      K_E_Low_Freq.knob();
+      gfx_setfont(3,"Arial",11*zoom,'b');
+      #klabel = "Hz"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+      gfx_setfont(2,"Arial",8*zoom,'b');
+      #klabel = "70"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "120"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "220"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "360"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "650"; gfx_measurestr(#klabel, klw, klh); K_E_Low_Freq.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+     
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_E_High_Bell.Color_button(9);
+    gfx_x = B_E_High_Bell.xIn*zoom+2*zoom; gfx_y = B_E_High_Bell.yIn*zoom -8*zoom;
+    gfx_drawstr("Bell");
+   
+    B_E_High_Wide.Color_button(9);
+    gfx_x = B_E_High_Wide.xIn*zoom+2*zoom; gfx_y = B_E_High_Wide.yIn*zoom -8*zoom;
+    gfx_drawstr("Wide Q");
+    
+    B_E_High_On.Color_button(6);
+    gfx_x = B_E_High_on.xIn*zoom+2*zoom; gfx_y = B_E_High_on.yIn*zoom -8*zoom;
+    gfx_drawstr("HF On");
+    
+    B_E_HMF_On.Color_button(6);
+    gfx_x = B_E_HMF_on.xIn*zoom+2*zoom; gfx_y = B_E_HMF_on.yIn*zoom -8*zoom;
+    gfx_drawstr("HMF On");
+    
+    B_E_LMF_On.Color_button(6);
+    gfx_x = B_E_LMF_on.xIn*zoom+2*zoom; gfx_y = B_E_LMF_on.yIn*zoom -8*zoom;
+    gfx_drawstr("LMF On");
+    
+    B_E_Low_Bell.Color_button(9);
+     gfx_x = B_E_Low_Bell.xIn*zoom+2*zoom; gfx_y = B_E_Low_Bell.yIn*zoom -8*zoom;
+     gfx_drawstr("Bell");
+    
+     B_E_Low_Wide.Color_button(9);
+     gfx_x = B_E_Low_Wide.xIn*zoom+2*zoom; gfx_y = B_E_Low_Wide.yIn*zoom -8*zoom;
+     gfx_drawstr("Wide Q");
+     
+     B_E_Low_On.Color_button(6);
+     gfx_x = B_E_Low_on.xIn*zoom+2*zoom; gfx_y = B_E_Low_on.yIn*zoom -8*zoom;
+     gfx_drawstr("LF On");
+     
+     B_E_Bypass.Color_button(7);
+     gfx_x = B_E_Bypass.xIn*zoom+2*zoom; gfx_y = B_E_Bypass.yIn*zoom - 8*zoom;
+     gfx_drawstr("Bypass");
+   
+    B_Bypass.Color_button(7);
+    gfx_x = B_Bypass.xIn*zoom-45*zoom; gfx_y = B_Bypass.yIn*zoom + 12*zoom;
+    gfx_drawstr("Bypass");
+   
+   
+   
+     
+   
+     
+     
+     
+     
+     my_ST_mode ? (
+     input_knob_selection ? (
+     K_I_GAIN.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "GAIN"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-32"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-16"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "+16"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "+32"; gfx_measurestr(#klabel, klw, klh); K_I_GAIN.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    ):(
+     K_I_Saturation.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "SATURATION"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-5"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "+5"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "+10"; gfx_measurestr(#klabel, klw, klh); K_I_Saturation.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     );  
+     K_I_Noise.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "DESK NOISE"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "+10"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "+20"; gfx_measurestr(#klabel, klw, klh); K_I_Noise.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     );
+     
+     K_I_HPF.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "HPF"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "40"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "85"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "180"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "350"; gfx_measurestr(#klabel, klw, klh); K_I_HPF.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+     K_I_LPF.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "LPF"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "3k"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "5k"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "8k"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "13.5"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); K_I_LPF.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+   
+   
+   
+   
+   
+   
+      comp_selection > 4 ? (
+      gfx_setfont(3,"Arial",11*zoom,'b');
+      B_GR_Meters.Color_button(6);
+      gfx_x = B_GR_Meters.xIn*zoom+3*zoom; gfx_y = B_GR_Meters.yIn*zoom +30 *zoom;
+      gfx_drawstr("Gain reduction meters");
+      );
+      
+     !main_meter_mode || comp_selection < 5 ? ( 
+     K_O_Calib.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "OUT VU CALIB"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-40"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = " 0"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+     );
+     
+    
+     K_O_Output.knob();
+     gfx_setfont(3,"Arial",11*zoom,'b');
+       #klabel = "OUT TRIM"; gfx_measurestr(#klabel, klw, klh); K_O_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+       gfx_setfont(2,"Arial",8*zoom,'b');
+       #klabel = "-32"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = "-16"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+       #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+       #klabel = "+16"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+       #klabel = "+32"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+    K_O_Softclip.knob();
+       gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "SOFTCLIP"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "-18"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-13.5"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-9"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "-4.5"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_O_Softclip.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+        
+    K_O_Hardclip.knob();
+       gfx_setfont(3,"Arial",11*zoom,'b');
+         #klabel = "HARDCLIP"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+         gfx_setfont(2,"Arial",8*zoom,'b');
+         #klabel = "-10"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = "-5"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+         #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+         #klabel = "+5"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+         #klabel = "+10"; gfx_measurestr(#klabel, klw, klh); K_O_Hardclip.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_O_Trimpost.Color_button(6);
+    gfx_x = B_O_Trimpost.xIn*zoom-85*zoom; gfx_y = B_O_Trimpost.yIn*zoom +13 *zoom;
+    gfx_drawstr("Clip before trim");
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_O_Softclip.Color_button(6);
+    gfx_x = B_O_Softclip.xIn*zoom+2*zoom; gfx_y = B_O_Softclip.yIn*zoom - 8*zoom;
+    //gfx_drawstr("Softclip");
+    
+    gfx_setfont(3,"Arial",11*zoom,'b');
+    B_O_Hardclip.Color_button(6);
+    gfx_x = B_O_Hardclip.xIn*zoom+2*zoom; gfx_y = B_O_Hardclip.yIn*zoom - 8*zoom;
+    //gfx_drawstr("Hardclip");
+   );
+   
+   
+   
+   
+   
+  // DC Blocker to remove near-static frequency content
+  // that would otherwise "offset" the waveform.
+  function dcBlocker () instance (otml, itml)
+  (
+    /*
+    srate < 50000 ? (stateOut *= 0.99); //99988487
+    srate > 50000 ? (stateOut *= 0.99999999);
+    
+    stateOut += this - stateIn;
+    stateIn = this;
+    this = stateOut;
+  */
+  aab = srate/(srate*1.00008);
+  srate < 400000 ? aab = srate/(srate*1.0002);
+  srate < 200000 ? aab = srate/(srate*1.0003);
+  srate < 100000 ? aab = srate/(srate*1.0007);
+  srate < 50000 ? aab = srate/(srate*1.001);
+  
+  otm1=aab*otm1 + this - itm1; itm1=this; this=otm1;
+
+  );
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   function number_input_show_freq () (
+     gfx_r=gfx_g=gfx_b=0;
+     gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+     gfx_r=0;gfx_g=1;gfx_b=0;
+     gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+     gfx_r=gfx_g=gfx_b=0.7;
+     gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+     gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+     gfx_drawnumber(number_input_use,komma);
+  
+  
+         mouseclick && !shift_alt ? 
+       (
+         g_collision(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5) ?
+         (
+           number_input_use = freq_to_per(number_input_use, 100);
+
+           valid = 0;
+           number_input_use >= number_input_min && number_input_use <= number_input_max ? valid = 1;
+           valid ? (
+           slider(number_input_slider) = number_input_use;
+           caller = 1;
+           ):(
+           number_input_invalid = 90;
+           );
+           Number_input = 0;
+           number_input_raw = 0;
+           number_input_use = 0;
+           komma = 0;
+           in_key = 0;
+           //number_input_x = 0;
+           //number_input_y=0;
+         ):(
+           Number_input = 0;
+           number_input_raw = 0;
+           number_input_use = 0;
+           komma = 0;
+           in_key = 0;
+           number_input_x = 0;
+           number_input_y=0;
+         );
+       );
+  
+       in_key=gfx_getchar();
+  
+       in_key ? Aaa = in_key;
+         in_key == 8 ? (
+         number_input_raw = floor(number_input_raw/10);
+         komma = max(0,komma-1);
+         komma == 1 ? komma = 0;
+         );
+  
+       in_key == 45 ? number_input_sign*=-1;
+  
+       in_key == 46 ? komma = 1;
+       in_key > 47 ? (
+       in_key < 58 ? (
+           number_input_raw = (number_input_raw*10) + (in_key-48);
+           komma ? komma += 1;
+       );
+       );
+  
+       komma ? (number_input_use = number_input_raw / (10^(komma-1))):(number_input_use = number_input_raw);
+       number_input_use *= number_input_sign;
+  
+     );
+  
+  
+  function readout_f () (
+  thisfreq = per_to_freq(slider(this.slider),100);
+  thisfreq < 1000 ? (
+  sprintf(#readout, "%.0f", thisfreq); #readout += "Hz";
+  ):(
+  sprintf(#readout, "%.2f", thisfreq/1000); #readout += "kHz";  
+  );
+  gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+  gfx_measurestr(#readout, rdow, rdoh);
+  gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+  gfx_r=gfx_g=gfx_b=0.8;
+  gfx_x += 3*zoom;
+  gfx_drawstr(#readout);
+  );
+  
+
+
+
+
+
+
+function g1_computeGain(x)
+(
+(x < MBC1_Tlo) ? x = 0 :
+(x > MBC1_Thi) ? x = MBC1_slope * (x - MBC1_Threshold) :
+(MBC1_delta = x - MBC1_Tlo;
+x = MBC1_delta * MBC1_delta * MBC1_knee_factor;);
+);
+
+
+function MBC1_computeGain(x)
+(
+(x < MBC1_Tlo) ? x = 0 :
+(x > MBC1_Thi) ? x = MBC1_slope * (x - MBC1_Threshold) :
+(MBC1_delta = x - MBC1_Tlo;
+x = MBC1_delta * MBC1_delta * MBC1_knee_factor;);
+);
+
+function MBC1_smoothAverage(x, MBC1_aplhaA, MBC1_aplhaER)
+(
+MBC1_eps = 0.0000000001;
+MBC1_yR = min(x, MBC1_aplhaER * MBC1_yR + (1 - MBC1_aplhaER) * x + MBC1_eps - MBC1_eps);
+MBC1_yA = MBC1_aplhaA * MBC1_yA + (1 - MBC1_aplhaA) * MBC1_yR + MBC1_eps - MBC1_eps;
+x = MBC1_yA;
+);
+
+MBC1_gr_meter = 1;
+MBC1_gr_meter_decay = exp(1/(0.3*srate));
+
+
+
+function all_Parameter_boundaries() (
+     K_C_Thresh.parameter_Boundaries();
+     K_C_Ratio.parameter_Boundaries();
+     K_C_Release.parameter_Boundaries();
+     K_C_Attack.parameter_Boundaries();
+     K_C_Output.parameter_Boundaries();
+     K_G_Thresh.parameter_Boundaries();
+     K_G_Hyst.parameter_Boundaries();
+     K_G_Attack.parameter_Boundaries();
+     K_G_Hold.parameter_Boundaries();
+     K_G_Release.parameter_Boundaries();
+     K_E_High_Gain.parameter_Boundaries();
+     K_E_High_Freq.parameter_Boundaries();
+     K_E_HMF_Gain.parameter_Boundaries();
+     K_E_HMF_Freq.parameter_Boundaries();
+     K_E_HMF_Q.parameter_Boundaries();
+     K_E_Low_Gain.parameter_Boundaries();
+     K_E_Low_Freq.parameter_Boundaries();
+     K_E_LMF_Gain.parameter_Boundaries();
+     K_E_LMF_Freq.parameter_Boundaries();
+     K_E_LMF_Q.parameter_Boundaries();
+     K_I_Saturation.parameter_boundaries();
+     K_I_Gain.parameter_boundaries();
+     K_I_Noise.parameter_boundaries();
+     K_I_HPF.parameter_boundaries();
+     K_I_LPF.parameter_boundaries();
+     K_O_Calib.parameter_boundaries();
+     K_O_Output.parameter_boundaries();
+     K_O_Softclip.parameter_boundaries();
+     K_O_Hardclip.parameter_boundaries();
+);
+
+
+amp_dB = 8.6562;
+baseline_threshold_dB = -9.0; // -9
+clipper_a = 1.017;
+clipper_b = -0.025;
+
+  
+slider2_old = slider2;  
+
+
+
+
+
+
+
+VCA_Comp.VCA_Init();
+LA2.LA2_Init(LA_alloc);
+NC76.NC76_Init();
+
+
+
+
+
+
+
+
+
+
+
+parameters_update_on = 0;
+function parameters_update () (
+parameters_update_on = 1;
+sumchan_version < 1.1 ? (slider55 = slider33; sumchan_version = 1.1);
+
+all_Parameter_boundaries();
+ //KDrywet.Parameter_Boundaries();
+
+ group_generics[1] = eflag;
+    group_parameters();
+ eflag = group_generics[1];
+all_Parameter_boundaries();
+
+  slider2_old == slider2 ? (
+    slider1 > 0 ? (
+        slider1 == 1 ? _global.SumThingS2_1 > 0 ? my_ST_mode = _global.SumThingS2_1-0.3 : _global.SumThingS2_1 = slider2+0.3;
+        slider1 == 2 ? _global.SumThingS2_2 > 0 ? my_ST_mode = _global.SumThingS2_2-0.3 : _global.SumThingS2_2 = slider2+0.3;
+        slider1 == 3 ? _global.SumThingS2_3 > 0 ? my_ST_mode = _global.SumThingS2_3-0.3 : _global.SumThingS2_3 = slider2+0.3;
+        slider1 == 4 ? _global.SumThingS2_4 > 0 ? my_ST_mode = _global.SumThingS2_4-0.3 : _global.SumThingS2_4 = slider2+0.3;
+        slider1 == 5 ? _global.SumThingS2_5 > 0 ? my_ST_mode = _global.SumThingS2_5-0.3 : _global.SumThingS2_5 = slider2+0.3;
+        slider1 == 6 ? _global.SumThingS2_6 > 0 ? my_ST_mode = _global.SumThingS2_6-0.3 : _global.SumThingS2_6 = slider2+0.3;
+        slider1 == 7 ? _global.SumThingS2_7 > 0 ? my_ST_mode = _global.SumThingS2_7-0.3 : _global.SumThingS2_7 = slider2+0.3;
+        slider1 == 8 ? _global.SumThingS2_8 > 0 ? my_ST_mode = _global.SumThingS2_8-0.3 : _global.SumThingS2_8 = slider2+0.3;
+        slider1 == 9 ? _global.SumThingS2_9 > 0 ? my_ST_mode = _global.SumThingS2_9-0.3 : _global.SumThingS2_9 = slider2+0.3;
+        slider1 == 10 ? _global.SumThingS2_10 > 0 ? my_ST_mode = _global.SumThingS2_10-0.3 : _global.SumThingS2_10 = slider2+0.3;
+        slider1 == 11 ? _global.SumThingS2_11 > 0 ? my_ST_mode = _global.SumThingS2_11-0.3 : _global.SumThingS2_11 = slider2+0.3;
+        slider1 == 12 ? _global.SumThingS2_12 > 0 ? my_ST_mode = _global.SumThingS2_12-0.3 : _global.SumThingS2_12 = slider2+0.3;
+        slider1 == 13 ? _global.SumThingS2_13 > 0 ? my_ST_mode = _global.SumThingS2_13-0.3 : _global.SumThingS2_13 = slider2+0.3;
+        slider1 == 14 ? _global.SumThingS2_14 > 0 ? my_ST_mode = _global.SumThingS2_14-0.3 : _global.SumThingS2_14 = slider2+0.3;
+        slider1 == 15 ? _global.SumThingS2_15 > 0 ? my_ST_mode = _global.SumThingS2_15-0.3 : _global.SumThingS2_15 = slider2+0.3;
+        slider1 == 16 ? _global.SumThingS2_16 > 0 ? my_ST_mode = _global.SumThingS2_16-0.3 : _global.SumThingS2_16 = slider2+0.3;
+
+        slider2 = slider2_old = my_ST_mode;
+    ):(
+        slider2_old = my_ST_mode = slider2
+    );
+  ):(   
+    slider1 > 0 ? (
+        slider2_old = my_ST_Mode = slider2;
+        slider1 == 1 ? _global.SumThingS2_1 = my_ST_mode+0.3;
+        slider1 == 2 ? _global.SumThingS2_2 = my_ST_mode+0.3;
+        slider1 == 3 ? _global.SumThingS2_3 = my_ST_mode+0.3;
+        slider1 == 4 ? _global.SumThingS2_4 = my_ST_mode+0.3;
+        slider1 == 5 ? _global.SumThingS2_5 = my_ST_mode+0.3;
+        slider1 == 6 ? _global.SumThingS2_6 = my_ST_mode+0.3;
+        slider1 == 7 ? _global.SumThingS2_7 = my_ST_mode+0.3;
+        slider1 == 8 ? _global.SumThingS2_8 = my_ST_mode+0.3;
+        slider1 == 9 ? _global.SumThingS2_9 = my_ST_mode+0.3;
+        slider1 == 10 ? _global.SumThingS2_10 = my_ST_mode+0.3;
+        slider1 == 11 ? _global.SumThingS2_11 = my_ST_mode+0.3;
+        slider1 == 12 ? _global.SumThingS2_12 = my_ST_mode+0.3;
+        slider1 == 13 ? _global.SumThingS2_13 = my_ST_mode+0.3;
+        slider1 == 14 ? _global.SumThingS2_14 = my_ST_mode+0.3;
+        slider1 == 15 ? _global.SumThingS2_15 = my_ST_mode+0.3;
+        slider1 == 16 ? _global.SumThingS2_16 = my_ST_mode+0.3;
+    ):(
+        slider2_old = my_ST_Mode = slider2;
+    );
+  );
+  SumThing_Group = slider1;
+
+
+
+
+///////////////// SUMTHING INPUT PARAMETERS
+Desk_noise_Amount = db2ratio(slider4);
+Desk_Amount = db2ratio(10+slider3);
+my_ST_mode == 1 ? (
+Desk_Negative = -0.22; Desk_Positive = 0.21; 
+Input_Drive = 0;
+input = 10^((Input_Drive)/20); output = 10^(-(7+Desk_amount/1.1)/20);
+output = 10^(-(Input_Drive)/20);
+noisewp = 0; noisedesk = -88;
+noisech = Desk_Noise_amount;
+);
+
+my_ST_mode == 2 ? (
+Desk_Negative = -0.0; Desk_Positive = 0.0; 
+Input_Drive = -37;
+input = 10^((Input_Drive)/20);
+output = 10^(-(Input_Drive)/20);
+noisewp = 1; noisedesk = -119;
+noisech = Desk_Noise_amount;
+);
+
+my_ST_mode == 3 ? (
+Desk_Negative = 0; Desk_Positive = 1; 
+Input_Drive = -26;
+input = 10^((Input_Drive)/20);
+output = 10^(-(Input_Drive)/20);
+noisewp = 0; noisedesk = -106;
+noisech = Desk_Noise_amount;
+);
+
+
+
+a=Desk_Negative;
+b=Desk_Positive;
+
+k1=a^2;
+k2=1+2*a;
+k3=b^2;
+k4=1-2*b;
+
+input=10^(Input_Drive/20);
+
+mode=1;
+////////////////////////////////////
+
+  fil_q = 0.8;
+  HP_Freq = slider5;
+  LP_Freq = slider6;
+   LHP.setfilter(1, per_to_freq(HP_freq,100), fil_q, 0);
+   RHP.setfilter(1, per_to_freq(HP_freq,100), fil_q, 0);
+   LLP.setfilter(0, per_to_freq(LP_freq,100), fil_q, 0);
+   RLP.setfilter(0, per_to_freq(LP_freq,100), fil_q, 0);
+
+  low_on = slider11;
+  slider10 == 1 ? (
+  slider9 == 0 ? low_q = 1.4 : low_q = 0.707;
+  L_low_bell.setfilter(5, per_to_freq(slider7,100), low_q, slider8);
+  R_low_bell.setfilter(5, per_to_freq(slider7,100), low_q, slider8);
+  ):(
+  slider9 == 0 ? low_q = 0.5 : low_q = 0.35;
+  //L_low_sh.eq(per_to_freq(slider7,100), low_q, slider8, 1);
+  //R_low_sh.eq(per_to_freq(slider7,100), low_q, slider8, 1);
+  L_low_sh.eq_set_freq(per_to_freq(slider7,100));
+  L_low_sh.eq_set_q(low_q);
+  L_low_sh.eq_set_boost(slider8);
+  R_low_sh.eq_set_freq(per_to_freq(slider7,100));
+  R_low_sh.eq_set_q(low_q);
+  R_low_sh.eq_set_boost(slider8);
+  katze =  1;
+  );
+  
+  LM_On = slider15;
+  L_LM_Bell.setfilter(5, per_to_freq(slider12,100), slider14, slider13);
+  R_LM_bell.setfilter(5, per_to_freq(slider12,100), slider14, slider13);
+  
+  HM_On = slider19;
+  L_HM_Bell.setfilter(5, per_to_freq(slider16,100), slider18, slider17);
+  R_HM_bell.setfilter(5, per_to_freq(slider16,100), slider18, slider17);
+  
+  high_on = slider24;
+  slider23 == 1 ? (
+  slider22 == 0 ? high_q = 1.4 : high_q = 0.707;
+  L_high_bell.setfilter(5, per_to_freq(slider20,100), high_q, slider21);
+  R_high_bell.setfilter(5, per_to_freq(slider20,100), high_q, slider21);
+  ):(
+  slider22 == 0 ? high_q = 0.5 : high_q = 0.35;
+  //L_high_sh.eq(per_to_freq(slider20,100), high_q, slider21, 2);
+  //R_high_sh.eq(per_to_freq(slider20,100), high_q, slider21, 2);
+  L_high_sh.eq_set_freq(per_to_freq(slider20,100));
+  L_high_sh.eq_set_q(high_q);
+  L_high_sh.eq_set_boost(slider21);
+  R_high_sh.eq_set_freq(per_to_freq(slider20,100));
+  R_high_sh.eq_set_q(high_q);
+  R_high_sh.eq_set_boost(slider21);
+  katze =  1;
+  );
+  
+  eq_bypass = slider42;
+  
+  
+  comp_selection = slider55;
+  comp_selection < 2 ? slider33 = comp_type = comp_selection;
+  //Comp_Type = slider33;
+  Comp_Type == 0 ? (
+  MBC1_Threshold = slider25;
+  slider29 == 0 ? knee = 0 : knee = 33;
+  MBC1_knee_width = abs(slider25*2*knee*0.01);
+  MBC1_Knee = knee; 
+  MBC1_ratio = slider26;
+  MBC1_slope = ((1 - MBC1_ratio) / MBC1_ratio);
+  MBC1_attack = slider27/1000;
+  MBC1_release = slider28/1000;
+  MBC1_aplhaA = MBC1_attack>0 ? exp(-1 / (MBC1_attack * srate)) : 0;
+  MBC1_aplhaER = MBC1_release>0 ? exp(-1 / (MBC1_release * srate)) : 0;
+  MBC1_Tlo = (MBC1_Threshold - MBC1_knee_width / 2);
+  MBC1_Thi = (MBC1_Threshold + MBC1_knee_width / 2);
+  MBC1_knee_factor = (MBC1_slope / (MBC1_knee_width * 2));
+  ):(
+  MBC1_Threshold = slider25;
+  knee = 80;
+  MBC1_knee_width = abs(slider25*2*knee*0.01);
+  MBC1_Knee = knee; 
+  MBC1_ratio = 30;
+  MBC1_slope = ((1 - MBC1_ratio) / MBC1_ratio);
+  MBC1_attack = slider27/1000;
+  MBC1_release = slider28/1000;
+  MBC1_aplhaA = MBC1_attack>0 ? exp(-1 / (MBC1_attack * srate)) : 0;
+  MBC1_aplhaER = MBC1_release>0 ? exp(-1 / (MBC1_release * srate)) : 0;
+  MBC1_Tlo = (MBC1_Threshold - MBC1_knee_width / 2);
+  MBC1_Thi = (MBC1_Threshold + MBC1_knee_width / 2);
+  MBC1_knee_factor = (MBC1_slope / (MBC1_knee_width * 2));
+  );
+  
+  MBC1_output = 10^(slider30/20);
+  MBC1_on = !slider32;
+  Comp_sidechain = slider31;
+  comp_VU_Meter = !slider34;
+  
+  VCA_Comp.VCA_parameters_update(slider56, slider57, slider58, slider59, slider60, slider61, slider62, slider63, slider64);
+  LA2.LA2_parameters_update(slider65,slider66,slider67,slider68,slider69);
+  NC76.NC76_parameters_update(slider70, slider71, slider72, 820-slider73, 1100-slider74, slider75, slider76, slider77);
+  
+  ///////////// GATE PARAMETERS
+    gate_bypass = slider41;
+    gate_hold = slider38 *0.001*srate;
+    gate_attack_samples = slider37 * 0.001*srate;
+    gate_release_samples = slider39 * 0.001*srate;
+    gate_threshold = db2ratio(slider35);
+    gate_gateThresh = slider35;
+    gate_hysteresis = db2ratio(slider36);
+    gate_gateHyst = slider36;
+    gate_sidechain = slider40;
+  
+  
+  
+  
+  
+  ////////// ORDER OF THE PHOENIX
+  slider43 == 0 ? (o_gate = 1; o_comp = 2; o_EQ = 3);
+  slider43 == 1 ? (o_gate = 1; o_comp = 3; o_EQ = 2);
+  slider43 == 2 ? (o_gate = 2; o_comp = 1; o_EQ = 3);
+  slider43 == 3 ? (o_gate = 3; o_comp = 1; o_EQ = 2);
+  slider43 == 4 ? (o_gate = 2; o_comp = 3; o_EQ = 1);
+  slider43 == 5 ? (o_gate = 3; o_comp = 2; o_EQ = 1);
+  //Strip_order != slider43 ? init_knobs();
+  Strip_order = slider43;
+  
+  o_EQ   == 1 ? (eq_x = 110*zoom; second_place = 430*zoom);
+  o_comp == 1 ? (comp_x = 110*zoom; second_place = 310*zoom);
+  o_gate == 1 ? (gate_x = 110*zoom; second_place = 310*zoom);
+  
+  o_EQ   == 2 ? (eq_x = second_place; third_place = 320*zoom+second_place);
+  o_comp == 2 ? (comp_x = second_place; third_place = 200*zoom+second_place);
+  o_gate == 2 ? (gate_x = second_place; third_place = 200*zoom+second_place);
+  
+  o_EQ == 3 ? eq_x = third_place;
+  o_comp == 3 ? comp_x = third_place;
+  o_gate == 3 ? gate_x = third_place;
+  
+  eq_y = comp_y = gate_y = 50*zoom;
+  
+  use_led_for_stack = slider79;
+  main_meter_mode = slider78;
+  VU_Calib = slider44;
+  out_trim = slider45;
+  limit_dB = slider47;
+  baseline_threshold_dB = slider46;
+  threshold_dB = baseline_threshold_dB - 9;// + limit_dB;
+  softclip_on = slider48;
+  hardclip_on = slider49;
+  trim_post = slider50;
+  general_Bypass = slider51;
+  input_Bypass = slider52;
+  input_gain = db2ratio(slider53);
+  !iks_dragging ? input_knob_Selection = slider54;
+  
+caller = 0;
+parameters_update_on = 0;
+);
+
+parameters_update();
+
+
+
+
+@slider
+caller = 1;
+
+
+    
+
+@block
+  srate != srate_old ? (VCA_Comp.VCA_init(); LA2.LA2_Init(LA_alloc); NC76.NC76_init(); caller = 1);
+  srate_old = srate;
+
+
+
+
+
+
+
+
+
+@serialize
+file_var(0, while_playing);
+file_var(0, while_recording);
+file_var(0, while_stopped);
+file_var(0, link_group);
+file_var(0, SumChan_VERSION);
+file_var(0, eflag);
+
+seriloop = 0;
+loop(64*16 + 27 + 16,
+file_var(0, gmem[seriloop]);
+seriloop += 1;
+);
+
+seriloop = 0;
+loop(200*16,
+file_var(0, group_generics[seriloop]);
+seriloop += 1;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+
+
+function equalizer() (
+/////////////// EQ /////////////////////
+!eq_bypass ? (
+Low_on ? (
+slider8 != 0 ? ( ////////// LOW
+slider10 == 0 ? (
+spl0 = L_low_sh.eq_do(spl0);
+spl1 = R_low_sh.eq_do(spl1);
+):(
+spl0 = L_low_bell.df1(spl0);
+spl1 = R_low_bell.df1(spl1);
+);
+);
+);
+
+LM_on ? (
+spl0 = L_LM_Bell.df1(spl0);
+spl1 = R_LM_Bell.df1(spl1);
+);
+
+HM_on ? (
+spl0 = L_HM_Bell.df1(spl0);
+spl1 = R_HM_Bell.df1(spl1);
+);
+
+high_on ? (
+slider21 != 0 ? ( ////////// high
+slider23 == 0 ? (
+spl0 = L_high_sh.eq_do(spl0);
+spl1 = R_high_sh.eq_do(spl1);
+):(
+spl0 = L_high_bell.df1(spl0);
+spl1 = R_high_bell.df1(spl1);
+);
+);
+);
+);
+
+);
+
+
+
+function compressor () (
+///////////////////// COMPRESSOR
+
+//MBC1_inL = spl0;
+//MBC1_inR = spl1;
+
+comp_selection < 2 ? (
+
+    Comp_sidechain ? (
+    KeyL = spl4;
+    KeyR = spl5;    
+    ):(
+    KeyL = spl0; // SCL.HPF_do(spl0);
+    KeyR = spl1;//SCR.HPF_do(spl1); 
+    );
+    MBC1_xL = max(abs(keyL),abs(KeyR));
+    MBC1_xL += 0.0000001;
+    MBC1_xL === 0 ? (MBC1_xL = db2ratio(-120));
+    Comp_inMeter.feed_Meter(MBC1_xL);
+
+MBC1_on ? (
+MBC1_xG = ratio2db(MBC1_xL);
+MBC1_yG = MBC1_computeGain(MBC1_xG);
+MBC1_cG = MBC1_smoothAverage(MBC1_yG, MBC1_aplhaA, MBC1_aplhaER);
+MBC1_cL = db2ratio(MBC1_cG);
+ext_gr_meter = MBC1_cG;
+spl0 *= MBC1_cL*MBC1_output;
+spl1 *= MBC1_cL*MBC1_output;
+):(
+MBC1_cL = 1;
+ext_gr_meter = 0;
+);
+
+
+GR_Meter.feed_Meter_GR(MBC1_cL);
+GR_VU_meter.GR_mnmetersample(MBC1_cL*db2ratio(-3.9)); //3.7
+
+); // comp selection < 2
+
+comp_selection == 2 ? (
+VCA_Comp.VCA_sample(process, spl2, spl3);
+ext_gr_meter= vca_comp.gfx_gr ; // VCA_Comp.report_GR;
+);
+comp_selection == 3 ? (
+LA2.LA2_sample(process, spl2, spl3);
+ext_gr_meter = ratio2db(LA2.grv);
+);
+
+comp_selection == 4 ? (
+NC76.NC76_sample(process, spl2, spl3);
+ext_gr_meter = ratio2db(NC76.grv);
+);
+
+comp_selection == 5 ? (
+LA2.LA2_sample(process, spl2, spl3);
+NC76.NC76_sample(process, spl2, spl3);
+ext_gr_meter = ratio2db(NC76.grv) + ratio2db(LA2.grv);
+
+LA2.gfx_gr = max(0, LA2.gfx_gr + 30/srate);
+LA2.gr < LA2.gfx_gr ? LA2.gfx_gr = LA2.gr;
+
+NC76.gfx_gr = max(0, NC76.gfx_gr + 30/srate);
+NC76.gr < NC76.gfx_gr ? NC76.gfx_gr = NC76.gr;
+
+LA2.bypass == 1 ? LA2.gfx_gr = 0;
+NC76.bypass == 1 ? NC76.gfx_gr = 0;
+);
+
+
+comp_selection == 6 ? (
+NC76.NC76_sample(process, spl2, spl3);
+LA2.LA2_sample(process, spl2, spl3);
+ext_gr_meter = ratio2db(NC76.grv) + ratio2db(LA2.grv);
+
+LA2.gfx_gr = max(0, LA2.gfx_gr + 30/srate);
+LA2.gr < LA2.gfx_gr ? LA2.gfx_gr = LA2.gr;
+
+NC76.gfx_gr = max(0, NC76.gfx_gr + 30/srate);
+NC76.gr < NC76.gfx_gr ? NC76.gfx_gr = NC76.gr;
+
+LA2.bypass == 1 ? LA2.gfx_gr = 0;
+NC76.bypass == 1 ? NC76.gfx_gr = 0;
+);
+
+);
+
+
+function gate() (
+gate_sidechain ? (
+gate_in_L =spl2; //in_spl, Fallback in dB/s
+gate_in_R =spl3;
+):(
+gate_in_L =spl0; //in_spl, Fallback in dB/s
+gate_in_R =spl1;
+);
+Gate_inMeter.feed_Meter(max(abs(gate_in_L), abs(gate_in_r)));
+
+!gate_bypass ? (
+    key = keyR = max(abs(gate_in_L),abs(gate_in_R));
+    key += 0.0000001;
+
+    
+    Key >= gate_threshold ? (gate_phase = 1; gfx_gate_phase = gate_phase;);
+    gate_phase == 1 ? (
+    holding = 0;
+    gate_gain = min(gate_gain + 1/gate_attack_samples, 1);
+    gate_gain >= 1 ? gate_phase = 2;
+    gfx_gate_phase = gate_phase;
+    );
+    
+    gate_phase == 2 ? (
+      holding = 0;
+      key < db2ratio(gate_gateThresh+gate_gateHyst) ? (
+        gate_phase = 3;
+        gfx_gate_phase = gate_phase;
+      );
+    );
+    
+    gate_phase == 3 ? (
+    key >= db2ratio(gate_gateThresh+gate_gateHyst) ? (
+      gate_phase = 2; gfx_gate_phase = gate_phase;
+    );
+    holding += 1;
+    holding >= gate_hold ? (gate_phase = 4;gfx_gate_phase = gate_phase;);
+    );
+    
+    
+    gate_phase == 4 ? (
+    holding = 0;
+    gate_gain = max(gate_gain * db2ratio(-(60/gate_release_samples)), 0);
+    gate_gain <= db2ratio(-60) ? gfx_gate_phase = 0;
+    gate_gain <= db2ratio(-240) ? gate_phase = 0;
+    );
+    
+    result_gain = gate_gain;
+    spl0 = spl0 * result_gain; //gateL.tickGate(keyL);
+    spl1 = spl1 * result_gain; //gateR.tickGate(keyR);
+):(gfx_gate_phase = 1);
+);
+
+
+
+
+slider1 > 0 ? (
+slider1 == 1 ? slider2 != _global.SumThingS2_1-0.3 ? caller = 1;
+slider1 == 2 ? slider2 != _global.SumThingS2_2-0.3 ? caller = 1;
+slider1 == 3 ? slider2 != _global.SumThingS2_3-0.3 ? caller = 1;
+slider1 == 4 ? slider2 != _global.SumThingS2_4-0.3 ? caller = 1;
+slider1 == 5 ? slider2 != _global.SumThingS2_5-0.3 ? caller = 1;
+slider1 == 6 ? slider2 != _global.SumThingS2_6-0.3 ? caller = 1;
+slider1 == 7 ? slider2 != _global.SumThingS2_7-0.3 ? caller = 1;
+slider1 == 8 ? slider2 != _global.SumThingS2_8-0.3 ? caller = 1;
+slider1 == 9 ? slider2 != _global.SumThingS2_9-0.3 ? caller = 1;
+slider1 == 10 ? slider2 != _global.SumThingS2_10-0.3 ? caller = 1;
+slider1 == 11 ? slider2 != _global.SumThingS2_11-0.3 ? caller = 1;
+slider1 == 12 ? slider2 != _global.SumThingS2_12-0.3 ? caller = 1;
+slider1 == 13 ? slider2 != _global.SumThingS2_13-0.3 ? caller = 1;
+slider1 == 14 ? slider2 != _global.SumThingS2_14-0.3 ? caller = 1;
+slider1 == 15 ? slider2 != _global.SumThingS2_15-0.3 ? caller = 1;
+slider1 == 16 ? slider2 != _global.SumThingS2_16-0.3 ? caller = 1;
+);
+
+S2_sample_on = 1;
+
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+playstates();
+
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+general_bypass == 1 ? process = 0;
+
+
+process == 1 ? (
+
+input_bypass == 0 ? ( 
+spl0 *= input_gain;
+spl1 *= input_gain;
+
+my_ST_mode != 0 ? (
+noiselevel=10^(noisedesk/20);
+NoiseWP == 1 ? (
+noise=rand(2)-1;
+b0 = 0.99886 * b0 + noise * 0.0555179;
+b1 = 0.99332 * b1 + noise * 0.0750759;
+b2 = 0.96900 * b2 + noise * 0.1538520;
+b3 = 0.86650 * b3 + noise * 0.3104856;
+b4 = 0.55000 * b4 + noise * 0.5329522;
+b5 = -0.7616 * b5 - noise * 0.0168980;
+pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + noise * 0.5362;
+b6 = noise * 0.115926;
+Noise=pink*noiselevel*noisech;
+):(
+noise=rand(2)-1;
+noise=(noise*noiselevel*noisech);
+);
+
+x0=spl0*input*desk_amount;
+x1=spl1*input*desk_amount;
+
+x0<a?(
+y0=(k1+x0)/(k2-x0);
+);
+(a<=x0)&&(x0<=b)?(
+y0=x0;
+);
+x0>b?(
+y0=(x0-k3)/(x0+k4);
+);
+
+x1<a?(
+y1=(k1+x1)/(k2-x1);
+);
+(a<=x1)&&(x1<=b)?(
+y1=x1;
+);
+x1>b?(
+y1=(x1-k3)/(x1+k4);
+);
+
+spl0=(y0*output)/Desk_amount+noise;//-spl0;
+spl1=(y1*output)/Desk_amount+noise;//-spl1;
+spl0.dcblocker();
+spl1.dcblocker();
+);
+
+//////// INPUT LP / HP
+//   LHP.setfilter(1, per_to_freq(HP_freq,100), fil_q, fil_gain);
+   hp_freq > 0 ? (
+   spl0 = LHP.df1(spl0);
+   spl1 = RHP.df1(spl1);
+   );
+   lp_freq < 100 ? (
+   spl0 = LLP.df1(spl0);
+   spl1 = RLP.df1(spl1);
+   );
+//////////////////////////
+);
+
+
+
+//spl0 += 0.000001;
+//spl1 += 0.000001;
+
+
+o_EQ == 1 ? equalizer(); // BIG THANKS TO TALE FOR THE CODE FOR THE DECRAMPED FILTERS!!
+o_gate == 1 ? gate();
+o_comp == 1 ? compressor();
+o_EQ == 2 ? equalizer(); // BIG THANKS TO TALE FOR THE CODE FOR THE DECRAMPED FILTERS!!
+o_gate == 2 ? gate();
+o_comp == 2 ? compressor();
+o_EQ == 3 ? equalizer(); // BIG THANKS TO TALE FOR THE CODE FOR THE DECRAMPED FILTERS!!
+o_gate == 3 ? gate();
+o_comp == 3 ? compressor();
+
+
+
+
+
+trim_post ? (
+spl0 *= db2ratio(out_trim);
+spl1 *= db2ratio(out_trim);
+);
+
+dB0 = amp_dB * log(abs(spl0))+0.0000001;// + boost_dB;
+dB1 = amp_dB * log(abs(spl1))+0.0000001;// + boost_dB;
+
+softclip_on ? (
+(dB0 > threshold_dB) ? (
+  over_dB = dB0 - threshold_dB;
+  over_db_L = over_db;
+  over_dB = clipper_a * over_dB + clipper_b * over_dB * over_dB;
+  //dB0 = min(threshold_dB + over_dB, limit_dB);
+  dB0 = threshold_dB + over_dB;
+):(over_db_L = 0);
+
+(dB1 > threshold_dB) ? (
+  over_dB = dB1 - threshold_dB;
+  over_db_r = over_db;
+  over_dB = clipper_a * over_dB + clipper_b * over_dB * over_dB;
+  //dB1 = min(threshold_dB + over_dB, limit_dB);
+  dB1 = threshold_dB + over_dB;
+):(over_db_R = 0);
+
+  max(over_db_L, over_db_r) > 1 ? softclipping >= 0 ? softclipping = 3;
+  max(over_db_L, over_db_r) > 3 ? softclipping = -3;
+  
+);
+
+hardclip_on ? (
+db0 > limit_dB ? hardclipping = -3;
+db1 > limit_dB ? hardclipping = -3;
+db0 = min(db0, limit_dB);
+db1 = min(db1, limit_dB);
+);
+
+spl0 = exp(dB0 / amp_dB) * sign(spl0);
+spl1 = exp(dB1 / amp_dB) * sign(spl1);
+
+!trim_post ? (
+spl0 *= db2ratio(out_trim);
+spl1 *= db2ratio(out_trim);
+);
+
+L_VU_meter.mnmetersample(spl0*db2ratio(-VU_Calib));
+R_VU_meter.mnmetersample(spl1*db2ratio(-VU_Calib));
+
+LandR_VU_Meter.mnmetersample(max(abs(spl0*db2ratio(-VU_Calib)), abs(spl1*db2ratio(-VU_Calib))));
+
+abs(spl0) >= 1 ? over_Led_L = 3;
+abs(spl1) >= 1 ? over_Led_R = 3;
+
+):( // Process
+ext_gr_meter = 0;
+L_VU_meter.mnmetersample(0);
+R_VU_meter.mnmetersample(0);
+LandR_VU_Meter.mnmetersample(0);
+
+GR_Meter.feed_Meter_GR(1);
+GR_VU_meter.GR_mnmetersample(1*db2ratio(-3.9)); //3.7
+
+Gate_inMeter.feed_Meter(0);
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 1197 540
+
+s2_zoom_X = gfx_w / 1197;
+s2_zoom_y = gfx_h / 540;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+ 
+ function readout_flex (_value, _nachkomma, _einheit) (
+ _Nachkomma == 0 ? sprintf(#readout, "%.0f", _value);
+ _Nachkomma == 1 ? sprintf(#readout, "%.1f", _value);
+ _Nachkomma == 2 ? sprintf(#readout, "%.2f", _value);
+ _einheit == 1 ? #readout += "ms";
+ _einheit == 2 ? #readout += "µs";
+ gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+ gfx_measurestr(#readout, rdow, rdoh);
+ gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+ gfx_r=gfx_g=gfx_b=0.8;
+ gfx_x += 3*zoom;
+ gfx_drawstr(#readout);
+ );
+ 
+ function VCA_number_input_show () (
+   gfx_r=gfx_g=gfx_b=0;
+   gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+   gfx_r=0;gfx_g=1;gfx_b=0;
+   gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+   gfx_r=gfx_g=gfx_b=0.7;
+   gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+   gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+   gfx_drawnumber(number_input_use,komma);
+ 
+       mouseclick && !shift_alt ? 
+     (
+       g_collision(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5) ?
+       (
+         VCA_NI == 1 ? number_input_use = ((number_input_use-vca_comp.min_attack)/(vca_comp.MAX_ATTACK-vca_comp.Min_ATTACK))^(2/3);
+         VCA_NI == 2 ? number_input_use = ((number_input_use-vca_comp.min_decay)/(vca_comp.MAX_decay-vca_comp.Min_decay))^(2/5);
+         valid = 0;
+         number_input_use >= number_input_min && number_input_use <= number_input_max ? valid = 1;
+         valid ? (
+         slider(number_input_slider) = number_input_use;
+         caller = 1;
+         ):(
+         number_input_invalid = 90;
+         );
+         Number_input = 0;
+         number_input_raw = 0;
+         number_input_use = 0;
+         komma = 0;
+         in_key = 0;
+         //number_input_x = 0;
+         //number_input_y=0;
+       ):(
+         Number_input = 0;
+         number_input_raw = 0;
+         number_input_use = 0;
+         komma = 0;
+         in_key = 0;
+         number_input_x = 0;
+         number_input_y=0;
+       );
+     );
+ 
+     in_key=gfx_getchar();
+ 
+     in_key ? Aaa = in_key;
+       in_key == 8 ? (
+       number_input_raw = floor(number_input_raw/10);
+       komma = max(0,komma-1);
+       komma == 1 ? komma = 0;
+       );
+ 
+     in_key == 45 ? number_input_sign*=-1;
+ 
+     in_key == 46 ? komma = 1;
+     in_key > 47 ? (
+     in_key < 58 ? (
+         number_input_raw = (number_input_raw*10) + (in_key-48);
+         komma ? komma += 1;
+     );
+     );
+ 
+     komma ? (number_input_use = number_input_raw / (10^(komma-1))):(number_input_use = number_input_raw);
+     number_input_use *= number_input_sign;
+ 
+   );
+   
+ function readout_time (_AR) (
+ _AR == 1 ? sprintf(#readout, "%.1f", vca_comp.attack1);
+ _AR == 2 ? sprintf(#readout, "%.1f", vca_comp.decay1);
+ gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+ gfx_measurestr(#readout, rdow, rdoh);
+ gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+ gfx_r=gfx_g=gfx_b=0.8;
+ gfx_x += 3*zoom;
+ gfx_drawstr(#readout);
+ );
+ 
+ 
+gfx_ext_flags == 0 ? (
+gfx_ext_flags_old == 1 ? (init_knobs(); gfx_ext_flags_old = 0; caller=1);
+
+
+//gfx_r = gfx_b=gfx_g = 0.2;
+//gfx_rect(0,0,gfx_w,gfx_h);
+gfx_x = gfx_y = 0;
+gfx_blit(0,zoom,0);
+//gfx_ext_flags == 0 ? (
+//zoom = slider18;
+//zoom = 1.1;
+
+ 
+zoom != zoom_old ? (
+zoom_old = zoom;
+init_knobs();
+katze = 1;
+);
+
+my_ST_mode != my_ST_mode_old ? (
+my_ST_mode_old = my_ST_mode;
+init_knobs();
+katze = 0;
+);
+
+Strip_order != Strip_order_old ? (
+Strip_order_old = Strip_order;
+init_knobs();
+katze = 2;
+);
+
+comp_type != comp_type_old ? (
+comp_type_old = comp_type;
+init_knobs();
+katze = 2;
+);
+
+comp_selection != comp_selection_old ? (
+comp_selection_old = selection_type;
+init_knobs();
+katze = 2;
+);
+
+draw_all_knobs();
+/*
+gfx_setfont(1,"Arial",12*zoom,'b');
+gfX_g = 1;
+gfx_x = gfX_y = 10;
+gfx_drawnumber(per_to_freq(HP_freq,100),0);
+gfx_drawstr(" hz - ");
+gfx_drawnumber(per_to_freq(LP_freq,100),0);
+gfx_drawstr(" hz");
+*/
+
+
+
+
+
+
+////////////////////// COMPRESSOR PLOT
+
+//comp_x = 110*zoom;
+//comp_y = 50*zoom;
+
+
+
+lightgrey();
+gfx_roundrect(comp_x, comp_y, 200*zoom, 480*zoom,7*zoom);
+gfx_x = comp_x; gfx_y = comp_select_y = comp_y + 10*zoom;
+gfx_setfont(1,"Arial",12*zoom,'b');
+comp_selection == 0 ? #tmpstr = "COMPRESSOR";
+comp_selection == 1 ? #tmpstr ="VARI COMPRESSOR";
+comp_selection == 2 ? #tmpstr ="VCA COMPRESSOR";
+comp_selection == 3 ? #tmpstr ="LA-2Kan COMP";
+comp_selection == 4 ? #tmpstr ="NC76 COMP";
+comp_selection == 5 ? #tmpstr ="LA-NC COMP";
+comp_selection == 6 ? #tmpstr ="NC-LA COMP";
+
+  gfx_measurestr(#tmpstr,tmpw,tmph);
+gfx_x = Comp_select_x = comp_x + 100*zoom - tmpw/2;
+gfx_drawstr(#tmpstr);//, 0x05, gfx_x+200*zoom, gfx_y + gfx_texth);
+  //gfx_circle(gfx_x, gfx_y,10,1);
+  //gfx_x = 40*zoom;
+  gfx_triangle(
+  gfx_x +5*zoom, gfx_y + gfx_texth/4, 
+  gfx_x +3*zoom + 0.8*gfx_texth/2, gfx_y + 2.5*gfx_texth/4, 
+  gfx_x +1*zoom + 0.8*gfx_texth, gfx_y + gfx_texth/4);
+  
+  comp_select_w = tmpw + 15*zoom; comp_select_h = gfx_texth;
+  //gfx_roundrect(comp_select_x, comp_select_y, comp_select_w,comp_select_h,0);
+  
+g_g_L_sz = g_g_R_sz = 100*zoom;
+lscope_x = comp_x + 50*zoom;
+g_g_L_y = lscope_y = comp_y + 28*zoom;
+
+
+
+comp_selection < 2 ? (
+
+!comp_VU_Meter ? (
+black();
+gfx_rect(lscope_x,lscope_y,g_g_L_sz+1,g_g_L_sz+10*zoom);
+gfx_setfont(2,"Arial",8*zoom,'b');
+gfx_a=1;
+grfl = 1; // LINIEN
+loop(4,
+gfx_r=gfx_g=gfx_b=0.4;
+gfx_line(lscope_x+ grfl*g_g_L_sz/4,lscope_y,lscope_x+ grfl*g_g_L_sz/4,lscope_y+g_g_L_sz);
+gfx_line(lscope_x,lscope_y+ grfl*g_g_L_sz/4,lscope_x+ g_g_L_sz,lscope_y+grfl*g_g_L_sz/4);
+gfx_r=gfx_g=gfx_b=0.65;
+gfx_x = lscope_x-13*zoom+ grfl*g_g_L_sz/4; gfx_y = lscope_y+g_g_L_sz-9*zoom;
+(40-grfl*10) == 0 ? gfx_x += 4*zoom;
+gfx_drawnumber(-1*(40-grfl*10),0);
+gfx_x = lscope_x-13*zoom+ g_g_L_sz; gfx_y =  0*zoom+lscope_y+(4-grfl)*g_g_L_sz/4;
+(40-grfl*10) == 0 ? gfx_x += 4*zoom;
+gfx_drawnumber(-1*(40-grfl*10),0);
+grfl += 1;
+);
+
+Comp_inMeter.meter_config((gfx_w/zoom)/18 + (gfx_w/zoom)/30,0,(gfx_w/zoom)/18,gfx_h/zoom,40, 40);
+
+gfx_x = lscope_x; gfx_y = lscope_y; // Plot SIGNAL
+gcl=-40;
+loop(400,
+MBC1_on ? (
+gcl <= comp_inMeter.dB_Val ? (gfx_r=0.1;gfx_g=1;gfx_b=0.2):(gfx_r=0;gfx_g=0.7;gfx_b=1;);
+):(
+gcl <= comp_inMeter.dB_Val ? (gfx_r=gfx_g=gfx_b=0.6):(gfx_r=gfx_g=gfx_b=0.4);
+);
+grfL = g1_computeGain(gcl);
+//gfx_lineto(gfx_x+0.1,200-grfL);
+g_g_l_y - gcl*g_g_L_sz*0.1*0.25 - grfl*(g_g_L_sz/40) > g_g_l_y + g_g_L_sz ? (gfx_a=0):(gfx_a = 1);
+gfx_lineto(gfx_x+g_g_l_sz*0.01*0.25,g_g_l_y - gcl*g_g_L_sz*0.1*0.25 - grfl*(g_g_L_sz/40));
+g_g_l_y - gcl*g_g_L_sz*0.1*0.25 - grfl*(g_g_L_sz/40) > g_g_l_y + g_g_L_sz ? (gfx_a=0):(gcl <= comp_inMeter.dB_Val ? gfx_a = 0.5 : gfx_a = 0.3);
+last_x != floor(gfx_x) ? gfx_line(gfx_x, g_g_l_y + g_g_l_sz, gfx_x,g_g_l_y - gcl*g_g_L_sz*0.1*0.25 - grfl*(g_g_L_sz/40));
+last_x = floor(gfx_x);
+//gfx_lineto(gfx_x+g_g_l_sz*0.01*0.25,lscope_y + g_g_l_sz - grfl*(g_g_L_sz/40));
+gcl+=0.1;
+);
+
+   GR_Meter.meter_config(lscope_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
+red(); gfx_a = 0.7;
+ GR_Meter.gr_meter_show();
+gfx_x = lscope_x + 2*zoom;
+gfx_y = lscope_y + g_g_l_sz + 1* zoom;
+gfx_setfont(2,"Arial",8*zoom,'b');
+red(); gfx_b = gfx_g = 0.5;
+gfx_drawnumber(GR_Meter.dB_Val_Max_GR,1); gfx_drawstr("dB");
+lightgrey(); gfx_a = 1;
+gfx_roundrect(lscope_x,lscope_y,g_g_L_sz+1,g_g_L_sz,0);
+gfx_roundrect(lscope_x,lscope_y+g_g_l_sz,g_g_L_sz+1,10*zoom,0);
+
+mouse_cap ? (
+g_collision(lscope_x,lscope_y,g_g_L_sz+1,g_g_L_sz+10*zoom) ? GR_Meter.dB_Val_Max_GR = 0;
+);
+
+):(
+   gfx_r = gfx_b = gfx_g = 0;
+   GR_VU_meter.mnmetergfx(0.8*zoom, lscope_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+   gfx_x = lscope_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+);
+
+
+); // Comp_selection < 2
+
+
+
+comp_selection == 2 ? (
+///////// GR METERS
+lightgrey();
+meters_x = B_VCA_Sidechain.xIn*zoom - 75*zoom;
+gfx_x = meters_x;
+gfx_y = comp_y + 403*zoom; //B_VCA_Sidechain.yIn - 80*zoom;
+gfx_setfont(2,"Arial",9*zoom,'b');
+tmp_loop = 0;
+cur_db_value = -30;
+cur_led = 7;
+max_on_gr = 0;
+gfx_a = 1;
+loop(25,
+
+vca_comp.gfx_gr <= cur_db_value ? ledon = 128 : ledon = 0;
+ledon == 0 ? max_on_gr == 0 ? (vca_comp.gfx_gr_max <= cur_db_value ? (ledon = 128; max_on_gr = 1));
+vca_comp.gfx_gr == 0 ? ledon = 0;
+gfx_blit(cur_led,zoom/5.3,0,0,ledon,128,128);
+
+gfx_x += 23*zoom; gfx_y += 7*zoom;
+gfx_drawnumber(cur_db_value , 0);
+gfx_y -= 21.9*zoom;
+gfx_x = meters_x;
+tmp_loop += 1;
+tmp_loop < 7 ? cur_db_value += 2 :
+tmp_loop < 15 ? cur_db_value += 1 :
+cur_db_value += 1;
+);
+// GR METERS
+);
+
+
+comp_selection == 3 ? (
+gfx_r = gfx_b = gfx_g = 0;
+LA2.GRmeter.obj_mnmetergfx(0.8*zoom, lscope_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+   gfx_x = lscope_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+//zoom*0.75, 305*zoom, 84*zoom, 1);
+);
+
+
+
+
+comp_selection > 3 ? (
+
+comp_selection > 4 ? (
+use_led_for_stack && main_meter_mode == 0 || use_led_for_stack == 2 ? (
+tmp_loop = 0;
+loop(17,
+la2.cur_db = -1 * tmp_loop;
+La2.cur_db >= LA2.gfx_gr ? ledon = 1 : ledon = 0;
+LA2.gfx_gr > -0.3 ? ledon = 0;
+gfx_x = K_LA2_Reduct.xIn*zoom + 50*zoom - 9*tmp_loop*zoom; gfx_y = K_LA2_Reduct.yIn*zoom + 75*zoom;
+gfx_blit(7, 0.3*zoom, 0, 50, ledon*128+50, 20, 20);
+tmp_loop += 1;
+);
+
+tmp_loop = 0;
+loop(17,
+NC76.cur_db = -1 * tmp_loop;
+NC76.cur_db >= NC76.gfx_gr ? ledon = 1 : ledon = 0;
+NC76.gfx_gr > -0.3 ? ledon = 0;
+gfx_x = K_NC_Output.xIn*zoom + 50*zoom - 9*tmp_loop*zoom; gfx_y = K_NC_Output.yIn*zoom + 130*zoom;
+gfx_blit(7, 0.3*zoom, 0, 50, ledon*128+50, 20, 20);
+tmp_loop += 1;
+);
+
+);
+);
+
+
+
+gfx_setfont(1,"Arial",10*zoom,'b'); lightgrey();
+
+NC76.ratio == 2 ? on = 1 : on = 0; NC76.allin ? on = 1;
+gfx_x=K_NC_Input.xIn*zoom-17*zoom; gfx_y=K_NC_Input.yIn*zoom + 90*zoom;
+              gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70); 
+              gfx_x += 10*zoom; gfx_y -= 6*zoom; gfx_drawstr("2:1"); gfx_y += 6*zoom;
+
+NC76.ratio == 4 ? on = 1 : on = 0; NC76.allin ? on = 1;
+gfx_x=K_NC_Input.xIn*zoom-17*zoom + 35*zoom; gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+gfx_x += 10*zoom; gfx_y -= 6*zoom; gfx_drawstr("4:1"); gfx_y += 6*zoom;
+
+NC76.ratio == 8 ? on = 1 : on = 0; NC76.allin ? on = 1;
+gfx_x=K_NC_Input.xIn*zoom-17*zoom + 70*zoom; gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+gfx_x += 10*zoom; gfx_y -= 6*zoom; gfx_drawstr("8:1"); gfx_y += 6*zoom;
+
+NC76.ratio == 12 ? on = 1 : on = 0; NC76.allin ? on = 1;
+gfx_x=K_NC_Input.xIn*zoom-17*zoom + 105*zoom; gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+gfx_x += 7*zoom; gfx_y -= 6*zoom; gfx_drawstr("12:1"); gfx_y += 6*zoom;
+
+NC76.ratio == 20 ? on = 1 : on = 0; NC76.allin ? on = 1;
+gfx_x=K_NC_Input.xIn*zoom-17*zoom + 140*zoom; gfx_blit(button, zoom/2, 0, 0, on*70, 70, 70);
+gfx_x += 7*zoom; gfx_y -= 6*zoom; gfx_drawstr("20:1"); gfx_y += 6*zoom;
+
+lightgrey();
+g_collision(K_NC_Input.xIn*zoom-15*zoom, K_NC_Input.yIn*zoom + 100*zoom, 175*zoom, 18*zoom) ? (
+//gfx_Roundrect(K_NC_Input.xIn*zoom-15*zoom, K_NC_Input.yIn*zoom + 100*zoom, 175*zoom, 18*zoom, 0);
+  gfx_x = K_NC_Input.xIn*zoom-5*zoom; gfx_y =  K_NC_Input.yIn*zoom + 122*zoom;
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  gfx_a = 1; lightgrey(); 
+  !gen_dragging ? gfx_drawstr("Use shift for all button mode");
+);
+
+comp_selection == 4 ? (
+gfx_r = gfx_b = gfx_g = 0;
+NC76.GRmeter.obj_mnmetergfx(0.8*zoom, lscope_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+   gfx_x = lscope_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+);
+
+comp_selection == 5 ? (
+gfx_roundrect(comp_x, comp_y, 200*zoom, 185*zoom,7*zoom);
+gfx_roundrect(comp_x, comp_y+185*zoom, 200*zoom, 295*zoom,7*zoom);
+);
+
+comp_selection == 6 ? (
+gfx_roundrect(comp_x, comp_y, 200*zoom, 320*zoom,7*zoom);
+gfx_roundrect(comp_x, comp_y+320*zoom, 200*zoom, 160*zoom,7*zoom);
+);
+
+);
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+//gate_x = 310*zoom;
+//gate_y = 50*zoom;
+lightgrey();
+gfx_roundrect(gate_x, gate_y, 200*zoom, 480*zoom,7*zoom);
+gfx_x = gate_x; gfx_y = gate_y + 10*zoom;
+gfx_setfont(1,"Arial",12*zoom,'b');
+gfx_drawstr("GATE", 0x05, gfx_x+200*zoom, gfx_y + gfx_texth);
+
+//gate_x = 400*zoom;
+//gate_y = 50*zoom;
+
+gate_leds_x = gate_x + 10*zoom;
+gate_leds_y = gate_y + 45*zoom;
+c_led = 7;
+gate_inMeter.meter_config((gfx_w/zoom)/18 + (gfx_w/zoom)/30,0,(gfx_w/zoom)/18,gfx_h/zoom,40, 60);
+gfx_x = gate_leds_x;
+gfx_y = gate_leds_y;
+led_db = 0;
+gfx_setfont(2,"Arial",8*zoom,'b');
+loop(25,
+led_db <= -10 ? c_led = 8;
+led_db <= -20 ? c_Led = 6;
+Gate_inMeter.dB_Val >= led_db ? led_on = 128 : led_on = 0;
+//Gate_inMeter.dB_Val_max - 2.5 <= led_db ? Gate_inMeter.dB_Val_max >= led_db + 2.5 ? led_on = 128;
+Gate_inMeter.dB_Val_max > led_db -1.25 ? Gate_inMeter.dB_Val_max < led_db + 1.25 ? led_on = 128;
+gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+gfx_x += 20*zoom; gfx_y += 8*zoom;
+my_value1 = sprintf(#, "%.1f" , led_db);
+lightgrey();
+gate_gateThresh - 1.25 <= led_db ? gate_gateThresh + 1.25 >= led_db ? (
+green();
+gfx_line(gfx_x-12*zoom, gfx_y+11*zoom, gfx_x + 20*zoom, gfx_y+11*zoom);
+);
+gate_gateHyst <= -2.5 ? gate_gateThresh + gate_gateHyst - 1.25 <= led_db ? gate_gateThresh + gate_gateHyst + 1.25 >= led_db ? (
+orange();
+gfx_line(gfx_x-12*zoom, gfx_y+11*zoom, gfx_x + 20*zoom, gfx_y+11*zoom);
+);
+gfx_drawstr(my_value1, 0x05, gfx_x+18*zoom, gfx_y + gfx_texth);
+//gfx_drawnumber(led_db,1); //gfx_drawstr(" dB");
+gfx_x = gate_leds_x; gfx_y -= 8*zoom;
+gfx_y += 15*zoom;
+led_db -= 2.5;
+);
+
+gfx_x = gate_leds_x + 145*zoom;
+gfx_y = gate_y + 90*zoom;
+gate_gain == 1 ? (C_led = 6; led_on = 128): gate_gain > db2ratio(-120) ? (C_led = 8; led_on = 128): (c_led = 7; led_on = 0);
+gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+
+//gfx_roundrect(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom,0);
+mouse_cap ? (
+g_collision(gate_leds_x+4*zoom, gate_leds_y+4*zoom, 15*zoom, 15*25*zoom) ? Gate_inMeter.dB_Val_max = -200;
+);
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+// eq_x = 510*zoom;
+// eq_y = 50*zoom;
+ lightgrey();
+ gfx_roundrect(eq_x, eq_y, 320*zoom, 480*zoom,7*zoom);
+ gfx_x = eq_x; gfx_y = eq_y + 10*zoom;
+ gfx_setfont(1,"Arial",12*zoom,'b');
+ gfx_drawstr("EQUALIZER", 0x05, gfx_x+320*zoom, gfx_y + gfx_texth);
+ 
+  
+  
+  
+  
+  in_stage_y = out_stage_y = eq_y;
+   
+  lightgrey();
+  gfx_roundrect(in_stage_x, In_stage_y, 100*zoom, 480*zoom,7*zoom);
+  gfx_x = In_Stage_x; gfx_y = In_stage_y + 10*zoom;
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  gfx_drawstr("DESK INPUT", 0x05, gfx_x+100*zoom, gfx_y + gfx_texth);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfx_x = in_stage_x + 15*zoom;
+  gfx_y = in_stage_y + 400*zoom;
+  gfx_drawstr("SUMTHING:");
+  
+  gfx_x = in_stage_x + 20*zoom;
+  gfx_y += 25*zoom;
+  black();
+  gfx_rect(ST_Group_select_x = gfx_x - 5*zoom, ST_Group_Select_y = gfx_y -3*zoom, 75*zoom, 20*zoom);
+  lightgrey();
+  gfx_roundrect(gfx_x - 5*zoom, gfx_y -3*zoom, 75*zoom, 20*zoom,0);
+  SumThing_Group ? (
+  gfx_drawstr("Group "); gfx_drawnumber(SumThing_Group,0);
+  ):(
+  gfx_drawstr("No Group");
+  );
+  gfx_triangle(
+  gfx_x +5*zoom, gfx_y + gfx_texth/4, 
+  gfx_x +3*zoom + 0.8*gfx_texth/2, gfx_y + 2.5*gfx_texth/4, 
+  gfx_x +1*zoom + 0.8*gfx_texth, gfx_y + gfx_texth/4);
+  
+  gfx_x = in_stage_x + 20*zoom;
+  gfx_y += 30*zoom;
+  black();
+  gfx_rect(ST_Desk_Select_x = gfx_x - 5*zoom, ST_Desk_Select_y = gfx_y -3*zoom, 75*zoom, 20*zoom);
+  lightgrey();
+  gfx_roundrect(gfx_x - 5*zoom, gfx_y -3*zoom, 75*zoom, 20*zoom,0);
+  my_ST_mode ? (
+  gfx_drawstr("Desk "); gfx_drawnumber(my_ST_mode,0); gfx_drawstr(" ");
+  ):(
+  gfx_drawstr("No Desk");
+  );
+  gfx_triangle(
+  gfx_x +5*zoom, gfx_y + gfx_texth/4, 
+  gfx_x +3*zoom + 0.8*gfx_texth/2, gfx_y + 2.5*gfx_texth/4, 
+  gfx_x +1*zoom + 0.8*gfx_texth, gfx_y + gfx_texth/4);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  VU_L_x = out_stage_x + 40*zoom;
+  VU_R_x = out_stage_x + 210*zoom;
+  lightgrey();
+  gfx_roundrect(out_stage_x, out_stage_y, 353*zoom, 480*zoom,7*zoom);
+  gfx_x = out_stage_x; gfx_y = out_stage_y + 10*zoom;
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  gfx_drawstr("CHANNEL OUTPUT", 0x05, gfx_x+353*zoom, gfx_y + gfx_texth);
+  
+  //L_Meter.meter_config(VU_l_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
+  gfx_r = gfx_b = gfx_g = 0;
+  
+  main_meter_mode == 0 || comp_selection < 5 ? (
+  L_VU_meter.mnmetergfx(0.8*zoom, VU_l_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_l_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 66*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("LEFT");
+  
+  //R_Meter.meter_config(VU_r_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
+  gfx_r = gfx_b = gfx_g = 0;
+  R_VU_meter.mnmetergfx(0.8*zoom, VU_r_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_r_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 62*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("RIGHT");
+  
+  gfx_x = VU_L_X + 96*zoom;
+  gfx_y = out_stage_y + 66 * zoom;
+  led_on = 0;
+  c_led = 7;
+  over_LED_L > 0 ? (
+  over_LED_L -= 0.3;
+  led_on = 128;
+  gfx_a = 0.8;
+  );
+  gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+  
+  gfx_x = VU_R_X + 96*zoom;
+  gfx_y = out_stage_y + 66 * zoom;
+  led_on = 0;
+  c_led = 7;
+  over_LED_R > 0 ? (
+  over_LED_R -= 0.3;
+  led_on = 128;
+  gfx_a = 0.8;
+  );
+  gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+  
+  ): Comp_Selection == 5 ? (
+  LA2.GRmeter.obj_mnmetergfx(0.8*zoom, VU_l_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_l_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 56*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("LA-2Kan");
+  
+  
+  
+  //R_Meter.meter_config(VU_r_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
+  gfx_r = gfx_b = gfx_g = 0;
+  NC76.GRmeter.obj_mnmetergfx(0.8*zoom, VU_r_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_r_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 56*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("NC76");
+  ):Comp_Selection == 6 ? (
+  NC76.GRmeter.obj_mnmetergfx(0.8*zoom, VU_l_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_l_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 66*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("NC76");
+  
+  
+  
+  //R_Meter.meter_config(VU_r_x/zoom,1+(lscope_y+g_g_L_sz) / zoom , g_g_L_sz/zoom, 9, 40, 80);
+  gfx_r = gfx_b = gfx_g = 0;
+  LA2.GRmeter.obj_mnmetergfx(0.8*zoom, VU_r_x-25*zoom, lscope_y+20*zoom, 25+my_ST_mode);
+  gfx_x = VU_r_x-28*zoom; gfx_y = lscope_y +18*zoom; gfx_blit(14,0.5*zoom*0.8,0);
+  lightgrey(); gfx_x += 66*zoom; gfx_y += 83*zoom;
+  gfx_drawstr("LA2-Kan");
+  );
+  
+  /*
+  K_O_Calib.knob();
+  gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "OUT VU CALIB"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-40"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = " 0"; gfx_measurestr(#klabel, klw, klh); K_O_Calib.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+   
+  K_O_Output.knob();
+  gfx_setfont(3,"Arial",11*zoom,'b');
+    #klabel = "OUT TRIM"; gfx_measurestr(#klabel, klw, klh); K_O_Output.knoblabelposition_scaled(klw); lightgrey(); gfx_setfont(3,"Arial",11*zoom,'b'); gfx_drawstr(#klabel);
+    gfx_setfont(2,"Arial",8*zoom,'b');
+    #klabel = "-32"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = "-16"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+    #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+    #klabel = "+16"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+    #klabel = "+32"; gfx_measurestr(#klabel, klw, klh); K_O_Output.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+  */
+  
+  gfx_x = out_stage_x + 250*zoom;
+  gfx_y = out_stage_y + 175*zoom;
+  gfx_a = 0.8;
+  gfx_blit(logo, 0.7*zoom, 0);
+  gfx_a = 1;
+  
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  gfx_x = out_stage_x + 165*zoom;
+  gfx_y = out_stage_y - 30 * zoom;
+  black();
+  gfx_rect(gfx_x - 5*zoom, gfx_y -3*zoom, 180*zoom, 20*zoom);
+  lightgrey();
+  gfx_roundrect(Order_select_x = gfx_x - 5*zoom, Order_select_y = gfx_y -3*zoom, 180*zoom, 20*zoom,0);
+
+  strip_order == 0 ? #order = "GATE - COMPRESSOR - EQ";
+  strip_order == 1 ? #order = "GATE - EQ - COMPRESSOR";
+  strip_order == 2 ? #order = "COMPRESSOR - GATE - EQ";
+  strip_order == 3 ? #order = "COMPRESSOR - EQ - GATE";
+  strip_order == 4 ? #order = "EQ - GATE - COMPRESSOR";
+  strip_order == 5 ? #order = "EQ - COMPRESSOR - GATE";
+  
+  gfx_drawstr(#order);
+  gfx_triangle(
+  gfx_x +5*zoom, gfx_y + gfx_texth/4, 
+  gfx_x +3*zoom + 0.8*gfx_texth/2, gfx_y + 2.5*gfx_texth/4, 
+  gfx_x +1*zoom + 0.8*gfx_texth, gfx_y + gfx_texth/4);
+  
+  
+  gfx_x = out_stage_x + 6*zoom;
+  gfx_y = out_stage_y -30 * zoom;
+  
+  gfx_drawstr("CHANNEL STRIP SETTING:");
+  
+  
+  gfx_x = out_stage_x + 150*zoom;
+  gfx_y = out_stage_y + 433 * zoom;
+  
+  c_led = 6;
+  softclipping == 0 ? (
+  led_on = 0;
+  softclipping = 0;
+  ): softclipping > 0 ? (
+  softclipping -= 0.3;
+  led_on = 128;
+  c_led = 8;
+  ): softclipping < 0 ? (
+  softclipping += 0.3;
+  led_on = 128;
+  c_led = 7;
+  );
+  gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+  
+  gfx_x = out_stage_x + 176*zoom;
+  gfx_y = out_stage_y + 433 * zoom;
+  led_on = 0;
+  c_led = 6;
+  
+  hardclipping < 0 ? (
+  hardclipping += 0.3;
+  led_on = 128;
+  c_led = 7;
+  ):(hardclipping = 0;);
+  gfx_blit(c_led,zoom/5.3,0,0,led_on,128,128);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+  
+  
+  
+        !Number_input ? (
+   
+
+       
+        mouseClick == 1 ? (
+        VCA_NI = 0;
+        
+        K_O_Softclip.k_collision() ? (K_O_Softclip.dragstart(); NISlider = 0);
+        K_O_Hardclip.k_collision() ? (K_O_Hardclip.dragstart(); NISlider = 0);
+        
+        !alt ? (
+        input_knob_selection ? (
+        K_I_GAIN.k_collision() ? (K_I_GAIN.dragstart(); NISlider = 0);
+        ):(
+        K_I_Saturation.k_collision() ? (K_I_Saturation.dragstart(); NISlider = 0);
+        );
+        ):(
+        !input_knob_selection ? (
+        K_I_GAIN.k_collision() ? (K_I_GAIN.dragstart(); NISlider = 0);
+        ):(
+        K_I_Saturation.k_collision() ? (K_I_Saturation.dragstart(); NISlider = 0);
+        );
+        iks_dragging = 1;
+        input_knob_selection == 0 ? input_knob_selection = 1 : input_knob_selection = 0;
+        );
+        
+        K_I_Noise.k_collision() ? (K_I_Noise.dragstart(); NISlider = 0);
+        K_I_HPF.k_collision() ? (K_I_HPF.dragstart(); NISlider = 1);
+        K_I_LPF.k_collision() ? (K_I_LPF.dragstart(); NISlider = 1);
+        comp_selection < 2 ? (
+        K_C_Thresh.k_collision() ? (K_C_Thresh.dragstart(); NISlider = 0);
+        comp_type == 0 ? K_C_Ratio.k_collision() ? (K_C_Ratio.dragstart(); NISlider = 0);
+        K_C_Attack.k_collision() ? (K_C_Attack.dragstart(); NISlider = 0);
+        K_C_Release.k_collision() ? (K_C_Release.dragstart(); NISlider = 0);
+        K_C_Output.k_collision() ? (K_C_Output.dragstart(); NISlider = 0);
+        );
+        comp_selection == 2 ? (
+        K_VCA_Thresh.k_collision() ? (K_VCA_Thresh.dragstart(); NISlider = 0);
+        K_VCA_Attack.k_collision() ? (K_VCA_Attack.dragstart(); NISlider = 0;VCA_NI = 1;);
+        K_VCA_Release.k_collision() ? (K_VCA_Release.dragstart(); NISlider = 0; VCA_NI = 2;);
+        K_VCA_Output.k_collision() ? (K_VCA_Output.dragstart(); NISlider = 0);
+        g_collision(ratiobuttons_x, ratiobuttons_y,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 5; B_VCA_ratio.quicklink_button(); caller = 1);
+        g_collision(ratiobuttons_x, ratiobuttons_y+35*zoom,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 4; B_VCA_ratio.quicklink_button(); caller = 1);
+        g_collision(ratiobuttons_x, ratiobuttons_y+70*zoom,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 3; B_VCA_ratio.quicklink_button(); caller = 1);
+        g_collision(ratiobuttons_x, ratiobuttons_y+105*zoom,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 2; B_VCA_ratio.quicklink_button(); caller = 1);
+        g_collision(ratiobuttons_x, ratiobuttons_y+140*zoom,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 1; B_VCA_ratio.quicklink_button(); caller = 1);
+        g_collision(ratiobuttons_x, ratiobuttons_y+175*zoom,17*zoom,35*zoom) ? (slider(B_VCA_ratio.slider) = 0; B_VCA_ratio.quicklink_button(); caller = 1);
+        B_VCA_Knee.b_collision() ? (slider(B_VCA_Knee.slider) == 0 ? slider(B_VCA_Knee.slider) = 1 : slider(B_VCA_Knee.slider) = 0; caller = 1; B_VCA_Knee.quicklink_button());
+        B_VCA_punch.b_collision() ? (slider(B_VCA_punch.slider) == 0 ? slider(B_VCA_punch.slider) = 1 : slider(B_VCA_punch.slider) = 0; caller = 1; B_VCA_punch.quicklink_button());
+        B_VCA_Sidechain.b_collision() ? (slider(B_VCA_sidechain.slider) == 0 ? slider(B_VCA_sidechain.slider) = 1 : slider(B_vca_sidechain.slider) = 0; caller = 1; B_VCA_sidechain.quicklink_button());
+        B_VCA_Bypass.b_collision() ? (slider(B_VCA_bypass.slider) == 0 ? slider(B_VCA_bypass.slider) = 1 : slider(B_vca_bypass.slider) = 0; caller = 1; B_VCA_bypass.quicklink_button());
+        );
+        
+        comp_selection == 3 || comp_selection > 4 ? (
+        K_LA2_Reduct.k_collision() ? (K_LA2_Reduct.dragstart(); NISlider = 0);
+        K_LA2_Gain.k_collision() ? (K_LA2_Gain.dragstart(); NISlider = 0);
+        B_LA2_Limit.b_collision() ? (slider(B_LA2_Limit.slider) == 0 ? slider(B_LA2_Limit.slider) = 1 : slider(B_LA2_Limit.slider) = 0; caller = 1; B_LA2_Limit.quicklink_button());
+        B_LA2_Sidechain.b_collision() ? (slider(B_LA2_sidechain.slider) == 0 ? slider(B_LA2_sidechain.slider) = 1 : slider(B_LA2_sidechain.slider) = 0; caller = 1; B_LA2_sidechain.quicklink_button());
+        B_LA2_Bypass.b_collision() ? (slider(B_LA2_bypass.slider) == 0 ? slider(B_LA2_bypass.slider) = 1 : slider(B_LA2_bypass.slider) = 0; caller = 1; B_LA2_bypass.quicklink_button());
+         );
+        
+        
+        comp_selection > 3 ? (
+        g_collision(K_NC_Input.xIn*zoom-17*zoom, K_NC_Input.yIn*zoom + 100*zoom, 35*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 0; B_NC_ratio.quicklink_button(); caller = 1);
+        g_collision(K_NC_Input.xIn*zoom-17*zoom+35*zoom, K_NC_Input.yIn*zoom + 100*zoom, 35*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 1; B_NC_ratio.quicklink_button(); caller = 1);
+        g_collision(K_NC_Input.xIn*zoom-17*zoom+70*zoom, K_NC_Input.yIn*zoom + 100*zoom, 35*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 2; B_NC_ratio.quicklink_button(); caller = 1);
+        g_collision(K_NC_Input.xIn*zoom-17*zoom+105*zoom, K_NC_Input.yIn*zoom + 100*zoom, 35*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 3; B_NC_ratio.quicklink_button(); caller = 1);
+        g_collision(K_NC_Input.xIn*zoom-17*zoom+140*zoom, K_NC_Input.yIn*zoom + 100*zoom, 35*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 4; B_NC_ratio.quicklink_button(); caller = 1);
+        shift ? g_collision(K_NC_Input.xIn*zoom-17*zoom, K_NC_Input.yIn*zoom + 100*zoom, 175*zoom, 18*zoom) ? (slider(B_NC_ratio.slider) = 5; B_NC_ratio.quicklink_button(); caller = 1);
+
+        K_NC_Input.K_Collision() ? (K_NC_Input.dragstart(); NISlider = 0);
+        K_NC_Attack.K_Collision() ? (K_NC_Attack.dragstart(); NISlider = 0);
+        K_NC_Release.K_Collision() ? (K_NC_Release.dragstart(); NISlider = 0);
+        K_NC_Output.K_Collision() ? (K_NC_Output.dragstart(); NISlider = 0);
+        
+        B_NC_punch.b_collision() ? (slider(B_NC_punch.slider) == 0 ? slider(B_NC_punch.slider) = 1 : slider(B_NC_punch.slider) = 0; caller = 1; B_NC_punch.quicklink_button());
+        B_NC_Sidechain.b_collision() ? (slider(B_NC_sidechain.slider) == 0 ? slider(B_NC_sidechain.slider) = 1 : slider(B_NC_sidechain.slider) = 0; caller = 1; B_NC_sidechain.quicklink_button());
+        B_NC_Bypass.b_collision() ? (slider(B_NC_bypass.slider) == 0 ? slider(B_NC_bypass.slider) = 1 : slider(B_NC_bypass.slider) = 0; caller = 1; B_NC_bypass.quicklink_button());
+        
+        
+        );
+        
+        comp_selection > 4 ? (
+          B_GR_Meters.b_collision() ? (slider(B_GR_Meters.slider) == 0 ? slider(B_GR_Meters.slider) = 1 : slider(B_GR_Meters.slider) = 0; caller = 1; B_GR_Meters.quicklink_button());
+          
+        );
+        
+        K_G_Thresh.K_collision() ? (K_G_Thresh.dragstart(); NISlider = 0);
+        K_G_Hyst.K_collision() ? (K_G_Hyst.dragstart(); NISlider = 0);
+        K_G_Attack.K_collision() ? (K_G_Attack.dragstart(); NISlider = 0);
+        K_G_Release.K_collision() ? (K_G_Release.dragstart(); NISlider = 0);
+        K_G_Hold.K_collision() ? (K_G_Hold.dragstart(); NISlider = 0);
+        K_E_High_Gain.K_collision() ? (K_E_High_Gain.dragstart(); NISlider = 0);
+        K_E_High_Freq.K_collision() ? (K_E_High_Freq.dragstart(); NISlider = 1);
+        K_E_HMF_Gain.K_collision() ? (K_E_HMF_Gain.dragstart(); NISlider = 0);
+        K_E_HMF_Freq.K_collision() ? (K_E_HMF_Freq.dragstart(); NISlider = 1);
+        K_E_HMF_Q.K_collision() ? (K_E_HMF_Q.dragstart(); NISlider = 0);
+        K_E_Low_Gain.K_collision() ? (K_E_Low_Gain.dragstart(); NISlider = 0);
+        K_E_Low_Freq.K_collision() ? (K_E_Low_Freq.dragstart(); NISlider = 1);
+        K_E_LMF_Gain.K_collision() ? (K_E_LMF_Gain.dragstart(); NISlider = 0);
+        K_E_LMF_Freq.K_collision() ? (K_E_LMF_Freq.dragstart(); NISlider = 1);
+        K_E_LMF_Q.K_collision() ? (K_E_LMF_Q.dragstart(); NISlider = 0);
+        K_O_Calib.K_collision() ? (K_O_Calib.dragstart(); NISlider = 0);
+        K_O_Output.K_collision() ? (K_O_Output.dragstart(); NISlider = 0);
+        B_G_Sidechain.b_collision() ? (slider(B_G_Sidechain.slider) == 0 ? slider(B_G_Sidechain.slider) = 1 : slider(B_G_Sidechain.slider) = 0; caller = 1; B_G_Sidechain.quicklink_button());
+        B_G_Bypass.b_collision() ? (slider(B_G_Bypass.slider) == 0 ? slider(B_G_Bypass.slider) = 1 : slider(B_G_Bypass.slider) = 0; caller = 1; B_G_Bypass.quicklink_button());
+        comp_selection < 2 ? (
+        B_c_Knee.b_collision() ? (slider(B_c_Knee.slider) == 0 ? slider(B_c_Knee.slider) = 1 : slider(B_c_Knee.slider) = 0; caller = 1; B_c_Knee.quicklink_button());
+        //B_C_Varimu.b_collision() ? (slider(B_C_Varimu.slider) == 0 ? slider(B_C_Varimu.slider) = 1 : slider(B_C_Varimu.slider) = 0; caller = 1; B_C_Varimu.quicklink_button());
+        B_C_Plot.b_collision() ? (slider(B_C_Plot.slider) == 0 ? slider(B_C_Plot.slider) = 1 : slider(B_C_Plot.slider) = 0; caller = 1; B_C_Plot.quicklink_button());
+        B_C_Sidechain.b_collision() ? (slider(B_C_Sidechain.slider) == 0 ? slider(B_C_Sidechain.slider) = 1 : slider(B_C_Sidechain.slider) = 0; caller = 1; B_C_Sidechain.quicklink_button());
+        B_C_Bypass.b_collision() ? (slider(B_C_Bypass.slider) == 0 ? slider(B_C_Bypass.slider) = 1 : slider(B_C_Bypass.slider) = 0; caller = 1; B_C_Bypass.quicklink_button());
+        );
+        B_E_High_Bell.b_collision() ? (slider(B_E_High_Bell.slider) == 0 ? slider(B_E_High_Bell.slider) = 1 : slider(B_E_High_Bell.slider) = 0; caller = 1; B_E_High_Bell.quicklink_button());
+        B_E_High_Wide.b_collision() ? (slider(B_E_High_Wide.slider) == 0 ? slider(B_E_High_Wide.slider) = 1 : slider(B_E_High_Wide.slider) = 0; caller = 1; B_E_High_Wide.quicklink_button());
+        B_E_High_On.b_collision() ? (slider(B_E_High_On.slider) == 0 ? slider(B_E_High_On.slider) = 1 : slider(B_E_High_On.slider) = 0; caller = 1; B_E_High_On.quicklink_button());
+        B_E_HMF_On.b_collision() ? (slider(B_E_HMF_On.slider) == 0 ? slider(B_E_HMF_On.slider) = 1 : slider(B_E_HMF_On.slider) = 0; caller = 1; B_E_HMF_On.quicklink_button());
+        B_E_Low_Bell.b_collision() ? (slider(B_E_Low_Bell.slider) == 0 ? slider(B_E_Low_Bell.slider) = 1 : slider(B_E_Low_Bell.slider) = 0; caller = 1; B_E_Low_Bell.quicklink_button());
+        B_E_Low_Wide.b_collision() ? (slider(B_E_Low_Wide.slider) == 0 ? slider(B_E_Low_Wide.slider) = 1 : slider(B_E_Low_Wide.slider) = 0; caller = 1; B_E_Low_Wide.quicklink_button());
+        B_E_Low_On.b_collision() ? (slider(B_E_Low_On.slider) == 0 ? slider(B_E_Low_On.slider) = 1 : slider(B_E_Low_On.slider) = 0; caller = 1; B_E_Low_On.quicklink_button());
+        B_E_LMF_On.b_collision() ? (slider(B_E_LMF_On.slider) == 0 ? slider(B_E_LMF_On.slider) = 1 : slider(B_E_LMF_On.slider) = 0; caller = 1; B_E_LMF_On.quicklink_button());
+        B_E_Bypass.b_collision() ? (slider(B_E_Bypass.slider) == 0 ? slider(B_E_Bypass.slider) = 1 : slider(B_E_Bypass.slider) = 0; caller = 1; B_E_Bypass.quicklink_button());
+        B_O_Softclip.b_collision() ? (slider(B_O_Softclip.slider) == 0 ? slider(B_O_Softclip.slider) = 1 : slider(B_O_Softclip.slider) = 0; caller = 1; B_O_Softclip.quicklink_button());
+        B_O_Hardclip.b_collision() ? (slider(B_O_Hardclip.slider) == 0 ? slider(B_O_Hardclip.slider) = 1 : slider(B_O_Hardclip.slider) = 0; caller = 1; B_O_Hardclip.quicklink_button());
+       B_Bypass.b_collision() ? (slider(B_Bypass.slider) == 0 ? slider(B_Bypass.slider) = 1 : slider(B_Bypass.slider) = 0; caller = 1; B_Bypass.quicklink_button());
+       B_O_Trimpost.b_collision() ? (slider(B_O_Trimpost.slider) == 0 ? slider(B_O_Trimpost.slider) = 1 : slider(B_O_Trimpost.slider) = 0; caller = 1; B_O_Trimpost.quicklink_button());
+       
+       g_collision(ST_Group_select_x, ST_Group_Select_y, 75*zoom, 20*zoom) ? (
+       #allitems = "No Group|Group 1|Group 2|Group 3|Group 4|Group 5|Group 6|Group 7|Group 8|Group 9|Group 10|Group 11|Group 12|Group 13|Group 14|Group 15|Group 16|";
+       gfx_x = ST_Group_select_x; gfx_y = ST_Group_select_y;
+       last_clicked_item = gfx_showmenu(#allitems);
+       last_clicked_item > 0 ? slider1 = last_clicked_item-1;
+       caller = 1;
+       );
+       
+       g_collision(ST_Desk_select_x, ST_Desk_Select_y, 75*zoom, 20*zoom) ? (
+       #allitems = "No Desk|Desk 1|Desk 2|Desk 3|";
+       gfx_x = ST_Desk_select_x; gfx_y = ST_Desk_select_y;
+       last_clicked_item = gfx_showmenu(#allitems);
+       last_clicked_item > 0 ? slider2 = last_clicked_item-1;
+       caller = 1;
+       );
+       
+       g_collision(Order_select_x, Order_Select_y, 180*zoom, 20*zoom) ? (
+       #allitems = "GATE - COMPRESSOR - EQ|GATE - EQ - COMPRESSOR|COMPRESSOR - GATE - EQ|COMPRESSOR - EQ - GATE|EQ - GATE - COMPRESSOR|EQ - COMPRESSOR - GATE|";
+       gfx_x = Order_select_x; gfx_y = Order_select_y;
+       last_clicked_item = gfx_showmenu(#allitems);
+       last_clicked_item > 0 ? slider43 = last_clicked_item-1;
+       caller = 1;
+       );
+       
+       g_collision(comp_select_x, comp_select_y, comp_select_w,comp_select_h) ? (
+          #allitems = "STRIP COMPRESSOR|VARI COMPRESSOR|VCA COMPRESSOR|LA-2KAN|NC76|LA-NC|NC-LA|";
+          gfx_x = Comp_select_x; gfx_y = comp_select_y;
+          selection = gfx_showmenu(#allitems);
+          Selection ? (slider(B_Comp_Select.slider) = selection-1; caller = 1; B_Comp_Select.quicklink_button());
+          
+       );
+       
+       ); 
+        
+        mouseclick == -1 ? (
+        K_I_Saturation.dragstop();
+        K_I_Gain.dragstop();
+        K_I_Noise.dragstop();
+        K_I_HPF.dragstop();
+        K_I_LPF.dragstop();
+        K_C_Thresh.dragstop();
+        K_C_Ratio.dragstop();
+        K_C_Attack.dragstop();
+        K_C_Release.dragstop();
+        K_C_Output.dragstop();
+        K_G_Thresh.dragstop();
+        K_G_Hyst.dragstop();
+        K_G_Attack.dragstop();
+        K_G_Release.dragstop();
+        K_G_Hold.dragstop();
+        K_E_High_Gain.dragstop();
+        K_E_High_Freq.dragstop();
+        K_E_HMF_Gain.dragstop();
+        K_E_HMF_Freq.dragstop();
+        K_E_HMF_Q.dragstop();
+        K_E_Low_Gain.dragstop();
+        K_E_Low_Freq.dragstop();
+        K_E_LMF_Gain.dragstop();
+        K_E_LMF_Freq.dragstop();
+        K_E_LMF_Q.dragstop();
+        K_O_Calib.dragstop();
+        K_O_Output.dragstop();
+        K_O_Softclip.dragstop();
+        K_O_Hardclip.dragstop();
+        K_VCA_Thresh.dragstop();
+        K_VCA_Attack.dragstop();
+        K_VCA_Release.dragstop();
+        K_VCA_Output.dragstop();
+        K_LA2_Reduct.dragstop();
+        K_LA2_Gain.dragstop();
+        K_NC_Input.dragstop();
+        K_NC_Attack.dragstop();
+        K_NC_Release.dragstop();
+        K_NC_Output.dragstop();
+        iks_dragging == 1 ? (iks_dragging = 0; caller = 1);
+        );
+        
+        
+        
+        mouse_wheel ? 
+            (
+        !input_knob_selection ? K_I_Saturation.k_collision() ? K_I_Saturation.potwheel();
+        input_knob_selection ? K_I_Gain.k_collision() ? K_I_Gain.potwheel();
+        K_I_Noise.k_collision() ? K_I_Noise.potwheel();
+        K_I_HPF.k_collision() ? K_I_HPF.potwheel();
+        K_I_LPF.k_collision() ? K_I_LPF.potwheel();
+        comp_selection < 2 ? (
+        K_C_Thresh.k_collision() ? K_C_Thresh.potwheel();
+        comp_type == 0 ? K_C_Ratio.k_collision() ? K_C_Ratio.potwheel();
+        K_C_Attack.k_collision() ? K_C_Attack.potwheel();
+        K_C_Release.k_collision() ? K_C_Release.potwheel();
+        K_C_Output.k_collision() ? K_C_Output.potwheel();
+        );
+        K_G_Thresh.K_collision() ? K_G_Thresh.potwheel();
+        K_G_Hyst.K_collision() ? K_G_Hyst.potwheel();
+        K_G_Attack.K_collision() ? K_G_Attack.potwheel();
+        K_G_Release.K_collision() ? K_G_Release.potwheel();
+        K_G_Hold.K_collision() ? K_G_Hold.potwheel();
+        K_E_High_Gain.K_collision() ? K_E_High_Gain.potwheel();
+        K_E_High_Freq.K_collision() ? K_E_High_Freq.potwheel();
+        K_E_HMF_Gain.K_collision() ? K_E_HMF_Gain.potwheel();
+        K_E_HMF_Freq.K_collision() ? K_E_HMF_Freq.potwheel();
+        K_E_HMF_Q.K_collision() ? K_E_HMF_Q.potwheel();
+        K_E_Low_Gain.K_collision() ? K_E_Low_Gain.potwheel();
+        K_E_Low_Freq.K_collision() ? K_E_Low_Freq.potwheel();
+        K_E_LMF_Gain.K_collision() ? K_E_LMF_Gain.potwheel();
+        K_E_LMF_Freq.K_collision() ? K_E_LMF_Freq.potwheel();
+        K_E_LMF_Q.K_collision() ? K_E_LMF_Q.potwheel();
+        K_O_Calib.K_collision() ? K_O_Calib.potwheel();
+        K_O_Output.K_collision() ? K_O_Output.potwheel();
+        K_O_Softclip.K_collision() ? K_O_Softclip.potwheel();
+        K_O_Hardclip.K_collision() ? K_O_Hardclip.potwheel();
+        comp_selection == 2 ? (
+        K_VCA_Attack.k_collision() ? K_VCA_Attack.potwheel();
+        K_VCA_Release.k_collision() ? K_VCA_Release.potwheel();
+        K_VCA_Output.k_collision() ? K_VCA_Output.potwheel();
+        K_VCA_Thresh.K_collision() ? K_VCA_Thresh.potwheel();
+        );
+        Comp_Selection == 3 ? (
+        K_LA2_Reduct.K_collision() ? K_LA2_Reduct.potwheel();
+        K_LA2_Gain.K_collision() ? K_LA2_Gain.potwheel();
+        );
+        
+        Comp_Selection == 4 ? (
+        K_NC_Attack.k_collision() ? K_NC_Attack.potwheel();
+        K_NC_Release.k_collision() ? K_NC_Release.potwheel();
+        K_NC_Output.k_collision() ? K_NC_Output.potwheel();
+        K_NC_Input.K_collision() ? K_NC_Input.potwheel();
+        );
+        
+    
+        
+             mouse_wheel=0;
+             caller = 1;
+            );
+         
+       
+        K_I_Saturation.dragging ? (K_I_Saturation.potdrag(); K_I_Saturation.readout(2);caller = 1;);
+        K_I_Gain.dragging ? (K_I_Gain.potdrag(); K_I_Gain.readout(2);caller = 1;);
+        K_I_Noise.dragging ? (K_I_Noise.potdrag(); K_I_Noise.readout(2);caller = 1;);
+        K_I_HPF.dragging ? (K_I_HPF.potdrag(); K_I_HPF.readout_f(0);caller = 1;);
+        K_I_LPF.dragging ? (K_I_LPF.potdrag(); K_I_LPF.readout_f(0);caller = 1;);
+        K_C_Thresh.dragging ? (K_C_Thresh.potdrag(); K_C_Thresh.readout(2);caller = 1;);
+        K_C_Ratio.dragging ? (K_C_Ratio.potdrag(); K_C_Ratio.readout(2);caller = 1;);
+        K_C_Attack.dragging ? (K_C_Attack.potdrag(); K_C_Attack.readout(2);caller = 1;);
+        K_C_Release.dragging ? (K_C_Release.potdrag(); K_C_Release.readout(2);caller = 1;);
+        K_C_Output.dragging ? (K_C_Output.potdrag(); K_C_Output.readout(2);caller = 1;);
+        K_G_Thresh.dragging ? (K_G_Thresh.potdrag(); K_G_Thresh.readout(2);caller = 1;);
+        K_G_Hyst.dragging ? (K_G_Hyst.potdrag(); K_G_Hyst.readout(2);caller = 1;);
+        K_G_Attack.dragging ? (K_G_Attack.potdrag(); K_G_Attack.readout(2);caller = 1;);
+        K_G_Release.dragging ? (K_G_Release.potdrag(); K_G_Release.readout(2);caller = 1;);
+        K_G_Hold.dragging ? (K_G_Hold.potdrag(); K_G_Hold.readout(2);caller = 1;);
+       K_E_High_Gain.dragging ? (K_E_High_Gain.potdrag(); K_E_High_Gain.readout(2);caller = 1;);
+       K_E_High_Freq.dragging ? (K_E_High_Freq.potdrag(); K_E_High_Freq.readout_f(2);caller = 1;);
+       K_E_HMF_Gain.dragging ? (K_E_HMF_Gain.potdrag(); K_E_HMF_Gain.readout(2);caller = 1;);
+       K_E_HMF_Freq.dragging ? (K_E_HMF_Freq.potdrag(); K_E_HMF_Freq.readout_f(2);caller = 1;);
+       K_E_HMF_Q.dragging ? (K_E_HMF_Q.potdrag(); K_E_HMF_Q.readout(2);caller = 1;);
+       K_E_Low_Gain.dragging ? (K_E_Low_Gain.potdrag(); K_E_Low_Gain.readout(2);caller = 1;);
+       K_E_Low_Freq.dragging ? (K_E_Low_Freq.potdrag(); K_E_Low_Freq.readout_f(2);caller = 1;);
+       K_E_LMF_Gain.dragging ? (K_E_LMF_Gain.potdrag(); K_E_LMF_Gain.readout(2);caller = 1;);
+       K_E_LMF_Freq.dragging ? (K_E_LMF_Freq.potdrag(); K_E_LMF_Freq.readout_f(2);caller = 1;);
+       K_E_LMF_Q.dragging ? (K_E_LMF_Q.potdrag(); K_E_LMF_Q.readout(2);caller = 1;);
+       K_O_Calib.dragging ? (K_O_Calib.potdrag(); K_O_Calib.readout(2);caller = 1;);
+       K_O_Output.dragging ? (K_O_Output.potdrag(); K_O_Output.readout(2);caller = 1;);
+       K_O_Softclip.dragging ? (K_O_Softclip.potdrag(); K_O_Softclip.readout(2);caller = 1;);
+       K_O_Hardclip.dragging ? (K_O_Hardclip.potdrag(); K_O_Hardclip.readout(2);caller = 1;);
+       
+       
+       K_VCA_Thresh.dragging ? (K_VCA_Thresh.potdrag(); K_VCA_Thresh.readout(2);caller = 1;);
+       K_VCA_Attack.dragging ? (K_VCA_Attack.potdrag();  K_VCA_Attack.readout_time(1);caller = 1;);
+       K_VCA_Release.dragging ? (K_VCA_Release.potdrag(); K_VCA_Release.readout_time(2);caller = 1;);
+       K_VCA_Output.dragging ? (K_VCA_Output.potdrag(); K_VCA_Output.readout(2);caller = 1;);
+       
+       K_LA2_Reduct.dragging ? (K_LA2_Reduct.potdrag(); K_LA2_Reduct.readout(0);caller = 1;);
+       K_LA2_Gain.dragging ? (K_LA2_Gain.potdrag(); K_LA2_Gain.readout(0);caller = 1;);
+       
+       
+       K_NC_Input.dragging ? (K_NC_Input.potdrag(); K_NC_Input.readout(2);caller = 1;);
+       K_NC_Attack.dragging ? (K_NC_Attack.potdrag();  K_NC_Attack.readout_flex(820-slider(K_NC_Attack.slider),0, 2);caller = 1;);
+       K_NC_Release.dragging ? (K_NC_Release.potdrag(); K_NC_Release.readout_flex(1110-slider(K_NC_Release.slider),0, 1);caller = 1;);
+       K_NC_Output.dragging ? (K_NC_Output.potdrag(); K_NC_Output.readout(2);caller = 1;);
+       
+       
+       ); // !number_input
+  
+       gfx_a=1;
+       number_input ? NISlider ? number_input_show_freq() : 
+       VCA_NI ? VCA_number_input_show() : number_input_show();
+       //OEQ_NI == 1 ? number_input
+       number_input_invalid = max(0,number_input_invalid-1);
+       number_input_invalid ? ( 
+       gfx_r=gfx_g=gfx_b=0;
+       gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+       gfx_r=0;gfx_g=1;gfx_b=0;
+       gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+       red();
+       gfx_rect(zoom*number_input_x + gfx_texth+5,zoom*number_input_y, 200*zoom - (gfx_texth+5), gfx_texth+5);
+       gfx_r=gfx_g=gfx_b=0.7;
+       gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+       gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+       white();
+       gfx_drawstr("NO VALID INPUT!");
+       );
+       
+      
+       Link_Group == 0 ? (
+       gmem[16*64 + 3] == 0 ? linkstart = 0;
+       !mouse_cap ? (
+       gmem[16*64 + 3] == 1 ? (linkstart == 0 ? link_old = slider(gmem[16*64 + 1]); linkstart = 1);
+       gmem[16*64 + 3] == 1 ? (
+            tmp_val = link_old +  gmem[16*64 + 2];
+       slider(gmem[16*64 + 1]) = tmp_val;
+       slider_automate(slider(gmem[16*64 + 1]));
+       caller = 1;
+       );
+       gmem[16*64 + 3] == 2 ? (
+       slider(gmem[16*64 + 1]) =  gmem[16*64 + 2];
+       caller = 1;
+       );
+       );
+       );
+     
+     
+  ////////////////////////////////////////////////////////////////////////////////////////////// ENDE MAUS STEUERUNG
+  
+  
+  
+  
+  
+  
+  
+  
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+  
+  gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+  //gfx_blit(menu,zoom/2,0);
+  lightgrey(); //red();
+  gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+  gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 5*zoom;
+  gfx_drawstr("TUKAN STUDIOS  -  SUM CHANNEL "); 
+  gfx_setfont(1,"Arial",12*zoom,'i');
+  lakeblue(); gfx_drawstr(" SERIES 2   ");
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+  
+  
+  link_group ? (
+    rgb_palette(Link_group);// gfx_a = 0.7;
+    gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+  );
+  gfx_a = 1;
+  
+  
+   mouseClick ? (
+    g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+     gfx_x = menu_x*zoom;
+     gfx_y = (menu_y+20)*zoom;
+      
+       #item2 =">Processing|";#allitems = #item2;
+      while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+      while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+      while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+  
+      mnu_grp_loop = 1;
+      loop(16,
+  
+        mnu_grp_loop == 16 ? #item2 += "<";
+        gmem[16*64 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+          mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                  #item2 = "!Joins Group ";
+          ):(
+              #item2 = "Add to Group ";
+          );
+        ):(
+          #item2 = "Start Group ";
+        );
+      mnu_grp_loop == 1 ? #item2 += "01";
+      mnu_grp_loop == 2 ? #item2 += "02";
+      mnu_grp_loop == 3 ? #item2 += "03";
+      mnu_grp_loop == 4 ? #item2 += "04";
+      mnu_grp_loop == 5 ? #item2 += "05";
+      mnu_grp_loop == 6 ? #item2 += "06";
+      mnu_grp_loop == 7 ? #item2 += "07";
+      mnu_grp_loop == 8 ? #item2 += "08";
+      mnu_grp_loop == 9 ? #item2 += "09";
+      mnu_grp_loop == 10 ? #item2 += "10";
+      mnu_grp_loop == 11 ? #item2 += "11";
+      mnu_grp_loop == 12 ? #item2 += "12";
+      mnu_grp_loop == 13 ? #item2 += "13";
+      mnu_grp_loop == 14 ? #item2 += "14";
+      mnu_grp_loop == 15 ? #item2 += "15";
+      mnu_grp_loop == 16 ? #item2 += "16";
+      
+      #item2 += "|";
+      #allitems += #item2; //sprintf(#temp, '%f',3); 
+      mnu_grp_loop += 1;
+      );
+      
+      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+  
+      //#allitems += "<#MENU|";
+     #allitems += ">Scaling|";
+     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+   
+   #allitems += ">MCP / TCP|";
+  eflag == 0 ? #allitems += "!Output VU|" : #allitems += "Output VU|";
+  eflag == 1 ? #allitems += "<!Gain Reduction VU|" : #allitems +="<Gain Reduction VU|";
+
+     
+     slider52 == 1 ? #allitems += "!Bypass input stage|" : #allitems +="Bypass input stage|";
+     slider54 == 1 ? #allitems += "!Show input gain|" : #allitems +="Show input gain|";
+     #allitems += ">Compressor Stack Meters|>LED Meters|";
+     slider79 == 0 ? #allitems += "!Never|" : #allitems +="Never|";
+     slider79 == 1 ? #allitems += "!Use alternatively|" : #allitems +="Use alternatively|";
+     slider79 == 2 ? #allitems += "<!Always|" : #allitems +="<Always|";
+     #allitems += ">MCP / TCP|";
+     slider80 == 0 ? #allitems += "!LA-2KAN|" : #allitems += "LA-2KAN|";
+     slider80 == 1 ? #allitems += "<!NC76|<" : #allitems += "<NC76|<";
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+  
+  
+  
+  
+   
+   last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+   last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+   last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+  
+    cgroup = last_clicked_item - 3;
+   last_clicked_item > 3 && last_clicked_item < 20 ? (
+      Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+          gmem[16*64 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+              //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+              gmem[16*64 + 10 + cgroup] = 1;Link_Group = cgroup;group_update();
+          ):(
+              Link_Group = cgroup;// Gruppe teilnehmen
+          );
+      ):( //Eigene Gruppe angeklickt
+            Link_Group = 0;
+      );
+   
+   );
+   
+    cgroup = last_clicked_item - 3 - 16;
+   last_clicked_item == 20 ? (
+     gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
+   );
+   
+   
+   
+   
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1;
+  
+   last_clicked_item ==23 ? (eflag = 0; caller = 1);
+   last_clicked_item ==24 ? (eflag = 1; caller = 1);
+   
+   last_clicked_item ==25 ? (slider52 == 0 ? slider52 = 1 : slider52 = 0; caller = 1);
+   last_clicked_item ==26 ? (slider54 == 0 ? slider54 = 1 : slider54 = 0; caller = 1);
+   
+   last_clicked_item ==27 ? (slider79 = 0; caller = 1);
+   last_clicked_item ==28 ? (slider79 = 1; caller = 1);
+   last_clicked_item ==29 ? (slider79 = 2; caller = 1);
+   
+   last_clicked_item ==30 ? (slider80 = 0; caller = 1);
+   last_clicked_item ==31 ? (slider80 = 1; caller = 1);
+   
+   last_clicked_item == 32 ? helpshow = 1;
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS SUM CHANNEL (Series 2)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(SUMchan_VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("Mouse modifier options:");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Fine tune knobs: [shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset knobs: [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Activate number typing: [alt]+[shift]");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   ):gfx_ext_flags == 1 ? (
+     gfx_ext_flags_old = gfx_ext_flags;
+     
+   gfx_a = 1;
+   black(); gfx_a = 1;
+   gfx_rect(0,0,gfx_w,gfx_h);
+
+   
+   gfx_w / gfx_h < 236 / 78 ? (
+   zoom = gfx_w / 130;gfx_setfont(1,"Arial",zoom*18,'b');
+      eflag == 0 ? landr_VU_Meter.mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+      eflag == 1 ? (
+        comp_selection < 2 ? GR_VU_meter.mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection == 2 ? (gfx_x = gfx_w - (gfx_w / 30) * -VCA_Comp.gfx_gr; gfx_y = 0; red(); gfx_rectto(gfx_w, gfx_h/3); sprintf(#tmpstr, "%.1f", VCA_Comp.gfx_gr); #tmpstr+=" dB"; lightgrey(); gfx_x = gfx_y = 0; gfx_drawstr(#tmpstr, 5, gfx_w, gfx_h));
+        comp_selection == 3 ? LA2.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection == 4 ? NC76.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection > 4 ? (
+          slider80 == 0 ? LA2.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+          slider80 == 1 ? NC76.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        );
+      );
+   ):(
+   zoom = gfx_h/42;gfx_setfont(1,"Arial",zoom*18,'b');
+      eflag == 0 ? landr_VU_Meter.mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+      eflag == 1 ? (
+        comp_selection < 2 ? GR_VU_meter.mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection == 2 ? (gfx_x = gfx_w - (gfx_w / 30) * -VCA_Comp.gfx_gr; gfx_y = 0; red(); gfx_rectto(gfx_w, gfx_h/3); sprintf(#tmpstr, "%.1f", VCA_Comp.gfx_gr); #tmpstr+=" dB"; lightgrey(); gfx_x = gfx_y = 0; gfx_drawstr(#tmpstr, 5, gfx_w, gfx_h));
+        comp_selection == 3 ? LA2.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection == 4 ? NC76.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        comp_selection  > 4 ? (
+          slider80 == 0 ? LA2.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+          slider80 == 1 ? NC76.GRmeter.obj_mnmetergfx(zoom*0.7, 0, 0, 25+my_ST_mode);
+        );
+      );
+   );
+
+
+ 
+   gfx_setfont(1,"Arial",zoom*18,'b');
+   #mini_group = sprintf(#, "%i", Link_Group);
+   gfx_measurestr(#mini_group, mini_w, mini_h);
+   gfx_x = gfx_w - mini_w - 2; gfx_y = 2;
+   Link_Group ? (
+     black(); // rgb_palette(Link_group);
+     gfx_drawstr(#mini_group);
+   );
+   
+   #mini_group = sprintf(#, "%i", SumThing_Group);
+   gfx_measurestr(#mini_group, mini_w, mini_h);
+   gfx_x = gfx_w - mini_w - 2*zoom; gfx_y = gfx_h - mini_h - 2;
+   SumThing_Group ? (
+     black(); // rgb_palette(Link_group);
+     gfx_drawstr(#mini_group);
+   );
+   
+   general_Bypass == 1 ? (
+   gfx_a = 0.4;
+   black();
+   gfx_rect(0,0,gfx_w,gfx_h);
+   white(); gfx_a = 1;
+   gfx_measurestr("BYPASSED", mini_w, mini_h);
+   gfx_x = gfx_w / 2 - mini_w / 2;
+   gfx_y = gfx_h / 2 - mini_h / 2;
+   gfx_drawstr("BYPASSED");
+   );
+      
+      
+   mouseclick == 1 ? (
+   shift ? slider51 == 0 ? slider51 = 1 : slider51 = 0; 
+   caller = 1;
+   );
+   
+   
+   mouse_cap == 2 ? (
+   #allitems = ">GROUPS|No Group|Group 1|Group 2|Group 3|Group 4|Group 5|Group 6|Group 7|Group 8|Group 9|Group 10|Group 11|Group 12|Group 13|Group 14|Group 15|<Group 16|";
+   
+   #allitems += ">DESK|No Desk|Desk 1|Desk 2|<Desk 3|";
+   
+   #allitems += ">VU METER|";
+   eflag == 0 ? #allitems += "!Output VU|" : #allitems += "Output VU|";
+   eflag == 1 ? #allitems += "<!Gain Reduction VU|" : #allitems +="<Gain Reduction VU|";
+   #allitems += ">Stacked Compressors|";
+   slider80 == 0 ? #allitems += "!LA-2KAN|" : #allitems += "LA-2KAN|";
+   slider80 == 1 ? #allitems += "<!NC76|" : #allitems += "<NC76|";
+   
+   gfx_x = ST_Group_select_x; gfx_y = ST_Group_select_y;
+   gfx_x = 0; gfx_y = 0;
+   last_clicked_item = gfx_showmenu(#allitems);
+   last_clicked_item > 0 ? last_clicked_item < 18 ? slider1 = last_clicked_item-1;
+   last_clicked_item > 17 ? last_clicked_item < 22 ? slider2 = last_clicked_item-1-17;
+   last_clicked_item > 21 ? last_clicked_item < 24 ? eflag = last_clicked_item-1-21;
+   last_clicked_item ==24 ? (slider80 = 0; caller = 1);
+   last_clicked_item ==25 ? (slider80 = 1; caller = 1);
+   caller = 1;
+   );
+   
+   ); // ext flags
+   
+   S2_sample_on == 0 ? (
+slider1 > 0 ? (
+slider1 == 1 ? slider2 != _global.SumThingS2_1-0.3 ? caller = 1;
+slider1 == 2 ? slider2 != _global.SumThingS2_2-0.3 ? caller = 1;
+slider1 == 3 ? slider2 != _global.SumThingS2_3-0.3 ? caller = 1;
+slider1 == 4 ? slider2 != _global.SumThingS2_4-0.3 ? caller = 1;
+slider1 == 5 ? slider2 != _global.SumThingS2_5-0.3 ? caller = 1;
+slider1 == 6 ? slider2 != _global.SumThingS2_6-0.3 ? caller = 1;
+slider1 == 7 ? slider2 != _global.SumThingS2_7-0.3 ? caller = 1;
+slider1 == 8 ? slider2 != _global.SumThingS2_8-0.3 ? caller = 1;
+slider1 == 9 ? slider2 != _global.SumThingS2_9-0.3 ? caller = 1;
+slider1 == 10 ? slider2 != _global.SumThingS2_10-0.3 ? caller = 1;
+slider1 == 11 ? slider2 != _global.SumThingS2_11-0.3 ? caller = 1;
+slider1 == 12 ? slider2 != _global.SumThingS2_12-0.3 ? caller = 1;
+slider1 == 13 ? slider2 != _global.SumThingS2_13-0.3 ? caller = 1;
+slider1 == 14 ? slider2 != _global.SumThingS2_14-0.3 ? caller = 1;
+slider1 == 15 ? slider2 != _global.SumThingS2_15-0.3 ? caller = 1;
+slider1 == 16 ? slider2 != _global.SumThingS2_16-0.3 ? caller = 1;
+);
+
+   
+   gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+   group_check_gfx();
+   caller == 1 ? (
+     parameters_update_on == 0 ? (
+       parameters_update();
+     );
+   );
+   );
+   S2_sample_on = 0;
