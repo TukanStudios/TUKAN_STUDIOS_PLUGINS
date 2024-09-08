@@ -1,0 +1,265 @@
+desc:ABXNULL S2 (Tukan)
+
+slider1:Listen=0<0,3,1{A, B, X, Delta}>-Listen
+
+options:No_meter
+options:gfx_hz=60
+options:gmem=TukanToolS2
+//options:gfx_idle
+
+in_pin:L in A
+in_pin:R in A
+
+in_pin:L in B
+in_pin:R in B
+
+out_pin:L out
+out_pin:R out
+
+
+
+import S2GFX/tk_lib.jsfx-inc
+
+filename:0,S2GFX/S2_logo.png
+
+
+@init
+Version = 1.16;
+mouse_sensivity();
+
+rollback_delta = db2ratio(-4/srate);
+
+fader = 1;
+
+
+
+
+
+
+@serialize
+file_var(0, guessed_count);
+file_var(0, guessed_statistic);
+file_var(0, X_count);
+
+
+
+
+
+
+
+
+@sample
+
+meter_delta_L = max(meter_delta_L*rollback_delta, 0.000001);
+meter_delta_R = max(meter_delta_R*rollback_delta, 0.000001);
+
+play_state != play_state_old ? (
+  result = 0;
+  play_state_old = play_state;
+  delta_L = delta_r = 0;
+);
+
+delta_L = spl0 - spl2;//abs(ratio2db(spl0) - ratio2db(spl2));
+delta_R = spl1 - spl3;
+
+delta_L + delta_R != 0 ? result = 1;
+
+meter_delta_L = max(meter_delta_L, delta_L);
+meter_delta_R = max(meter_delta_R, delta_R);
+
+listen == 0 ? (
+nothing_happens;
+): listen == 1 ? (
+spl0 = spl2; spl1 = spl3;
+): listen == 3 ? (
+spl0 = spl0 - spl2;
+spl1 = spl1 - spl3;
+): Listen == 2 ? (
+Signal_X == 0 ? (nothing_happens):(spl0 = spl2; spl1 = spl3);
+);
+
+listenprepare == 1 ? (
+fader > 0 && listen != 2 ? (
+fader -= 30 / srate;
+spl0 *= fader;
+spl1 *= fader;
+):(
+listen = 2;
+fader += 30 / srate;
+spl0 *= fader;
+spl1 *= fader;
+fader > 0.999 ? (
+fader = 1;
+listenprepare = 0;
+);
+);
+);
+
+@gfx 560 160
+
+s2_zoom_X = gfx_w / 560;
+s2_zoom_y = gfx_h / 160;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+ 
+ 
+black(); gfx_rect(0,0,gfx_w, gfx_h);
+
+
+gfx_setfont(1,"Arial",12*zoom,'b');
+gfx_x = gfx_y = 0;
+Result ? (
+red();
+gfx_rect(20*zoom,20*zoom, 45*zoom, 45*zoom);
+lightgrey();
+gfx_x = 70*zoom; gfx_y = 35*zoom;
+gfx_drawstr("Signals differ!");
+):(
+green();
+gfx_rect(20*zoom,20*zoom, 45*zoom, 45*zoom);
+lightgrey();
+gfx_x = 70*zoom; gfx_y = 35*zoom;
+gfx_drawstr("Signals identical");
+);
+
+listen == 0 ? green() : rgb(170,170,170);
+listen == 2 ? rgb(100,190,255);
+gfx_rect(20*zoom,100*zoom, 45*zoom, 45*zoom);
+listen == 1 ? green() : rgb(170,170,170);
+listen == 2 ? rgb(100,190,255);
+gfx_rect(80*zoom,100*zoom, 45*zoom, 45*zoom);
+listen == 3 ? green() : rgb(170,170,170);
+listen == 2 ? rgb(100,100,100);
+gfx_rect(140*zoom,100*zoom, 45*zoom, 45*zoom);
+listen == 2 ? green() : rgb(100,190,255);
+gfx_rect(200*zoom,20*zoom, 45*zoom, 45*zoom);
+//gfx_drawstr("Delta L : "); gfx_drawnumber(ratio2db(meter_delta_L),2); gfx_drawstr("dB  -  ");
+//gfx_drawstr("Delta R : "); gfx_drawnumber(ratio2db(meter_delta_R),2); gfx_drawstr("dB");
+
+
+
+lightgrey();
+gfx_x = 20*zoom; gfx_y = 80*zoom;
+listen != 2 ? (
+gfx_drawstr("YOU'RE LISTENING TO SIGNAL ");
+listen == 0 ? gfx_drawstr("'A' NOW.");
+listen == 1 ? gfx_drawstr("'B' NOW.");
+listen == 3 ? gfx_drawstr("'Delta' NOW.");
+):(
+gfx_drawstr("What do you think you hear, 'A' or 'B'?");
+);
+
+
+
+
+gfx_roundrect(16*zoom, 16*zoom, 155*zoom, 52*zoom, 0);
+gfx_roundrect(196*zoom, 16*zoom, 52*zoom, 52*zoom, 0);
+
+gfx_roundrect(294*zoom, 16*zoom, 242*zoom, 136*zoom, 0);
+
+
+gfx_roundrect(12*zoom, 76*zoom, 265*zoom, 76*zoom, 0);
+
+gfx_roundrect(16*zoom, 96*zoom, 52*zoom, 52*zoom, 0);
+gfx_roundrect(76*zoom, 96*zoom, 52*zoom, 52*zoom, 0);
+gfx_roundrect(136*zoom, 96*zoom, 52*zoom, 52*zoom, 0);
+
+
+black(); 
+gfx_setfont(1,"Arial",35*zoom,'b');
+
+gfx_x = 29*zoom; gfx_y = 103*zoom;
+gfx_drawstr("A");
+gfx_x = 89*zoom; gfx_y = 103*zoom;
+gfx_drawstr("B");
+gfx_x = 211*zoom; gfx_y = 23*zoom;
+listen == 2 ? gfx_drawstr("?") : gfx_drawstr("X");
+
+gfx_x = 150*zoom; gfx_y = 103*zoom;
+gfx_drawstr("Δ");
+
+gfx_x = 29*zoom; gfx_y = 23*zoom;
+result == 0 ? (gfx_x += 3*zoom; gfx_drawstr("0")) : (gfx_drawstr("Δ"));
+
+
+
+gfx_x = 460*zoom; gfx_y = 70*zoom;
+gfx_blit(0,0.6,0);
+
+
+
+gfx_setfont(1,"Arial",12*zoom,'b');
+
+
+lightgrey();
+gfx_x = 300*zoom; gfx_y = 22*zoom;
+GFX_Drawstr("You ABXed "); gfx_drawnumber(x_count,0); gfx_drawstr(" times now.");
+gfx_x = 456*zoom; gfx_y = 22*zoom;
+GFX_Drawstr("RESET");
+gfx_roundrect(453*zoom, 20*zoom, 45*zoom, 16*zoom,0);
+
+gfx_x = 300*zoom; gfx_y = 42*zoom;
+x_count < 10 ? (
+GFX_Drawstr("Do it at least 10 times for results...");
+):(
+guessed_statistic < 66.666 ? (rgb(255,100,100); GFX_Drawstr("You're not hearing the difference.")):
+guessed_statistic < 80 ? (rgb(255,100,100); GFX_Drawstr("Difference is so small, "); gfx_x = 300*zoom; gfx_y = 62*zoom; gfx_drawstr("you're still more likely guessing.")):
+guessed_statistic < 90 ? (rgb(255,200,100); GFX_Drawstr("The difference seems audible to you.")):
+guessed_statistic < 100 ? (rgb(255,255,100); GFX_Drawstr("The difference is audible to you.")):
+(rgb(100,255,100); GFX_Drawstr("You can 100% hear the difference."));
+
+);
+
+
+
+mouseClick ==1 ? (
+choice_done = 0;
+
+
+listen == 2 ? (
+g_collision(20*zoom,100*zoom, 45*zoom, 45*zoom) ? (listen = 0; choice = 0);
+g_collision(80*zoom,100*zoom, 45*zoom, 45*zoom) ? (listen = 1; choice = 1);
+choice > -1 ? (
+  choice_done = 1; 
+  choice == Signal_X ? (guessed = 1; guessed_count += 1;) : (guessed = 0);
+   guessed_statistic = 100*guessed_count/X_count;
+);
+):(
+g_collision(200*zoom,20*zoom, 45*zoom, 45*zoom) ? (Signal_X = floor(rand(2)); fader = listenprepare = 1; choice = -1; X_Count += 1);
+g_collision(20*zoom,100*zoom, 45*zoom, 45*zoom) ? (listen = 0;);
+g_collision(80*zoom,100*zoom, 45*zoom, 45*zoom) ? (listen = 1;);
+g_collision(140*zoom,100*zoom, 45*zoom, 45*zoom) ? (listen = 3;);
+
+g_collision(453*zoom, 20*zoom, 45*zoom, 16*zoom) ? (X_Count = 0; guessed_count = 0; guessed_statistic = 0);
+);
+
+
+);
+
+choice_done ? (
+guessed ? green() : red();
+gfx_x = 300*zoom; gfx_y =85*zoom;
+guessed ? gfx_drawstr("CORRECT!") : gfx_drawstr("NO, SORRY");
+gfx_x = 300*zoom; gfx_y = 100*zoom;
+gfx_drawstr("YOU HEARED "); Signal_X == 0 ? gfx_drawstr("A") : gfx_drawstr("B");
+gfx_x = 300*zoom; gfx_y = 115*zoom;
+guessed ? (gfx_drawstr("Don't forget to try a couple of times"); gfx_x = 300*zoom; gfx_y = 130*zoom; gfx_drawstr("to verify the result.")) : (gfx_drawstr("Try again ;)"));
+);

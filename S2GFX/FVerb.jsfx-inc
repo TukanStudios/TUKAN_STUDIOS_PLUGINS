@@ -1,0 +1,2242 @@
+desc: general JSFX utility routines
+author: Dr. Thomas Tensi, 2019
+
+@init
+    //========================================
+
+    // several constants
+    true  = (1 == 1);
+    false = !true;
+    twoPi = 2 * $pi;
+    maximumInteger = 2147483647;
+
+    // no-operation statement
+    pass = -1;
+
+    // fast processing is enabled by default
+    isCheckedMode = (isCheckedMode != 0);
+
+    //--------------------
+
+    function degreesToRadians (x)
+        /** Returns degrees for <x> in radians */
+    (
+        x / 360 * twoPi
+    );
+
+    //--------------------
+
+    function forceToRange (value, lowBound, highBound, isInteger)
+        /** Returns <value> forced into range
+           (<lowBound>,<highBound>); if <isInteger< is set, the
+           returned value is an integer */
+        local (result)
+    (
+        result = min(highBound, max(value, lowBound));
+	    result = isInteger ? floor(result) : result;
+	    result
+    );
+
+    //--------------------
+
+    function forceToRange (value, lowBound, highBound)
+        /** Returns <value> forced into range
+           (<lowBound>,<highBound>) */
+    (
+        forceToRange(value, lowBound, highBound, false)
+    );
+
+    //--------------------
+
+    function forceToPercentage (value, isInteger)
+        /** Returns <value> forced into range (0, 100); if <isInteger<
+            is set, the returned value is an integer */
+    (
+        forceToRange(value, 0, 100, isInteger)
+    );
+
+    //--------------------
+
+    function forceToPercentage (value)
+        /** Returns <value> forced into range (0, 100) */
+    (
+        forceToPercentage(value, false)
+    );
+
+    //--------------------
+
+    function fractionalPart (value)
+        /** Returns fractional part of <value> between -1 and +1 with
+            the sign of value */
+        local (result)
+    (
+        result = abs(value);
+        result -= floor(result);
+        result *= sign(value);
+        result
+    );
+
+    //--------------------
+
+    function iif (condition, trueValue, falseValue)
+        /** Returns result of a conditional expression with all
+	    parameters evaluated */
+    (
+        condition ? trueValue : falseValue
+    );
+
+    //--------------------
+
+    function iif (conditionA, valueA, conditionB, valueB, elseValue)
+        /** Returns result of a two-way conditional expression with
+	    all parameters evaluated */
+    (
+        iif(conditionA, valueA, iif(conditionB, valueB, elseValue))
+    );
+
+    //--------------------
+
+    function iif (conditionA, valueA, conditionB, valueB,
+		   conditionC, valueC, elseValue)
+        /** Returns result of a three-way conditional expression with
+	    all parameters evaluated */
+    (
+        iif(conditionA, valueA,
+	        iif(conditionB, valueB, conditionC, valueC, elseValue))
+    );
+
+    //--------------------
+
+    function iif (conditionA, valueA, conditionB, valueB,
+		           conditionC, valueC, conditionD, valueD,
+                   elseValue)
+        /** Returns result of a four-way conditional expression with
+	    all parameters evaluated */
+    (
+        iif(conditionA, valueA,
+	        iif(conditionB, valueB, conditionC, valueC,
+                conditionD, valueD, elseValue))
+    );
+
+    //--------------------
+
+    function ln (x)
+        /** returns the natural logarithm of <x> */
+    (
+        log(x)
+    );
+
+    //--------------------
+
+    function mod (x, i)
+        /** Returns the integer modulus; brings <x> into the range
+            [0,d) */
+    (
+        (x + i) % i
+    );
+
+    //--------------------
+
+    function modulo (x, d)
+        /** Returns the real modulus; brings <x> into the range
+            [0,d) */
+    (
+        d > 0.00001 ? (
+            while (x >= d) (
+                x -= d;
+            );
+
+            while (x < 0) (
+                x += d;
+            );
+        );
+
+        x
+    );
+
+    //--------------------
+
+    function radiansToDegrees (x)
+        /** Returns radians for <x> in degrees */
+    (
+        x * 360 / twoPi
+    );
+
+    //--------------------
+
+    function round (x)
+        /** Returns the rounded form of <x> */
+    (
+        x >= 0 ? floor(x + 0.5) : ceil(x - 0.5)
+    );
+
+    //--------------------
+
+    function sinh (x)
+        /** Returns the hyperbolic sine of <x> */
+    (
+        (exp(x) - exp(-x)) / 2
+    );
+
+    //-------------------------
+    // primitive error handling
+    //-------------------------
+
+    function signalError (errorCode)
+        /** Writes <errorCode> to memory cell 0 */
+    (
+        0[] = errorCode;
+    );
+
+    //========================================
+    //========================================
+
+    null = -1;
+
+    // structure type definition: Memory_ListElement
+    Memory_ListElement_SIZE = 3;
+    Memory_ListElement_next     = 0;
+    Memory_ListElement_previous = 1;
+    Memory_ListElement_length   = 2;
+
+    //========================================
+
+    function Memory_initialize ()
+        /** Initializes free block list */
+        local (block firstBlock secondBlock)
+    (
+        firstBlock = 1;
+        secondBlock = firstBlock + Memory_ListElement_SIZE;
+
+        block = firstBlock;
+        block[Memory_ListElement_next]     = secondBlock;
+        block[Memory_ListElement_previous] = null;
+        block[Memory_ListElement_length]   = 0;
+
+        block = secondBlock;
+        block[Memory_ListElement_next]     = null;
+        block[Memory_ListElement_previous] = firstBlock;
+        block[Memory_ListElement_length]   = __memtop();
+
+        Memory_freePtr = firstBlock;
+    );
+
+    //--------------------
+    //--------------------
+
+    function ADDR (object, offset)
+        /** returns the address of field within <object> with offset
+            address <offset> */
+    (
+        object + offset
+    );
+
+    //--------------------
+
+    function ARRAYADDR (list, i, size)
+        /** Returns the address of array element within <list> with
+            index <i> and element size <size> */
+    (
+        list + i * size
+    );
+
+    //--------------------
+    //--------------------
+
+    function Memory_allocateRaw (length)
+        /** Allocates <length> cells in local heap memory */
+        local(blockLength elementPtr freeBlockPtr nextFreeBlock previousPtr)
+    (
+        length = max(length, 0);
+
+        // search for free block: first fit
+        elementPtr  = Memory_freePtr;
+
+        while (
+            elementPtr  = elementPtr[Memory_ListElement_next];
+            blockLength = elementPtr[Memory_ListElement_length];
+            blockLength < length + 1
+        );
+
+        // assume search has not failed: make new free block
+        freeBlockPtr = elementPtr + length + 1;
+        previousPtr  = elementPtr[Memory_ListElement_previous];
+        previousPtr[Memory_ListElement_next] = freeBlockPtr;
+        freeBlockPtr[Memory_ListElement_next] =
+            elementPtr[Memory_ListElement_next];
+        freeBlockPtr[Memory_ListElement_previous] = previousPtr;
+        freeBlockPtr[Memory_ListElement_length] = blockLength - length - 1;
+
+        // store length in block and return <ptr>
+        elementPtr[0] = length;
+        elementPtr += 1;
+        elementPtr
+    );
+
+    //-----
+
+    function Memory_allocate (length)
+        /** Allocates <length> cells in local heap memory and set to
+	        zero */
+        local(result)
+    (
+        result = Memory_allocateRaw(length);
+        memset(result, 0, length);
+        result
+    );
+
+    //-----
+
+    function Memory_allocateArray (count, elementSize)
+        /** Allocates <count> array cells in local heap memory and set
+            to zero */
+        local(result totalCount)
+    (
+        totalCount = count * elementSize;
+        result = Memory_allocate(totalCount);
+        result
+    );
+
+    //-----
+
+    function Memory_set (self, count, value)
+        /** Sets <count> cells at <self> to <value> */
+    (
+        memset(self, value, count);
+    );
+
+    //-----
+
+    function Memory_free (self)
+        /** Frees cells in local heap memory at <self> */
+        local(length other)
+    (
+        self -= 1;
+        length = self[0] + 1;
+        other = Memory_freePtr[Memory_ListElement_next];
+
+        self + length != other ? (
+            // just relink this block
+            self[Memory_ListElement_next]      = other;
+            other[Memory_ListElement_previous] = self;
+        ) : (
+            // merge this and the immediately following block
+            length += other[Memory_ListElement_length];
+            self[Memory_ListElement_next] = other[Memory_ListElement_next];
+            Memory_set(other, Memory_ListElement_SIZE, 0);
+        );
+
+        self[Memory_ListElement_previous] = Memory_freePtr;
+        self[Memory_ListElement_length]   = length;
+        Memory_freePtr[Memory_ListElement_next] = self;
+    );
+
+    //========================================
+
+    Memory_initialize();
+    //============================================================
+
+    // parameters for doing a shift and masking based storage of
+    // bitset data
+    IntegerSet_bitsPerWord = 31;
+
+    //--------------------
+    // LOCAL ROUTINES
+    //--------------------
+
+    function IntegerSet_contains (set, value)
+        /** Checks whether <set> contains <value> */
+        local (position offset)
+    (
+	    position = floor(value / IntegerSet_bitsPerWord) + 1;
+	    offset   = value % IntegerSet_bitsPerWord;
+	    (set[position] & (1 << offset)) > 0
+    );
+
+    //--------------------
+
+    function IntegerSet_wordCount (maximumValue)
+        /** Returns the count of words necessary for storing a bitset
+   	        from 0 to <maximumValue> */
+    (
+        ceil((maximumValue + 1) / IntegerSet_bitsPerWord)
+    );
+
+    //--------------------
+
+    function IntegerSet_fill (set, value)
+        /** Sets all word values in <set> to <value> */
+        local (wordCount)
+    (
+        wordCount = IntegerSet_wordCount(set[0]);
+        Memory_set(ADDR(set, 1), wordCount, value);
+    );
+
+    //--------------------
+    // EXPORTED ROUTINES
+    //--------------------
+
+    function IntegerSet_make (maximumValue)
+        /** Makes an integer set from 0 to <maximumValue> as a bitset */
+        local (self)
+    (
+        self = Memory_allocate(1 + IntegerSet_wordCount(maximumValue));
+	    self[0] = maximumValue;
+        self
+    );
+
+    //--------------------
+
+    function IntegerSet_clear (set)
+        /** Clears all values from <set> */
+    (
+        IntegerSet_fill(set, 0);
+    );
+
+    //--------------------
+
+    function IntegerSet_contains (set, value)
+        /** Checks whether <set> contains <value> */
+        local (result)
+    (
+        0 <= value && value <= set[0] ? (
+	        result = IntegerSet_contains(set, value);
+	    ) : (
+	        result = false;
+	    );
+
+	    result
+    );
+
+    //--------------------
+
+    function IntegerSet_exclude (set, value)
+        /** Removes <value> from <set> if in range */
+        local (position offset)
+    (
+        0 <= value && value <= set[0] ? (
+	        position = floor(value / IntegerSet_bitsPerWord) + 1;
+	        offset   = value % IntegerSet_bitsPerWord;
+	        set[position] ~= (1 << offset);
+        )
+    );
+
+    //--------------------
+
+    function IntegerSet_fill (set)
+        /** Fills all values in <set> */
+        local (fillValue)
+    (
+        fillValue = 2 ^ IntegerSet_bitsPerWord - 1;
+        IntegerSet_fill(set, fillValue);
+    );
+
+    //--------------------
+
+    function IntegerSet_include (set, value)
+        /** Adds <value> to <set> if in range */
+        local (position offset)
+    (
+        0 <= value && value <= set[0] ? (
+	    position = floor(value / IntegerSet_bitsPerWord) + 1;
+	    offset   = value % IntegerSet_bitsPerWord;
+	    set[position] |= (1 << offset);
+        )
+    );
+
+    //--------------------
+
+    function IntegerSet_lookup (set)
+        /** Returns first value in <set>; -1 otherwise */
+        local (i isFound maximumValue result value wordCount)
+    (
+        isFound = false;
+        wordCount = IntegerSet_wordCount(set[0]);
+	    value = 0;
+        i = 1;
+
+	    while (i <= wordCount && !isFound) (
+	        isFound = (set[i] > 0);
+
+	        !isFound ? (
+		        i += 1;
+		        value += IntegerSet_bitsPerWord;
+	        )
+	    );
+
+        result = -1;
+	    maximumValue = set[0];
+
+	    isFound ? (
+            isFound = false;
+
+	        while (value <= maximumValue && !isFound) (
+		        isFound = IntegerSet_contains(set, value);
+
+		        isFound ? (
+		            result = value;
+		        ) : (
+		            value += 1;
+		        )
+	        )
+        );
+
+	    result
+    );
+   //========================================
+
+    FixedArray_firstErrorCode = 999900;
+
+    //--------------------
+
+    function FixedArray_positionIsOkay (self, position)
+        /** Checks whether <position> is in range of <self> */
+    (
+        0 < position && position <= self[0]
+    );
+
+    //--------------------
+
+    function FixedArray_addressCHECKED (self, position)
+        /** Gets address of element in <self> at <position> (with
+            bounds checking) */
+        local (result)
+    (
+        FixedArray_positionIsOkay(self, position) ? (
+            result = ADDR(self, position);
+        ) : (
+            result = maximumInteger;
+            signalError(FixedArray_firstErrorCode + 1);
+        );
+
+        result
+    );
+
+    //--------------------
+
+    function FixedArray_addressFAST (self, position)
+        /** Gets address of element in <self> at <position> (without
+            bounds checking) */
+    (
+        self + position
+    );
+
+    //--------------------
+
+    function FixedArray_getAtCHECKED (self, position)
+        /** Gets element in <self> at <position> (with bounds
+            checking) */
+        local (result)
+    (
+        FixedArray_positionIsOkay(self, position) ? (
+            result = self[position];
+        ) : (
+            result = 0;
+            signalError(FixedArray_firstErrorCode + 2);
+        );
+
+        result
+    );
+
+    //--------------------
+
+    function FixedArray_getAtFAST (self, position)
+        /** Gets element in <self> at <position> (without bounds
+            checking) */
+    (
+        self[position]
+    );
+
+    //--------------------
+
+    function FixedArray_setAtCHECKED (self, position, value)
+        /** Sets element in <self> at <position> to <value> (with
+            bounds checking) */
+    (
+        FixedArray_positionIsOkay(self, position) ? (
+            self[position] = value;
+        ) : (
+            signalError(FixedArray_firstErrorCode + 3);
+        );
+    );
+
+    //--------------------
+
+    function FixedArray_setAtFAST (self, position, value)
+        /** Sets element in <self> at <position> to <value> (without
+            bounds checking) */
+    (
+        self[position] = value;
+    );
+
+    //--------------------
+    // EXPORTED ROUTINES
+    //--------------------
+
+    function FixedArray_make (length)
+        /** Makes a fixed self with <length> elements */
+        local (self)
+    (
+        // first entry contains the length, rest are the elements
+        self = Memory_allocate(length + 1);
+        self[0] = length;
+        self
+    );
+
+    //--------------------
+
+    function FixedArray_address (self, position)
+        /** Gets address of element in <self> at <position> */
+        local (result)
+    (
+        isCheckedMode ? (
+            result = FixedArray_addressCHECKED(self, position);
+        ) : (
+            result = FixedArray_addressFAST(self, position);
+        );
+
+        result
+    );
+
+    //--------------------
+
+    function FixedArray_fill (self, value)
+        /** Fills <self> with entries of <value> */
+    (
+        Memory_set(self + 1, self[0], value);
+    );
+
+    //--------------------
+
+    function FixedArray_clear (self)
+        /** Clears <self> to zero entries */
+    (
+        FixedArray_fill(self, 0);
+    );
+
+    //--------------------
+
+    function FixedArray_getAt (self, position)
+        /** Gets element in <self> at <position> */
+        local (result)
+    (
+        isCheckedMode ? (
+            result = FixedArray_getAtCHECKED(self, position);
+        ) : (
+            result = FixedArray_getAtFAST(self, position);
+        );
+
+        result
+    );
+
+    //--------------------
+
+    function FixedArray_length (self)
+        /** Gets length of <self> */
+    (
+        self[0]
+    );
+
+    //--------------------
+
+    function FixedArray_setAt (self, position, value)
+        /** Sets element in <self> at <position> to <value> */
+    (
+        isCheckedMode ? (
+            FixedArray_setAtCHECKED(self, position, value);
+        ) : (
+            FixedArray_setAtFAST(self, position, value);
+        );
+    );
+
+    //========================================
+    //============================================================
+
+    String_maximumValue = 1023;
+    String_slotIsFree = IntegerSet_make(String_maximumValue);
+    IntegerSet_fill(String_slotIsFree);
+
+    //--------------------
+    //--------------------
+
+    function String_make ()
+        /** Returns a new string */
+        local (self)
+    (
+        self = IntegerSet_lookup(String_slotIsFree);
+	    IntegerSet_exclude(String_slotIsFree, self);
+        self
+    );
+
+    //--------------------
+
+    function String_destroy (st)
+        /** Destroys string <st> */
+    (
+        IntegerSet_include(String_slotIsFree, st);
+    );
+
+    //--------------------
+    //--------------------
+
+    function String_length (st)
+        /** Tells length of string <st> */
+    (
+	    strlen(st);
+    );
+
+    //--------------------
+
+    function String_isEqual (st, other)
+        /** Tells whether string <other> and <st> are equal */
+    (
+	    strcmp(st, other) == 0;
+    );
+
+    //--------------------
+
+    function String_append (st, other)
+        /** Appends string <other> to <st> */
+    (
+	    strcat(st, other);
+    );
+
+    //--------------------
+
+    function String_copy (st, other)
+        /** Assigns string <other> to <st> */
+    (
+	    strcpy(st, other);
+    );
+
+    //--------------------
+
+    function String_clear (st)
+        /** Clears string <st> */
+    (
+	    strcpy(st, "");
+    );
+
+    //------------------------------
+    // overloaded substring function
+    //------------------------------
+
+    function String_substring (st, other, start, count)
+        /** Copies substring of <other> to <st> starting from <start>
+            with <count> characters */
+    (
+	    strcpy_substr(st, other, start, count);
+    );
+
+    //--------------------
+
+    function String_substring (st, other, start)
+        /** Copies substring of <other> to <st> starting from <start> */
+    (
+	    strcpy_substr(st, other, start, 1000000);
+    );
+
+    //---------------------------
+    // overloaded format function
+    //---------------------------
+
+    function String_format (st, template, x1)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1);
+    );
+
+    //--------------------
+
+    function String_format (st, template, x1, x2)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1, x2);
+    );
+
+    //--------------------
+
+    function String_format (st, template, x1, x2, x3)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1, x2, x3);
+    );
+
+    //--------------------
+
+    function String_format (st, template, x1, x2, x3, x4)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1, x2, x3, x4);
+    );
+
+    //--------------------
+
+    function String_format (st, template, x1, x2, x3, x4, x5)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1, x2, x3, x4, x5);
+    );
+
+    //--------------------
+
+    function String_format (st, template, x1, x2, x3, x4, x5, x6)
+        /** Formats <xi> to according to template to <st> */
+    (
+	    sprintf(st, template, x1, x2, x3, x4, x5, x6);
+    );
+
+    //--------------------
+
+    function String_startsWith (st, other)
+        /** Tells whether <st> starts with <other> */
+        local (otherLength prefix result)
+    (
+        prefix = String_make();
+	    otherLength = String_length(other);
+        String_substring(prefix, st, 0, otherLength);
+        result = String_isEqual(prefix, other);
+        String_destroy(prefix);
+        result
+    );
+
+    //============================================================
+    //========================================
+    // Color
+    //========================================
+
+    function Graphics_Color_bluePart (self)
+        /** Returns the blue component of <self> */
+    (
+        self & 0xFF
+    );
+
+    //--------------------
+
+    function Graphics_Color_greenPart (self)
+        /** Returns the green component of <self> */
+    (
+        (self >> 8) & 0xFF
+    );
+
+    //--------------------
+
+    function Graphics_Color_redPart (self)
+        /** Returns the red component of <self> */
+    (
+        (self >> 16) & 0xFF
+    );
+
+    //--------------------
+
+    function Graphics_Color_set (self)
+        /** Sets current color to <self> */
+        local (blue green red)
+    (
+        blue  = Graphics_Color_bluePart(self);
+        green = Graphics_Color_greenPart(self);
+        red   = Graphics_Color_redPart(self);
+        gfx_set(red, green, blue);
+    );
+
+    //--------------------
+
+    function Graphics_Color_make (red, green, blue)
+        /** Returns a new color combined from parts <red>, <green>
+        and <blue> between 0 and 1 */
+    (
+        blue  = forceToRange(blue * 255, 0, 255, true);
+        green = forceToRange(green * 255, 0, 255, true);
+        red   = forceToRange(red * 255, 0, 255, true);
+        blue + (green + red << 8) << 8
+    );
+
+    //--------------------
+
+    Graphics_Color_black       = Graphics_Color_make(  0,   0,   0);
+    Graphics_Color_darkBlue    = Graphics_Color_make(  0,   0, 0.5);
+    Graphics_Color_blue        = Graphics_Color_make(  0,   0,   1);
+    Graphics_Color_darkGreen   = Graphics_Color_make(  0, 0.5,   0);
+    Graphics_Color_green       = Graphics_Color_make(  0,   1,   0);
+    Graphics_Color_darkCyan    = Graphics_Color_make(  0, 0.5, 0.5);
+    Graphics_Color_cyan        = Graphics_Color_make(  0,   1,   1);
+    Graphics_Color_darkRed     = Graphics_Color_make(0.5,   0,   0);
+    Graphics_Color_red         = Graphics_Color_make(  1,   0,   0);
+    Graphics_Color_darkMagenta = Graphics_Color_make(0.5,   0, 0.5);
+    Graphics_Color_magenta     = Graphics_Color_make(  1,   0,   1);
+    Graphics_Color_darkYellow  = Graphics_Color_make(0.5, 0.5,   0);
+    Graphics_Color_yellow      = Graphics_Color_make(  1,   1,   0);
+    Graphics_Color_grey        = Graphics_Color_make(0.5, 0.5, 0.5);
+    Graphics_Color_white       = Graphics_Color_make(  1,   1,   1);
+
+    //========================================
+    // General Graphics
+    //========================================
+
+    function Graphics_clear (color)
+        /** Sets background to colour specified by <color> */
+    (
+        Graphics_color_set(color);
+        gfx_rect(0, 0, gfx_w, gfx_h);
+    );
+
+    //========================================
+    // Graphics Memory, Text & String Matrix
+    //========================================
+
+    Graphics_Font_name = "Courier New";
+    Graphics_Font_size = 20;
+
+    Graphics_Mode_COUNT = 3;
+    Graphics_Mode_effect   = 0;
+    Graphics_Mode_memory   = 1;
+    Graphics_Mode_string   = 2;
+    Graphics_Mode_textData = 3;
+
+    Graphics_currentMode = Graphics_Mode_effect;
+
+    Graphics_MTSMatrix_maximumIndexList = null;
+    Graphics_MTSMatrix_startIndexList   = null;
+    Graphics_MTSMatrix_dataTable        = null;
+
+    // data entries in MTS matrix
+    Graphics_MTSMatrix_TextEntry_SIZE = 2;
+    Graphics_MTSMatrix_TextEntry_color  = 0;
+    Graphics_MTSMatrix_TextEntry_string = 1;
+
+    Graphics_MTSMatrix_dataMaximumCount = 300;
+
+    //--------------------
+    //--------------------
+
+    function Graphics_MTSMatrix_clearDataTable ()
+        /** Sets data matrix to empty */
+    (
+        FixedArray_setAt(Graphics_MTSMatrix_startIndexList,
+                         Graphics_Mode_textData, 0);
+        FixedArray_setAt(Graphics_MTSMatrix_maximumIndexList,
+                         Graphics_Mode_textData, 0);
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_initialize ()
+        /** Initializes internal data of data matrix */
+        local (textEntry i maList totalCount vaList)
+    (
+        // initialize maximum address and view address lists
+        maList = FixedArray_make(Graphics_Mode_COUNT);
+        Graphics_MTSMatrix_maximumIndexList = maList;
+        FixedArray_setAt(maList, Graphics_Mode_memory,
+                         __memtop());
+        FixedArray_setAt(maList, Graphics_Mode_string, 1023);
+
+        vaList = FixedArray_make(Graphics_Mode_COUNT);
+        Graphics_MTSMatrix_startIndexList = vaList;
+        FixedArray_setAt(vaList, Graphics_Mode_memory, 0);
+        FixedArray_setAt(vaList, Graphics_Mode_string, 0);
+
+        // initialize data entry list
+        totalCount = Graphics_MTSMatrix_dataMaximumCount;
+        Graphics_MTSMatrix_dataTable =
+            Memory_allocateArray(totalCount,
+                                 Graphics_MTSMatrix_TextEntry_SIZE);
+        i = 1;
+
+        while (i <= totalCount) (
+            textEntry = ARRAYADDR(Graphics_MTSMatrix_dataTable, i - 1,
+                                  Graphics_MTSMatrix_TextEntry_SIZE);
+            textEntry[Graphics_MTSMatrix_TextEntry_string] =
+                String_make();
+            i += 1;
+        );
+
+        Graphics_MTSMatrix_clearDataTable();
+        Graphics_currentMode = Graphics_Mode_effect;
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_columnCount ()
+        /** Tells the column count of the memory matrix calculated
+            from width and standard column */
+        local (h referenceWidth st)
+    (
+        st = iif(Graphics_currentMode == Graphics_Mode_memory,
+                     "00000: 000000000000 ",
+                 Graphics_currentMode == Graphics_Mode_string,
+                     "0000: XXXXXXXXXXXXXXX ",
+                 Graphics_currentMode == Graphics_Mode_textData,
+                     "XXXXXXXXXXXXXXXXXXXX ",
+                 "X");
+        gfx_measurestr(st, referenceWidth, h);
+        max(1, floor(gfx_w / referenceWidth))
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_rowCount ()
+        /** Tells the row count of the memory matrix calculated
+            from height and textheight */
+    (
+        max(1, floor(gfx_h / gfx_texth))
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_showEntry (index)
+        /** Shows memory, data or string matrix in current
+            mode */
+        local (color indexTemplate isString st template textEntry)
+    (
+        st == 0 ? (
+            st = String_make();
+        );
+
+        Graphics_currentMode > 0 ? (
+            Graphics_currentMode == Graphics_Mode_textData ? (
+                textEntry =
+                    ARRAYADDR(Graphics_MTSMatrix_dataTable,
+                              index, Graphics_MTSMatrix_TextEntry_SIZE);
+                color = textEntry[Graphics_MTSMatrix_TextEntry_color];
+                Graphics_color_set(color);
+                String_copy(st,
+                            textEntry[Graphics_MTSMatrix_TextEntry_string]);
+                gfx_drawstr(st);
+            ) : (
+                isString =
+                    (Graphics_currentMode == Graphics_Mode_string);
+                template = (isString ? "%4d: " : "%5d: ");
+                Graphics_color_set(Graphics_Color_darkGreen);
+                gfx_printf(template, index);
+                Graphics_color_set(Graphics_Color_white);
+                data = (isString ? index : index[]);
+                template = (isString ? "%.15s"
+                            : (floor(data) == data ? "%12i"
+                               : "%+5.4e"));
+                gfx_printf(template, data);
+            );
+        );
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_show ()
+        /** Shows contents of memory, data or string matrix depending
+            on current mode and start index and maximum index
+            settings */
+        local (columnCount columnIndex data deltaX deltaY
+               index maximumIndex rowCount rowIndex x)
+    (
+        Graphics_currentMode > 0 ? (
+            gfx_setfont(1, Graphics_Font_name, Graphics_Font_size);
+            columnCount = Graphics_MTSMatrix_columnCount();
+            rowCount    = Graphics_MTSMatrix_rowCount();
+            deltaX = gfx_w / columnCount;
+            deltaY = gfx_h / rowCount;
+            index =
+                FixedArray_getAt(Graphics_MTSMatrix_startIndexList,
+                                 Graphics_currentMode);
+            maximumindex =
+                FixedArray_getAt(Graphics_MTSMatrix_maximumIndexList,
+                                 Graphics_currentMode);
+            columnIndex = 1;
+
+            while (columnIndex <= columnCount) (
+                x = deltaX * (columnIndex - 1);
+                rowIndex = 1;
+
+                while (rowIndex <= rowCount) (
+                    index <= maximumIndex ? (
+                        gfx_x = x;
+                        gfx_y = deltaY * (rowIndex - 1);
+                        Graphics_MTSMatrix_showEntry(index);
+                        index += 1;
+                    );
+
+                    rowIndex += 1;
+                );
+
+                columnIndex += 1;
+            );
+        );
+    );
+
+    //--------------------
+
+    function Graphics_MTSMatrix_addTextEntry (color, st)
+        /** Adds data entry at next position to (<color>,<st>) */
+        local (index textEntry)
+    (
+        index =
+            FixedArray_getAt(Graphics_MTSMatrix_maximumIndexList,
+                             Graphics_Mode_textData);
+
+        index < Graphics_MTSMatrix_dataMaximumCount ? (
+            textEntry = ARRAYADDR(Graphics_MTSMatrix_dataTable, index,
+                                  Graphics_MTSMatrix_TextEntry_SIZE);
+            index += 1;
+            FixedArray_setAt(Graphics_MTSMatrix_maximumIndexList,
+                             Graphics_Mode_textData, index);
+            textEntry[Graphics_MTSMatrix_TextEntry_color] = color;
+            String_copy(textEntry[Graphics_MTSMatrix_TextEntry_string],
+                        st);
+        );
+    );
+
+    //--------------------
+
+    key_0     = $'0';
+    key_plus  = $'+';
+    key_minus = $'-';
+    key_d     = $'d';
+    key_e     = $'e';
+    key_m     = $'m';
+    key_s     = $'s';
+
+    //--------------------
+
+    function Graphics_MTSMatrix_handleKey (key)
+        /** Handles <key> in MTS matrix; if processed, 0 is returned,
+            otherwise the key itself */
+        local (index pageSize result)
+    (
+        result = iif(key == key_d || key == key_m
+                     || key == key_n || key == key_s, 0, key);
+        Graphics_currentMode =
+            iif(key == key_d, Graphics_Mode_textData,
+                key == key_e, Graphics_Mode_effect,
+                key == key_m, Graphics_Mode_memory,
+                key == key_s, Graphics_Mode_string,
+                Graphics_currentMode);
+        pageSize = (Graphics_MTSMatrix_rowCount() 
+                    * Graphics_MTSMatrix_columnCount());
+
+        Graphics_currentMode == Graphics_Mode_effect ? (
+            Graphics_clear(Graphics_Color_black);
+        ) : (
+            maximumIndex =
+                FixedArray_getAt(Graphics_MTSMatrix_maximumIndexList,
+                                 Graphics_currentMode);
+            startIndex =
+                FixedArray_getAt(Graphics_MTSMatrix_startIndexList,
+                                 Graphics_currentMode);
+            startIndex =
+                iif(key == key_plus,  startIndex + pageSize,
+                    key == key_minus, startIndex - pageSize,
+                    key == key_0,     0, startIndex);
+            startIndex =
+                forceToRange(startIndex, 0, maximumIndex, true);
+
+            FixedArray_setAt(Graphics_MTSMatrix_startIndexList,
+                             Graphics_currentMode, startIndex);
+            Graphics_MTSMatrix_show();
+            result = 0;
+        );
+
+        result
+    );
+
+    //============================================================
+
+    Graphics_MTSMatrix_initialize();
+
+//============================================================
+    //========================================
+    // Debugging routines
+    //========================================
+
+    Debug_headingColor1 = Graphics_color_yellow;
+    Debug_headingColor2 = Graphics_color_green;
+    Debug_standardColor = Graphics_color_white;
+
+    //--------------------
+
+    function Debug_clear ()
+        /** Resets debugging output */
+    (
+        Graphics_MTSMatrix_clearDataTable();
+    );
+
+    //--------------------
+
+    function Debug_printLine (color, st)
+        /** Prints <st> in debug matrix in <color> and advances
+            cursor; overprints last cell if necessary */
+    (
+        Graphics_MTSMatrix_addTextEntry(color, st);
+    );
+
+    //--------------------
+
+    function Debug_printLine (st)
+        /** Prints <st> in debug matrix and advances
+            cursor; overprints last cell if necessary */
+    (
+        Debug_printLine(Debug_standardColor, st);
+    );
+
+    //--------------------
+
+    function Debug_printValue (name, value)
+        /** Prints <name> and <value> in debug matrix and
+            advances cursor; overprints last cell if necessary */
+        local (color localName st)
+    (
+        st = String_make();
+        localName = String_make();
+
+        String_startsWith(name, "[H1]") ? (
+            color = Debug_headingColor1;
+            String_substring(localName, name, 4);
+        ) : String_startsWith(name, "[H2]") ? (
+            color = Debug_headingColor2;
+            String_substring(localName, name, 4);
+        ) : (
+            color = Debug_standardColor;
+            String_copy(localName, name);
+        );
+
+        String_format(st, "%s: %5.4e", localName, value);
+        Debug_printLine(color, st);
+        
+        String_destroy(localName);
+        String_destroy(st);
+    );
+    //========================================
+
+    SOX_channelCount = 2;
+    // effective channel count for this effect
+
+    SOX_maximumChannelCount = 2;
+    // maximum number of supported channels
+
+    //--------------------
+
+    function SOX_dBToLinear (dBValue)
+        /** returns linear factor for <dBValue> */
+    (
+        10.0 ^ (dBValue / 20);
+    );
+
+    //--------------------
+
+    SOX_inputSampleList  = FixedArray_make(SOX_maximumChannelCount);
+    SOX_outputSampleList = FixedArray_make(SOX_maximumChannelCount);
+
+    //--------------------
+
+    function SOX_readInputSampleList ()
+        /** Reads input samples into inputSampleList */
+        local (channel channelCount sampleList)
+    (
+        channelCount = SOX_channelCount;
+        sampleList = SOX_inputSampleList;
+        channel = 1;
+
+        while (channel <= channelCount) (
+	        FixedArray_setAt(sampleList, channel, spl(channel - 1));
+            channel += 1;
+        );
+    );
+
+    //--------------------
+
+    function SOX_setInputSampleList (s0, s1)
+    (
+        FixedArray_setAt(SOX_inputSampleList, 1, s0);
+        FixedArray_setAt(SOX_inputSampleList, 2, s1);
+    );
+
+    //--------------------
+
+    function SOX_writeSampleList (sampleList, channelCount)
+        /** Writes first <channelCount> entries of <sampleList> to
+            output channels */
+        local (channel)
+    (
+	    // write all channel samples
+        channel = 1;
+
+        while (channel <= channelCount) (
+	        spl(channel - 1) = FixedArray_getAt(sampleList, channel);
+            channel += 1;
+        );
+    );
+
+    //--------------------
+
+    function SOX_writeSampleList (sampleList)
+        /** Writes all entries of <sampleList> to output channels */
+    (
+        SOX_writeSampleList(sampleList, FixedArray_length(sampleList));
+    );
+
+    //--------------------
+
+    function SOX_writeOutputSampleList ()
+        /** Writes two channels of standard output sample list to
+            output channels */
+    (
+        SOX_writeSampleList(SOX_outputSampleList, SOX_channelCount);
+    );
+
+    //========================================
+
+
+   //========================================
+
+    // the sox sample queue is a fixed length ring buffer with
+    // a pointer onto the top element
+
+    //--------------------
+    // LOCAL FEATURES
+    //--------------------
+
+    SOXSampleQueue_allocatedLength = 0;
+    SOXSampleQueue_length          = 1;
+    SOXSampleQueue_firstIndex      = 2;  // contains index from start
+                                         // of array!
+    SOXSampleQueue_startIndex      = 3;
+
+    //--------------------
+
+    function SOXSampleQueue_index (self, position)
+        /** Returns index for <self> at <position> (where position
+            starts at 1) */
+        local (firstIndex length result)
+    (
+        length     = self[SOXSampleQueue_length];
+        firstIndex = self[SOXSampleQueue_firstIndex];
+        result = firstIndex + position - 1;
+        result = (SOXSampleQueue_startIndex
+                  + mod(result - SOXSampleQueue_startIndex, length));
+        result
+    );
+
+    //--------------------
+    // EXPORTED FEATURES
+    //--------------------
+
+    function SOXSampleQueue_setToZero (self)
+        /** Sets contents of sample queue <self> to zero */
+        local (length)
+    (
+        length = self[SOXSampleQueue_length];
+        self[SOXSampleQueue_firstIndex] = SOXSampleQueue_startIndex;
+        Memory_set(ADDR(self, SOXSampleQueue_startIndex), length, 0);
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_make (length)
+        /** Makes a sample queue with at most <length> entries */
+        local (self)
+    (
+        self = Memory_allocate(length + SOXSampleQueue_startIndex);
+        self[SOXSampleQueue_allocatedLength] = length;
+        self[SOXSampleQueue_length]          = length;
+        SOXSampleQueue_setToZero(self);
+        self
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_setEffectiveLength (self, length)
+        /** Sets effective length of queue <self> to <length> entries */
+        local (allocatedLength)
+    (
+        allocatedLength = self[SOXSampleQueue_allocatedLength];
+
+        length <= allocatedLength ? (
+            self[SOXSampleQueue_length] = length;
+        );
+
+        SOXSampleQueue_setToZero(self);
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_length (self)
+        /** Returns effective length of queue <self> */
+    (
+        self[SOXSampleQueue_length]
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_getAt (self, position)
+        /** Gets sample in <self> at <position> (where position starts
+            at 1) */
+        local (index)
+    (
+        index = SOXSampleQueue_index(self, position);
+        self[index]
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_first (self)
+        /** Gets first sample of <self> */
+        local (firstIndex)
+    (
+        firstIndex = self[SOXSampleQueue_firstIndex];
+        self[firstIndex]
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_last (self)
+        /** Gets last sample of <self> */
+    (
+        SOXSampleQueue_getAt(self, self[SOXSampleQueue_length])
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_setAt (self, position, value)
+        /** Sets sample in <self> at <position> to <value> (where
+            position starts at 1) */
+        local (index)
+    (
+        index = SOXSampleQueue_index(self, position);
+        self[index] = value;
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_setFirst (self, value)
+        /** Sets first sample  of <self> to <value> */
+        local (firstIndex)
+    (
+        firstIndex = self[SOXSampleQueue_firstIndex];
+        self[firstIndex] = value;
+    );
+
+    //--------------------
+
+   function SOXSampleQueue_setLast (self, value)
+        /** Sets last sample of <self> to <value> */
+    (
+        SOXSampleQueue_setAt(self, self[SOXSampleQueue_length], value);
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_shiftLeft (self, value)
+        /** Shifts contents of <self> by one position to the left
+            (making space for a new bottom entry); value is inserted
+            as the bottom entry */
+        local (length firstIndex)
+    (
+        length = self[SOXSampleQueue_length];
+        firstIndex = self[SOXSampleQueue_firstIndex];
+        self[firstIndex] = value;
+        firstIndex = (SOXSampleQueue_startIndex
+                      + mod(firstIndex + 1 - SOXSampleQueue_startIndex,
+                            length));
+        self[SOXSampleQueue_firstIndex] = firstIndex;
+    );
+
+    //--------------------
+
+    function SOXSampleQueue_shiftRight (self, value)
+        /** Shifts contents of <self> by one position to the right
+            (making space for a new first entry); value is inserted as
+            the new first entry */
+        local (length firstIndex)
+    (
+        length = self[SOXSampleQueue_length];
+        firstIndex = self[SOXSampleQueue_firstIndex];
+        firstIndex = (SOXSampleQueue_startIndex
+                      + mod(firstIndex - 1 - SOXSampleQueue_startIndex,
+                            length));
+        self[SOXSampleQueue_firstIndex] = firstIndex;
+        self[firstIndex] = value;
+    );
+
+    //--------------------
+    // SOXSampleQueueList
+    // providing sample queues for all input/output channels
+    //--------------------
+
+    function SOXSampleQueueList_make (queueLength, hasTwoQueuesPerChannel)
+        /** Makes a list of sample queues for each channel with queues
+            having length <queueLength>; depending on
+            <hasTwoQueuesPerChannel> either one or two queues are
+            provided per channel */
+        local (channel i result sampleQueue totalCount)
+    (
+        totalCount = SOX_channelCount * (hasTwoQueuesPerChannel ? 2 : 1);
+        result = FixedArray_make(totalCount);
+        i = 1;
+
+        while (i <= totalCount) (
+            sampleQueue = SOXSampleQueue_make(queueLength);
+            FixedArray_setAt(result, i, sampleQueue);
+            i += 1;
+        );
+
+        result
+    );
+
+    //--------------------
+
+    function SOXSampleQueueList_setToZero (self)
+        /** Sets all sample queues in <self> to all zeros */
+        local (i length sampleQueue)
+    (
+        length = FixedArray_length(self);
+        i = 1;
+
+        while (i <= length) (
+            sampleQueue = FixedArray_getAt(self, i);
+            SOXSampleQueue_setToZero(sampleQueue);
+            i += 1;
+        );
+    );
+
+    //========================================
+    //============================================================
+
+    // configuration parameters
+    SOXReverb_maximumRoomScale   = 1.0;
+    SOXReverb_maximumStereoDepth = 1.0;
+    SOXReverb_maximumPredelay    = 0.5;
+
+    // Freeverb construction parameters
+    SOXReverb_lineCombFilterCount    = 8;
+    SOXReverb_lineAllpassFilterCount = 4;
+    SOXReverb_stereoSpread = 12;
+    SOXReverb_allpassFactor = 0.5;
+
+    //--------------------
+    // AllpassFilter
+    //--------------------
+    // a simple allpass filter with an associated sample queue as a
+    // delay line
+    //--------------------
+
+    SOXAllpassFilter_SIZE = 1;
+    SOXAllpassFilter_sampleQueue = 1;
+
+    //--------------------
+
+    function SOXAllpassFilter_make (sampleQueue)
+        /** Makes allpass filter with given <sampleQueue> and returns
+            it */
+        local (self)
+    (
+        self = FixedArray_make(SOXAllpassFilter_SIZE);
+        FixedArray_setAt(self,
+                         SOXAllpassFilter_sampleQueue, sampleQueue);
+        self
+    );
+
+    //--------------------
+
+    function SOXAllpassFilter_apply (self, inputSample)
+        /** Applies allpass filter <self> to <inputSample> */
+        local (newSample outputSample sampleQueue)
+    (
+        sampleQueue = FixedArray_getAt(self,
+                                       SOXAllpassFilter_sampleQueue);
+        outputSample = SOXSampleQueue_first(sampleQueue);
+        newSample = inputSample + outputSample * SOXReverb_allpassFactor;
+        SOXSampleQueue_shiftLeft(sampleQueue, newSample);
+        outputSample - inputSample
+    );
+
+    //--------------------
+    // CombFilter
+    //--------------------
+    // a simple Schröder-Moorer comb filter with an associated sample
+    // queue as a delay line and a single stored sample
+    //--------------------
+
+    SOXCombFilter_SIZE = 2;
+    SOXCombFilter_sampleQueue  = 1;
+    SOXCombFilter_storedSample = 2;
+
+    //--------------------
+
+    function SOXCombFilter_make (sampleQueue)
+        /** Makes comb filter with given <sampleQueue> and returns it */
+        local (self)
+    (
+        self = FixedArray_make(SOXCombFilter_SIZE);
+        FixedArray_setAt(self, SOXCombFilter_sampleQueue, sampleQueue);
+        FixedArray_setAt(self, SOXCombFilter_storedSample, 0);
+        self
+    );
+
+    //--------------------
+
+    function SOXCombFilter_apply (self, inputSample, feedback, hfDamping)
+        /** Applies comb filter <self> to <inputSample> with
+            <feedback> and <hfDamping> */
+        local (outputSample sampleQueue storedSample)
+    (
+        sampleQueue  = FixedArray_getAt(self, SOXCombFilter_sampleQueue);
+        storedSample = FixedArray_getAt(self, SOXCombFilter_storedSample);
+
+        outputSample = SOXSampleQueue_first(sampleQueue);
+        storedSample = (outputSample
+                        + (storedSample - outputSample) * hfDamping);
+        inputSample += storedSample * feedback;
+        SOXSampleQueue_shiftLeft(sampleQueue, inputSample);
+        FixedArray_setAt(self, SOXCombFilter_storedSample, storedSample);
+        outputSample
+    );
+
+    //--------------------
+    // ReverbLineDelays
+    //--------------------
+    // the sample queues of filters in a reverb line: those apply
+    // either to comb or allpass filters; the coefficients are the
+    // canonical values for Freeverb
+    //--------------------
+
+    SOXReverbLineDelays_allpassFilterLengthList = null;
+    SOXReverbLineDelays_combFilterLengthList    = null;
+
+    SOXReverbLineDelays_referenceSampleRate = 44100.0;
+
+    //--------------------
+
+    function SOXReverbLineDelays_initialize ()
+        /** Initializes length lists for comb and allpass filters */
+        local (r)
+    (
+        r = FixedArray_make(SOXReverb_lineCombFilterCount);
+        FixedArray_setAt(r, 1, 1116);
+        FixedArray_setAt(r, 2, 1188);
+        FixedArray_setAt(r, 3, 1277);
+        FixedArray_setAt(r, 4, 1356);
+        FixedArray_setAt(r, 5, 1422);
+        FixedArray_setAt(r, 6, 1491);
+        FixedArray_setAt(r, 7, 1557);
+        FixedArray_setAt(r, 8, 1617);
+        SOXReverbLineDelays_combFilterLengthList = r;
+
+        r = FixedArray_make(SOXReverb_lineAllpassFilterCount);
+        FixedArray_setAt(r, 1, 225);
+        FixedArray_setAt(r, 2, 341);
+        FixedArray_setAt(r, 3, 441);
+        FixedArray_setAt(r, 4, 556);
+        SOXReverbLineDelays_allpassFilterLengthList = r;
+    );
+
+     //--------------------
+
+     function SOXReverbLineDelays_length (isCreation, isCombFilter,
+                                          index, sampleRate, roomScale,
+                                          stereoDepth)
+        /** Returns length of filter delay line for given parameters;
+            if <isCreation> is set, the maximum length for those
+            parameters is returned */
+        local (adjustment factor length lengthList offset result)
+    (
+        roomScale = iif(isCreation, SOXReverb_maximumRoomScale,
+                        isCombFilter, roomScale, 1.0);
+        factor = (sampleRate / SOXReverbLineDelays_referenceSampleRate
+                  * roomScale);
+        offset = iif(isCreation, SOXReverb_maximumStereoDepth,
+                     stereoDepth * (-1) ^ (index - 1));
+        lengthList = iif(isCombFilter,
+                         SOXReverbLineDelays_combFilterLengthList,
+                         SOXReverbLineDelays_allpassFilterLengthList);
+        length = FixedArray_getAt(lengthList, index);
+        adjustment = SOXReverb_stereoSpread;
+        result = round(factor * (length + adjustment * offset));
+        result
+    );
+
+    //--------------------
+    //--------------------
+
+    function SOXReverbLineDelays_make (isCombFilter, index, sampleRate)
+        /** Makes filter delay line for given parameters with maximum
+            length */
+        local (queueLength self)
+    (
+        // calculate maximum queue length with arbitrary values for
+        // <channel>, <roomScale> and <stereoDepth>
+        queueLength = SOXReverbLineDelays_length(true, isCombFilter,
+                                                 index, sampleRate, 0, 0);
+        self = SOXSampleQueue_make(queueLength);
+        self
+    );
+
+    //--------------------
+
+    function SOXReverbLineDelays_adjustLength (self, isCombFilter,
+                                               index, sampleRate,
+                                               roomScale, stereoDepth)
+        /** Adjusts lengths of filter queue <self> according to
+            parameters <isCombFilter>, <sampleRate>, <roomScale> and
+            <stereoDepth> to their effective length */
+        local (queueLength)
+    (
+        queueLength =
+            SOXReverbLineDelays_length(false, isCombFilter, index,
+                                       sampleRate, roomScale, stereoDepth);
+        SOXSampleQueue_setEffectiveLength(self, queueLength);
+    );
+
+    //--------------------
+    // ReverbLine
+    //--------------------
+    // a list of filters with delay lines forming a single channel
+    // in Freeverb
+    //--------------------
+
+    SOXReverbLine_SIZE = 4;
+    SOXReverbLine_combFilterSampleQueueList    = 1;
+    SOXReverbLine_allpassFilterSampleQueueList = 2;
+    SOXReverbLine_combFilterList               = 3;
+    SOXReverbLine_allpassFilterList            = 4;
+
+    //--------------------
+
+    function SOXReverbLine_make (sampleRate)
+        /** Constructs a complete reverb line and all filters; creates
+            all sample queues with maximum length to be adapted by
+            later adjustments */
+        local (elementCount filter filterList filterSampleQueueList
+               i isCombFilter listIndex sampleQueue self)
+    (
+        self = FixedArray_make(SOXReverbLine_SIZE);
+
+        // make the filter delay lines
+        listIndex  = SOXReverbLine_combFilterSampleQueueList;
+        elementCount = SOXReverb_lineCombFilterCount;
+        isCombFilter = true;
+
+        while (listIndex <= SOXReverbLine_allpassFilterSampleQueueList) (
+            filterSampleQueueList = FixedArray_make(elementCount);
+            FixedArray_setAt(self, listIndex, filterSampleQueueList);
+            i = 1;
+
+            while (i <= elementCount) (
+                sampleQueue =
+                    SOXReverbLineDelays_make(isCombFilter, i, sampleRate);
+                FixedArray_setAt(filterSampleQueueList, i, sampleQueue);
+                i += 1;
+            );
+
+            isCombFilter = !isCombFilter;
+            elementCount = SOXReverb_lineAllpassFilterCount;
+            listIndex += 1;
+        );
+
+        // make the filters and assign the preconstructed delay lines
+        listIndex = SOXReverbLine_combFilterList;
+        elementCount = SOXReverb_lineCombFilterCount;
+
+        while (listIndex <= SOXReverbLine_allpassFilterList) (
+            filterList = FixedArray_make(elementCount);
+            FixedArray_setAt(self, listIndex, filterList);
+            filterSampleQueueList = FixedArray_getAt(self, listIndex - 2);
+            i = 1;
+
+            while (i <= elementCount) (
+                sampleQueue = FixedArray_getAt(filterSampleQueueList, i);
+
+                isCombFilter ? (
+                    filter = SOXCombFilter_make(sampleQueue)
+                ) : (
+                    filter = SOXAllpassFilter_make(sampleQueue)
+                );
+
+                FixedArray_setAt(filterList, i, filter);
+                i += 1;
+            );
+
+            isCombFilter = !isCombFilter;
+            elementCount = SOXReverb_lineAllpassFilterCount;
+            listIndex += 1;
+        );
+
+        self
+    );
+
+    //--------------------
+    //--------------------
+
+    function SOXReverbLine_adjustQueueLengths (self, sampleRate,
+                                               roomScale, stereoDepth)
+        /** Adjusts lengths of all filter queues in reverb line <self>
+            according to parameters <sampleRate>, <roomScale> and
+            <stereoDepth> to their effective length */
+        local (filterSampleQueueList i isCombFilter
+               queueCount queueLength queueListIndex sampleQueue)
+    (
+        // adapt lengths of filter delay lines
+        queueListIndex = SOXReverbLine_combFilterSampleQueueList;
+        isCombFilter = true;
+
+        while (queueListIndex <= SOXReverbLine_allpassFilterSampleQueueList) (
+            filterSampleQueueList = FixedArray_getAt(self, queueListIndex);
+            queueCount = FixedArray_length(filterSampleQueueList);
+            i = 1;
+
+            while (i <= queueCount) (
+                sampleQueue = FixedArray_getAt(filterSampleQueueList, i);
+                SOXReverbLineDelays_adjustLength(sampleQueue,
+                                                 isCombFilter, i, sampleRate,
+                                                 roomScale, stereoDepth);
+                i += 1;
+            );
+
+            queueListIndex += 1;
+            isCombFilter = false;
+        );
+    );
+
+    //--------------------
+
+    function SOXReverbLine_apply (self, inputSample,
+                                  feedback, hfDamping, gain)
+        /** Applies reverb line <self> to <inputSample> and returns
+            output sample with parameters <feedback>, <hfDamping> and
+            <gain>; the comb filters are applied to the input in
+            parallel, the allpass filters in series */
+        local (filter filterList i outputSample)
+    (
+        // route input sample through the filters
+        outputSample = 0;
+
+        // process comb filters in parallel
+        i = SOXReverb_lineCombFilterCount;
+        filterList =
+            FixedArray_getAt(self, SOXReverbLine_combFilterList);
+
+        while (i >= 1) (
+            filter = FixedArray_getAt(filterList, i);
+            outputSample += SOXCombFilter_apply(filter, inputSample,
+                                                 feedback, hfDamping);
+            i -= 1;
+        );
+
+        // process allpass filters in series
+        i = SOXReverb_lineAllpassFilterCount;
+        filterList =
+            FixedArray_getAt(self, SOXReverbLine_allpassFilterList);
+
+        while (i >= 1) (
+            filter = FixedArray_getAt(filterList, i);
+            outputSample = SOXAllpassFilter_apply(filter, outputSample);
+            i -= 1;
+        );
+
+        outputSample *= gain;
+        outputSample
+    );
+
+    //--------------------
+
+    function SOXReverbLine_print (self)
+        /** Prints a representation of reverb line <self> to debug
+            output */
+        local (filter filterList filterListCount i index isCombFilter
+               listIndex sampleQueue st template)
+    (
+        st = String_make();
+
+        Debug_printLine("ReverbLine");
+        listIndex = SOXReverbLine_combFilterList;
+        isCombFilter = true;
+
+        while (listIndex <= SOXReverbLine_allpassFilterList) (
+            template = iif(isCombFilter, "cf(%d)", "af(%d)");
+            filterList = FixedArray_getAt(self, listIndex);
+            filterListCount = FixedArray_length(filterList);
+            i = 1;
+
+            while (i <= filterListCount) (
+                index = iif(isCombFilter, SOXCombFilter_sampleQueue,
+                            SOXAllpassFilter_sampleQueue);
+                filter = FixedArray_getAt(filterList, i);
+                String_format(st, template, i);
+                sampleQueue = FixedArray_getAt(filter, index);
+                Debug_printValue(st,
+                                 SOXSampleQueue_length(sampleQueue));
+                i += 1;
+            );
+
+            listIndex += 1;
+            isCombFilter = false;
+        );
+
+         String_destroy(st);
+    );
+
+    //--------------------
+    // Reverb Channel
+    //--------------------
+    // a reverb channel processes a single stereo channel via either
+    // one or two reverb lines (depending on whether stereo depth is
+    // greater than 0 or not); also there is a delay of the input
+    // sample via a channel delay line (when predelay is non-zero)
+    //--------------------
+
+    SOXReverbChannel_SIZE = 3;
+    SOXReverbChannel_inputSampleQueue  = 1;
+    SOXReverbChannel_reverbLineCount   = 2;
+    SOXReverbChannel_reverbLineList    = 3;
+
+    //--------------------
+    //--------------------
+
+    function SOXReverbChannel_make (sampleRate)
+        /** Constructs a complete reverb line with predelay line and
+            all filters for one channel; creates all sample queues
+            with maximum length to be adapted by later adjustments */
+        local (i inputSampleQueue maximumPredelayInSamples
+               reverbLine reverbLineCount reverbLineList self)
+    (
+        self = FixedArray_make(SOXReverbChannel_SIZE);
+
+        // make delay line for input (predelay)
+        maximumPredelayInSamples = round(sampleRate
+                                         * SOXReverb_maximumPredelay);
+        inputSampleQueue = SOXSampleQueue_make(maximumPredelayInSamples);
+        FixedArray_setAt(self, SOXReverbChannel_inputSampleQueue,
+                         inputSampleQueue);
+
+        reverbLineCount = 2;
+        FixedArray_setAt(self, SOXReverbChannel_reverbLineCount,
+                         reverbLineCount);
+
+        // make two reverb lines for possible stereo processing
+        reverbLineList = FixedArray_make(2);
+        FixedArray_setAt(self, SOXReverbChannel_reverbLineList,
+                         reverbLineList);
+        i = 1;
+
+        while (i <= reverbLineCount) (
+            reverbLine = SOXReverbLine_make(sampleRate);
+            FixedArray_setAt(reverbLineList, i, reverbLine);
+            i += 1;
+        );
+
+        self
+    );
+
+    //--------------------
+
+    function SOXReverbChannel_adjustQueueLengths (self, sampleRate,
+                                                  predelay, roomScale,
+                                                  stereoDepth)
+        /** Adjusts lengths of all filter queues in reverb channel
+            <self> according to parameters <sampleRate>, <roomScale>
+            and <stereoDepth> to their effective length; adjusts input
+            queue to length <predelay> */
+        local (effectiveStereoDepth i inputSampleQueue queueLength
+               reverbLine reverbLineCount reverbLineList)
+    (
+        // adapt length of predelay line
+        inputSampleQueue =
+            FixedArray_getAt(self, SOXReverbChannel_inputSampleQueue);
+        queueLength = round(predelay * sampleRate);
+        SOXSampleQueue_setEffectiveLength(inputSampleQueue, queueLength);
+
+        // adapt lengths of reverb lines; when stereo depth is zero,
+        // only a single reverb line is used per channel
+        reverbLineCount = (stereoDepth == 0 ? 1 : 2);
+        reverbLineList =
+            FixedArray_getAt(self, SOXReverbChannel_reverbLineList);
+        i = 1;
+
+        while (i <= reverbLineCount) (
+            reverbLine = FixedArray_getAt(reverbLineList, i);
+            effectiveStereoDepth = (i == 1 ? 0 : stereoDepth);
+            SOXReverbLine_adjustQueueLengths(reverbLine, sampleRate,
+                                             roomScale,
+                                             effectiveStereoDepth);
+            i += 1;
+        );
+
+        FixedArray_setAt(self, SOXReverbChannel_reverbLineCount,
+                         reverbLineCount);
+    );
+
+    //--------------------
+
+    function SOXReverbChannel_apply (self, inputSample,
+                                     feedback, hfDamping, gain,
+                                     outputSampleList)
+        /** Applies reverb channel <self> to <inputSample> and returns
+            output samples with parameters <feedback>, <hfDamping> and
+            <gain> in <outputSampleList> */
+        local (firstSample i outputSample inputSampleQueue
+               reverbLine reverbLineCount reverbLineList)
+    (
+        // check and process predelay
+        inputSampleQueue =
+            FixedArray_getAt(self, SOXReverbChannel_inputSampleQueue);
+
+        SOXSampleQueue_length(inputSampleQueue) > 0 ? (
+            firstSample = SOXSampleQueue_first(inputSampleQueue);
+            SOXSampleQueue_shiftLeft(inputSampleQueue, inputSample);
+            inputSample = firstSample;
+        );
+
+        // process all reverb lines for this channel and store their
+        // results in output sample list
+        reverbLineCount =
+            FixedArray_getAt(self, SOXReverbChannel_reverbLineCount);
+        reverbLineList =
+            FixedArray_getAt(self, SOXReverbChannel_reverbLineList);
+
+        i = 1;
+
+        while (i <= reverbLineCount) (
+            reverbLine = FixedArray_getAt(reverbLineList, i);
+            outputSample = SOXReverbLine_apply(reverbLine, inputSample,
+                                               feedback, hfDamping, gain);
+            FixedArray_setAt(outputSampleList, i, outputSample);
+            i += 1;
+        );
+    );
+
+    //--------------------
+
+    function SOXReverbChannel_print (self)
+        /** Prints a representation of reverb channel <self> to debug
+            output */
+        local (i inputSampleQueue reverbLine reverbLineCount
+               reverbLineList)
+    (
+        Debug_printLine("ReverbChannel");
+
+        // print information about predelay queue
+        inputSampleQueue =
+            FixedArray_getAt(self, SOXReverbChannel_inputSampleQueue);
+        Debug_printValue("predelay",
+                         SOXSampleQueue_length(inputSampleQueue));
+
+        // print information about reverb lines
+        reverbLineCount =
+            FixedArray_getAt(self, SOXReverbChannel_reverbLineCount);
+        reverbLineList =
+            FixedArray_getAt(self, SOXReverbChannel_reverbLineList);
+        i = 1;
+
+        while (i <= reverbLineCount) (
+            reverbLine = FixedArray_getAt(reverbLineList, i);
+            SOXReverbLine_print(reverbLine);
+            i += 1;
+        );
+    );
+
+    //--------------------
+    // Reverb
+    // stores global reverb parameters
+    //--------------------
+
+    SOXReverb_SIZE = 8;
+    SOXReverb_isWetOnly         = 1;
+    SOXReverb_feedback          = 2;
+    SOXReverb_hfDamping         = 3;
+    SOXReverb_predelay          = 4;
+    SOXReverb_stereoDepth       = 5;
+    SOXReverb_wetGain           = 6;
+    SOXReverb_roomScale         = 7;
+    SOXReverb_reverbChannelList = 8;
+
+    //--------------------
+
+    function SOXReverb_make ()
+        /** Constructs a new SOX reverb */
+        local (channel reverbChannel reverbChannelList self)
+    (
+        self = FixedArray_make(SOXReverb_SIZE);
+        reverbChannelList = FixedArray_make(SOX_channelCount);
+        FixedArray_setAt(self, SOXReverb_reverbChannelList,
+                         reverbChannelList);
+        channel = 1;
+
+        while (channel <= SOX_channelCount) (
+            reverbChannel = SOXReverbChannel_make(srate);
+            FixedArray_setAt(reverbChannelList, channel, reverbChannel);
+            channel += 1;
+        );
+
+        self
+    );
+
+    //--------------------
+
+    SOXReverb_wetSamplePairList = null;
+
+    //--------------------
+
+    function SOXReverb_apply (self, inputSampleList, outputSampleList)
+        /** Applies reverb <self> to samples for all channels in
+            <inputSampleList> and writes result in
+            <outputSampleList> */
+        local (channel feedback hfDamping inputSample isWetOnly
+               hasMultipleLines outputSample otherWetSamplePair
+               reverbChannel reverbChannelList stereoDepth wetGain
+               wetSamplePair wetSamplePairList)
+    (
+        feedback    = FixedArray_getAt(self, SOXReverb_feedback);
+        hfDamping   = FixedArray_getAt(self, SOXReverb_hfDamping);
+        isWetOnly   = FixedArray_getAt(self, SOXReverb_isWetOnly);
+        stereoDepth = FixedArray_getAt(self, SOXReverb_stereoDepth);
+        wetGain     = FixedArray_getAt(self, SOXReverb_wetGain);
+
+        reverbChannelList =
+            FixedArray_getAt(self, SOXReverb_reverbChannelList);
+        wetSamplePairList = SOXReverb_wetSamplePairList;
+
+        // collect all wet sample pairs
+        channel = 1;
+
+        while (channel <= SOX_channelCount) (
+            wetSamplePair = FixedArray_getAt(wetSamplePairList, channel);
+            reverbChannel = FixedArray_getAt(reverbChannelList, channel);
+            inputSample   = FixedArray_getAt(inputSampleList, channel);
+            SOXReverbChannel_apply(reverbChannel, inputSample,
+                                   feedback, hfDamping, wetGain,
+                                   wetSamplePair);
+            channel += 1;
+        );
+
+        // combine wet sample pairs with input samples
+        hasMultipleLines = (stereoDepth > 0);
+        channel = 1;
+
+        while (channel <= SOX_channelCount) (
+            wetSamplePair = FixedArray_getAt(wetSamplePairList, channel);
+
+            !hasMultipleLines ? (
+                outputSample = wetSamplePair[1];
+            ):(
+                otherWetSamplePair =
+                    FixedArray_getAt(wetSamplePairList, 3 - channel);
+                outputSample = (wetSamplePair[channel]
+                                + otherWetSamplePair[channel]) / 2;
+            );
+
+            inputSample  = FixedArray_getAt(inputSampleList, channel);
+            outputSample += isWetOnly ? 0 : inputSample;
+            FixedArray_setAt(outputSampleList, channel, outputSample);
+            channel += 1;
+        );
+    );
+
+    //--------------------
+
+    function SOXReverb_init (self, isWetOnly, reverberanceInPercent,
+                             hfDampingInPercent, roomScaleInPercent,
+                             stereoDepthInPercent, predelay, wetDbGain)
+        /** Initializes reverb <self> with <isWetOnly>,
+            <reverberanceInPercent>, <hfDampingInPercent>,
+            <roomScaleInPercent>, <stereoDepthInPercent>, <predelay>
+            and <wetDbGain> */
+        local (channel feedback hfDamping maximumFeedback minimumFeedback
+               queueLength reverbChannel reverbChannelList roomScale
+               stereoDepth wetGain)
+    (
+        // adjust parameter value ranges
+        reverberanceInPercent =
+            forceToPercentage(reverberanceInPercent);
+        hfDampingInPercent = forceToPercentage(hfDampingInPercent);
+        roomScaleInPercent = forceToPercentage(roomScaleInPercent);
+        stereoDepthInPercent = forceToPercentage(stereoDepthInPercent);
+        predelay = forceToRange(predelay, 0, SOXReverb_maximumPredelay);
+        wetDbGain = forceToRange(wetDbGain, -10, 10);
+
+        // calculate technical parameters
+        minimumFeedback =  -1 / ln(1 - 0.3);
+        maximumFeedback = 100 / (ln(1 - 0.98) * minimumFeedback + 1);
+        feedback = 1 - exp((reverberanceInPercent - maximumFeedback)
+                           / (minimumFeedback * maximumFeedback));
+        hfDamping = hfDampingInPercent / 100 * 0.3 + 0.2;
+        stereoDepth = stereoDepthInPercent / 100;
+        roomScale = roomScaleInPercent / 100 * 0.9 + 0.1;
+        wetGain = SOX_dBToLinear(wetDbGain) * 0.015;
+
+        FixedArray_setAt(self, SOXReverb_isWetOnly,   isWetOnly);
+        FixedArray_setAt(self, SOXReverb_feedback,    feedback);
+        FixedArray_setAt(self, SOXReverb_hfDamping,   hfDamping);
+        FixedArray_setAt(self, SOXReverb_predelay,    predelay);
+        FixedArray_setAt(self, SOXReverb_stereoDepth, stereoDepth);
+        FixedArray_setAt(self, SOXReverb_wetGain,     wetGain);
+        FixedArray_setAt(self, SOXReverb_roomScale,   roomScale);
+
+        reverbChannelList = FixedArray_getAt(self,
+                                             SOXReverb_reverbChannelList);
+        channel = 1;
+
+        while (channel <= SOX_channelCount) (
+            reverbChannel = FixedArray_getAt(reverbChannelList, channel);
+            SOXReverbChannel_adjustQueueLengths(reverbChannel, srate,
+                                                predelay, roomScale,
+                                                stereoDepth);
+            channel += 1;
+        );
+    );
+
+    //--------------------
+
+    function SOXReverb_print (self)
+        /** Prints a representation of reverb <self> to debug
+            output */
+        local (i reverbChannelCount reverbChannel reverbChannelList)
+    (
+        Debug_printValue("[H1]isWetOnly",
+                         FixedArray_getAt(self, SOXReverb_isWetOnly));
+        Debug_printValue("feedback",
+                         FixedArray_getAt(self, SOXReverb_feedback));
+        Debug_printValue("hfDamping",
+                         FixedArray_getAt(self, SOXReverb_hfDamping));
+        Debug_printValue("predelay",
+                         FixedArray_getAt(self, SOXReverb_predelay));
+        Debug_printValue("stereoDepth",
+                         FixedArray_getAt(self, SOXReverb_stereoDepth));
+        Debug_printValue("wetGain",
+                         FixedArray_getAt(self, SOXReverb_wetGain));
+        Debug_printValue("roomScale",
+                         FixedArray_getAt(self, SOXReverb_roomScale));
+
+        reverbChannelList = FixedArray_getAt(self,
+                                             SOXReverb_reverbChannelList);
+        reverbChannelCount = FixedArray_length(reverbChannelList);
+        i = 1;
+
+        while (i <= reverbChannelCount) (
+            reverbChannel = FixedArray_getAt(reverbChannelList, i);
+            SOXReverbChannel_print(reverbChannel);
+            i += 1;
+        );
+    );
+
+    //--------------------
+    //--------------------
+
+    function SOXReverb_initialize ()
+        /** Initializes supporting data structures */
+        local (channel pair)
+    (
+        SOXReverbLineDelays_initialize();
+
+        // when stereo depth is non-zero for a reverb, each reverb
+        // channel produces a pair of output samples to be stored in a
+        // list of wet result pairs
+        SOXReverb_wetSamplePairList = FixedArray_make(SOX_channelCount);
+        channel = 1;
+
+        while (channel <= SOX_channelCount) (
+            pair = FixedArray_make(2);
+            FixedArray_setAt(SOXReverb_wetSamplePairList, channel, pair);
+            channel += 1;
+        );
+    );
+
+    //============================================================
+@slider
+    SOX_channelCount = num_ch;
