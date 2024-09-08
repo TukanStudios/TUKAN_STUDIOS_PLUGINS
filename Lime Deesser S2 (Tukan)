@@ -42,7 +42,7 @@ options:gmem=TukanDeesserS2
 //options:gfx_idle
 
 @init
-Deesser_VERSION = 0.99;
+Deesser_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 /*
@@ -290,7 +290,11 @@ analyzer_feed = 1;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

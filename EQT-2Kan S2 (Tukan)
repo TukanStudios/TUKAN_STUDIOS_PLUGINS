@@ -46,7 +46,7 @@ options:gmem=TukanEQTS2
 @init
 dry = 1;
 
-EQT_VERSION = 0.99;
+EQT_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -438,8 +438,15 @@ KOutput.Parameter_boundaries();
  
  
 @slider
- caller = 1;
-          
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
+  
+  
+  
+  
 @block
  srate < 50000 ? vsrate = srate*2 : vsrate = srate;
  

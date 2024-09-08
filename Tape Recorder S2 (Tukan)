@@ -1,7 +1,6 @@
 desc: Tape Recorder S2 (Tukan)
 
 
-
 filename:0,S2GFX/TAPE_HD.png
 filename:1,S2GFX/tapel_HD.png
 filename:2,S2GFX/VUMeterBIG.png
@@ -11,6 +10,11 @@ filename:5,S2GFX/button.png
 filename:6,S2GFX/rled.png
 filename:7,S2GFX/S2_logo_dark.png
 filename:8,S2GFX/tapel_innen.png
+filename:9,S2GFX/tapel_HD2.png
+filename:10,S2GFX/VUMeterBIG_tape2.png
+filename:11,S2GFX/tapel_HD3.png
+filename:12,S2GFX/tapel_HD4.png
+filename:13,S2GFX/screw.png
 
 slider1:2<1,2,1>-Tape Speed
 slider2:50<0,100,1>-In Drive
@@ -18,7 +22,10 @@ slider3:50<0,100,1>-Tape Age
 slider4:50<0,100,1>-Denoiser
 slider5:0<-20,20,0.01>-Output
 slider6:0<0,1,1>-Bypass
-/slider7:1<0.1,10,0.1>Zoom
+slider7:0<0,1,1{Old, New}>-Tape Aglorithm
+slider8:0<0,1,1{TYP1, TYP2}>-Tape
+slider9:0<-24,24,0.1>-Headroom
+
 
 in_pin:left input
 in_pin:right input
@@ -28,6 +35,10 @@ out_pin:right output
 import S2GFX/cookdsp.jsfx-inc
 import S2GFX/tk_lib.jsfx-inc
 import tk-vu_lib.jsfx-inc
+import S2GFX/VT_Filters.jsfx-inc
+
+
+
 
 options:no_meter
 options:gfx_hz=60
@@ -37,7 +48,7 @@ options:gmem=TukanTapeS2
 //==============================================================================
 @init
 //==============================================================================
-TAPE_VERSION = 0.99;
+TAPE_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 KEIN autobypass ;)
 ext_nodenorm = 1;
@@ -62,7 +73,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 6;
+s2_numbers_of_sliders = 9;
 s2_numbers_of_generics = 0;
 group_generics = 1000000; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -77,8 +88,11 @@ mouse_sensivity();
         KInDrive.parameter_config     (2,       50,        0,    100,   30,   370,  150, 200,    1,  4);
         KTapeAge.parameter_config     (3,       50,         0,    100,   130,  430,  150, 200,    1,  4);        
         KDenoiser.parameter_config    (4,       50,        0,    100,   480,  430,  150, 200,    1,  4); 
-        KOutput.parameter_config      (5,       0,         -20,    20,   580,  370,  150, 200,    1,  4); 
+        KOutput.parameter_config      (5,       0,         -20,    20,   580,  370,  150, 200,    1,  4);
+        KScrew.parameter_config       (9,       0,         -24,    24,   40,  520,  20, 61,    1,  13);
         BTapeSpeed.button_config(1,0,0);
+        BTyp.button_config(7,0,0);
+        BCorrection.button_config(8,0,0);
         BBypass.button_config(6, 650, 5);
         button = 5; rled = 6;
         
@@ -162,6 +176,18 @@ i = 0;
   LP0.biquad(9000, 1.04, 0);
   LP1.biquad(9000, 1.04, 0);
   
+  
+  
+   L_low_bell.setfilter(5, low_freq, low_q, low_gain);
+   R_low_bell.setfilter(5, low_freq, low_q, low_gain);
+  
+   L_mid_bell.setfilter(5, mid_freq, mid_q, mid_gain);
+   R_mid_bell.setfilter(5, mid_freq, mid_q, mid_gain);
+  
+   L_high_bell.setfilter(5, high_freq, high_q, high_gain);
+   R_high_bell.setfilter(5, high_freq, high_q, high_gain);
+  
+  
   mn_meter_reinit(61);
   meter.mn_meter_init();
   );
@@ -213,9 +239,13 @@ tape = slider3; // 0 bis 100
 tapespeed = floor(slider1+0.5); // 1 oder 2
 denaoiser = db2ratio(-slider12);
 denoiser_abs = slider4;
+denoiser_abs == 100 ? denoiser_abs = 4000;
+noise_off = !floor(denoiser_abs/100);
 indrive = slider2;
 output_Pot = slider5;
 Bypass = slider6;
+headroom_pre = db2ratio(slider9);
+headroom_post = db2ratio(-slider9);
 /*
 vslider1 Saturation amount 0 - 100
 vslider2 Fluctuation 0 - 100
@@ -253,8 +283,8 @@ pidrv = pi*drv;
 sinpidrv = 1/sin(pidrv);
 
 //ranges
-r1 = vslider2/300;
-r2 = 1/2^(vslider3);
+r1_ = vslider2/300;
+r2_ = 1/2^(vslider3);
 
 //outgain
 outgain = 10^(vslider4/20);
@@ -307,6 +337,115 @@ HS0.eq_set_boost(HS_gain);
 HS1.eq_set_boost(HS_gain);
 //// ENDE SET FILTERS
 
+
+tape_algorithm = slider7;
+
+
+//tape_algorithm ? (
+Correction = slider8; // 1 = oben
+
+tapespeed == 2 ? (
+correction == 1 ? (
+//obenoben
+Low_Freq = 31;
+low_q = 0.59;
+low_gain = 4.7;
+
+mid_Freq = 415;
+mid_q = 1.2;
+mid_gain = 0.3;
+
+high_Freq = 22000;
+high_q = 0.45;
+high_gain = 5.6;
+vgain = 1;
+rolloff = 0;
+):(
+//Obenunten
+Low_Freq = 31;
+low_q = 0.59;
+low_gain = 4.7;
+
+mid_Freq = 415;
+mid_q = 1.2;
+mid_gain = 0.3;
+
+high_Freq = 22000;
+high_q = 0.45;
+high_gain = 2;
+vgain = 0.8;
+rolloff = 0;
+);
+):( // Tapespeed
+correction == 1 ? (
+//untenoben
+Low_Freq = 14;
+low_q = 0.5;
+low_gain = 5.5;
+
+mid_Freq = 200;
+mid_q = 0.8;
+mid_gain = 0.6;
+
+high_Freq = 22000;
+high_q = 0.45;
+high_gain = 1.5;//6;
+//vgain = .2;
+//rolloff = 1;
+  L_rolloff_bell.setfilter(0, 12300, 1.2, rolloff);
+  R_rolloff_bell.setfilter(0, 12300, 1.2, rolloff); //letzer wert = -1 für rolloff
+
+):(
+//untenunten
+Low_Freq = 14;
+low_q = 0.5;
+low_gain = 5.2;
+
+mid_Freq = 100;
+mid_q = 1.2;
+mid_gain = -0.5;
+
+high_Freq = 22000;
+high_q = 0.45;
+high_gain = 4.6;//6;
+vgain = -1;
+rolloff = 1;
+  L_rolloff_bell.setfilter(0, 12300, 0.7, rolloff);
+  R_rolloff_bell.setfilter(0, 12300, 0.7, rolloff); //letzer wert = -1 für rolloff
+);
+);  
+  
+  L_low_bell.setfilter(5, low_freq, low_q, low_gain);
+  R_low_bell.setfilter(5, low_freq, low_q, low_gain);
+
+   L_mid_bell.setfilter(5, mid_freq, mid_q, mid_gain);
+   R_mid_bell.setfilter(5, mid_freq, mid_q, mid_gain);
+
+  L_high_bell.setfilter(5, high_freq, high_q, high_gain);
+  R_high_bell.setfilter(5, high_freq, high_q, high_gain);
+
+Rp=-0.11;
+Vk=-1;
+Vs=2.19;
+
+N_level=1;
+n_drive_db = (slider2/3)-13;
+n_drive = db2ratio(n_drive_db);
+n_drive_rev = db2ratio(-n_drive_db);
+N_PreGain=10^(-5.6/20)*n_drive;
+N_PostGain=10^((3.3-3)/20);
+
+//drive
+drv = 0.1;
+pidrv = pi*drv;
+sinpidrv = 1/sin(pidrv);
+
+//ranges
+r1_ = vslider2/100;
+r2_ = 1/2^(vslider3);
+
+//);
+
 caller = 0;
 parameters_update_on = 0;
 );
@@ -320,8 +459,11 @@ parameters_update_on = 0;
 //==============================================================================
 @slider
 //==============================================================================
-caller = 1;
-
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 
@@ -366,13 +508,13 @@ avs = (s0+s1)/2;
 avsl = s0;
 svdr = s1;
 //interpolate ar2 values
-tgt_min2 = avs*m[i+2*n]*r1;
+tgt_min2 = avs*m[i+2*n]*r1_;
 d_min2 = (tgt_min2-src_min2)/samplesblock;
 min2 = src_min2;
 src_min2 = tgt_min2;
 
 //interpolate ar3 values
-tgt_min3 = avs*m[i+3*n]*r1;
+tgt_min3 = avs*m[i+3*n]*r1_;
 d_min3 = (tgt_min3-src_min3)/samplesblock;
 min3 = src_min3;
 src_min3 = tgt_min3;
@@ -386,16 +528,6 @@ pdc_top_ch = 2;
 
 srate_old != srate ? (re_init(); caller = 1);
 srate_old = srate;
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -419,6 +551,8 @@ caller == 1 ? (
 
 
 
+
+
 playstates();
 
 process = 0;
@@ -430,16 +564,60 @@ bypass ? process = 0;
 
 
 process == 1 ? (
+spl0 *= headroom_pre;
+spl1 *= headroom_pre;
 
-//spl0 += (rand(2)-1) * db2ratio(-99);
-//spl1 += (rand(2)-1) * db2ratio(-99);
+tape_algorithm ? (
+
+in0 = tanh(spl0*N_PreGain);
+in1 = tanh(spl1*N_PreGain);
+
+Gk = in0*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out0 = in0*Vp;
+
+Gk = in1*Vk - Vk;
+Vgk = 0.0357167 + 0.978574*Gk - 0.0857147*Gk*Gk - 0.0285716*Gk*Gk*Gk;
+Ip = -0.0182*Vgk*Vgk*Vgk - 0.0233*Vgk*Vgk + 0.6117*Vgk + 1.6718;
+Vp = Vs - Ip*Rp;
+out1 = in1*Vp;
+
+
+spl0 = (in0 + tanh(out0)*N_level) * N_PostGain * 0.5;
+spl1 = (in1 + tanh(out1)*n_level) * N_PostGain * 0.5;
+
+abs(spl0) > abs(spl1) ? meter_feed = spl0 : meter_feed = spl1;
+meter.mnmetersample(meter_feed*db2ratio(-0.5)*db2ratio(15));
+
+
+spl0 *= db2ratio(vgain)*n_drive_rev;
+spl1 *= db2ratio(vgain)*n_drive_rev;
+
+spl0 = L_low_bell.df1(spl0);
+spl1 = R_low_bell.df1(spl1);
+
+spl0 = L_Mid_Bell.df1(spl0);
+spl1 = R_Mid_Bell.df1(spl1);
+
+spl0 = L_high_bell.df1(spl0);
+spl1 = R_high_bell.df1(spl1);
+
+rolloff ? (
+spl0 = L_rolloff_bell.df1(spl0);
+spl1 = R_rolloff_bell.df1(spl1);
+);
+
+//spl0 *= db2ratio(output_Pot);
+//spl1 *= db2ratio(output_Pot);
 
 s0 = spl0;
 s1 = spl1;
 player = play_State;
 //seeds
-min0 = m[i]*r2;
-min1 = m[i+n]*r2;
+min0 = m[i]*r2_;
+min1 = m[i+n]*r2_;
 min2 += d_min2;
 min3 += d_min3;
 min2s = min2*0.05;
@@ -451,8 +629,62 @@ min3d = min3*15;
 
 vn=2^(-90/6);
 noise=rand(2)-1;
-s0=s0+noise*0.00125; //eigentlich *vn
-s1=s1+noise*0.00125;
+s0=s0+noise*0.00125*noise_off; //eigentlich *vn
+s1=s1+noise*0.00125*noise_off;
+
+
+//floor reduction & waveshaper
+// (s0 && s1) == 0 ? (
+ // wsoutl = s0;
+ // wsoutr = s1;
+//) : (
+  //fr
+  nfout0 = nfk0*min0 + nfk1*nfout0;
+  nfout1 = nfk0*min1  + nfk1*nfout1;
+  inl = spl0 + nfout0;
+  inr = spl1 + nfout1;
+  //waveshaper
+  wsoutl = sin(pidrv*inl*2)*(sinpidrv+min2d);
+  wsoutr = sin(pidrv*inr*2)*(sinpidrv+min3d);
+//);
+
+//gain = max(abs(wsoutl),abs(wsoutr));
+
+//counter
+i += 1;
+i > n ? i = 0;
+
+//output
+spl0 = wsoutl*outgain;
+spl1 = wsoutr*outgain;
+
+spl0 *= headroom_post;
+spl1 *= headroom_post;
+
+):( // Tape algorithm
+
+//spl0 += (rand(2)-1) * db2ratio(-99);
+//spl1 += (rand(2)-1) * db2ratio(-99);
+
+s0 = spl0;
+s1 = spl1;
+player = play_State;
+//seeds
+min0 = m[i]*r2_;
+min1 = m[i+n]*r2_;
+min2 += d_min2;
+min3 += d_min3;
+min2s = min2*0.05;
+min3s = min3*0.05;
+min2h = min2*0.005;
+min3h = min3*0.005;
+min2d = min2*15;
+min3d = min3*15;
+
+vn=2^(-90/6);
+noise=rand(2)-1;
+s0=s0+noise*0.00125*noise_off; //eigentlich *vn
+s1=s1+noise*0.00125*noise_off;
 
 
 //floor reduction & waveshaper
@@ -493,6 +725,18 @@ spl1 = LS1.EQ_do(spl1);
 spl0 = HS0.EQ_do(spl0);
 spl1 = HS1.EQ_do(spl1);
 
+abs(spl0) > abs(spl1) ? meter_feed = spl0 : meter_feed = spl1;
+
+spl0 *= headroom_post;
+spl1 *= headroom_post;
+
+meter.mnmetersample(meter_feed*db2ratio(-0.5)*db2ratio(15));
+
+); // Tape algorithm
+
+
+
+
 
 play_state == 1 || play_state == 5 ? (
 Lreel_speed = 4 / tapespeed;
@@ -510,9 +754,6 @@ RReel_spl = 0;
 
 );
 
-abs(spl0) > abs(spl1) ? meter_feed = spl0 : meter_feed = spl1;
-
-meter.mnmetersample(meter_feed*db2ratio(-0.5)*db2ratio(15));
 
 ):( // process
 meter.mnmetersample(0);
@@ -554,7 +795,9 @@ gfx_ext_flags == 0 ? (
   gfx_setfont(1,"Arial",12*zoom,'b');
   
 gfx_r = gfx_b = gfx_g = 0;
-meter.mnmetergfx(zoom, 245*zoom, 385*zoom, 2);
+tape_algorithm ? gfx_meterback = 10 : gfx_meterback = 2;
+
+meter.mnmetergfx(zoom, 245*zoom, 385*zoom, gfx_meterback);
 gfx_x= 0;gfx_y = 40 * zoom; gfx_a = 1;
 gfx_blit(0,zoom*0.5,0);
 
@@ -563,13 +806,34 @@ RReel = RReel_spl / (srate*RReel_speed);
 Lreel = Lreel_spl / (srate*LReel_speed);
 gfx_x = -70*zoom;
 gfx_y = -110*zoom;
-gfx_blit(1,zoom*0.5, 2*$pi * -LReel, 0 , 0, 800, 800);
+tape_algorithm ? (
+  correction ? (
+    gfx_blit(11,zoom*0.5,2*$pi * -LReel, 0,0, 800, 800);
+  ):(
+    gfx_blit(9,zoom*0.5,2*$pi * -LReel, 0,0, 800, 800);
+  );
+
+):(
+gfx_blit(1,zoom*0.5,2*$pi * -LReel, 0,0, 800, 800);
+);
 gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
 
 gfx_x = +350*zoom;
 gfx_y = -110*zoom;
+
+tape_algorithm ? (
+  //correction ? (
+    gfx_blit(9,zoom*0.5,2*$pi * -RReel, 0,0, 800, 800);
+  //):(
+  //  gfx_blit(11,zoom*0.5,2*$pi * -RReel, 0,0, 800, 800);
+  //);
+
+):(
 gfx_blit(1,zoom*0.5,2*$pi * -RReel, 0,0, 800, 800);
+);
+
 gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
+
 
 
   gfx_x =315*zoom+2*zoom; gfx_y = 195*zoom-10*zoom;
@@ -580,6 +844,31 @@ gfx_x = 315*zoom; gfx_y = 195*zoom;
 gfx_blit(3,zoom*0.5,0, 0, 120 * (tapespeed-1), 96, 120);
 
 
+//lightgrey();
+  gfx_x =183*zoom+2*zoom; gfx_y = 360*zoom+20*zoom;
+  gfx_drawstr("TYP");
+  gfx_x =145*zoom+2*zoom; gfx_y = 360*zoom+10*zoom;
+  gfx_drawstr("B");
+  gfx_x = 145*zoom+1*zoom; gfx_y =360*zoom+30*zoom;
+  gfx_drawstr("A");
+gfx_x = 145*zoom; gfx_y = 360*zoom;
+gfx_blit(3,zoom*0.5,0, 0, 120 * (tape_algorithm), 96, 120);
+
+
+tape_algorithm ? (
+  gfx_x =471*zoom+2*zoom; gfx_y = 360*zoom+20*zoom;
+  gfx_drawstr("TAPE");
+  gfx_x =493*zoom+39*zoom; gfx_y = 360*zoom+10*zoom;
+  gfx_drawstr("B");
+  gfx_x = 493*zoom+38*zoom; gfx_y =360*zoom+30*zoom;
+  gfx_drawstr("A");
+gfx_x = 493*zoom; gfx_y = 360*zoom;
+gfx_blit(3,zoom*0.5,0, 0, 120 * (Correction), 96, 120);
+);
+
+
+gfx_x = 315*zoom; gfx_y = 195*zoom;
+gfx_blit(3,zoom*0.5,0, 0, 120 * (tapespeed-1), 96, 120);
 //  gfx_x =605*zoom+16*zoom; gfx_y = 465*zoom-10*zoom;
 //  gfx_drawstr("ON");
 //  gfx_x = 605*zoom+1*zoom; gfx_y =465*zoom+50*zoom;
@@ -639,7 +928,11 @@ KOutput.knob();
  #klabel = "+20"; gfx_measurestr(#klabel, klw, klh); KOutput.labelposition(9,klw, klh); gfx_drawstr(#klabel); 
  gfx_setfont(1,"Arial",12*zoom,'b'); 
 
-    
+KScrew.knob();
+black();gfx_setfont(2,"Arial",10*zoom,'b');
+gfx_x += 15*zoom; gfx_y -= 2*zoom;
+gfx_drawstr("Headroom");
+
 red();
 gfx_x = 290*zoom; gfx_y = 280*zoom;
 
@@ -710,8 +1003,11 @@ gfx_blit(7,zoom/2,0);
           KTapeAge.k_collision() ? (KTapeAge.dragstart());
           KDenoiser.k_collision() ? (KDenoiser.dragstart());
           KOutput.k_collision() ? (KOutput.dragstart());
+          Kscrew.k_collision() ? (Kscrew.dragstart());
           BBypass.b_collision() ? (slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button(););
-    g_collision(332*zoom, 195*zoom,15*zoom, 50*zoom) ? (slider1 == 1 ? slider1 = 2 : slider1 = 1; BTapeSpeed.quicklink_button(); caller = 1);
+          g_collision(332*zoom, 195*zoom,15*zoom, 50*zoom) ? (slider1 == 1 ? slider1 = 2 : slider1 = 1; BTapeSpeed.quicklink_button(); caller = 1);
+          g_collision(162*zoom, 360*zoom,15*zoom, 50*zoom) ? (slider7 == 1 ? slider7 = 0 : slider7 = 1; BTyp.quicklink_button(); caller = 1);
+          tape_algorithm ? g_collision(510*zoom, 360*zoom,15*zoom, 50*zoom) ? (slider8 == 1 ? slider8 = 0 : slider8 = 1; BCorrection.quicklink_button(); caller = 1);
     
           ); 
           
@@ -720,6 +1016,7 @@ gfx_blit(7,zoom/2,0);
           KTapeAge.dragstop();
           KDenoiser.dragstop();
           KOutput.dragstop();
+          Kscrew.dragstop();
           );
           
           
@@ -729,6 +1026,7 @@ gfx_blit(7,zoom/2,0);
           KTapeAge.k_collision() ? KTapeAge.potwheel();
           KDenoiser.k_collision() ? KDenoiser.potwheel();
           KOutput.k_collision() ? KOutput.potwheel();
+          Kscrew.k_collision() ? Kscrew.potwheel();
                mouse_wheel=0;
                caller = 1;
               );
@@ -738,6 +1036,7 @@ gfx_blit(7,zoom/2,0);
           KTapeAge.dragging ? (KTapeAge.potdrag();KTapeAge.readout();caller = 1;);
           KDenoiser.dragging ? (KDenoiser.potdrag();KDenoiser.readout();caller = 1;);
           KOutput.dragging ? (KOutput.potdrag();KOutput.readout();caller = 1;);    
+          Kscrew.dragging ? (Kscrew.potdrag();Kscrew.readout();caller = 1;);    
     
           
          Link_Group == 0 ? (
@@ -965,12 +1264,49 @@ gfx_blit(7,zoom/2,0);
  
  RReel = RReel_spl / (srate*RReel_speed);
  Lreel = Lreel_spl / (srate*LReel_speed);
+ /*
  gfx_x = -gfx_w/4;
  gfx_y = -gfx_w/4; //200*(gfx_w / 800);
  gfx_blit(1,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
  gfx_x = gfx_w - gfx_w/2;
  gfx_y = -gfx_w/4; //200*(gfx_w / 800);
  gfx_blit(1,gfx_w/1100, 2*$pi * -RReel, 0 , 0, 800, 800);
+ */ 
+ 
+ ///////////////////////////////////////////////
+ gfx_x = -gfx_w/4;
+ gfx_y = -gfx_w/4; //200*(gfx_w / 800);
+ tape_algorithm ? (
+   correction ? (
+     gfx_blit(11,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+   ):(
+     gfx_blit(9,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+   );
+ 
+ ):(
+ gfx_blit(1,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+ );
+ //gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
+ 
+ gfx_x = gfx_w - gfx_w/2;
+ gfx_y = -gfx_w/4; //200*(gfx_w / 800);
+ 
+ tape_algorithm ? (
+   //correction ? (
+     gfx_blit(9,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+   //):(
+   //  gfx_blit(11,zoom*0.5,2*$pi * -RReel, 0,0, 800, 800);
+   //);
+ 
+ ):(
+ gfx_blit(1,gfx_w/1100, 2*$pi * -LReel, 0 , 0, 800, 800);
+ );
+ 
+ //gfx_blit(8,zoom*0.5, 0, 0 , 0, 800, 800);
+ //////////////////////////////////////////////////////7
+ 
+ 
+ 
  
  gfx_x = gfx_w / 20;
  gfx_y = gfx_w *0.56;

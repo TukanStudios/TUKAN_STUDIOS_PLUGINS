@@ -50,7 +50,7 @@ slider13:0<0,1,1>-Bypass
 
 
 @init
-GATE_VERSION = 0.99;
+GATE_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //093 fixed PDC in Bypass mode
 //09 added auto bypass support
@@ -226,8 +226,11 @@ seriloop += 1;
 );
 
 @slider
-
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 @sample

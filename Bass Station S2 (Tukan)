@@ -256,7 +256,7 @@ options:gmem=TukanBassAmpS2
 @init
 
 
-BassAmp_VERSION = 0.995;
+BassAmp_VERSION = 1.16;
        // pit.yin(0.3, 40, 1500, 1500, 80*srate/1000);
 offs = memalloc(250000,1); //150000
 //ext_tail_size = -1;
@@ -2138,7 +2138,11 @@ function compensation_gain() (
     );
 @slider
 
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

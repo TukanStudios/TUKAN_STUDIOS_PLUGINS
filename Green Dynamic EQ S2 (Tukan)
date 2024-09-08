@@ -153,7 +153,7 @@ options:gmem=TukanGreenEQS2
 
 
 @init
-GEQ_VERSION = 0.99;
+GEQ_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //0935 Removed filters_to_sliders() ind @serialize
 //093 Sensitivity!! +SC support, fixed threshold zoom issue
@@ -1459,8 +1459,11 @@ parameters_update_on = 0;
 @slider
 
 
-   caller = 1;
-
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

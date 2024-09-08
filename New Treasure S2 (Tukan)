@@ -41,12 +41,12 @@ in_pin:External SC / R
 out_pin:Output L
 out_pin:Output R
 options:No_meter
-options:gfx_hz=60
+//options:gfx_hz=60
 options:gmem=TukanTreasureS2
 
 
 @init
-Treasure_VERSION = 1.15;
+Treasure_VERSION = 1.16;
 
 
 ext_tail_size = -1;
@@ -614,6 +614,17 @@ right_Meter_Out_Pre.reset_Count += 1;
 
 function Backcolor() (rgb(10,10,10));
 function frontcolor() (rgb(230,230,230));
+
+GR_Meter.dB_Val <= -7 ? GR_Meter.S2_meter_fallback = 30 : GR_Meter.S2_meter_fallback = 15 ;
+Left_Meter_In.S2_meter_fallback = 40;
+Right_Meter_In.S2_meter_fallback = 40;
+Left_Meter_In_Post.S2_meter_fallback = 40;
+Right_Meter_In_Post.S2_meter_fallback = 40;
+Left_Meter_Out.S2_meter_fallback = 40;
+Right_Meter_Out.S2_meter_fallback = 40;
+Left_Meter_Out_Pre.S2_meter_fallback = 40;
+Right_Meter_Out_Pre.S2_meter_fallback = 40;
+
 
 gfx_ext_flags == 0 ? (
 

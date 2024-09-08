@@ -56,7 +56,7 @@ options:gmem=TukanSphinxS2
 //options:gfx_idle
 
 @init
-Sphinx_VERSION = 0.99;
+Sphinx_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 /*
@@ -678,7 +678,11 @@ parameters_update();
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

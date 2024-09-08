@@ -63,7 +63,7 @@ options:gmem=TukanVariBusS2
 
   
   
-animate_tubes = 1;
+animate_tubes = 1.16;
     MAX_FREQ = 44100 / 2.0;
     MIN_FREQ = 10;
     FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
@@ -447,8 +447,11 @@ caller = 0;
 
 
 @slider
-//stattslider();
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

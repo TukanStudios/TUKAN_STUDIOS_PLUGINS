@@ -38,7 +38,7 @@ options:gmem=TukanLimiterS2
 
 @init
 
-Limiter_VERSION = 1;
+Limiter_VERSION = 1.16;
 //0.99 checked if removed options:gfx_idle
 
 //09 added auto bypass support
@@ -356,7 +356,11 @@ caller = 0;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

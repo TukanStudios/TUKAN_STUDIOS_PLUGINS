@@ -61,7 +61,7 @@ import S2GFX/tk_lib.jsfx-inc
 
 
 @init
-TOOL_VERSION = 0.99;
+TOOL_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
@@ -440,7 +440,11 @@ parameters_update_on = 0;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
     

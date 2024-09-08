@@ -10,6 +10,7 @@ slider6:0<-5,5,0.1>-HF Gain
 slider7:0<-5,5,0.1>-Out Gain
 slider7:0<-5,5,0.1>-Out Gain
 slider8:0<0,1,1{ON, Bypass}>-Bypass
+slider9:0<0,1,1{Noise, No Noise}>-NoNoise
 
 filename:0,S2GFX/HD_Back.png
 filename:1,S2GFX/TEQBlue.png
@@ -18,6 +19,7 @@ filename:3,S2GFX/TEQBlack.png
 filename:4,S2GFX/S2_logo.png
 filename:5,S2GFX/button.png
 filename:6,S2GFX/rled.png
+filename:7,S2GFX/TEQGreen.png
 
 options:No_meter
 options:gfx_hz=60
@@ -35,7 +37,7 @@ import S2GFX/cookdsp.jsfx-inc
 import S2GFX/VT_Filters.jsfx-inc
 
 @init
-TEQ_VERSION = 1.14;
+TEQ_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
@@ -61,7 +63,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 8;
+s2_numbers_of_sliders = 9;
 s2_numbers_of_generics = 0;
 group_generics =0; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -211,15 +213,18 @@ generics_old = sliders_old + 16*64;
 
 
  //Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)
-   LG_Knob.parameter_config           (1,    0,        -5,     5,    50-4,  100+4,  150,  101,    0.8,       1);
+ function knob_config () (
+ nonoise == 1 ? gainsknob = 7 : gainsknob = 1;
+   LG_Knob.parameter_config           (1,    0,        -5,     5,    50-4,  100+4,  150,  101,    0.8,       gainsknob);
    LMF_Knob.parameter_config          (2,    0,        -5,     5,   150-4,   60+4,  150,  101,    0.8,       2);
-   LMG_Knob.parameter_config          (3,    0,        -5,     5,   150-4,  150+4,  150,  101,    0.8,       1);
+   LMG_Knob.parameter_config          (3,    0,        -5,     5,   150-4,  150+4,  150,  101,    0.8,       gainsknob);
    HMF_Knob.parameter_config          (4,    0,        -5,     5,   250-4,   60+4,  150,  101,    0.8,       2);
-   hMG_Knob.parameter_config          (5,    0,        -5,     5,   250-4,  150+4,  150,  101,    0.8,       1);
-   HG_Knob.parameter_config           (6,    0,        -5,     5,   350-4,  100+4,  150,  101,    0.8,       1);
+   hMG_Knob.parameter_config          (5,    0,        -5,     5,   250-4,  150+4,  150,  101,    0.8,       gainsknob);
+   HG_Knob.parameter_config           (6,    0,        -5,     5,   350-4,  100+4,  150,  101,    0.8,       gainsknob);
    Out_Knob.parameter_config          (7,    0,        -5,     5,   450-4,  150+4,  150,  101,    0.8,       3);
      Kbypass.button_config            (8, 480, 3);
-     
+ );
+ 
 function all_Parameter_boundaries() (
      LG_Knob.parameter_Boundaries();
      LMF_Knob.parameter_Boundaries();
@@ -255,6 +260,9 @@ all_Parameter_boundaries();
     group_parameters();
 
 all_Parameter_boundaries();
+
+NoNoise = slider9;
+knob_config();
 
 
 LG = slider1;
@@ -323,7 +331,12 @@ parameters_update();
 
 
 @slider
-caller = 1;
+
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
     
@@ -415,10 +428,12 @@ general_bypass == 1 ? process = 0;
 
 process == 1 ? (
 
-
+nonoise == 0 ? (
 noise=rand(2)-1;
 noise2=rand(2)-1;
-
+):(
+noise = noise2 = 0;
+);
 
 equalizer(); // BIG THANKS TO TALE FOR THE CODE FOR THE DECRAMPED FILTERS!!
 
@@ -892,7 +907,11 @@ gfx_x = KBypass.xIn*zoom - 55*zoom; gfx_y = Kbypass.yIn*zoom + 12*zoom; gfx_draw
       #allitems += ">Scaling|";
       zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
       zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
-   
+      
+      #allitems += ">Noise|";
+      Nonoise == 0 ? (#item2 = "!Low Noise|"):(#item2 = "Low Noise|");#allitems += #item2;
+      Nonoise == 1 ? (#item2 = "<!No Noise|"):(#item2 = "<No Noise|");#allitems += #item2;
+      
       #allitems += "|Show Info/Help";
       last_clicked_item = gfx_showmenu(#allitems);
     );
@@ -931,7 +950,9 @@ gfx_x = KBypass.xIn*zoom - 55*zoom; gfx_y = Kbypass.yIn*zoom + 12*zoom; gfx_draw
     last_clicked_item == 21 ? zoom_off = 0;
     last_clicked_item == 22 ? zoom_off = 1;
    
-    last_clicked_item == 23 ? helpshow = 1;
+    last_clicked_item == 23 ? (slider9 = 0; caller = 1);
+    last_clicked_item == 24 ? (slider9 = 1; caller = 1);
+    last_clicked_item == 25 ? helpshow = 1;
     
     helpshow == 1 ? (
     gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
@@ -939,9 +960,9 @@ gfx_x = KBypass.xIn*zoom - 55*zoom; gfx_y = Kbypass.yIn*zoom + 12*zoom; gfx_draw
     menu_x +=3;
     gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
     gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
-    gfx_drawstr("TUKAN STUDIOS TOOL (Series 2)");
+    gfx_drawstr("TUKAN STUDIOS T-EQ (Series 2)");
     gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
-    gfx_drawstr("Version: "); gfx_drawnumber(TOOL_VERSION,2);
+    gfx_drawstr("Version: "); gfx_drawnumber(TEQ_VERSION,2);
     gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
     gfx_drawstr("Mouse modifier options:");
     gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
@@ -969,7 +990,7 @@ gfx_x = KBypass.xIn*zoom - 55*zoom; gfx_y = Kbypass.yIn*zoom + 12*zoom; gfx_draw
    
    gfx_r=gfx_g=gfx_b = 0.3; gfx_a = 1; gfx_rect(0,0,gfx_w,gfx_h);
    
-   lightgrey();
+   NoNoise == 0 ? lightgrey() : rgb(100, 250, 100);;
          
          // was watching Leandros stream while coding this...so this could be done better ;)
          gfx_setfont(1,"Arial",12*gfx_h/30,'b');

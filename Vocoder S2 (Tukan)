@@ -45,13 +45,13 @@ in_pin:R IN (Synth)
 out_pin:L out
 out_pin:R out
 
-import S2GFX/svf_filter.jsfx-inc
 import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
+import S2GFX/svf_filter.jsfx-inc
 
 
 @init
-Vocoder_VERSION = 1.11;
+Vocoder_VERSION = 1.16;
 
 
 ext_tail_size = -1;
@@ -404,7 +404,11 @@ parameters_update();
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
     

@@ -40,7 +40,7 @@ options:gmem=TukanNC76S2
 
 
 @init
-NC76_VERSION = 1;
+NC76_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -181,8 +181,11 @@ ovrlgain = 1;
   
 
 @slider
-
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 @serialize
@@ -849,7 +852,4 @@ gfx_drawstr("PUNCH");
  );
  );
  S2_sample_on = 0;
- 
- 
- 
  

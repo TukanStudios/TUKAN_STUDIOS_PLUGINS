@@ -51,7 +51,7 @@ import S2GFX/tk_lib.jsfx-inc
 
 
 @init
-ovrlgain = 1;
+ovrlgain = 1.16;
 
 EnvelopeShaper_VERSION = 0.99;
 //0.99 removed options:gfx_idle
@@ -155,7 +155,11 @@ parameters_update_on = 0;
                   
 @slider
 
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
     caller = 1;
+  );
 
 
 

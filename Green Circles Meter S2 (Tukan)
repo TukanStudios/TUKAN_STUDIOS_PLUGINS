@@ -49,7 +49,7 @@ options:gmem=TukanCirclesS2
 //options:gfx_idle
 
 @init
-CIRCLES_VERSION = 0.99;
+CIRCLES_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = 10;
@@ -1036,7 +1036,11 @@ parameters_update_on = 0;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

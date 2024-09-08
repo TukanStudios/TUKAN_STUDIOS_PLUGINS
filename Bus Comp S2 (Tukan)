@@ -57,7 +57,7 @@ options:gmem=TukanBusCompS2
 @init
 
 
-BusComp_VERSION = 1;
+BusComp_VERSION = 1.16;
 //0.99 checked if removed options:gfx_idle
 //09 added auto bypass support
 
@@ -458,8 +458,11 @@ caller = 0;
 
 
 @slider
-//stattslider();
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

@@ -243,7 +243,7 @@ options:gmem=TukanGuitarAmpS2
 @init
 
 
-GuitarAmp_VERSION = 0.99;
+GuitarAmp_VERSION = 1.16;
 //0.99 removed options:gfx_idle
        // pit.yin(0.3, 40, 1500, 1500, 80*srate/1000);
 offs = memalloc(250000,1); //150000
@@ -1461,8 +1461,11 @@ delay_feedback = 0.9 * slider53/10;
       parameters_update_on = 0; caller = 0;
     );
 @slider
-
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

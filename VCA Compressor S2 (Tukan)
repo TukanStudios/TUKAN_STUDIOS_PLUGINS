@@ -46,7 +46,7 @@ options:gmem=TukanVCACompS2
 @init
 
 
-VCAComp_VERSION = 1.1;
+VCAComp_VERSION = 1.16;
 // This plugin is based around "Tight compressor" by the great Saike. Thank you Saike!
 
 ext_tail_size = -1;
@@ -402,10 +402,11 @@ caller = 0;
 
 
 @slider
-
-caller = 1;
-
-
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

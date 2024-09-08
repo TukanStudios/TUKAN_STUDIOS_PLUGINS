@@ -53,7 +53,7 @@ import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
 
 @init
-Denoiser_VERSION = 0.99;
+Denoiser_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 //085 PDC jetzt richtig!?
@@ -311,7 +311,11 @@ pdc_top_ch=2;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

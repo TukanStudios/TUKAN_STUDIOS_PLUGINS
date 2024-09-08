@@ -77,7 +77,7 @@ options:gmem=TukanOrangeEQS2
 
 
 @init
-OEQ_VERSION = 1.13;
+OEQ_VERSION = 1.16;
 //1.13 added LinPhase EQ Mode
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
@@ -903,25 +903,7 @@ init_rate != srate ? (
 
   MEMORY.index = spectrum.get_memory_index();// + memtemp;
 
- ///////////////////////////////// INIT FFT for LinPhase
- spectrum_things = memalloc(Memory.index + 10);
- srate < 88200 ? fft_os_fact = 1:
- srate < 88200*2 ? fft_os_fact = 2: fft_os_fact = 3;
- LinFFT_size = pow(2, fft_os_fact+7+5);
- LinFFT_hsize = LinFFT_size / 2;
- fin.fftin(LinFFT_size, 4);
- fin2.fftin(LinFFT_size, 4);
- fout.fftout(LinFFT_size, 4);
- fout2.fftout(LinFFT_size, 4);
- //FFT_Things = MEMORY.alloc_memory(LinFFT_size*16);
- LinFFT_filter = memalloc(LinFFT_hsize); // MEMORY.alloc_memory(LinFFT_hsize);
- filt.fftfilter(LinFFT_filter, LinFFT_hsize);
- filt2.fftfilter(LinFFT_filter, LinFFT_hsize);
- filt.fftfilter_set_filtarray(LinFFT_filter);
- filt2.fftfilter_set_filtarray(LinFFT_filter);
- 
- //////////////////////////////////////////////////////
- aa_katze = MEMORY.index = (memalloc(100) - MEMORY.index) * 4;
+ //aa_katze = MEMORY.index = (memalloc(100) - MEMORY.index) * 4;
  
   BAND_STATE_OFF = 0;
   BAND_STATE_DISABLED = 1;
@@ -1219,7 +1201,24 @@ sliders_to_filters();
 );
 
 
-
+ ///////////////////////////////// INIT FFT for LinPhase
+ spectrum_things = memalloc(Memory.index + 10);
+ srate < 88200 ? fft_os_fact = 1:
+ srate < 88200*2 ? fft_os_fact = 2: fft_os_fact = 3;
+ LinFFT_size = pow(2, fft_os_fact+7+5);
+ LinFFT_hsize = LinFFT_size / 2;
+ fin.fftin(LinFFT_size, 4);
+ fin2.fftin(LinFFT_size, 4);
+ fout.fftout(LinFFT_size, 4);
+ fout2.fftout(LinFFT_size, 4);
+ //FFT_Things = MEMORY.alloc_memory(LinFFT_size*16);
+ LinFFT_filter = memalloc(LinFFT_hsize); // MEMORY.alloc_memory(LinFFT_hsize);
+ filt.fftfilter(LinFFT_filter, LinFFT_hsize);
+ filt2.fftfilter(LinFFT_filter, LinFFT_hsize);
+ filt.fftfilter_set_filtarray(LinFFT_filter);
+ filt2.fftfilter_set_filtarray(LinFFT_filter);
+ Memory.alloc_memory(memalloc+10);
+ //////////////////////////////////////////////////////
 
 
 function color_OEQ () (
@@ -1384,7 +1383,11 @@ parameters_update_on = 0;
 @slider
 
 
-   caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 
@@ -7370,3 +7373,4 @@ S2_sample_on = 0;
  
 //gfx_x = 20; gfx_y = 20;
 //gfx_drawnumber(per_to_q(Node1_Q, 100),3);
+

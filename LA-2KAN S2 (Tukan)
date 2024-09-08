@@ -78,7 +78,7 @@ out_pin:right output
 
 @init
 
-LA2Kan_VERSION = 1;
+LA2Kan_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -410,7 +410,11 @@ function re_init() (
   
   
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

@@ -86,7 +86,7 @@ options:gmem=TukaSumBusS2
 @init
 
 
-SumBus_VERSION = 1;
+SumBus_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 
@@ -593,7 +593,11 @@ caller = 0;
 
 @slider
 //stattslider();
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

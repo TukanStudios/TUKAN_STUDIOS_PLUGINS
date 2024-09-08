@@ -93,7 +93,7 @@ options:gmem=TukanModulationS2
 //options:gfx_idle
 
 @init
-Modulation_VERSION = 0.99;
+Modulation_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //093 Triolic -> Triplet, Fixed Sync saving, changed fades on jumps, Modultaion -> Modulation
 ext_tail_size = 10;
@@ -876,7 +876,11 @@ gmem_step64 = gmem_step16 + 16;
    
    
 @slider
-   caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
    
    
    
@@ -892,7 +896,7 @@ gmem_step64 = gmem_step16 + 16;
    file_var(0,slider6_old);
    file_var(0,sync_on);
    file_var(0,tempo_hz);
-   
+   file_var(0,move_sliders);
    
    
    

@@ -37,7 +37,7 @@ options:gmem=TukanTapeEchoS2
 //==============================================================================
 @init
 //==============================================================================
-TAPE_ECHO_VERSION = 0.99;
+TAPE_ECHO_VERSION = 1.16;
 //0.99 checked if removed options:gfx_idle
 //09 KEIN autobypass ;)
 ext_nodenorm = 1;
@@ -517,7 +517,11 @@ parameters_update_on = 0;
 //slider1_old != slider1 ? slider3_old == slider3 ? slider3 = slider3_old = 14;
 //slider3_old != slider3 ?
 slider1_old != slider1 ? slider3 = slider3_old = 14;
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

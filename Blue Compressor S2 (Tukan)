@@ -62,7 +62,7 @@ options:gmem=TukanCompressorS2
 //options:gfx_idle
 
 @init
-COMPRESSOR_VERSION = 1;
+COMPRESSOR_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 /*
@@ -359,7 +359,11 @@ killme = 1;
 
 
 @slider
-caller = 1;
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
 

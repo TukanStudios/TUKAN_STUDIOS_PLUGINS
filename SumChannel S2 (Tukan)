@@ -151,7 +151,7 @@ import S2GFX/VT_Filters.jsfx-inc
 import S2GFX/tk-Comp_Lib.jsfx-inc
 
 @init
-sumChan_VERSION = 1.14;
+sumChan_VERSION = 1.16;
 //0.99 removed options:gfx_idle
 
 ext_tail_size = -1;
@@ -177,7 +177,7 @@ number_input_invalid = 0;
 number_input_sign=1;
 
 
-s2_numbers_of_sliders = 54;
+s2_numbers_of_sliders = 80;
 s2_numbers_of_generics = 1;
 group_generics =0; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
@@ -1675,7 +1675,12 @@ parameters_update();
 
 
 @slider
-caller = 1;
+
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
 
 
     
