@@ -89,7 +89,7 @@ filename:6,SynthAdd/F20S_dc.wav
 filename:7,SynthAdd/F57S_dc.wav
 filename:8,SynthAdd/F648S_dc.wav
 filename:9,SynthAdd/F87S_dc.wav
-filename:10,S2GFX/GitAmp/FRibS_dc.wav
+filename:10,SynthAdd/FRibS_dc.wav
 filename:11,SynthAdd/Drawbar_b.png
 filename:12,SynthAdd/Drawbar_w.png
 filename:13,SynthAdd/Drawbar_bl.png
@@ -4141,10 +4141,12 @@ play_mode = 2;
     while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax while()
        msg_1raw = msg1;
        
-       msg1==$x80 ? (msg1=$x90; msg3 = 0); // Noteoff to NoteOn Value 0
+       //msg1==$x80 ? (msg1=$x90; msg3 = 0); // Noteoff to NoteOn Value 0
        
        midi_channel_input = 1+ msg1 & $x0F;
        midi_status = msg_1raw;
+       midi_noteoff = msg1 & $xF0;
+       midi_noteoff == 128 ? (midi_status += 16; msg3 = 0);
        //msg1==$x90 ? ( //&& msg3!=0 ? (
         midi_channel_input == midi_channel ? (
         select_low_oct ? (
