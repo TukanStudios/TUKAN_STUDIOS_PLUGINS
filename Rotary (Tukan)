@@ -106,7 +106,7 @@ filename:23,SynthAdd/organ_switch3.png
 filename:24,SynthAdd/S2_logo_dark.png
 
 @init
-rotary_version = 0.5;
+rotary_version = 0.6;
   //Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
        drawbar1.parameter_config     (2,       8,        0,    8,    60,  60,  150,    1,     1,       blueknob);
        drawbar2.parameter_config     (3,       6,        0,    8,    60,  60,  150,    1,     1,       blueknob);
@@ -3614,8 +3614,6 @@ env5.rel_shape == 1 ? (env5.rel_coef = synth.filter.rel_coef == 0 ? 0.05 : abs(s
    );
    
    
-   
-   
    synth.subosc_1.fill_subosc();
    synth.subosc_2.fill_subosc();
    synth.subosc_3.fill_subosc();
@@ -3754,6 +3752,15 @@ env5.rel_shape == 1 ? (env5.rel_coef = synth.filter.rel_coef == 0 ? 0.05 : abs(s
    
    
    scanner_mode = slider17;
+   scanner_mode != scanner_mode_old ? (
+   tmpn = 0;
+   loop(BSZ,
+   buf3[tmpn] = 0;
+   tmpn += 1;
+   );
+   scanner_mode_old = scanner_mode;
+   );
+   
       scanner_mode == 2 || scanner_mode == 4 || scanner_mode == 6 ? scanner_chorus = 1 : scanner_chorus = 0;
       scanner1_ch_depth = 2.2;
       scanner_mode >2 ? scanner1_ch_depth = 3.2;
@@ -3817,7 +3824,12 @@ env5.rel_shape == 1 ? (env5.rel_coef = synth.filter.rel_coef == 0 ? 0.05 : abs(s
       perc_decay != slider13 ? (perc_decay = slider13;drawbars());
       
       
-      org_click = slider18; !org_click ? NG.Level = NG.Level.running = 0;
+      org_click = slider18; !org_click ? (
+      NG.Level = NG.Level.running = 0;
+      ):(
+      NG.Level = NG.Level.running = slider20/5;
+      NG.filter_f = NG.filter_f.running = 64 + slider19*2;
+      );
       
       last_speed == 0 ? last_speed = 1;
       slider28 ? (last_speed = slider28); org_speed = slider28;
