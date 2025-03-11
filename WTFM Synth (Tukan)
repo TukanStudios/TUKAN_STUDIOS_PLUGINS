@@ -314,7 +314,7 @@ filename:51,SynthAdd/S2_logo.png
 
 
 @init
-WTFM_Version = 0.5;
+WTFM_Version = 0.51;
 
 gfx_ext_retina = 1;
 
@@ -6590,9 +6590,9 @@ FM.Pitchamount.parameter_config   (operator_startslider+9,    12,      -36,     
       
       gfx_drawstr("GENERAL SYNTH MODE: ");
       synth_mode ? rgb(130,130,130) : rgb (80,220,80);
-      gfx_drawstr(" WT ");
+      wt_x = gfx_x; gfx_drawstr(" WT ");
       !synth_mode ? rgb(130,130,130) : rgb (80,220,80);
-      gfx_drawstr(" FM");
+      fm_x = gfx_x; gfx_drawstr(" FM");
       
       
       
@@ -6841,8 +6841,8 @@ FM.Pitchamount.parameter_config   (operator_startslider+9,    12,      -36,     
        
        mouseClick == 1 ? (
        
-       g_collision(190*zoom, 10*zoom, 23*zoom, 16*zoom) ? (slider178 = 0; caller = 1);
-       g_collision(215*zoom, 10*zoom, 23*zoom, 16*zoom) ? (slider178 = 1; caller = 1);
+       g_collision(wt_x, 10*zoom, 23*zoom, 16*zoom) ? (slider178 = 0; caller = 1);
+       g_collision(fm_x, 10*zoom, 23*zoom, 16*zoom) ? (slider178 = 1; caller = 1);
        
        
        synth_mode ? (
