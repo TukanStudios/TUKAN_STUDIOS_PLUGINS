@@ -53,7 +53,8 @@ import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
 
 @init
-Denoiser_VERSION = 1.16;
+Denoiser_VERSION = 1.18;
+//1.18 removed noise bursts (clear buffers at playchange)
 //0.99 removed options:gfx_idle
 //09 added auto bypass support
 //085 PDC jetzt richtig!?
@@ -165,7 +166,16 @@ index += 1;
 );
 
 
-
+function Reset_playback_buffer() (
+memset(bufferI1L, 0, size);
+memset(bufferI2L, 0, size);
+memset(bufferO1L, 0, size);
+memset(bufferO2L, 0, size);
+memset(bufferI1R, 0, size);
+memset(bufferI2R, 0, size);
+memset(bufferO1R, 0, size);
+memset(bufferO2R, 0, size);
+);
 
 
 
@@ -479,7 +489,8 @@ local(sample tilePos1 tilePos2 hannWindowTile1 hannWindowTile2 index bandIndex
 
 
 
-
+play_state_old != play_state ? (Reset_playback_buffer(); play_state_old = play_state);
+   
 
 
 
@@ -505,8 +516,6 @@ spl1 = f2.eq_do(spl1);
 );
 
 // Now, call denoiseChannel for each of the channels.
-
-   
 denoiseChannel(0, bufferI1L, bufferI2L, bufferO1L, bufferO2L, noiseBufferL, samplesCollected);
 denoiseChannel(1, bufferI1R, bufferI2R, bufferO1R, bufferO2R, noiseBufferR, samplesCollected);
 
@@ -1192,3 +1201,4 @@ caller == 1 ? (
 );
 );
 S2_sample_on = 0;
+

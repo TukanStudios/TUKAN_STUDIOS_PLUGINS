@@ -1,0 +1,1787 @@
+desc:Degrader S2 (Tukan)
+
+//tags: degrading
+//author: TUKAN STUDIOS
+
+slider1:0<-30,30,.1>-In Gain (dB)
+slider2:0<0,100,1>-Drive (%)
+slider3:0<-30,30,0.1>-Out Gain (dB)
+
+slider4:-60<-60,0,0.1>-InGate Threshold (dB)
+slider5:0<0,1,1{Fast,Slow}>-InGate Attack
+slider6:0<0,1,1{Fast,Slow}>-InGate Release
+
+slider7:-80<-80,0,0.1>-Noise
+slider8:0<0,1,1{OFF,ON}>-Autoblack
+slider9:0<0,1,1{Mono,Stereo}>-Noisemode
+
+slider10:5<0,10,.001>-Phone Freq
+slider11:0<0,1,1{narrow,wide}>-Phone Mode
+slider12:0<0,1,1{OFF,ON}>-Phone On
+
+slider13:16<1,16,1>-Bit Reduction
+slider14:22050<100,22050,50>-Freq Reduction (Hz)
+
+slider16:-60<-60,0,0.1>-OutGate Threshold (dB)
+slider17:0<0,1,1{Fast,Slow}>-OutGate Attack
+slider18:0<0,1,1{Fast,Slow}>-OutGate Release
+
+slider19:0<-30,30,.1>-Master Gain (dB)
+slider20:0<0,1,1{ON,BYPASS}>-BYPASS
+
+slider21:0<0,1,1{Distortion, Bitcrusher}>-MCP Display
+
+filename:0,S2GFX/HD_Back.png
+filename:1,S2GFX/BlueKnob.png
+filename:2,S2GFX/RedKnob.png
+filename:3,S2GFX/SmallKnob.png
+filename:4,S2GFX/button.png
+filename:5,S2GFX/switch.png
+filename:6,S2GFX/gled.png
+filename:7,S2GFX/rled.png
+filename:8,S2GFX/yled.png
+filename:9,S2GFX/oled.png
+filename:10,S2GFX/bled.png
+filename:11,S2GFX/menu.png
+filename:12,S2GFX/S2_logo.png
+
+filename:13,S2GFX/SC_BlackNev.png
+filename:14,S2GFX/SC_BlackNev2.png
+filename:15,S2GFX/SC_RedNev.png
+filename:16,S2GFX/SC_RedNev2.png
+filename:17,S2GFX/SC_GreyNev.png
+filename:18,S2GFX/SC_GreyNev2.png
+filename:19,S2GFX/SC_Chick.png
+
+options:No_meter
+options:gmem=TukanDegraderS2
+//options:gfx_idle
+
+in_pin:L in
+in_pin:R in 
+
+out_pin:L out
+out_pin:R out
+
+import S2GFX/tk_lib.jsfx-inc
+import S2GFX/VT_Filters.jsfx-inc
+
+
+
+
+
+
+
+
+
+
+@init
+
+
+Degrader_VERSION = 1.18;
+
+
+
+
+
+ext_tail_size = -1;
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+ext_noinit=1;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 1; while_stopped = 1;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+
+s2_numbers_of_sliders = 21;
+s2_numbers_of_generics = 0;
+group_generics =0; // fuer group_generics[bis zu 200]
+sliders_old = group_generics + 16*200;
+generics_old = sliders_old + 16*64;
+
+histbuf=1000000;
+histpos=0;
+
+size=200;
+histsize=size/1000*srate|0;
+
+//link_group = 0;
+//link_group_master = 0;
+
+ blueknob = 1;
+ redknob = 2;
+ smallknob = 3;
+ button = 4;
+ switch = 5;
+ gled = 6; rled = 7; yled = 8; oled = 9; bled = 10;
+ menu = 11;  
+ logo = 12;
+ Mouse_Sensivity ();
+
+   /////////////////////////////////////////////// FUNCTION FILTER ////////
+     MAX_FREQ = 44100 / 2.0;
+     MIN_FREQ = 10;
+     FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+     
+   /*
+    * Convert slider % to frequency
+    */
+   function per_to_freq(x, range) (
+     MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+   );
+   
+   /*
+    * Convert frequency to slider %
+    */
+   function freq_to_per(freq, range) (
+     range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+   );
+   
+   
+   
+   /////////////////////////////////////////////// FUNCTION FILTER ////////
+
+
+
+//Parameter_config                (slider_  default_ minVal_ maxVal_ xIn_ yIn_ wIn   frames_ scaling_ file_)      
+      InGain.parameter_config     (1,       0,        -30,     30,   170,  60,  120, 200,    1,       18); //14
+      Drive.parameter_config      (2,       0,          0,    100,   170,  160, 120, 101,    1,       14); //16
+      Outgain.parameter_config    (3,       0,        -30,     30,   170,  260, 120, 200,    1,       18);     
+      InGate.parameter_config     (4,     -60,        -60,     0,     40,  110, 120, 101,    1,       16);
+      Noise.parameter_config      (7,     -80,        -80,     0,    300,  110, 120, 200,    1,       18);
+      Phone.parameter_config      (10,      5,          0,     10,   430,  110, 120, 200,    1,       18);
+      Bits.parameter_config       (13,      16,         1,     16,   560,  60,  120, 101,    1,       14); //14
+      Freq.parameter_config       (14,   22050,       100,  22050,   560,  260, 120, 101,    1,       14); 
+      OutGate.parameter_config    (16,     -60,        -60,      0,   690,  110,  120, 101,    1,       16); //14
+      Master.parameter_config     (19,       0,        -30,     30,   820,  260, 120, 101,    1,       14);  
+      BBypass.button_config(20, 855, 3);            
+                  
+                  
+                  
+parameters_update_on = 0;              
+function parameters_update () (
+parameters_update_on = 1;
+
+Ingain.Parameter_boundaries();
+Drive.Parameter_boundaries();
+Outgain.Parameter_boundaries();
+InGate.Parameter_boundaries();
+Noise.Parameter_boundaries();
+Phone.Parameter_boundaries();
+Bits.Parameter_boundaries();
+Freq.Parameter_boundaries();
+OutGate.Parameter_boundaries();
+Master.Parameter_boundaries();
+//.Parameter_boundaries();
+
+group_parameters();
+
+
+dist_in_Gain = db2ratio(slider1);
+dist_out_Gain = db2ratio(slider3);
+drive = max(min((slider2*0.01),0.99),0);
+kdrive = 2*drive/(1-drive);
+
+slider4 > -60 ? IGOn = 1 : IGOn = 0;
+IGthreshold = 10^(slider4/20);
+slider5 == 0 ? IGattack = exp(-1/(1/1000*srate)) : IGattack = exp(-1/(15/1000*srate));
+slider6 == 0 ? IGrelease = exp(-1/(30/1000*srate)) : IGrelease = exp(-1/(450/1000*srate));
+
+
+slider16 > -60 ? OGOn = 1 : OGOn = 0;
+OGthreshold = 10^(slider16/20);
+slider17 == 0 ? OGattack = exp(-1/(1/1000*srate)) : OGattack = exp(-1/(15/1000*srate));
+slider18 == 0 ? OGrelease = exp(-1/(30/1000*srate)) : OGrelease = exp(-1/(450/1000*srate));
+
+
+envelope_decay = exp(-1/(50/1000*srate));
+
+noisefloor = db2ratio(slider7);
+slider7 == -80 ? noisefloor = 0;
+noise_Autoblack = slider8;
+noise_stereo = slider9;
+
+
+   fil_q = slider11 ? 4 : 6.3;
+   fil_gain = 0;
+   fil_type = 3;
+   fil_q = 6;
+   wah_boost = db2ratio(26);
+   fil_freq = 5.4+slider10/5;
+   fil_freq = per_to_freq(Fil_freq*10,100);
+   wah_on = slider12;
+   
+   crushbit = !(slider13==16);
+   crushstep = 1/2^(floor(slider13));
+   crushfreq = !(slider14==22050);
+   normfreq = (floor(slider14)/srate);
+   
+   master_gain = db2ratio(slider19);
+   
+   bypass = slider20;
+   
+   
+   
+caller = 0;
+parameters_update_on = 0; 
+);
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+@slider
+
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 919 378
+s2_zoom_X = gfx_w / 919;
+s2_zoom_y = gfx_h / 378;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+//zoom = gfx_ext_retina * slider5; // CHANGE THIS!
+mouseHold = mouse_cap & 1;
+press_superkey = mouse_cap & 32;
+press_ctrl = mouse_cap & 4;
+press_shift = mouse_cap & 8;
+press_alt = mouse_cap & 16;
+superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+!press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+!press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+!press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+!press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+!press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+
+mouseClick = mouseHold - lastCap;
+lastCap = mouseHold;
+gfx_setfont(1,"Arial",12*zoom,'b');
+      
+
+     function plot_number(number, digits, size) local(digit) (
+     digits == 2 ? (
+     digit =  floor(number/10);
+     digit == 0 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 1 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 2 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 3 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 4 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 5 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 6 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 7 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 8 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 9 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     );
+     gfx_x += 0.8125*size;
+     digit = number - floor(number/10)*10;
+     digit == 0 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 1 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 2 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 3 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 4 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 5 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 6 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 7 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 8 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 9 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     );
+     
+     ):digits == 1 ? (
+     gfx_x += 0.8125*size;
+     digit = number;// - floor(number/10)*10;
+     digit == 0 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 1 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 2 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 3 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     //gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 4 ? (
+     //gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 5 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 6 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     //gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 7 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     //gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     //gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 8 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     ): digit == 9 ? (
+     gfx_rect(gfx_x, gfx_y, size/2, size / 10); // oben
+     gfx_rect(gfx_x, gfx_y+size/2, size/2, size / 10); // mitte
+     gfx_rect(gfx_x, gfx_y+size, size/2, size / 10); // unten
+     gfx_rect(gfx_x, gfx_y, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y, size / 10, size/2); // oben recht
+     //gfx_rect(gfx_x, gfx_y+size/2, size / 10, size/2); // oben links
+     gfx_rect(gfx_x + size / 2, gfx_y+size/2, size / 10, size/2); // oben recht
+     );
+     );
+     
+     );
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+gfx_ext_flags == 1 ? (
+
+      
+MCP_Mode = slider21;
+
+slider(drive.slider) == 0 && (slider(Bits.slider) < 16 || slider(Freq.slider) < 22050) ? MCP_mode = 1 :
+slider(drive.slider) > 0 && (slider(Bits.slider) == 16 || slider(Freq.slider) == 22050) ? MCP_mode = 0 :
+(
+MCP_Mode = slider21;
+mouseClick == 1 ? (
+choice = gfx_showmenu("Drive Graph|Digital");
+choice ? slider21 = choice - 1;
+choice = 0;
+);
+);
+
+
+mcp_mode == 0 ? (
+      
+      gfxSize=gfx_h;//120*zoom;;
+      zoom = 1;
+      
+      gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+      gfx_x=sgfx_x=(gfx_w-gfx_h)/2; gfx_y=sgfx_y=0;
+      
+      black(); gfx_rectto(gfx_x+gfxsize,gfx_y+gfxsize);
+      
+      gfx_r=gfx_g=gfx_b=0.8; gfx_a=1;
+      gfx_x=sgfx_x+gfxSize/2;
+      gfx_y=sgfx_y;
+      gfx_lineto(sgfx_x+gfxSize/2,sgfx_y+gfxSize,0);
+      gfx_x=sgfx_x; gfx_y=sgfx_y+gfxSize/2;
+      gfx_lineto(sgfx_x+gfxSize,sgfx_y+gfxSize/2,0);
+      
+      gfx_r=0.5; gfx_g=1; gfx_b=0; gfx_a=1;
+      orange();
+      gfx_x=sgfx_x;
+      gfx_y=sgfx_y+gfxSize;
+      x = -1; 
+      while(
+      y = -((1+kdrive)*x/(1+kdrive*abs(x)));
+      gfx_lineto(sgfx_x+x*gfxSize/2+gfxSize/2,sgfx_y+y*gfxSize/2+gfxSize/2,1);
+      (x+=0.001) <= 1;
+      );
+      gfx_lineto(sgfx_x+gfxSize-1,sgfx_y+0,1);
+      
+      
+      
+      
+      
+      
+      offs=histpos;
+      gscale=gfxSize/histsize;
+      gbuf=histbuf+2*histsize;
+      gscale2=gfxSize/2;
+      
+      gfx_r=0; gfx_g=1; gfx_b=0.3; gfx_a=1;
+      lightgrey();
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf+=histsize;
+      
+      //gfx_r=0; gfx_g=1; gfx_b=0.3; gfx_a=1;
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf=histbuf;
+      
+      gfx_r=0.4; gfx_g=0.4; gfx_b=0.4; gfx_a=1;
+      
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf+=histsize;
+      
+      //gfx_r=0; gfx_g=0; gfx_b=1; gfx_a=1;
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gfx_r=gfx_g=gfx_b=0.8; gfx_a=1;
+      //gfx_x=sgfx_x+gfxSize/2;
+      //gfx_y=sgfx_y;
+      //gfx_lineto(sgfx_x+gfxSize/2,sgfx_y+gfxSize,0);
+      gfx_x=sgfx_x; gfx_y=sgfx_y+gfxSize/2;
+      gfx_lineto(sgfx_x+gfxSize,sgfx_y+gfxSize/2,0);
+      
+):(
+     black(); gfx_rect(0,0,gfx_w,gfx_h);
+     Number_h = gfx_h / 3;
+     
+     
+     gfx_r = 1; gfx_g =0.2; gfx_b = 0;//0.2;
+     gfx_a = 0.2;
+     gfx_x = gfx_w / 2 - number_h - number_h/8; gfx_y = gfx_h / 10;
+     
+     plot_number(8, 1, Number_h);
+     gfx_x = gfx_w / 2 - number_h/4; gfx_y = gfx_h / 10;
+     plot_number(8, 1, Number_h);
+     
+     gfx_a = 1;
+      gfx_x = gfx_w / 2 - number_h - number_h/8; gfx_y = gfx_h / 10;
+      //gfx_circle(gfx_x,gfx_y,10);
+      floor(slider(bits.slider)) < 16 ? plot_number(floor(slider(bits.slider)/10), 1, Number_h);
+      gfx_x = gfx_w / 2 - number_h/4; gfx_y = gfx_h / 10;
+      floor(slider(bits.slider)) < 16 ? plot_number(floor(slider(bits.slider)) < 10 ? floor(slider(bits.slider)) : floor(slider(bits.slider)-10), 1, Number_h);
+      
+      
+      
+      
+     gfx_freq = gfx_freq2 = floor(slider(freq.slider));
+     gfx_r = 1; gfx_g =0.2; gfx_b = 0.2;
+     gfx_a = 0.2;
+     gfx_x = gfx_w / 2 - 3*number_h; gfx_y = gfx_h / 2 + gfx_h / 10;
+     plot_number(8, 1, Number_h);
+     gfx_x = gfx_w / 2 - 3*number_h + number_h/1.1;
+     plot_number(8, 1, Number_h);
+     gfx_x = gfx_w / 2 - 3*number_h + 2*number_h/1.1;
+     plot_number(8, 1, Number_h);
+     gfx_x = gfx_w / 2 - 3*number_h + 3*number_h/1.1;
+     plot_number(8, 1, Number_h);
+     gfx_x = gfx_w / 2 - 3*number_h + 4*number_h/1.1;
+     plot_number(8, 1, Number_h);
+      
+     gfx_a = 1;
+     gfx_freq < 22050 ? (
+     gfx_x = gfx_w / 2 - 3*number_h; gfx_y = gfx_h / 2 + gfx_h / 10;
+     gfx_freq > 9999 ? (plot_number(floor(gfx_freq/10000), 1, Number_h); gfx_freq2 -= 10000*floor(gfx_freq2/10000));
+     gfx_x = gfx_w / 2 - 3*number_h + number_h/1.1;
+     gfx_freq > 999 ? (plot_number(floor(gfx_freq2/1000), 1, Number_h); gfx_freq2 -= 1000*floor(gfx_freq2/1000));
+     gfx_x = gfx_w / 2 - 3*number_h + 2*number_h/1.1;
+     gfx_freq > 99 ? (plot_number(floor(gfx_freq2/100), 1, Number_h); gfx_freq2 -= 100*floor(gfx_freq2/100));
+     gfx_x = gfx_w / 2 - 3*number_h + 3*number_h/1.1;
+     gfx_freq > 9 ? (plot_number(floor(gfx_freq2/10), 1, Number_h); gfx_freq2 -= 10*floor(gfx_freq2/10));
+     gfx_x = gfx_w / 2 - 3*number_h + 4*number_h/1.1;
+     plot_number(gfx_freq2, 1, Number_h);
+     );
+     
+
+);
+
+
+
+
+   zoom=(gfx_h/50);
+      
+      gfx_setfont(1,"Arial",12*zoom,'b');
+      rgb_palette(Link_group);
+      #mini_group = sprintf(#, "%i", Link_Group);
+      gfx_measurestr(#mini_group, mini_w, mini_h);
+      gfx_x = gfx_w - mini_w - 2; gfx_y = 2;
+      Link_Group ? (
+        //link_group_master == 1 ? (green()):(red());
+        gfx_drawstr(#mini_group);
+      );
+
+
+      bypass == 1 ? (
+      black(); gfx_a=0.4; gfx_rect(0,0,gfx_w,gfx_h);
+      lightgrey();
+      gfx_x=2;gfx_y=gfx_h - mini_h - 2;gfx_a=0.9;
+      gfx_drawstr("BYPASS");
+      );
+
+mouseclick ? (
+
+shift ? slider(BBypass.slider) == 1 ? slider(BBypass.slider) = 0 : slider(BBypass.slider) = 1; caller = 1;
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+):gfx_ext_flags == 0 ? ( // EXT FLAGS
+
+      
+  /////////////////////////////////////////////// HINTERGRUND
+  xy(0,0);
+  gfx_blit(0,zoom,0);
+  ///////////////////////////////////////////////   
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+      attack.knob();
+      #klabel = "ATTACK"; gfx_measurestr(#klabel, klw, klh); attack.knoblabelposition(klw); lightgrey(); gfx_drawstr(#klabel);
+      #kmeasure = "%"; gfx_measurestr(#kmeasure, klw, klh); attack.knobmeasureposition(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "-100"; gfx_measurestr(#klabel, klw, klh); attack.labelposition(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-50"; gfx_measurestr(#klabel, klw, klh); attack.labelposition(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "0"; gfx_measurestr(#klabel, klw, klh); attack.labelposition(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "+50"; gfx_measurestr(#klabel, klw, klh); attack.labelposition(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "+100"; gfx_measurestr(#klabel, klw, klh); attack.labelposition(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+*/      
+
+  gfx_setfont(1,"Arial",12*zoom,'b');
+InGate.knob();
+      #klabel = "IN GATE"; gfx_measurestr(#klabel, klw, klh); InGate.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); InGate.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); InGate.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-45"; gfx_measurestr(#klabel, klw, klh); InGate.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); InGate.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); InGate.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); InGate.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      
+      gfx_x = ingate.xIn*zoom + 55*zoom; gfx_y = inGate.yIn*zoom-25*zoom;
+      IGgain > 0.1 || !IGOn ? (
+      gfx_blit(gled,0.25*zoom,0,0,128,128,128);
+      ):(
+      gfx_blit(gled,0.25*zoom,0,0,0,128,128);
+      );
+      
+      
+      gfx_setfont(2,"Arial",11*zoom,'b');
+            
+      BInGateAttack.button_config(5, 15, 235);  
+      gfx_x = BInGateAttack.xIn*zoom; gfx_y = BInGateAttack.yIn*zoom;
+      gfx_blit(5,zoom*0.5,0,0,120*(1-slider(BInGateAttack.Slider)),96,120);
+      gfx_X = BInGateAttack.xIn*zoom;
+      gfx_y = BInGateAttack.yIn*zoom - 10 *zoom;
+      gfx_drawstr("FAST", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BInGateAttack.xIn*zoom;
+      gfx_y = BInGateAttack.yIn*zoom + 53 *zoom;
+      gfx_drawstr("SLOW", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BInGateAttack.xIn*zoom-10*zoom;
+      gfx_y = BInGateAttack.yIn*zoom + 66 *zoom;
+      gfx_drawstr("ATT", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+            
+      BInGateRelease.button_config(6, 75, 235);  
+      gfx_x = BInGateRelease.xIn*zoom; gfx_y = BInGateRelease.yIn*zoom;
+      gfx_blit(5,zoom*0.5,0,0,120*(1-slider(BInGateRelease.Slider)),96,120);
+      gfx_X = BInGateRelease.xIn*zoom;
+      gfx_y = BInGateRelease.yIn*zoom - 10 *zoom;
+      gfx_drawstr("FAST", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BInGateRelease.xIn*zoom;
+      gfx_y = BInGateRelease.yIn*zoom + 53 *zoom;
+      gfx_drawstr("SLOW", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BInGateRelease.xIn*zoom-10*zoom;
+      gfx_y = BInGateRelease.yIn*zoom + 66 *zoom;
+      gfx_drawstr("REL", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+      
+      
+  gfx_setfont(1,"Arial",12*zoom,'b');
+InGain.knob();
+      #klabel = "IN GAIN"; gfx_measurestr(#klabel, klw, klh); InGain.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); InGain.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); InGain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); InGain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "± 0"; gfx_measurestr(#klabel, klw, klh); InGain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "15"; gfx_measurestr(#klabel, klw, klh); InGain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "30"; gfx_measurestr(#klabel, klw, klh); InGain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+
+  gfx_setfont(1,"Arial",12*zoom,'b');
+Drive.knob();
+      #klabel = "DRIVE"; gfx_measurestr(#klabel, klw, klh); Drive.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Drive.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "0"; gfx_measurestr(#klabel, klw, klh); Drive.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "25"; gfx_measurestr(#klabel, klw, klh); Drive.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "50"; gfx_measurestr(#klabel, klw, klh); Drive.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "75"; gfx_measurestr(#klabel, klw, klh); Drive.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "100"; gfx_measurestr(#klabel, klw, klh); Drive.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+
+  gfx_setfont(1,"Arial",12*zoom,'b');
+OutGain.knob();
+      #klabel = "OUT GAIN"; gfx_measurestr(#klabel, klw, klh); OutGain.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); OutGain.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); OutGain.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); OutGain.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "± 0"; gfx_measurestr(#klabel, klw, klh); OutGain.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "15"; gfx_measurestr(#klabel, klw, klh); OutGain.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "30"; gfx_measurestr(#klabel, klw, klh); OutGain.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+ 
+      
+      gfx_x = ingain.xIn*zoom + 58*zoom; gfx_y = inGain.yIn*zoom+55*zoom;
+      dist_in_clips ? (
+      gfx_blit(rled,0.25*zoom,0,0,128,128,128);
+      ):(
+      gfx_blit(rled,0.25*zoom,0,0,0,128,128);
+      );
+      
+      
+      gfx_x = outgain.xIn*zoom + 58*zoom; gfx_y = outGain.yIn*zoom+55*zoom;
+      dist_out_clips ? (
+      gfx_blit(rled,0.25*zoom,0,0,128,128,128);
+      ):(
+      gfx_blit(rled,0.25*zoom,0,0,0,128,128);
+      );
+
+       gfx_setfont(1,"Arial",12*zoom,'b');
+     Noise.knob();
+           #klabel = "NOISE"; gfx_measurestr(#klabel, klw, klh); Noise.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+           //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Noise.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+           gfx_setfont(2,"Arial",10*zoom,'b');
+           #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); Noise.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+           #klabel = "-60"; gfx_measurestr(#klabel, klw, klh); Noise.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+           #klabel = "-40"; gfx_measurestr(#klabel, klw, klh); Noise.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+           #klabel = "-20"; gfx_measurestr(#klabel, klw, klh); Noise.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+           #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); Noise.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+           gfx_setfont(1,"Arial",12*zoom,'b');
+     
+           BNoiseAutoblack.button_config(8, 275, 235);  
+           gfx_x = BNoiseAutoblack.xIn*zoom; gfx_y = BNoiseAutoblack.yIn*zoom;
+           gfx_blit(5,zoom*0.5,0,0,120*(slider(BNoiseAutoblack.Slider)),96,120);
+           gfx_X = BNoiseAutoblack.xIn*zoom;
+           gfx_y = BNoiseAutoblack.yIn*zoom - 10 *zoom;
+           gfx_drawstr("AUTO", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BNoiseAutoblack.xIn*zoom;
+           gfx_y = BNoiseAutoblack.yIn*zoom + 53 *zoom;
+           gfx_drawstr("OFF", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BNoiseAutoblack.xIn*zoom-10*zoom;
+           gfx_y = BNoiseAutoblack.yIn*zoom + 66 *zoom;
+           gfx_drawstr("MUTE", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+           
+           BNoiseStereo.button_config(9, 335, 235);  
+           gfx_x = BNoiseStereo.xIn*zoom; gfx_y = BNoiseStereo.yIn*zoom;
+           gfx_blit(5,zoom*0.5,0,0,120*(slider(BNoiseStereo.Slider)),96,120);
+           gfx_X = BNoiseStereo.xIn*zoom;
+           gfx_y = BNoiseStereo.yIn*zoom - 10 *zoom;
+           gfx_drawstr("STEREO", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BNoiseStereo.xIn*zoom;
+           gfx_y = BNoiseStereo.yIn*zoom + 53 *zoom;
+           gfx_drawstr("MONO", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BNoiseStereo.xIn*zoom-10*zoom;
+           gfx_y = BNoiseStereo.yIn*zoom + 66 *zoom;
+           gfx_drawstr("MODE", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+           
+           
+    gfx_setfont(1,"Arial",12*zoom,'b');
+  Phone.knob();
+        #klabel = "TUNE"; gfx_measurestr(#klabel, klw, klh); Phone.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+        //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Phone.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+        gfx_setfont(2,"Arial",10*zoom,'b');
+        #klabel = "0"; gfx_measurestr(#klabel, klw, klh); Phone.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+        #klabel = "2.5"; gfx_measurestr(#klabel, klw, klh); Phone.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+        #klabel = "5"; gfx_measurestr(#klabel, klw, klh); Phone.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+        #klabel = "7.5"; gfx_measurestr(#klabel, klw, klh); Phone.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+        #klabel = "10"; gfx_measurestr(#klabel, klw, klh); Phone.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+        gfx_setfont(1,"Arial",12*zoom,'b');         
+
+           BPhoneNarrow.button_config(11, 405, 235);  
+           gfx_x = BPhoneNarrow.xIn*zoom; gfx_y = BPhoneNarrow.yIn*zoom;
+           gfx_blit(5,zoom*0.5,0,0,120*(slider(BPhoneNarrow.Slider)),96,120);
+           gfx_X = BPhoneNarrow.xIn*zoom;
+           gfx_y = BPhoneNarrow.yIn*zoom - 10 *zoom;
+           gfx_drawstr("WIDE", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BPhoneNarrow.xIn*zoom;
+           gfx_y = BPhoneNarrow.yIn*zoom + 53 *zoom;
+           gfx_drawstr("NRRW", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BPhoneNarrow.xIn*zoom-10*zoom;
+           gfx_y = BPhoneNarrow.yIn*zoom + 66 *zoom;
+           gfx_drawstr("WIDTH", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+           
+           BPhoneOn.button_config(12, 465, 235);  
+           gfx_x = BPhoneOn.xIn*zoom; gfx_y = BPhoneOn.yIn*zoom;
+           gfx_blit(5,zoom*0.5,0,0,120*(slider(BPhoneOn.Slider)),96,120);
+           gfx_X = BPhoneOn.xIn*zoom;
+           gfx_y = BPhoneOn.yIn*zoom - 10 *zoom;
+           gfx_drawstr("ON", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BPhoneOn.xIn*zoom;
+           gfx_y = BPhoneOn.yIn*zoom + 53 *zoom;
+           gfx_drawstr("OFF", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+           gfx_X = BPhoneOn.xIn*zoom-10*zoom;
+           gfx_y = BPhoneOn.yIn*zoom + 66 *zoom;
+           gfx_drawstr("MODE", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+           
+           
+           
+  gfx_setfont(1,"Arial",12*zoom,'b');
+Bits.knob();
+      #klabel = "BIT CRUSH"; gfx_measurestr(#klabel, klw, klh); Bits.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Bits.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "1"; gfx_measurestr(#klabel, klw, klh); Bits.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "5"; gfx_measurestr(#klabel, klw, klh); Bits.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "8"; gfx_measurestr(#klabel, klw, klh); Bits.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "12"; gfx_measurestr(#klabel, klw, klh); Bits.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); Bits.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+
+  gfx_setfont(1,"Arial",12*zoom,'b');
+Freq.knob();
+      #klabel = "NYQ CRUSH"; gfx_measurestr(#klabel, klw, klh); Freq.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+      //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Freq.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+      gfx_setfont(2,"Arial",10*zoom,'b');
+      #klabel = "100"; gfx_measurestr(#klabel, klw, klh); Freq.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "5.5k"; gfx_measurestr(#klabel, klw, klh); Freq.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+      #klabel = "11k"; gfx_measurestr(#klabel, klw, klh); Freq.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+      #klabel = "17k"; gfx_measurestr(#klabel, klw, klh); Freq.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); Freq.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+      gfx_setfont(1,"Arial",12*zoom,'b');
+      
+      //523 + 130
+      black();
+      gfx_rect(533*zoom, 160*zoom, 110*zoom, 37*zoom);
+      
+      gfx_r = 1; gfx_g =0.2; gfx_b = 0.2;
+      gfx_a = 0.2;
+      gfx_x = 551*zoom; gfx_y = 165*zoom;
+      plot_number(8, 1, 25*zoom);
+      gfx_x = 571*zoom; gfx_y = 165*zoom;
+      plot_number(8, 1, 25*zoom);
+      
+      gfx_a = 1;
+       gfx_x = 551*zoom; gfx_y = 165*zoom;
+       floor(slider(bits.slider)) < 16 ? plot_number(floor(slider(bits.slider)/10), 1, 25*zoom);
+       gfx_x = 571*zoom; gfx_y = 165*zoom;
+       floor(slider(bits.slider)) < 16 ? plot_number(floor(slider(bits.slider)) < 10 ? floor(slider(bits.slider)) : floor(slider(bits.slider)-10), 1, 25*zoom);
+       
+       
+      
+     black();
+     gfx_rect(533*zoom, 205*zoom, 110*zoom, 37*zoom);
+     gfx_freq = gfx_freq2 = floor(slider(freq.slider));
+     gfx_r = 1; gfx_g =0.2; gfx_b = 0.2;
+     gfx_a = 0.2;
+     gfx_x = 522*zoom; gfx_y = 210*zoom;
+     plot_number(8, 1, 25*zoom);
+     gfx_x = 542*zoom; gfx_y = 210*zoom;
+     plot_number(8, 1, 25*zoom);
+     gfx_x = 562*zoom; gfx_y = 210*zoom;
+     plot_number(8, 1, 25*zoom);
+     gfx_x = 582*zoom; gfx_y = 210*zoom;
+     plot_number(8, 1, 25*zoom);
+     gfx_x = 602*zoom; gfx_y = 210*zoom;
+     plot_number(8, 1, 25*zoom);
+      
+     gfx_a = 1;
+     gfx_freq < 22050 ? (
+     gfx_x = 522*zoom; gfx_y = 210*zoom;
+     gfx_freq > 9999 ? (plot_number(floor(gfx_freq/10000), 1, 25*zoom); gfx_freq2 -= 10000*floor(gfx_freq2/10000));
+     gfx_x = 542*zoom; gfx_y = 210*zoom;
+     gfx_freq > 999 ? (plot_number(floor(gfx_freq2/1000), 1, 25*zoom); gfx_freq2 -= 1000*floor(gfx_freq2/1000));
+     gfx_x = 562*zoom; gfx_y = 210*zoom;
+     gfx_freq > 99 ? (plot_number(floor(gfx_freq2/100), 1, 25*zoom); gfx_freq2 -= 100*floor(gfx_freq2/100));
+     gfx_x = 582*zoom; gfx_y = 210*zoom;
+     gfx_freq > 9 ? (plot_number(floor(gfx_freq2/10), 1, 25*zoom); gfx_freq2 -= 10*floor(gfx_freq2/10));
+     gfx_x = 602*zoom; gfx_y = 210*zoom;
+     plot_number(gfx_freq2, 1, 25*zoom);
+     );
+     
+     
+        gfx_setfont(1,"Arial",12*zoom,'b');
+      OutGate.knob();
+            #klabel = "OUT GATE"; gfx_measurestr(#klabel, klw, klh); OutGate.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+            //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); OutGate.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+            gfx_setfont(2,"Arial",10*zoom,'b');
+            #klabel = "OFF"; gfx_measurestr(#klabel, klw, klh); OutGate.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+            #klabel = "-45"; gfx_measurestr(#klabel, klw, klh); OutGate.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+            #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); OutGate.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+            #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); OutGate.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+            #klabel = " ±0"; gfx_measurestr(#klabel, klw, klh); OutGate.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+            gfx_setfont(1,"Arial",12*zoom,'b');
+      
+      BOutGateAttack.button_config(17, 665, 235);  
+      gfx_x = BOutGateAttack.xIn*zoom; gfx_y = BOutGateAttack.yIn*zoom;
+      gfx_blit(5,zoom*0.5,0,0,120*(1-slider(BOutGateAttack.Slider)),96,120);
+      gfx_X = BOutGateAttack.xIn*zoom;
+      gfx_y = BOutGateAttack.yIn*zoom - 10 *zoom;
+      gfx_drawstr("FAST", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BOutGateAttack.xIn*zoom;
+      gfx_y = BOutGateAttack.yIn*zoom + 53 *zoom;
+      gfx_drawstr("SLOW", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BOutGateAttack.xIn*zoom-10*zoom;
+      gfx_y = BOutGateAttack.yIn*zoom + 66 *zoom;
+      gfx_drawstr("ATT", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+      
+      BOutGateRelease.button_config(18, 725, 235);  
+      gfx_x = BOutGateRelease.xIn*zoom; gfx_y = BOutGateRelease.yIn*zoom;
+      gfx_blit(5,zoom*0.5,0,0,120*(1-slider(BOutGateRelease.Slider)),96,120);
+      gfx_X = BOutGateRelease.xIn*zoom;
+      gfx_y = BOutGateRelease.yIn*zoom - 10 *zoom;
+      gfx_drawstr("FAST", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BOutGateRelease.xIn*zoom;
+      gfx_y = BOutGateRelease.yIn*zoom + 53 *zoom;
+      gfx_drawstr("SLOW", 0x01, gfx_x + 48*zoom, gfx_y + 12*zoom);
+      gfx_X = BOutGateRelease.xIn*zoom-10*zoom;
+      gfx_y = BOutGateRelease.yIn*zoom + 66 *zoom;
+      gfx_drawstr("REL", 0x01, gfx_x + 68*zoom, gfx_y + 12*zoom);
+      
+      gfx_x = outgate.xIn*zoom + 55*zoom; gfx_y = outGate.yIn*zoom-25*zoom;
+      OGgain > 0.1 || !OGOn ? (
+      gfx_blit(gled,0.25*zoom,0,0,128,128,128);
+      ):(
+      gfx_blit(gled,0.25*zoom,0,0,0,128,128);
+      );
+      
+      
+        gfx_setfont(1,"Arial",12*zoom,'b');
+      Master.knob();
+            #klabel = "MASTER OUT"; gfx_measurestr(#klabel, klw, klh); Master.knoblabelposition_scaled(klw); lightgrey(); gfx_drawstr(#klabel);
+            //#kmeasure = "x"; gfx_measurestr(#kmeasure, klw, klh); Master.knobmeasureposition_scaled(klw, klh); lakeblue(); gfx_a = 0.8; gfx_drawstr(#kmeasure); gfx_a = 1;
+            gfx_setfont(2,"Arial",10*zoom,'b');
+            #klabel = "-30"; gfx_measurestr(#klabel, klw, klh); Master.labelposition_scaled(1,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+            #klabel = "-15"; gfx_measurestr(#klabel, klw, klh); Master.labelposition_scaled(3,klw, klh); lightgrey(); gfx_drawstr(#klabel);
+            #klabel = "±0"; gfx_measurestr(#klabel, klw, klh); Master.labelposition_scaled(5,klw, klh); lightgrey(); gfx_x += 1*zoom; gfx_drawstr(#klabel); 
+            #klabel = "15"; gfx_measurestr(#klabel, klw, klh); Master.labelposition_scaled(7,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+            #klabel = "30"; gfx_measurestr(#klabel, klw, klh); Master.labelposition_scaled(9,klw, klh); lightgrey(); gfx_drawstr(#klabel); 
+            gfx_setfont(1,"Arial",12*zoom,'b');
+      
+      
+      gfx_x = master.xIn*zoom + 62*zoom; gfx_y = master.yIn*zoom+56*zoom;
+      master_clips ? (
+      gfx_blit(rled,0.25*zoom,0,0,128,128,128);
+      ):(
+      gfx_blit(rled,0.25*zoom,0,0,0,128,128);
+      );
+      
+      
+      gfx_roundrect(3*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(3*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 3*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("INPUT GATE", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(133*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(133*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 133*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("SATURATION", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(263*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(263*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 263*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("NOISE", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(393*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(393*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 393*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("PHONE EFFECT", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(523*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(523*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 523*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("DIGITAL", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(653*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(653*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 653*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("OUTPUT GATE", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      gfx_roundrect(783*zoom,40*zoom,130*zoom,310*zoom,7*zoom);
+      gfx_roundrect(783*zoom,350*zoom,130*zoom,23*zoom,7*zoom);
+      gfx_x = 783*zoom; gfx_y = 355*zoom;
+      gfx_drawstr("GAIN STAGE", 0x01, gfx_x + 130*zoom, gfx_y + 12*zoom);
+      
+      bbypass.button();
+      gfx_x = BBypass.xIn*zoom-55*zoom; gfx_y = BBypass.yIn*zoom+12*zoom;
+      gfx_drawstr("BYPASS");
+      
+      
+      
+      
+      InGain.k_collision() || OutGain.k_collision() || Drive.k_collision() || InGain.dragging || OutGain.dragging || Drive.dragging ? (
+      
+      
+      gfxSize=120*zoom;;
+      
+      gfx_r=gfx_g=gfx_b=0; gfx_a=1;
+      gfx_x=sgfx_x=788*zoom; gfx_y=sgfx_y=85*zoom;
+      
+      black(); gfx_rectto(gfx_x+gfxsize,gfx_y+gfxsize);
+      
+      gfx_r=gfx_g=gfx_b=0.8; gfx_a=1;
+      gfx_x=sgfx_x+gfxSize/2;
+      gfx_y=sgfx_y;
+      gfx_lineto(sgfx_x+gfxSize/2,sgfx_y+gfxSize,0);
+      gfx_x=sgfx_x; gfx_y=sgfx_y+gfxSize/2;
+      gfx_lineto(sgfx_x+gfxSize,sgfx_y+gfxSize/2,0);
+      
+      gfx_r=0.5; gfx_g=1; gfx_b=0; gfx_a=1;
+      orange();
+      gfx_x=sgfx_x;
+      gfx_y=sgfx_y+gfxSize;
+      x = -1; 
+      while(
+      y = -((1+kdrive)*x/(1+kdrive*abs(x)));
+      gfx_lineto(sgfx_x+x*gfxSize/2+gfxSize/2,sgfx_y+y*gfxSize/2+gfxSize/2,1);
+      (x+=0.001) <= 1;
+      );
+      gfx_lineto(sgfx_x+gfxSize-1,sgfx_y+0,1);
+      
+      
+      
+      
+      
+      
+      offs=histpos;
+      gscale=gfxSize/histsize;
+      gbuf=histbuf+2*histsize;
+      gscale2=gfxSize/2;
+      
+      gfx_r=0; gfx_g=1; gfx_b=0.3; gfx_a=1;
+      lightgrey();
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf+=histsize;
+      
+      //gfx_r=0; gfx_g=1; gfx_b=0.3; gfx_a=1;
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf=histbuf;
+      
+      gfx_r=0.4; gfx_g=0.4; gfx_b=0.4; gfx_a=1;
+      
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gbuf+=histsize;
+      
+      //gfx_r=0; gfx_g=0; gfx_b=1; gfx_a=1;
+      
+      ga=0;
+      loop(histsize,
+      gv=gbuf[offs];
+      offs+=1;
+      offs>=histsize?offs=0;
+      gx=ga*gscale;
+      gy=gfxSize/2 - gv*gscale2;
+      ga ? gfx_lineto(sgfx_x+gx,sgfx_y+gy,0) : ( gfx_x=sgfx_x+gx; gfx_y=sgfx_y+gy; );
+      ga+=1;
+      );
+      
+      gfx_r=gfx_g=gfx_b=0.8; gfx_a=1;
+      //gfx_x=sgfx_x+gfxSize/2;
+      //gfx_y=sgfx_y;
+      //gfx_lineto(sgfx_x+gfxSize/2,sgfx_y+gfxSize,0);
+      gfx_x=sgfx_x; gfx_y=sgfx_y+gfxSize/2;
+      gfx_lineto(sgfx_x+gfxSize,sgfx_y+gfxSize/2,0);
+      
+      );
+      
+ //////////////////////////////////////////////////////////////////////////////////////////////   
+    
+    
+
+
+
+
+
+   ////////////////////////////////////////// MENU MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+  
+  gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+  //gfx_blit(menu,zoom/2,0);
+  lightgrey(); //red();
+  gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+  gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+  
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 4*zoom;
+  gfx_drawstr("TUKAN STUDIOS  -  DEGRADER "); 
+  gfx_setfont(1,"Arial",12*zoom,'i');
+  lakeblue(); gfx_drawstr(" SERIES 2   ");
+  gfx_setfont(1,"Arial",12*zoom,'b');
+  
+  
+  
+  link_group ? (
+    rgb_palette(Link_group);// gfx_a = 0.7;
+    gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+  );
+  gfx_a = 1;
+  
+  
+   mouseClick ? (
+    g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+     gfx_x = menu_x*zoom;
+     gfx_y = (menu_y+20)*zoom;
+      
+       #item2 =">Processing|";#allitems = #item2;
+      while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+      while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+      while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+  
+      mnu_grp_loop = 1;
+      loop(16,
+  
+        mnu_grp_loop == 16 ? #item2 += "<";
+        gmem[16*64 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+          mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                  #item2 = "!Joins Group ";
+          ):(
+              #item2 = "Add to Group ";
+          );
+        ):(
+          #item2 = "Start Group ";
+        );
+      mnu_grp_loop == 1 ? #item2 += "01";
+      mnu_grp_loop == 2 ? #item2 += "02";
+      mnu_grp_loop == 3 ? #item2 += "03";
+      mnu_grp_loop == 4 ? #item2 += "04";
+      mnu_grp_loop == 5 ? #item2 += "05";
+      mnu_grp_loop == 6 ? #item2 += "06";
+      mnu_grp_loop == 7 ? #item2 += "07";
+      mnu_grp_loop == 8 ? #item2 += "08";
+      mnu_grp_loop == 9 ? #item2 += "09";
+      mnu_grp_loop == 10 ? #item2 += "10";
+      mnu_grp_loop == 11 ? #item2 += "11";
+      mnu_grp_loop == 12 ? #item2 += "12";
+      mnu_grp_loop == 13 ? #item2 += "13";
+      mnu_grp_loop == 14 ? #item2 += "14";
+      mnu_grp_loop == 15 ? #item2 += "15";
+      mnu_grp_loop == 16 ? #item2 += "16";
+      
+      #item2 += "|";
+      #allitems += #item2; //sprintf(#temp, '%f',3); 
+      mnu_grp_loop += 1;
+      );
+      
+      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+  
+      //#allitems += "<#MENU|";
+     #allitems += ">Scaling|";
+     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+     
+ 
+     
+     #allitems += "|Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+  
+  
+  
+  
+   
+   last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+   last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+   last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+  
+    cgroup = last_clicked_item - 3;
+   last_clicked_item > 3 && last_clicked_item < 20 ? (
+      Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+          gmem[16*64 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+              //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+              gmem[16*64 + 10 + cgroup] = 1;Link_Group = cgroup;group_update();
+          ):(
+              Link_Group = cgroup;// Gruppe teilnehmen
+          );
+      ):( //Eigene Gruppe angeklickt
+            Link_Group = 0;
+      );
+   
+   );
+   
+    cgroup = last_clicked_item - 3 - 16;
+   last_clicked_item == 20 ? (
+     gmem[16*64 + 10 + Link_Group] = 0;Link_Group = 0;
+   );
+   
+   
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1;
+   
+   
+  
+
+   
+   last_clicked_item == 23 ? helpshow = 1;
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS DEGRADER (Series 2)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(degrader_VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("Mouse modifier options:");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Fine tune knobs: [shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset knobs: [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Activate number typing: [alt]+[shift]");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+   
+   
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////// MAUS STEUERUNG
+
+      !Number_input ? (
+      
+      mouseClick == 1 ? (
+      //attack.k_collision() ? attack.dragstart();
+      InGain.k_collision() ? InGain.dragstart();
+      Drive.k_collision() ? Drive.dragstart();
+      Outgain.k_collision() ? OutGain.dragstart();
+      InGate.k_collision() ? InGate.dragstart();
+      Noise.k_collision() ? Noise.dragstart();
+      Phone.k_collision() ? Phone.dragstart();
+      Bits.k_collision() ? Bits.dragstart();
+      Freq.k_collision() ? Freq.dragstart();
+      OutGate.k_collision() ? OutGate.dragstart();
+      Master.k_collision() ? Master.dragstart();
+      BBypass.b_collision() ? (slider(BBypass.slider) == 0 ? (slider(BBypass.slider) = 1; caller = 1):(slider(BBypass.slider) = 0; caller =1);BBypass.quicklink_button(););
+      
+      
+      
+      g_collision(BInGateAttack.xIn*zoom+15*zoom, BInGateAttack.yIn*zoom, 17*zoom, 55*zoom)? (slider(BInGateAttack.slider) == 0 ? slider(BInGateAttack.slider) = 1 : slider(BInGateAttack.slider) = 0; caller = 1;BInGateAttack.quicklink_button());
+      g_collision(BInGateRelease.xIn*zoom+15*zoom, BInGateRelease.yIn*zoom, 17*zoom, 55*zoom)? (slider(BInGateRelease.slider) == 0 ? slider(BInGateRelease.slider) = 1 : slider(BInGateRelease.slider) = 0; caller = 1;BInGateRelease.quicklink_button());
+      g_collision(BNoiseAutoblack.xIn*zoom+15*zoom, BNoiseAutoblack.yIn*zoom, 17*zoom, 55*zoom)? (slider(BNoiseAutoblack.slider) == 0 ? slider(BNoiseAutoblack.slider) = 1 : slider(BNoiseAutoblack.slider) = 0; caller = 1;BNoiseAutoblack.quicklink_button());
+      g_collision(BNoiseStereo.xIn*zoom+15*zoom, BNoiseStereo.yIn*zoom, 17*zoom, 55*zoom)? (slider(BNoiseStereo.slider) == 0 ? slider(BNoiseStereo.slider) = 1 : slider(BNoiseStereo.slider) = 0; caller = 1;BNoiseStereo.quicklink_button());
+      g_collision(BPhoneNarrow.xIn*zoom+15*zoom, BPhoneNarrow.yIn*zoom, 17*zoom, 55*zoom)? (slider(BPhoneNarrow.slider) == 0 ? slider(BPhoneNarrow.slider) = 1 : slider(BPhoneNarrow.slider) = 0; caller = 1;BPhoneNarrow.quicklink_button());
+      g_collision(BPhoneOn.xIn*zoom+15*zoom, BPhoneOn.yIn*zoom, 17*zoom, 55*zoom)? (slider(BPhoneOn.slider) == 0 ? slider(BPhoneOn.slider) = 1 : slider(BPhoneOn.slider) = 0; caller = 1;BPhoneOn.quicklink_button());
+      g_collision(BOutGateAttack.xIn*zoom+15*zoom, BOutGateAttack.yIn*zoom, 17*zoom, 55*zoom)? (slider(BOutGateAttack.slider) == 0 ? slider(BOutGateAttack.slider) = 1 : slider(BOutGateAttack.slider) = 0; caller = 1;BOutGateAttack.quicklink_button());
+      g_collision(BOutGateRelease.xIn*zoom+15*zoom, BOutGateRelease.yIn*zoom, 17*zoom, 55*zoom)? (slider(BOutGateRelease.slider) == 0 ? slider(BOutGateRelease.slider) = 1 : slider(BOutGateRelease.slider) = 0; caller = 1;BOutGateRelease.quicklink_button());
+      
+      
+      );
+      
+      mouseclick == -1 ? (
+      //attack.dragstop();
+      InGain.dragstop();
+      Drive.dragstop();
+      Outgain.dragstop();
+      InGate.dragstop();
+      Noise.dragstop();
+      Phone.dragstop();
+      Bits.dragstop();
+      Freq.dragstop();
+      OutGate.dragstop();
+      Master.dragstop();
+      katze = 0;
+      );
+      
+      mouse_wheel ? 
+          (
+           // attack.k_collision()   ? attack.potWheel():
+            InGain.k_collision() ? InGain.potwheel();
+            Drive.k_collision() ? Drive.potwheel();
+            Outgain.k_collision() ? OutGain.potwheel();
+            InGate.k_collision() ? InGate.potwheel();
+            Noise.k_collision() ? Noise.potwheel();
+            Phone.k_collision() ? Phone.potwheel();
+            Bits.k_collision() ? Bits.potwheel();
+            Freq.k_collision() ? Freq.potwheel();
+            OutGate.k_collision() ? OutGate.potwheel();
+            Master.k_collision() ? Master.potwheel();
+           mouse_wheel=0;
+           caller = 1;
+          );
+          
+      //attack.dragging ? (attack.potdrag();attack.readout();caller = 1;);
+      InGain.dragging ? (InGain.potdrag();InGain.readout();caller = 1);
+      Drive.dragging ? (Drive.potdrag();Drive.readout();caller = 1);
+      Outgain.dragging ? (OutGain.potdrag();OutGain.readout();caller = 1);
+      InGate.dragging ? (InGate.potdrag();InGate.readout();caller = 1);
+      Noise.dragging ? (Noise.potdrag();Noise.readout();caller = 1);
+      Phone.dragging ? (Phone.potdrag();Phone.readout();caller = 1);
+      Bits.dragging ? (Bits.potdrag();caller = 1);
+      Freq.dragging ? (Freq.potdrag();caller = 1);
+      OutGate.dragging ? (OutGate.potdrag();OutGate.readout();caller = 1);
+      Master.dragging ? (Master.potdrag();Master.readout();caller = 1);
+
+      Link_Group == 0 ? (
+      gmem[16*64 + 3] == 0 ? linkstart = 0;
+      !mouse_cap ? (
+      gmem[16*64 + 3] == 1 ? (linkstart == 0 ? link_old = slider(gmem[16*64 + 1]); linkstart = 1);
+      gmem[16*64 + 3] == 1 ? (
+           tmp_val = link_old +  gmem[16*64 + 2];
+      slider(gmem[16*64 + 1]) = tmp_val;
+      slider_automate(slider(gmem[16*64 + 1]));
+      caller = 1;
+      );
+      gmem[16*64 + 3] == 2 ? (
+      slider(gmem[16*64 + 1]) =  gmem[16*64 + 2];
+      caller = 1;
+      );
+      );
+      );
+     
+     
+     
+     ); // !number_input
+
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     number_input ? number_input_show();
+     number_input_invalid = max(0,number_input_invalid-1);
+     number_input_invalid ? ( 
+     gfx_r=gfx_g=gfx_b=0;
+     gfx_rect(zoom*number_input_x,number_input_y*zoom, 200*zoom, gfx_texth+5);
+     gfx_r=0;gfx_g=1;gfx_b=0;
+     gfx_rect(zoom*number_input_x,zoom*number_input_y, gfx_texth+5, gfx_texth+5);
+     red();
+     gfx_rect(zoom*number_input_x + gfx_texth+5,zoom*number_input_y, 200*zoom - (gfx_texth+5), gfx_texth+5);
+     gfx_r=gfx_g=gfx_b=0.7;
+     gfx_roundrect(zoom*number_input_x,zoom*number_input_y, 200*zoom, gfx_texth+5,0);
+     gfx_x = zoom*number_input_x + gfx_texth+7; gfx_y = zoom*number_input_y + 2;
+     white();
+     gfx_drawstr("NO VALID INPUT!");
+     );
+     
+     
+     
+     
+     
+     
+     
+    
+     
+////////////////////////////////////////////////////////////////////////////////////////////// ENDE MAUS STEUERUNG
+
+
+
+
+gfx_x = 805*zoom; gfx_y = 100*zoom;
+gfx_a = 0.5;
+gfx_blit(logo,zoom/1.35,0);
+gfx_a = 1;
+
+); // EXT FLAGS
+
+
+S2_sample_on == 0 ? (
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_gfx();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+);
+S2_sample_on = 0;
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+@serialize
+file_var(0, while_playing);
+file_var(0, while_recording);
+file_var(0, while_stopped);
+file_var(0, Degrader_VERSION);
+file_var(0, link_group);
+
+seriloop = 0;
+loop(64*16 + 27 + 16,
+file_var(0, gmem[seriloop]);
+seriloop += 1;
+);
+
+seriloop = 0;
+loop(200*16,
+file_var(0, group_generics[seriloop]);
+seriloop += 1;
+);
+
+
+
+
+
+@sample
+gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+playstates();
+
+process = 0;
+while_playing ? is_playing ? process = 1;
+while_recording ? is_recording ? process = 1;
+while_stopped ? is_stopped ? process = 1;
+
+bypass ? process = 0;
+
+
+process == 1 ? (
+
+IGOn ? (
+det = max(abs(spl0),abs(spl1));
+det += 0.000000000001;
+IGenv = det >= IGenv ? det : det+envelope_decay*(IGenv-det);
+IGtransfer_gain = IGenv > IGthreshold ? pow(IGenv,0):0;
+IGgain = IGtransfer_gain > IGgain ? IGtransfer_gain+IGattack*(IGgain-IGtransfer_gain) : IGtransfer_gain+IGrelease*(IGgain-IGtransfer_gain);
+spl0 *= IGgain;
+spl1 *= IGgain;
+);
+
+
+
+spl0 *= dist_in_Gain;
+spl1 *= dist_in_Gain;
+
+spl0 = min(1,max(-1,spl0));
+spl1 = min(1,max(-1,spl1));
+
+spl0 == 1 || spl0 == -1 || spl1 == 1 || spl1 == -1 ? dist_in_clips = srate/5;
+dist_in_clips = max(dist_in_clips -1, 0);
+
+histbuf[histpos]=spl0;
+histbuf[histpos+histsize ]=spl1;
+
+
+
+spl0 = (1+kdrive)*(spl0)/(1+kdrive*abs(spl0));
+spl1 = (1+kdrive)*(spl1)/(1+kdrive*abs(spl1));
+
+spl0 = min(1,max(-1,spl0));
+spl1 = min(1,max(-1,spl1));
+
+
+histbuf[histpos+histsize*2]=spl0;
+histbuf[histpos+histsize*3 ]=spl1;
+histpos+=1;
+histpos >= histsize ? histpos=0;
+
+
+spl0 *= dist_out_Gain;
+spl1 *= dist_out_Gain;
+
+spl0 >= 1 || spl0 <= -1 || spl1 >= 1 || spl1 <= -1 ? dist_out_clips = srate/5;
+dist_out_clips = max(dist_out_clips -1, 0);
+
+
+((noise_Autoblack && spl0+spl1) || !noise_Autoblack) && noisefloor ? (
+noiseL = rand(2)-1;
+noise_stereo ? noiseR = rand(2)-1 : noiseR = noiseL;
+spl0 += noiseL * noisefloor;
+spl1 += noiseR * noisefloor;
+);
+
+
+wah_on ? (
+   Lfilter.setfilter(fil_type, Fil_freq, fil_q, fil_gain);
+   Rfilter.setfilter(fil_type, Fil_freq, fil_q, fil_gain);
+   spl0 = wah_boost*Lfilter.df1(spl0);
+   spl1 = wah_boost*Rfilter.df1(spl1);
+);
+
+
+
+inputA = spl0;
+inputB = spl1;
+
+
+phasorA = phasorA+normfreq;
+(phasorA >= 1) ? (
+phasorA = phasorA - 1;
+lastA = crushstep * floor( inputA/crushstep + 0.5 );
+);
+
+phasorB = phasorB+normfreq;
+(phasorB >= 1) ? (
+phasorB = phasorB - 1;
+lastB = crushstep * floor( inputB/crushstep + 0.5 );
+);
+
+
+!crushbit && !crushfreq ? (
+fa = inputA;
+fb = inputB;
+):(
+fa = fa + ((lastA-inputA) + inputA - fa);
+fb = fb + ((lastB-inputB) + inputB - fb);
+);
+
+spl0 = fa;
+spl1 = fb;
+
+
+
+
+
+OGOn ? (
+det = max(abs(spl0),abs(spl1));
+det += 0.000000000001;
+OGenv = det >= OGenv ? det : det+envelope_decay*(OGenv-det);
+OGtransfer_gain = OGenv > OGthreshold ? pow(OGenv,0):0;
+OGgain = OGtransfer_gain > OGgain ? OGtransfer_gain+OGattack*(OGgain-OGtransfer_gain) : OGtransfer_gain+OGrelease*(OGgain-OGtransfer_gain);
+spl0 *= OGgain;
+spl1 *= OGgain;
+);
+);
+
+spl0 *= master_gain;
+spl1 *= Master_gain;
+
+
+spl0 = max(-0.98,min(0.98, spl0));
+spl1 = max(-0.98,min(0.98, spl1));
+spl0 >= 0.98 || spl0 <= -0.98 || spl1 >= 0.98 || spl1 <= -0.98 ? master_clips = srate/5;
+master_clips = max(master_clips -1, 0);
+
+
+
