@@ -580,7 +580,7 @@ slider(drive.slider) == 0 && (slider(Bits.slider) < 16 || slider(Freq.slider) < 
 slider(drive.slider) > 0 && (slider(Bits.slider) == 16 || slider(Freq.slider) == 22050) ? MCP_mode = 0 :
 (
 MCP_Mode = slider21;
-mouseClick == 1 ? (
+mouseClick == 1 && !shift ? (
 choice = gfx_showmenu("Drive Graph|Digital");
 choice ? slider21 = choice - 1;
 choice = 0;
