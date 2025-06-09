@@ -51,6 +51,8 @@ out_pin:none
 @init
 Sequencer_VERSION = 1.0;
 
+act_key = -1; //damit die letzte Zeile in @sample funktioniert :)
+
 
 twopi = 2*$pi;
 function explog (input, factor) (
@@ -1167,11 +1169,11 @@ drumslength0[edit_gfx] == 4 ? (
   gfx_g = .7; gfx_b=gfx_r = 0.1;
   gfx_x = drums_x+16*drums_w;; gfx_y = drums_y+drums_w*11 - 4*zoom;
   gfx_drawstr("Left-Click: Create item or set item to 'Velocity for new items'");
-  gfx_x = drums_x+16*drums_w; gfx_y += 15;
+  gfx_x = drums_x+16*drums_w; gfx_y += 15*zoom;
   gfx_drawstr("alt + left-click: Monitor sound for item     right-click(shift): Move item(s)");
-  gfx_x = drums_x+16*drums_w; gfx_y += 15;
+  gfx_x = drums_x+16*drums_w; gfx_y += 15*zoom;
   gfx_drawstr("shift + drag: Change velocity for item");
-  gfx_x = drums_x+16*drums_w; gfx_y += 15;
+  gfx_x = drums_x+16*drums_w; gfx_y += 15*zoom;
   gfx_drawstr("ctrl/cmd + left-click: delete item           change mapping on the right side");
   
   gfx_x = drums_x+3*drums_w+50*zoom;; gfx_y = drums_y+drums_w*12 + 8*zoom;
@@ -1825,7 +1827,7 @@ g_collision(sgfx_x, sgfx_y, sgfx_w, sgfx_h) ? (
 
 g_collision(sgfx_x, sgfx_y+sgfx_h, sgfx_w, 70*zoom) ? (
   black();
-  gfx_rect(730*zoom, 600*zoom, 300*zoom, 60*zoom);
+  gfx_rect(730*zoom, 600*zoom, 270*zoom, 60*zoom);
   gfx_g= 1; gfx_r=gfx_b=.3;
   gfx_x = 735*zoom; gfx_y = 605*zoom;
   gfx_drawstr("Click&drag: Change Velocity");
@@ -1850,7 +1852,7 @@ want_change_grid == 0 ? (
 
 
 mouse_x >= sgfx_x && mouse_x <= sgfx_x + sgfx_w &&
-mouse_y >= sgfx_y && mouse_y <= sgfx_y + sgfx_h ? (
+mouse_y >= sgfx_y && mouse_y <= sgfx_y + sgfx_h && !gen_dragging ? (
 tmp_loop = 0;
 while(
 mouse_y >= sgfx_y + tmp_loop * sgfx_taste && mouse_y <= sgfx_y + (tmp_loop+1) * sgfx_taste ? mouse_points_at_y = tmp_loop;
@@ -2999,9 +3001,9 @@ gfx_x = gfx_modseq_button; gfx_y = gfx_buttons_y;
 modseq0[cv_edit] ? sprintf(#readout, "%i", modseq0[cv_edit]) : #readout = "OFF";
 gfx_drawstr(#readout, 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
-gfx_x = gfx_modseq_button; gfx_y = gfx_buttons_y-35;
+gfx_x = gfx_modseq_button; gfx_y = gfx_buttons_y-35*zoom;
 gfx_drawstr("Select", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
-gfx_x = gfx_modseq_button; gfx_y = gfx_buttons_y-22;
+gfx_x = gfx_modseq_button; gfx_y = gfx_buttons_y-22*zoom;
 gfx_drawstr("MOD #", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
 
@@ -3011,9 +3013,9 @@ gfx_x = gfx_modmod_button; gfx_y = gfx_buttons_y;
 modmod0[cv_edit] ? sprintf(#readout, "%i", modmod0[cv_edit]) : #readout = "OFF";
 gfx_drawstr(#readout, 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
-gfx_x = gfx_modmod_button; gfx_y = gfx_buttons_y-35;
-gfx_drawstr("Multiplier", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
-gfx_x = gfx_modmod_button; gfx_y = gfx_buttons_y-22;
+gfx_x = gfx_modmod_button-3*zoom; gfx_y = gfx_buttons_y-35*zoom;
+gfx_drawstr("Multiplier", 0x09, gfx_x+gfx_buttons_w+6*zoom, gfx_y + gfx_buttons_h);
+gfx_x = gfx_modmod_button; gfx_y = gfx_buttons_y-22*zoom;
 gfx_drawstr("MOD #", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
 modmodMode0[CV_edit] == 0 ? gfx_a = 1:gfx_a = 0.7;
@@ -3034,9 +3036,9 @@ gfx_x = gfx_CVOffset_button; gfx_y = gfx_buttons_y;
 sprintf(#readout, "%.2f", CVOffset0[cv_edit]);
 gfx_drawstr(#readout, 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
-gfx_x = gfx_CVOffset_button; gfx_y = gfx_buttons_y-35;
+gfx_x = gfx_CVOffset_button; gfx_y = gfx_buttons_y-35*zoom;
 gfx_drawstr("Absolute", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
-gfx_x = gfx_CVOffset_button; gfx_y = gfx_buttons_y-22;
+gfx_x = gfx_CVOffset_button; gfx_y = gfx_buttons_y-22*zoom;
 gfx_drawstr("Offset", 0x09, gfx_x+gfx_buttons_w, gfx_y + gfx_buttons_h);
 
 
