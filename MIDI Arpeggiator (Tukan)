@@ -1,0 +1,1677 @@
+desc:MIDI Arpeggiator (Tukan)
+
+
+//////////////////////////////////////////////// ABOUT SYNC TO DAW /////////////////////////////////////////7
+
+When no note is played, the pattern of course doesn't run.
+When now one or more notes are played, the pattern starts.
+
+Sync to DAW always tries to sync to your playing.
+
+The algorithm works like this:
+If you play before the sync point, it will start the pattern at the next sync point
+If you play after the sync point, it will start immedietly and sync on the second note.
+
+The sync point is the next DAW grid point depending on the "SYNCED" parameter .
+'Before the syn point' means you're playing closer to the next sync point than to the one before.
+'After the sync point' means you're playing closer the the last sync point that to the next one.
+
+THIS MODE ONLY WORKS IN 'SYNCED' MODE AND WITHOUT SHUFFLE, TRIPLET, DOTTED!!!
+
+//////////////////////////////////////////////// ABOUT SYNC TO DAW /////////////////////////////////////////7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+slider1:4<0,5,1{1,2,4,8,16,32}>-Speed
+slider2:0<0,2,1{straight,dotted,triplet}>-Option
+slider3:50<50,100,1>-Shuffle
+
+slider4:50<0,100,0.01>-Speed Free
+slider5:0<0,1,1{SYNC,FREE}>-Mode
+
+slider6:1<1,8,1>-Repeat
+slider7:1<1,8,1>-Octaves
+
+
+slider10:100<0,127,1>-Selected Velocity
+
+slider11:<0,1,1{MIDI, HOLD}>-Hold
+slider13:1<0,4,1{MIDI through, UP, Down, UpDown, Random}>-Pattern
+slider14:0<0,1,1{OFF,ON}>-Add Note at end
+slider15:0<0,1,1{OFF,ON}>-Octave end note
+slider16:0<0,1,1{OFF,ON}>-EndNote every octave
+slider17:0<0,1,1{OFF,ON}>-Rest instead of EndNote
+slider18:0<0,1,1{OFF,ON}>-No doubles in random mode
+slider19:0<0,1,1{OFF,ON}>-Repeat highest and lowest in UpDown
+slider20:0<0,32,1>-Run On Option
+slider21:20<0,100>-Grace Time
+slider22:0<0,1,1{OFF,ON}>-Sync to Grid
+
+options:gmem=TukanCVOne
+//1 000 000 + currenttrack*100
+//0 - 23 = CV 1 - 24
+//23 - 99 Spare for later use
+import SynthAdd/tk_lib.jsfx-inc
+
+
+filename:0,SynthAdd/poly-g.png
+filename:1,SynthAdd/switch.png
+filename:2,SynthAdd/rled.png
+filename:3,SynthAdd/gled.png
+filename:4,SynthAdd/S2_logo.png
+filename:5,SynthAdd/JupSlider.png
+filename:6,SynthAdd/Switch3.png
+filename:7,SynthAdd/JunButw.png
+filename:8,SynthAdd/JunBute.png
+filename:9,SynthAdd/JunButo.png
+filename:10,SynthAdd/jun_at_knob.png
+filename:11,SynthAdd/poly-g.png
+filename:12,SynthAdd/JunButg.png
+filename:13,SynthAdd/JunButhold.png
+filename:14,SynthAdd/RunOn.png
+
+in_pin:none
+out_pin:none
+
+@init
+Arpeggio_VERSION = 1.0;
+
+function explog (input, factor) (
+input^factor; // 1=linear, < 1 = log (schnell rein), > 1 = exp (langsam rein)
+);
+
+mouse_sensivity();
+ext_noinit = 1;
+gfx_ext_retina = 1;
+
+taktoffset = 0;
+
+allenoten = 0;
+memset(allenoten, 0, 130);
+randomnoten = 140;
+memset(randomnoten, 0, 130);
+allenoten2 = 2800;
+memset(allenoten2, 0, 130);
+
+
+
+
+
+function parameters_update () (
+
+parameters_update_on = 1;
+
+repeat = floor(slider6) - 1;
+octaves = floor(slider7) - 1;
+shuffle = min(slider3,99);
+pause = slider17;
+endeoct = slider15;
+selected_velocity = floor(slider10);
+hold = slider11;
+
+hold_old == 1 && Hold == 0 ?(
+//memset(allenoten, 0, 130);
+send_all_off = 1;
+noteon_cnt = 0;
+);
+hold_old = hold;
+
+
+floor(slider1) == 0 ? Notenwert = 1;
+floor(slider1) == 1 ? Notenwert = 2;
+floor(slider1) == 2 ? Notenwert = 4;
+floor(slider1) == 3 ? Notenwert = 8;
+floor(slider1) == 4 ? Notenwert = 16;
+floor(slider1) == 5 ? Notenwert = 32;
+gfx_notenwert = slider1;
+punktiert = slider2;
+
+run_on_option = floor(slider20);
+grace_sams = srate*slider21/1000;
+
+//punktiert == 1 ? posdevider=1.5/notenwert:
+//punktiert == 2 ? posdevider= (2/3)/notenwert:
+/*
+floor(slider22) == 0 ? Notenwert2 = 1;
+floor(slider22) == 1 ? Notenwert2 = 2;
+floor(slider22) == 2 ? Notenwert2 = 4;
+floor(slider22) == 3 ? Notenwert2 = 8;
+floor(slider22) == 4 ? Notenwert2 = 16;
+floor(slider22) == 5 ? Notenwert2 = 32;
+posdevider = 1/notenwert2;
+*/
+posdevider = 1/notenwert;
+sync_to_grid = slider22;
+sync_to_grid_old != sync_to_grid ? grid_start = 1;
+sync_to_grid_old = sync_to_grid;
+
+time_mode = slider5;
+duration = (50 + (explog((100-slider4)/100,2)*2)*1000) / 1000 * srate;
+gfx_duration = slider4;
+
+//<0,10,1{MIDI THROUGH, UP, UP+, UP++, DOWN, DOWN+, DOWN++, UPDOWN, UPDOWN+, RANDOM, RAMDOM+}>Pattern
+Richtung = slider13;
+plus = slider14; plusplus = slider16; nodoubles = !slider18;
+repeathl = slider19;
+
+Richtung == 0 ? pattern = 0;
+Richtung == 1 ? (
+  plus && plusplus ? pattern = 3 :
+  plus ? pattern = 2 :
+  pattern = 1;
+);
+Richtung == 2 ? (
+  plus && plusplus ? pattern = 6 :
+  plus ? pattern = 5 :
+  pattern = 4;
+);
+Richtung == 3 ? (
+  repeathl ? pattern = 8 :
+  pattern = 7;
+);
+Richtung == 4 ? (
+  nodoubles ? pattern = 10 :
+  pattern = 9;
+);
+
+
+parameters_update_on = 0;
+caller = 0;
+);
+
+
+
+@slider
+
+caller = 1;
+
+@serialize
+
+
+
+@block
+
+!parameters_update_on && caller ? parameters_update();
+
+
+current_track = get_host_placement(placement,plfags);
+
+
+taktnr = ((beat_position|0)/ts_denom)|0;;
+
+
+
+
+    tempo ? (
+    Notenfaktor = 4*(1/notenwert);
+    punktiert == 1 ? Notenfaktor *= 1.5;
+    punktiert == 2 ? Notenfaktor *= 2/3;
+    Notenwert ? note_sams = ((60*Notenfaktor)/tempo)*srate;// * srate; //(slider1_sync/1000)*srate;
+    note_sams2 = 2 * note_sams * (1 - shuffle/100);
+    note_sams = 2 * note_sams - note_sams2;
+    to_grid ? grid_sams = ((60*4*(1/notenwert))/tempo)*srate;
+    ):(
+    Notenwert = 0;
+    punktiert = 0;
+    note_sams == 0;
+    grid_sams = 0;
+    );
+    time_mode == 1 ? note_sams = note_sams2 = duration;
+/*
+midi_monitor > 0 ? (
+midisend(0,$x90, midi_monitor, selected_velocity);
+midi_monitor_old = midi_monitor;
+midi_monitor = -1;
+);
+midi_monitor == -1 ? (
+midisend(0,$x80, midi_monitor_old, 0);
+midi_monitor = 0;
+);
+*/
+/*
+hold ? (
+while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax while()
+    midi_channel_input == midi_channel && midi_status == 175 + midi_channel ? (
+              msg2 == 64 && msg3 == 127 ? pedal_press = 1;
+              msg2 == 64 && msg3 == 0 ? pedal_release = 1;
+            ):(
+                Midisend(offset,msg1,msg2,msg3);
+            ); //
+);
+);
+*/
+    
+    midi_channel = 1;
+pattern > 0 ? (
+    while (midirecv(offset,msg1,msg2,msg3)) ( // REAPER 4.59+ syntax while()
+       msg_1raw = msg1;
+       
+       //msg1==$x80 ? (msg1=$x90; msg3 = 0); // Noteoff to NoteOn Value 0
+       
+       midi_channel_input = 1+ msg1 & $x0F;
+       midi_status = msg_1raw;
+       midi_noteoff = msg1 & $xF0;
+       midi_noteoff == 128 ? (midi_status += 16; msg3 = 0);
+       
+        midi_channel_input == midi_channel ? (
+          
+            midi_status == 143 + midi_channel && !hold ? (
+              msg3 == 0 ? noteon_cnt-=1 : noteon_cnt+=1; // count note-ons
+              noteon_cnt = max(0,noteon_cnt);
+              noteon_cnt_old == 0 && noteon_cnt > 0 ? (searcher = -1; grid_start = 1; !run_on && !to_grid ? sams_count = note_sams2-grace_sams; shuffler = 2;octjump=0;); //sams_count = 0;
+              noteon_cnt_old = noteon_cnt;
+              allenoten[msg2] = msg3;
+            ): midi_status == 175 + midi_channel ? (
+              msg2 == 64 && msg3 == 127 ? pedal_press = 1;
+              msg2 == 64 && msg3 == 0 ? pedal_release = 1;
+            ):(
+              midisend(offset,msg1,msg2,msg3);
+            ); // midi note on/off?
+        ):(
+            Midisend(offset,msg1,msg2,msg3);
+        ); //mymidichannel
+    ); //mdidirecv
+); //!HOLD
+    
+//msg1 = msg2 = msg3 = 0;
+
+
+
+noteon_cnt_old > 0 && noteon_cnt == 0 ? send_all_off = 1; 
+
+send_all_off ? (
+searcher2 = 0;
+loop(140,
+midisend(0,$x80, searcher2, 0);
+searcher2 += 1;
+);
+memset(allenoten, 0, 130);
+send_all_off = 0;
+);
+
+
+
+event ? (
+
+//memcpy(allenoten,allenoten2,140);
+
+
+searcher == - 1 ? (repeat_next = 0);// octave = 0);
+!nothingtoplay ? midisend(0,$x80, targetnote+12*octave, 0);
+!nothingtoplay ? midisend(0,$x00, targetnote+12*octave, 0);
+
+!repeat || (repeat && repeat_next) == 0 ? (
+
+
+altoct != 0 ? (octave += altoct; altoct = 0);
+
+
+pattern == 1 ? (
+////////////////////////////////////////////// UP /////////////////////////////////////////////
+  searcher == -1 ? (searcher = 0; octave = 0);
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; targetnote == 128 ? (nothingtoplay = 1; searcher = 0; octaves ? octave += 1; octave > octaves ? octave = 0) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; targetnote == 128 ? (nothingtoplay = 1; searcher = 0) : nothingtoplay = 0;
+  );
+////////////////////////////////////////////// UP /////////////////////////////////////////////
+);
+
+pattern == 2 ? (
+////////////////////////////////////////////// UP ende tief /////////////////////////////////////////////
+  searcher == -1 ? (searcher = 0; octave = 0);
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; 
+  targetnote == 128 ? (nothingtoplay = 1; searcher = 0; octaves ? octave += 1; octave > octaves ? octave = 0) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; octave == 0 ? (searcher = 0;); targetnote == 128 ? (nothingtoplay = 1; searcher = 0) : nothingtoplay = 0;
+  pause == 1 && octave == 0 ? nothingtoplay = 1;
+  endeoct == 1 && octave == 0 ? (altoct = - (octaves+1); octave = octaves + 1);
+  );
+////////////////////////////////////////////// UP ende tief /////////////////////////////////////////////
+);
+
+pattern == 3 ? (
+////////////////////////////////////////////// UP ende tief jede oktave /////////////////////////////////////////////
+  octjump == 1 ? (octjump = 0; octaves ? octave += 1; octave > octaves ? octave = 0);
+  searcher == -1 ? (searcher = 0; octave = 0);
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; 
+  targetnote == 128 ? (nothingtoplay = 1; searcher = 0;) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+  targetnote = searcher; searcher = 0; targetnote == 128 ? (nothingtoplay = 1; searcher = 0) : nothingtoplay = 0;
+  pause == 1 ? nothingtoplay = 1;
+  octjump = 1;
+  endeoct == 1 ? (altoct = - 1; octave += 1);
+  );
+////////////////////////////////////////////// UP ende tief jede oktave /////////////////////////////////////////////
+);
+
+pattern == 4 ? (
+////////////////////////////////////////////// DOWN /////////////////////////////////////////////
+  searcher == -1 ? (searcher = 128; octave = octaves);
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; targetnote == 0 ? (nothingtoplay = 1; searcher = 128; octaves ? octave -= 1; octave < 0 ? octave = octaves) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; targetnote == 0 ? (nothingtoplay = 1; searcher = 128) : nothingtoplay = 0;
+  );
+////////////////////////////////////////////// DOWN /////////////////////////////////////////////
+);
+
+pattern == 5 ? (
+////////////////////////////////////////////// DOWN ende hoch /////////////////////////////////////////////
+  searcher == -1 ? (searcher = 128; octave = octaves);
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; targetnote == 0 ? (nothingtoplay = 1; searcher = 128; octaves ? octave -= 1; octave < 0 ? octave = octaves) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; octave == octaves ? searcher = 128; targetnote == 0 ? (nothingtoplay = 1; searcher = 128) : nothingtoplay = 0;
+  pause == 1 && octave == octaves ? nothingtoplay = 1;
+  endeoct == 1 && octave == octaves ? (altoct = (octaves+1); octave -= octaves + 1);
+  );
+////////////////////////////////////////////// DOWN ende hoch /////////////////////////////////////////////
+);
+
+pattern == 6 ? (
+////////////////////////////////////////////// DOWN ende hoch jede oktave/////////////////////////////////////////////
+  octjump == 1 ? (octjump = 0; octaves ? octave -= 1; octave < 0 ? octave = octaves); 
+  searcher == -1 ? (searcher = 128; octave = octaves);
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; targetnote == 0 ? (nothingtoplay = 1; searcher = 128;) : nothingtoplay = 0;
+  
+  nothingtoplay ? (
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+  targetnote = searcher; searcher = 128; targetnote == 0 ? (nothingtoplay = 1; searcher = 128) : nothingtoplay = 0;
+  pause == 1 ? nothingtoplay = 1;
+  octjump = 1;
+  endeoct == 1 ? (altoct = 1; octave -= 1);
+  );
+////////////////////////////////////////////// DOWN ende hoch jede oktave/////////////////////////////////////////////
+);
+
+pattern == 7 ? (
+////////////////////////////////////////////// UP  DOWN/////////////////////////////////////////////
+  searcher == -1 ? (searcher = 0; direction = 0; octave = 0);
+
+  direction == 0 ? (
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+    searcher >= 128 ? (
+        octave < octaves ? (
+            octave += 1;
+            searcher = 0;
+            while(
+            searcher += 1;
+            allenoten[searcher] == 0 && searcher < 128
+            );
+            targetnote = searcher; 
+            nothingtoplay = 0;
+        ):(
+            direction = 1;
+            searcher = targetnote;
+        );
+    ):(
+        targetnote = searcher; 
+        nothingtoplay = 0;
+    );
+  );
+
+  direction == 1 ? (
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+    //searcher <= 0 ? (direction = 2; searcher = targetnote) : (targetnote = searcher; nothingtoplay = 0);
+  searcher <= 0 ? (
+      octave > 0 ? (
+          octave -= 1;
+          searcher = 128;
+          while(
+          searcher -= 1;
+          allenoten[searcher] == 0 && searcher > 0
+          );
+          targetnote = searcher; 
+          nothingtoplay = 0;
+      ):(
+          direction = 2;
+          searcher = targetnote;
+      );
+  ):(
+      targetnote = searcher; 
+      nothingtoplay = 0;
+  );
+  );
+
+  direction == 2 ? (
+  direction = 0;
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+    searcher >= 128 ? (direction = 1; searcher = targetnote) : (targetnote = searcher; nothingtoplay = 0);
+  );
+  
+  searcher2 = 0;
+  while(
+  searcher2 += 1;
+  allenoten[searcher2] == 0 && searcher2 < 128
+  );
+  searcher2 >= 128 ? nothingtoplay = 1;
+////////////////////////////////////////////// UP DOWN/////////////////////////////////////////////
+);
+
+pattern == 8 ? (
+////////////////////////////////////////////// UP  DOWN doppelte enden /////////////////////////////////////////////
+
+  searcher == -1 ? (searcher = 0; direction = 0; octave = 0);
+
+  direction == 0 ? (
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+    searcher >= 128 ? (
+        octave < octaves ? (
+            octave += 1;
+            searcher = 0;
+            while(
+            searcher += 1;
+            allenoten[searcher] == 0 && searcher < 128
+            );
+            targetnote = searcher; 
+            nothingtoplay = 0;
+        ):(
+            direction = 1;
+            searcher = targetnote+1;
+        );
+    ):(
+        targetnote = searcher; 
+        nothingtoplay = 0;
+    );
+  );
+
+  direction == 1 ? (
+  while(
+  searcher -= 1;
+  allenoten[searcher] == 0 && searcher > 0
+  );
+    //searcher <= 0 ? (direction = 2; searcher = targetnote) : (targetnote = searcher; nothingtoplay = 0);
+  searcher <= 0 ? (
+      octave > 0 ? (
+          octave -= 1;
+          searcher = 128;
+          while(
+          searcher -= 1;
+          allenoten[searcher] == 0 && searcher > 0
+          );
+          targetnote = searcher; 
+          nothingtoplay = 0;
+      ):(
+          direction = 2;
+          searcher = targetnote-1;
+      );
+  ):(
+      targetnote = searcher; 
+      nothingtoplay = 0;
+  );
+  );
+
+  direction == 2 ? (
+  direction = 0;
+  while(
+  searcher += 1;
+  allenoten[searcher] == 0 && searcher < 128
+  );
+    searcher >= 128 ? (direction = 1; searcher = targetnote) : (targetnote = searcher; nothingtoplay = 0);
+  );
+  
+  searcher2 = 0;
+  while(
+  searcher2 += 1;
+  allenoten[searcher2] == 0 && searcher2 < 128
+  );
+  searcher2 >= 128 ? nothingtoplay = 1;
+////////////////////////////////////////////// UP DOWN doppelte enden /////////////////////////////////////////////
+);
+
+
+////////////////////////////////////////////// RANDOM  //////////////////////////////////////////////
+/*
+searcher = 0;
+foundnotes = 0;
+loop(128,
+allenoten[searcher] > 0 ? (
+randomnoten[foundnotes] = searcher;
+foundnotes += 1;
+);
+searcher += 1;
+);
+
+targetnote = randomnoten[rand(foundnotes)]; 
+foundnotes > 0 ? nothingtoplay = 0 : nothingtoplay = 1;
+*/
+////////////////////////////////////////////// RANDOM  //////////////////////////////////////////////
+
+
+pattern == 10 ? (
+////////////////////////////////////////////// RANDOM octaves //////////////////////////////////////////////
+searcher = 0;
+foundnotes = 0;
+loop(128,
+allenoten[searcher] > 0 ? (
+randomnoten[foundnotes] = searcher;
+foundnotes += 1;
+);
+searcher += 1;
+);
+targetnote = randomnoten[rand(foundnotes)]; 
+foundnotes > 0 ? nothingtoplay = 0 : nothingtoplay = 1;
+octave = floor(rand(octaves+1));
+////////////////////////////////////////////// RANDOM octaves //////////////////////////////////////////////
+);
+
+pattern == 9 ? (
+////////////////////////////////////////////// RANDOM octaves but last note//////////////////////////////////////////////
+
+noteon_cnt > 1 ? (
+searcher = 0;
+foundnotes = 0;
+loop(128,
+allenoten[searcher] > 0 && searcher != targetnote ? (
+randomnoten[foundnotes] = searcher;
+foundnotes += 1;
+);
+searcher += 1;
+);
+):(
+searcher = 0;
+foundnotes = 0;
+loop(128,
+allenoten[searcher] > 0 ? (
+randomnoten[foundnotes] = searcher;
+foundnotes += 1;
+);
+searcher += 1;
+);
+);
+
+targetnote = randomnoten[rand(foundnotes)]; 
+foundnotes > 0 ? nothingtoplay = 0 : nothingtoplay = 1;
+octave = floor(rand(octaves+1));
+////////////////////////////////////////////// RANDOM octaves but last note//////////////////////////////////////////////
+);
+
+
+repeat ? repeat_next += 1;
+):(
+repeat_next >= repeat ? repeat_next = 0 : repeat_next += 1;
+);
+
+
+!nothingtoplay && noteon_cnt > 0 ? (
+    selected_velocity ? midisend(0,$x90, targetnote + 12*octave, selected_velocity) : midisend(0,$x90, targetnote + 12*octave, allenoten[targetnote]);
+//eventlamp = 1;
+);
+
+noteon_cnt > 0 || hold ? (run_on = run_on_option):(run_on -= 1; run_on = max(run_on,0));
+
+event = 0;
+); // event?
+
+
+
+
+
+
+@sample
+
+
+
+
+    
+    
+
+play_state == 0 && play_state != play_state_old ? ( // STOP PRESSED :)
+play_state_old = play_state;
+send_all_off = 1;
+);
+
+
+
+(play_state == 1 || play_state == 5) && play_state != play_state_old ? ( // PLAY PRESSED :)
+play_state_old = play_state;
+note_cnt ? grid_start = 1;
+);
+
+run_on && grid_start == 1 ? grid_start = 2;
+    
+sync_to_grid && note_sams == note_sams2 && punktiert == 0 && time_mode == 0 ? sync_to_grid_do = 1 : sync_to_grid_do = 0;
+sync_to_grid_do && (play_state == 1 || play_state == 5) ? to_grid = 1 : to_grid = 0;
+
+
+abs_beat_verlauf = beat_position/4 - floor(beat_position/4);
+
+
+//myding = (     (1000000*(beat_position-floor(beat_position)))   %   (1000000*(1/notenwert))    ) / 1000000;
+to_grid == 1 ? (
+
+grid_start == 1 ? (grid_delay = 0; grid_start = 2);
+grid_start == 2 ? (grid_delay += 1; sams_count = 0;);
+
+pos = (abs_beat_verlauf/posdevider)|0;
+gridcount += 1;
+pos_old != pos ? (
+gridcount = 0;
+);
+
+  grid_start && grid_delay > grace_sams ? (
+    myding = (     (1000000*abs_beat_verlauf)   %   (1000000*(1/notenwert))    ) / 1000000;
+    myding < 0.5/notenwert ? myding2 = 1 : myding2 = 0;
+  
+     
+    //gridcount < note_sams/2 && grid_start == 1 ? (
+    myding2 == 1 && grid_start == 2 ? (
+      sams_count = note_sams2;// - grace_sams;
+      news += 1;
+    );
+          grid_start = 3;
+    pos_old != pos ? (
+        sams_count = note_sams2;//   - grace_sams;
+        grid_start = 0;
+    );
+    
+  );
+
+
+pos_old = pos;
+);
+
+
+sams_count += 1;
+noteon_cnt > 0 || run_on > 0 ? (
+shuffler == 1 ? sams_count >= note_sams ? (sams_count =0; event = 1; shuffler = 2);
+shuffler == 2 ? sams_count >= note_sams2 ? (sams_count =0; event = 1; shuffler = 1);
+):(
+
+!nothingtoplay ? midisend(0,$x80, targetnote+12*octave, 0);
+!nothingtoplay ? midisend(0,$x00, targetnote+12*octave, 0);
+nothingtoplay = 1;
+);
+
+
+sams_count = min(sams_count, 10000000);
+
+
+
+
+
+pedal_press ? (slider11 == 1 ? slider11 = 0 : slider11 = 1; caller = 1; pedal_sams = -srate/8; pedal_press= 0);
+pedal_release && pedal_sams == 0 ? (slider11 = 0; caller = 1; pedal_release = 0) : (pedal_release = 0);
+pedal_sams += 1; pedal_sams >= 0 ? pedal_sams = 0;
+ 
+
+
+
+
+
+@gfx 840 700
+s2_zoom_X = gfx_w / 840;
+s2_zoom_y = gfx_h / 700;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+
+
+ mouseHold = mouse_cap & 1;
+ press_superkey = mouse_cap & 32;
+ press_ctrl = mouse_cap & 4;
+ press_shift = mouse_cap & 8;
+ press_alt = mouse_cap & 16;
+ superkey=ctrl=shift=alt=shift_alt=shift_ctrl=shift_superkey=ctrl_superkey = 0;
+ press_superkey ? !press_ctrl ? !press_shift ? !press_alt ? superkey=press_superkey;
+ !press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl=press_ctrl;
+ !press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift=press_shift;
+ !press_superkey ? !press_ctrl ? !press_shift ? press_alt ? alt=press_alt;
+ !press_superkey ? !press_ctrl ? press_shift ? press_alt ? shift_alt=1;
+ !press_superkey ? press_ctrl ? press_shift ? !press_alt ? shift_ctrl=1;
+ press_superkey ? !press_ctrl ? press_shift ? !press_alt ? shift_superkey=1;
+ press_superkey ? press_ctrl ? !press_shift ? !press_alt ? ctrl_superkey=1;
+ 
+ mouseClick = mouseHold - lastCap;
+ lastCap = mouseHold;
+
+
+    function readout_int () (
+    sprintf(#readout, "%.0f", slider(this.slider));
+    gfx_x = this.xIn*zoom; gfx_y = this.yIn*zoom - gfx_texth - 2*zoom;
+    gfx_measurestr(#readout, rdow, rdoh);
+    gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+    gfx_r=gfx_g=gfx_b=0.8;
+    gfx_x += 3*zoom;
+    gfx_drawstr(#readout);
+    );
+    
+    
+  function jun_slider() (
+  gfx_x = slider_x; 
+  lightgrey();
+  gfx_rect(slider_x-10*zoom, sgfx_y +85*zoom, 70*zoom, 2*zoom);
+  
+  gfx_rect(slider_x-10*zoom, sgfx_y +215*zoom, 70*zoom, 2*zoom);
+  
+
+  //gfx_rect(slider_x-10*zoom, sgfx_y +150*zoom, 70*zoom, 2*zoom);
+  tmp_loop = 1;
+  loop(my_slider_steps - 1,
+  gfx_rect(slider_x-10*zoom, sgfx_y +85*zoom + (130/my_slider_steps)*zoom*tmp_loop, 70*zoom, 1*zoom);
+  tmp_loop += 1;
+  );
+
+  black();
+  gfx_rect(slider_x+19*zoom, sgfx_y +85*zoom, 6*zoom, 132*zoom);
+  gfx_circle(slider_x+22*zoom, sgfx_y+85*zoom,3*zoom,1);
+  gfx_circle(slider_x+22*zoom, sgfx_y+217*zoom,3*zoom,1);
+  gfx_y = sgfx_y + 200*zoom - 130*zoom*((floor(slider(my_slider)) - slidermin)/my_slider_range);
+  //gfxhpf ? gfx_y = sgfx_y + 200*zoom - 130*zoom*floor(slider(my_slider))/my_slider_range;
+  gfx_blit(5,0.5*zoom,0);
+  );
+  
+  
+  
+  
+  function numbers_l () (
+  lightgrey();
+  gfx_setfont(2,"Arial",11*zoom,'b');
+  gfx_x = slider_x-10*zoom; gfx_y = sgfx_y +72*zoom + labelposition*(130/my_slider_steps)*zoom;
+  gfx_drawstr(#label);
+  );
+  
+  function numbers_r () (
+  lightgrey();
+  gfx_setfont(2,"Arial",11*zoom,'b');
+  gfx_x = slider_x+49*zoom; gfx_y = sgfx_y +72*zoom;
+  gfx_drawstr("10");
+  gfx_x = slider_x+52*zoom; gfx_y = sgfx_y +138*zoom;
+  gfx_drawstr("5");
+  gfx_x = slider_x+52*zoom; gfx_y = sgfx_y +203*zoom;
+  gfx_drawstr("0");
+  );
+  
+  
+  
+  
+  
+gfx_x = 0; gfx_y = 0;
+gfx_blit(11,zoom,0);
+sgfx_x = 20*zoom; sgfx_y = 20*zoom;
+
+lightgrey();
+//gfx_roundrect(sgfx_x,sgfx_y, 800*zoom, 330*zoom,0);
+
+gfx_setfont(2,"Arial",16*zoom,'b'); //rgb(210,210,210);
+
+but_up_x = sgfx_x + 218*zoom; but_up_y = sgfx_y + 90*zoom;
+ledon = (pattern > 0) && (pattern < 4);
+    gfx_x = but_up_x; gfx_y = but_up_y;
+    gfx_blit(7,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_up_x - 68*zoom; gfx_y = but_up_y - 20*zoom;
+    gfx_drawstR("UP", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+
+but_down_x = sgfx_x + 368*zoom; but_down_y = sgfx_y + 90*zoom;
+ledon = (pattern > 3) && (pattern < 7);
+    gfx_x = but_down_x; gfx_y = but_down_y;
+    gfx_blit(8,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_down_x - 68*zoom; gfx_y = but_down_y - 20*zoom;
+    gfx_drawstR("DOWN", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+
+but_ud_x = sgfx_x + 518*zoom; but_ud_y = sgfx_y + 90*zoom;
+ledon = (pattern > 6) && (pattern < 9);
+    gfx_x = but_ud_x; gfx_y = but_ud_y;
+    gfx_blit(9,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_ud_x - 68*zoom; gfx_y = but_ud_y - 20*zoom;
+    gfx_drawstR("UP - DOWN", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    
+but_rnd_x = sgfx_x + 668*zoom; but_rnd_y = sgfx_y + 90*zoom;
+ledon = (pattern > 8) && (pattern < 11);
+    gfx_x = but_rnd_x; gfx_y = but_rnd_y;
+    gfx_blit(12,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_rnd_x - 68*zoom; gfx_y = but_rnd_y - 20*zoom;
+    gfx_drawstR("RANDOM", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    
+but_off_x = sgfx_x + 68*zoom; but_off_y = sgfx_y + 90*zoom;
+ledon = (pattern ==0);
+    gfx_x = but_off_x; gfx_y = but_off_y;
+    gfx_blit(12,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_off_x - 68*zoom; gfx_y = but_off_y - 20*zoom;
+    gfx_drawstR("MIDI THROUGH", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+
+
+
+
+
+
+Richtung == 1 || Richtung == 2 ? (
+
+but_EN_x = sgfx_x + 143*zoom; but_EN_y = sgfx_y + 220*zoom;
+ledon = plus;
+    gfx_x = but_EN_x; gfx_y = but_EN_y;
+    gfx_blit(7,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_EN_x - 68*zoom; gfx_y = but_EN_y - 20*zoom;
+    gfx_drawstR("ADD NOTE", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    
+but_EO_x = sgfx_x + 293*zoom; but_EO_y = sgfx_y + 220*zoom;
+ledon = endeoct ==1 && plus == 1;
+    gfx_x = but_EO_x; gfx_y = but_EO_y;
+    gfx_blit(8,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_x = but_EO_x - 68*zoom; gfx_y = but_EO_y - 20*zoom;
+    !plus ? gfx_a = 0.5 : gfx_a = 1;
+    gfx_drawstR("ALT OCT", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    gfx_a = 1;
+
+but_EOct_x = sgfx_x + 443*zoom; but_EOct_y = sgfx_y + 220*zoom;
+ledon = plusplus ==1 && plus == 1;
+    gfx_x = but_EOct_x; gfx_y = but_EOct_y;
+    gfx_blit(9,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_x = but_EOct_x - 68*zoom; gfx_y = but_EOct_y - 20*zoom;
+    !plus ? gfx_a = 0.5 : gfx_a = 1;
+    gfx_drawstR("EVERY OCT", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    gfx_a = 1;
+
+but_Pause_x = sgfx_x + 593*zoom; but_Pause_y = sgfx_y + 220*zoom;
+ledon = pause ==1 && plus == 1;
+    gfx_x = but_Pause_x; gfx_y = but_Pause_y;
+    gfx_blit(12,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_x = but_Pause_x - 68*zoom; gfx_y = but_Pause_y - 20*zoom;
+    !plus ? gfx_a = 0.5 : gfx_a = 1;
+    gfx_drawstR("SILENT", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+    gfx_a = 1;
+    
+    
+); //Richtung 1 oder 2
+
+
+Richtung == 3 ? (
+but_RepeatHL_x = sgfx_x + 368*zoom; but_RepeatHL_y = sgfx_y + 220*zoom;
+ledon = repeathl;
+    gfx_x = but_RepeatHL_x; gfx_y = but_RepeatHL_y;
+    gfx_blit(9,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_RepeatHL_x - 68*zoom; gfx_y = but_RepeatHL_y - 20*zoom;
+    gfx_drawstR("REPEAT L&H", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+);
+
+Richtung == 4 ? (
+but_RepeatHL_x = sgfx_x + 368*zoom; but_RepeatHL_y = sgfx_y + 220*zoom;
+ledon = !nodoubles;
+    gfx_x = but_RepeatHL_x; gfx_y = but_RepeatHL_y;
+    gfx_blit(9,0.5*zoom,0,0,ledon*128,128,128);
+    gfx_x += 70*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_RepeatHL_x - 68*zoom; gfx_y = but_RepeatHL_y - 20*zoom;
+    gfx_drawstR("NO DOUBLES", 0x01, gfx_x + 200*zoom, gfx_y + gfx_texth);
+);
+
+
+
+
+
+
+
+
+
+//gfx_roundrect(365*zoom, 500*zoom, 30*zoom,50*zoom,0);
+
+
+  sync_speed.parameter_config  (1,   4,     0,   5,   165, 16,  140, 101,    1,       58);
+  shuffle.parameter_config  (3,   50,     50,   100,   165, 16,  140, 101,    1,       58);
+  free_speed.parameter_config  (4,   50,     0,   100,   165, 16,  140, 101,    1,       58);
+  sel_vel.parameter_config  (10,   100,     0,   127,   165, 16,  140, 101,    1,       58);
+  Repeat.parameter_config  (6,    1,     1,   8,   165, 16,  140, 101,    1,       58);
+  Octaves.parameter_config  (7,   1,     1,   8,   165, 16,  140, 101,    1,       58);
+  RunOn.parameter_config  (20,   0,     0,   32,   720, 630,  150, 33,    1,       14);
+  Grace.parameter_config  (21,   20,     0,100,   628, 630,  150, 33,    1,       14);
+         
+         
+         
+  runOn.knob();
+  gfx_setfont(2,"Arial",10*zoom,'b'); lightgrey();
+  gfx_y -= 8*zoom; gfx_x += 5*zoom;
+  gfx_drawstr("KEEP TIMING");
+  
+  
+  
+  grace.knob();
+  gfx_setfont(2,"Arial",10*zoom,'b'); lightgrey();
+  gfx_y -= 8*zoom; gfx_x += 7*zoom;
+  gfx_drawstr("GRACE TIME");
+  
+  but_sync_to_daw_x = sgfx_x + 522*zoom; but_sync_to_daw_y = sgfx_y + 618*zoom;
+  gfx_x = but_sync_to_daw_x; gfx_y = but_sync_to_daw_y;
+  ledon = sync_to_grid_do;
+  !(note_sams == note_sams2 && punktiert == 0 && time_mode == 0) ? ledon = 0;
+  gfx_blit(7,0.4*zoom,0,0,ledon*128,128,128);
+  gfx_x += 48*zoom; gfx_y -= 3*zoom;
+  ledon ? gfx_a = 0.9;
+  gfx_blit(2,zoom*0.25,0,0,ledon*128,128,128);
+  gfx_a = 1;
+  gfx_x = but_sync_to_daw_x + 3*zoom; gfx_y = but_sync_to_daw_y - 16*zoom;
+  note_sams == note_sams2 && punktiert == 0 && time_mode == 0 ? gfx_a = 1 : gfx_a = 0.5;
+  gfx_drawstR("SYNC TO DAW");
+  gfx_a = 1;
+  
+  
+  
+  
+  
+ g_collision(but_sync_to_daw_x, but_sync_to_daw_y,51*zoom,51*zoom) ? (
+  black();
+  gfx_rect(sgfx_x + 100*zoom, 90*zoom, 600*zoom, 230*zoom);
+  
+  gfx_setfont(2,"Arial",12*zoom,'b'); lightgrey();
+  gfx_roundrect(sgfx_x + 100*zoom, 90*zoom, 600*zoom, 230*zoom,0);
+  
+  gfx_x = sgfx_x + 110*zoom; gfx_y = 100*zoom;
+  gfx_drawstr("ABOUT   - SYNC TO DAW - :");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("When no note is played, the pattern of course doesn't run.");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("When now one or more notes are played, the pattern starts.");
+  
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("Sync to DAW always tries to sync to your playing.");
+  
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("The algorithm works like this:");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("If you play before the sync point, it will start the pattern at the next sync point");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("If you play after the sync point, it will start immedietly and sync on the second note.");
+  
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("The sync point is the next DAW grid point depending on the 'SYNCED' parameter.");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("'Before the syn point' means you're playing closer to the next sync point than to the one before.");
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 15*zoom;
+  gfx_drawstr("'After the sync point' means you're playing closer the the last sync point that to the next one.");
+  
+  gfx_x = sgfx_x + 110*zoom; gfx_y += 20*zoom;
+  gfx_drawstr("THIS MODE ONLY WORKS IN 'SYNCED' MODE AND WITHOUT SHUFFLE, TRIPLET, DOTTED!!!");
+ );  
+  
+  
+  
+sgfx_y = 360*zoom;
+    my_slider = shuffle.slider;
+    my_slider_range = shuffle.maxVal - shuffle.minVal;
+    slidermin = 50;
+    my_slider_steps = 5;
+    slider_x = sgfx_x +30*zoom;
+    jun_slider();
+    shuffle_x = slider_x;
+    shuffle_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("SHUFFLE", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "100"; labelposition =0; numbers_l();
+    #label = "90"; labelposition =1; numbers_l();
+    #label = "80"; labelposition =2; numbers_l();
+    #label = "70"; labelposition =3; numbers_l();
+    #label = "60"; labelposition =4; numbers_l();
+    #label = "50"; labelposition =5; numbers_l();
+
+
+    but_straight_x = sgfx_x + 110*zoom; but_straight_y = sgfx_y + 65*zoom;
+    gfx_x = but_straight_x; gfx_y = but_straight_y;
+    ledon = punktiert == 0;
+    gfx_blit(7,0.4*zoom,0,0,ledon*128,128,128);
+    gfx_x += 53*zoom; gfx_y += 23*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.25,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_Straight_x + 66*zoom; gfx_y = but_Straight_y + 10*zoom;
+    gfx_drawstR("STRAIGHT");
+    
+    
+    but_triplet_x = sgfx_x + 110*zoom; but_triplet_y = sgfx_y + 115*zoom;
+    gfx_x = but_triplet_x; gfx_y = but_triplet_y;
+    ledon = punktiert == 2;
+    gfx_blit(8,0.4*zoom,0,0,ledon*128,128,128);
+    gfx_x += 53*zoom; gfx_y += 23*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.25,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_triplet_x + 66*zoom; gfx_y = but_triplet_y + 10*zoom;
+    gfx_drawstR("TRIPLET");
+    
+    but_dotted_x = sgfx_x + 110*zoom; but_dotted_y = sgfx_y + 165*zoom;
+    gfx_x = but_dotted_x; gfx_y = but_dotted_y;
+    ledon = punktiert == 1;
+    gfx_blit(9,0.4*zoom,0,0,ledon*128,128,128);
+    gfx_x += 53*zoom; gfx_y += 23*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.25,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = but_dotted_x + 66*zoom; gfx_y = but_dotted_y + 10*zoom;
+    gfx_drawstR("DOTTED");
+    
+    
+    
+    my_slider = sync_speed.slider;
+    my_slider_range = sync_speed.maxVal - sync_speed.minVal;
+    slidermin = 0;
+    my_slider_steps = 5;
+    slider_x = sgfx_x +260*zoom;
+    jun_slider();
+    sync_speed_x = slider_x;
+    sync_speed_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("SYNCED", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "32"; labelposition =0; numbers_l();
+    #label = "16"; labelposition =1; numbers_l();
+    #label = "8"; labelposition =2; numbers_l();
+    #label = "4"; labelposition =3; numbers_l();
+    #label = "2"; labelposition =4; numbers_l();
+    #label = "1"; labelposition =5; numbers_l();
+
+    gfx_x = sgfx_x + 330*zoom; gfx_y = sgfx_y +130*zoom;
+    switchon = !time_mode;
+    gfx_blit(1,zoom*0.6,0,0,switchon*120,96,120);
+    gfx_x = sgfx_x + 337*zoom; gfx_y = sgfx_y +110*zoom;
+    gfx_drawstr("SYNCED");
+    gfx_x = sgfx_x + 343*zoom; gfx_y = sgfx_y +202*zoom;
+    gfx_drawstr("SPEED");
+
+    my_slider = free_speed.slider;
+    my_slider_range = free_speed.maxVal - free_speed.minVal;
+    slidermin = 0;
+    my_slider_steps = 10;
+    slider_x = sgfx_x +410*zoom;
+    jun_slider();
+    free_speed_x = slider_x;
+    free_speed_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("SPEED", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "10"; labelposition =0; numbers_l();
+    #label = "5"; labelposition =5; numbers_l();
+    #label = "0"; labelposition =10; numbers_l();
+
+
+
+    my_slider = Sel_Vel.slider;
+    my_slider_range = Sel_Vel.maxVal - Sel_Vel.minVal;
+    my_slider_steps = 10;
+    slider_x = sgfx_x +530*zoom;
+    jun_slider();
+    Sel_Vel_x = slider_x;
+    Sel_Vel_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("VELOCITY", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "127"; labelposition =0; numbers_l();
+    #label = "63"; labelposition =5; numbers_l();
+    #label = "0 =         MIDI"; labelposition =10; numbers_l();
+    jun_slider();   
+
+    my_slider = Repeat.slider;
+    my_slider_range = Repeat.maxVal - Repeat.minVal;
+    slidermin = Repeat.minVal;
+    my_slider_steps = 7;
+    slider_x = sgfx_x +624*zoom;
+    jun_slider();
+    Repeat_x = slider_x;
+    Repeat_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("REPEATS", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "8"; labelposition =0; numbers_l();
+    #label = "5"; labelposition =3; numbers_l();
+    #label = "4"; labelposition =4; numbers_l();
+    #label = "1"; labelposition =7; numbers_l();
+
+
+    my_slider = Octaves.slider;
+    my_slider_range = Octaves.maxVal - Octaves.minVal;
+    slidermin = Octaves.minVal;
+    my_slider_steps = 7;
+    slider_x = sgfx_x +718*zoom;
+    jun_slider();
+    Octaves_x = slider_x;
+    Octaves_y = gfx_y;
+    gfx_x = slider_x-10*zoom; gfx_y = sgfx_y + 47*zoom; gfx_setfont(2,"Arial",14*zoom,'b'); lightgrey();
+    gfx_drawstR("OCTAVES", 0x01, gfx_x + 70*zoom, gfx_y + gfx_texth);
+    #label = "8"; labelposition =0; numbers_l();
+    #label = "5"; labelposition =3; numbers_l();
+    #label = "4"; labelposition =4; numbers_l();
+    #label = "1"; labelposition =7; numbers_l();
+
+
+
+    gfx_setfont(2,"Arial",16*zoom,'b'); //rgb(210,210,210);
+    ledon = hold;
+    gfx_x = sgfx_x + 336*zoom; gfx_y = 625*zoom;
+    gfx_blit(13,0.5*zoom,0,0,ledon*128,256,128);
+    gfx_x += 134*zoom; gfx_y += 13*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    gfx_a = 1;
+    gfx_x = sgfx_x + 273*zoom; gfx_y = 648*zoom;
+    gfx_drawstr("HOLD");
+    
+    /*
+    ledon = eventlamp > 0;
+    gfx_x = 360*zoom; gfx_y = 424*zoom;
+    ledon ? gfx_a = 0.9;
+    gfx_blit(2,zoom*0.3,0,0,ledon*128,128,128);
+    eventlamp -= 1; eventlamp = max(0,eventlamp);
+    */
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    rgb(100,100,250);
+    gfx_rect(sgfx_x, 40*zoom, 801*zoom,30*zoom);
+    gfx_rect(sgfx_x, 330*zoom, 801*zoom,10*zoom);
+
+    gfx_rect(sgfx_x, 360*zoom, 493*zoom,30*zoom);
+    gfx_rect(sgfx_x, 605*zoom, 493*zoom,10*zoom);
+    
+    gfx_rect(sgfx_x+496*zoom, 360*zoom, 305*zoom,30*zoom);
+    gfx_rect(sgfx_x+496*zoom, 605*zoom, 305*zoom,10*zoom);
+    
+    lightgrey();
+    gfx_rect(sgfx_x- 2*zoom, 70*zoom, 2*zoom,260*zoom);
+    gfx_rect(sgfx_x + 801*zoom, 70*zoom, 2*zoom,260*zoom);
+    
+    
+    
+    gfx_rect(sgfx_x + 494*zoom, sgfx_y+30*zoom, 2*zoom,215*zoom);
+    gfx_rect(sgfx_x -2*zoom, sgfx_y+30*zoom, 2*zoom,215*zoom);
+    gfx_rect(sgfx_x + 801*zoom, sgfx_y+30*zoom, 2*zoom,215*zoom);
+
+    
+    
+    gfx_setfont(2,"Arial",20*zoom,'b'); rgb(230,230,230);
+    
+    
+    gfx_x = sgfx_x; gfx_y = 44*zoom;
+    gfx_drawstR("PATTERN STYLE", 0x01, gfx_x + 801*zoom, gfx_y + gfx_texth);
+    
+    gfx_x = sgfx_x; gfx_y = 364*zoom;
+    gfx_drawstR("NOTE LENGTH", 0x01, gfx_x + 493*zoom, gfx_y + gfx_texth);
+    
+    gfx_x = sgfx_x+496*zoom; gfx_y = 364*zoom;
+    gfx_drawstR("FEATURES", 0x01, gfx_x + 305*zoom, gfx_y + gfx_texth);
+    
+    lightgrey();
+    gfx_x = sgfx_x+10*zoom;; gfx_y = 8*zoom;
+    gfx_drawstR("TUKAN STUDIOS  -  MIDI ARPEGGIATOR", 0x01, gfx_x + 801*zoom, gfx_y + gfx_texth);
+    gfx_x = sgfx_x + 0*zoom; gfx_y = 217*zoom;
+    gfx_blit(4,0.79*zoom,0);
+    
+    gfx_setfont(2,"Arial",12*zoom,'b');rgb(30,190,30);
+    gfx_x = sgfx_x + 10*zoom; gfx_y = 625*zoom;
+    
+    g_collision(but_off_x, but_off_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Plugin is essentially off. MIDI just passes.");
+    );
+    
+    g_collision(but_up_x, but_up_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Arpeggio is only going upwards. Starting low again.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("Second line of buttons are playing options.");
+    );
+    
+    g_collision(but_down_x, but_down_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Arpeggio is only going downwards. Starting high again.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("Second line of buttons are playing options.");
+    );
+    
+    g_collision(but_ud_x, but_ud_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Arpeggio is going upwards then downwards, then repeats.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("'Repeat L&H' is an option.");
+    );
+    
+    g_collision(but_rnd_x, but_rnd_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Plays the notes in a random order.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("'No doubles' is an option.");
+    );
+    
+    Richtung == 1 ? (
+    g_collision(but_EN_x, but_EN_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("The lowest note will be added again");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("after every arpeggio cycle.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The other options can modify this note.");
+    );
+    
+    g_collision(but_EO_x, but_EO_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("one octave higher.");
+    );
+    
+    g_collision(but_EOct_x, but_EOct_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("in every octave cycle when");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("using the 'Octaves' feature.");
+    );
+    
+    g_collision(but_pause_x, but_pause_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("as a rest instead.");
+    );
+    );
+    
+    Richtung == 2 ? (
+    g_collision(but_EN_x, but_EN_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("The highest note will be added again");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("after every arpeggio cycle.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The other options can modify this note.");
+    );
+    
+    g_collision(but_EO_x, but_EO_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("one octave lower.");
+    );
+    
+    g_collision(but_EOct_x, but_EOct_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("in every octave cycle when");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("using the 'Octaves' feature.");
+    );
+    
+    g_collision(but_pause_x, but_pause_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Modifies the 'Add Note' feature:");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("The added note will be played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("as a rest instead.");
+    );
+    );
+    
+    
+    Richtung == 3 ? (
+    g_collision(but_RepeatHL_x, but_RepeatHL_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Repeats the highest and the lowest");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("notes before changing the direction");
+    );
+    );
+    
+    Richtung == 4 ? (
+    g_collision(but_RepeatHL_x, but_RepeatHL_y,64*zoom,64*zoom) ? (
+    gfx_drawstr("Makes sure that there always is");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("another note picked than before.");
+    );
+    );
+    
+    g_collision(shuffle_x,shuffle_y,45*zoom, 30*zoom) ? (
+    gfx_drawstr("'Swing' or 'Shuffle':");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("Sets the ratio of two notes lengths.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("50 : 50 - 100 : 0");
+    );
+    
+    g_collision(sync_speed_x,sync_speed_y,45*zoom, 30*zoom) ? (
+    gfx_drawstr("The note value.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("From 1/1 to 1/32.");
+    );
+    
+    g_collision(free_speed_x,free_speed_y,45*zoom, 30*zoom) ? (
+    gfx_drawstr("Instead of a note value you can");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("just adjust the speed here.");
+    );
+    
+    
+    
+    g_collision(sel_vel_x,sel_vel_y,45*zoom, 30*zoom) ? (
+    gfx_drawstr("Set the midi velocity of the");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("arpeggiator output.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("0 = input velocity of each key");
+    );
+    
+    g_collision(repeat_x,repeat_y,45*zoom, 30*zoom) ? (
+    gfx_drawstr("How many times each note is played");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("before the next arpeggio step is played");
+    );
+    
+    g_collision(octaves_x,octaves_y,45*zoom, 30*zoom) ? (
+    richtung == 1 || richtung == 2 ?(
+    gfx_drawstr("Multiplies the arpeggio to higher octaves");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("in the 'UP' and 'DOWN' modes.");
+    );
+    richtung == 3 ? (
+    gfx_drawstr("Stretches the up / down phase over");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("multiple octaves in 'UP-DOWN' mode.");
+    );
+    richtung == 4 ? (
+    gfx_drawstr("Transposes the randomly picked notes");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("randomly over multiple octaves.");
+    );
+    );
+    
+    runon.k_collision() ? (
+    gfx_drawstr("Keeps the timing after releasing");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("all keys for the adjusted amount");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("of note lengths.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("0 = instant restart of a pattern.");
+    );
+    
+    grace.k_collision() ? (
+    gfx_drawstr("Adjusts the time the midi notes are");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("collected before starting the pattern.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("This helps starting patterns with the correct note.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("For quantized midi take 0!");
+    );
+    
+    
+    g_collision(sgfx_x + 336*zoom, 625*zoom,128*zoom,64*zoom) ? (
+    gfx_drawstr("Holds the notes in the pattern..");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("You can play additional notes which will not");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 15*zoom;
+    gfx_drawstr("added to the pattern.");
+    gfx_x = sgfx_x + 10*zoom; gfx_y += 20*zoom;
+    gfx_drawstr("Tapping the sustain pedal toggles this mode.");
+    );
+    
+    
+    mouseclick == 1 ? (
+    
+    g_collision(sgfx_x + 336*zoom, 625*zoom,128*zoom,64*zoom) ? (slider11 == 0 ? slider11 = 1 : slider11 = 0; caller = 1);
+    
+    g_collision(365*zoom, 500*zoom, 30*zoom,50*zoom) ? (slider5 == 0 ? slider5 = 1 : slider5 = 0; caller = 1);
+        
+    g_collision(but_off_x, but_off_y,64*zoom,64*zoom) ? (slider13 = 0; caller = 1);
+    g_collision(but_up_x, but_up_y,64*zoom,64*zoom) ? (slider13 = 1; caller = 1);
+    g_collision(but_down_x, but_down_y,64*zoom,64*zoom) ? (slider13 = 2; caller = 1);
+    g_collision(but_UD_x, but_UD_y,64*zoom,64*zoom) ? (slider13 = 3; caller = 1);
+    g_collision(but_RND_x, but_RND_y,64*zoom,64*zoom) ? (slider13 = 4; caller = 1);
+    
+    g_collision(but_straight_x, but_Straight_y,51*zoom,51*zoom) ? (slider2 = 0; caller = 1);
+    g_collision(but_triplet_x, but_triplet_y,51*zoom,51*zoom) ? (slider2 = 2; caller = 1);
+    g_collision(but_dotted_x, but_dotted_y,51*zoom,51*zoom) ? (slider2 = 1; caller = 1);
+    
+    
+    note_sams == note_sams2 && punktiert == 0 && time_mode == 0 && g_collision(but_sync_to_daw_x, but_sync_to_daw_y,51*zoom,51*zoom) ?  (slider22 == 0 ? slider22 = 1 : slider22 = 0; caller = 1);
+    
+    Richtung == 1 || Richtung == 2 ? (
+        g_collision(but_EN_x, but_EN_y,64*zoom,64*zoom) ? (slider14 == 0 ? slider14 = 1 : slider14 = 0; caller = 1);
+        plus ? g_collision(but_EO_x, but_EO_y,64*zoom,64*zoom) ? (slider15 == 0 ? slider15 = 1 : slider15 = 0; caller = 1);
+        plus ? g_collision(but_EOct_x, but_EOct_y,64*zoom,64*zoom) ? (slider16 == 0 ? slider16 = 1 : slider16 = 0; caller = 1);
+        plus ? g_collision(but_Pause_x, but_Pause_y,64*zoom,64*zoom) ? (slider17 == 0 ? slider17 = 1 : slider17 = 0; caller = 1);
+    );
+    
+    Richtung == 3 ? g_collision(but_RepeatHL_x, but_RepeatHL_y,64*zoom,64*zoom) ? (slider19 == 0 ? slider19 = 1 : slider19 = 0; caller = 1);
+    Richtung == 4 ? g_collision(but_RepeatHL_x, but_RepeatHL_y,64*zoom,64*zoom) ? (slider18 == 0 ? slider18 = 1 : slider18 = 0; caller = 1);
+    
+    
+    g_collision(shuffle_x,shuffle_y,45*zoom, 30*zoom) ? (Shuffle.v_dragstart());
+    g_collision(sync_speed_x,sync_speed_y,45*zoom, 30*zoom) ? (Sync_speed.v_dragstart());
+    g_collision(free_speed_x,free_speed_y,45*zoom, 30*zoom) ? (Free_speed.v_dragstart());
+    g_collision(Sel_Vel_x,sel_vel_y,45*zoom, 30*zoom) ? (sel_vel.v_dragstart());
+    g_collision(Repeat_x,repeat_y,45*zoom, 30*zoom) ? (repeat.v_dragstart());
+    g_collision(octaves_x,octaves_y,45*zoom, 30*zoom) ? (octaves.v_dragstart());
+    
+    runOn.k_collision() ? (runOn.dragstart());
+    grace.k_collision() ? (grace.dragstart());
+    );
+    
+    mouseClick == -1 ? (
+    shuffle.dragstop();
+    sync_speed.dragstop();
+    free_speed.dragstop();
+    sel_vel.dragstop();
+    repeat.dragstop();
+    octaves.dragstop();
+    runOn.dragstop();
+    grace.dragstop();
+    );
+    
+    shuffle.v_dragging ? (shuffle.v_Potdrag(130*zoom);Caller = 1);
+    sync_speed.v_dragging ? (sync_speed.v_Potdrag(130*zoom);Caller = 1);
+    free_speed.v_dragging ? (free_speed.v_Potdrag(130*zoom);Caller = 1);
+    sel_vel.v_dragging ? (sel_vel.v_Potdrag(130*zoom);Caller = 1);
+    repeat.v_dragging ? (repeat.v_Potdrag(130*zoom);Caller = 1);
+    octaves.v_dragging ? (octaves.v_Potdrag(130*zoom);Caller = 1);
+    runon.dragging ? (runon.Potdrag_integer(); runOn.readout_int(); Caller = 1);
+    grace.dragging ? (grace.Potdrag_integer(); grace.readout_int();gfx_drawstr(" ms"); Caller = 1);
+/*
+
+filename:1,SynthAdd/switch.png
+filename:2,SynthAdd/rled.png
+filename:3,SynthAdd/gled.png
+filename:4,SynthAdd/S2_logo.png
+filename:5,SynthAdd/JupSlider.png
+filename:6,SynthAdd/Switch3.png
+filename:7,SynthAdd/JunButw.png
+filename:8,SynthAdd/JunBute.png
+filename:9,SynthAdd/JunButo.png
+filename:10,SynthAdd/jun_at_knob.png
+filename:11,SynthAdd/poly-g.png
+12 Button Grey
+
+black();
+gfx_rect(0,0,gfx_w,gfx_h);
+
+sgfx_x = 20; sgfx_y = 20;
+
+rgb(0,255,0);
+
+
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = sgfx_x + tmp_loop * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber(tmp_loop,0);
+  gfx_x = sgfx_x + tmp_loop * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[tmp_loop],0);
+  tmp_loop += 1;
+);
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber((tmp_loop + 12),0);
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[(tmp_loop + 12)],0);
+  tmp_loop += 1;
+);
+
+
+sgfx_y = 60;
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = sgfx_x + (tmp_loop) * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber((tmp_loop + 24),0);
+  gfx_x = sgfx_x + (tmp_loop) * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[(tmp_loop + 24)],0);
+  tmp_loop += 1;
+);
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber((tmp_loop + 36),0);
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[(tmp_loop + 36)],0);
+  tmp_loop += 1;
+);
+
+
+sgfx_y = 100;
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = sgfx_x + (tmp_loop) * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber((tmp_loop + 48),0);
+  gfx_x = sgfx_x + (tmp_loop) * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[(tmp_loop + 48)],0);
+  tmp_loop += 1;
+);
+
+tmp_loop = 0;
+loop(12,
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y;
+  gfx_drawnumber((tmp_loop + 60),0);
+  gfx_x = 40+ sgfx_x + (tmp_loop + 12) * 20;
+  gfx_y = sgfx_y + 20;
+  gfx_drawnumber(allenoten[(tmp_loop + 60)],0);
+  tmp_loop += 1;
+);
+
+gfx_x = 10; gfx_y = 140;
+gfx_drawnumber(direction,0);
