@@ -1,0 +1,214 @@
+desc:Real FFT bandlimited synthesis
+
+// Copyright (C) 2015-2021 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+/* Uses the real instead of the complex FFT, which is almost 2x as fast, but
+   requires REAPER v5.25+. See Tale/fft_synth.jsfx-inc for more
+   information. */
+
+@init
+
+function four_real_align(index, size)
+(
+  (index & 65535) + size > 65536 ? index = ((index >> 16) + 1) << 16 : index;
+);
+
+function four_init(index, size)
+  instance(buf, coef, m)
+(
+  m = 0;
+
+  buf = four_real_align(index, size);
+  coef = four_real_align(buf + size * 2, size);
+  this.size = size;
+
+  // Actually uses only up to coef+size, meh.
+  coef + size * 2;
+);
+
+function four_setf(freq)
+  // global(srate)
+  instance(dt)
+(
+  dt = freq / srate;
+);
+
+function four_setf(note, tuning)
+  // global(srate)
+  instance(dt)
+(
+  dt = exp(/* log(2)/12 */ 0.057762265046662109 * (note - 69)) * tuning / srate;
+);
+
+function four_setdt(time)
+  instance(dt)
+(
+  dt = time;
+);
+
+function four_update()
+  instance(dt, size, m)
+  local(n)
+(
+  dt > 0 ? n = min(ceil(0.5 / dt), size / 2) : n = 1;
+  n != m ? m = n;
+);
+
+function four_update_odd()
+  instance(dt, size, m)
+  local(n)
+(
+  dt > 0 ? n = min(ceil(0.5 / dt), size / 2) : n = 1;
+  (n|1) != (m|1) ? m = n : ( m = n; 0; );
+);
+
+function four_update_one()
+  instance(dt, size, m)
+  local(n)
+(
+  dt > 0 ? n = min(ceil(0.5 / dt), size / 2) : n = 1;
+  (!n) != (!m) ? m = n : ( m = n; 0; );
+);
+
+function four_reset()
+  instance(m)
+(
+  m = 0;
+);
+
+function four_setdc(dc)
+  instance(coef)
+(
+  coef[0] = dc;
+);
+
+function four_setdc(dc, phase)
+  instance(coef)
+  local(t)
+(
+  coef[0] = dc;
+
+  t = phase + 0.5;
+  coef[1] = t - (t|0);
+
+  coef + 2;
+);
+
+function four_getdc()
+  instance(coef)
+(
+  coef[0];
+);
+
+function four_getrms()
+  instance(coef, m)
+  local(sum, cos, sin)
+(
+  sum = sqr(coef[0]) * 2;
+
+  cos = coef + 2;
+  sin = cos + 1;
+
+  loop(m - 1,
+    sum += sqr(cos[]) + sqr(sin[]);
+    cos += 2; sin += 2;
+  );
+
+  sqrt(sum * 0.5);
+);
+
+function four_sum(phase)
+  instance(coef, m)
+  local(sum, k, cos, sin, t)
+(
+  sum = coef[0];
+
+  t = coef[1] + phase;
+  t = 2*$pi * (t - (t|0));
+
+  cos = coef + 2;
+  sin = cos + 1;
+
+  k = 1;
+  loop(m - 1,
+    sum += cos[] * cos(t * k) - sin[] * sin(t * k);
+    k += 1; cos += 2; sin += 2;
+  );
+
+  sum;
+);
+
+function four_sigma(index, size)
+  local(ptr, x, dx, y)
+(
+  // Skip DC.
+  ptr = index + 2;
+
+  x = dx = size > 0 ? $pi / size;
+  loop(size - 1,
+    y = sin(x)/x;
+    x += dx;
+    ptr[0] *= y;
+    ptr[1] *= y;
+    ptr += 2;
+  );
+);
+
+function four_fft()
+  instance(buf, coef, size)
+  local(ptr, scale)
+(
+  // Scale.
+  memcpy(ptr = coef, buf, size);
+  scale = 1 / size;
+  loop(size,
+    ptr[] *= scale;
+    ptr += 1;
+  );
+
+  fft_real(coef, size);
+  fft_permute(coef, size / 2);
+
+  // Scale DC.
+  coef[0] *= 0.5;
+  // Zero phase offset.
+  coef[1] = 0;
+);
+
+function four_ifft(sigma)
+  instance(buf, coef, size, m)
+  local(phase, ptr)
+(
+  // Copy precalculated Fourier coefficients up to Nyquist.
+  memcpy(buf, coef, m * 2);
+
+  // Decode phase offset.
+  phase = (buf[1] * size)|0;
+  buf[1] = 0;
+
+  // Scale.
+  ptr = buf + 2;
+  loop((m - 1) * 2,
+    ptr[] *= 0.5;
+    ptr += 1;
+  );
+
+  sigma ? four_sigma(buf, m);
+
+  // Zero bins beyond Nyquist frequency.
+  memset(buf + m * 2, 0, size - m * 2);
+
+  fft_ipermute(buf, size / 2);
+  ifft_real(buf, size);
+
+  phase > 0 ? (
+    // Apply phase offset.
+    ptr = buf + size;
+    memcpy(ptr, buf, size);
+    memcpy(buf, ptr + phase, size - phase);
+    memcpy(ptr - phase, ptr, phase);
+  );
+);

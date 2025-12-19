@@ -1,0 +1,129 @@
+desc:ADSR envelope
+
+// Copyright (C) 2013-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+// Modified asrd lib to work with buffers instead
+
+// buf[0] = env
+// buf[1] = a
+// buf[2] = d
+// buf[3] = s
+// buf[4] = r
+// buf[5] = state
+// buf[6] = scale
+
+@init
+
+function _adsr_set(time)
+(
+  1 / (0.2 * time * srate + 1);
+);
+
+function adsr_seta(time, buf)
+  //instance(a)
+(
+  buf[1] = _adsr_set(time);
+);
+
+function adsr_setd(time, buf)
+  //instance(d)
+(
+  buf[2] = _adsr_set(time);
+);
+
+function adsr_sets(gain, buf)
+  //instance(s)
+(
+  buf[3] = gain;
+);
+
+function adsr_setr(time, buf)
+  //instance(r)
+(
+  buf[4] = _adsr_set(time);
+);
+
+function adsr_reset(buf)
+  //instance(state, env)
+(
+  buf[0] = 0;
+  buf[5] = 0;
+);
+
+function adsr_r(buf)
+  // instance(state, r)
+(
+  buf[4] < 1 ? ( // r < 1 ? state = 8 : adsr_reset()
+    buf[5] = 8;
+  ) : (
+    adsr_reset(buf);
+  );
+);
+
+function adsr_s(buf)
+  // instance(state, s, env, scale)
+(
+  buf[0] = buf[6] * buf[3]; // env = scale * s
+  buf[5] = 4; // state = 4
+);
+
+function adsr_d(buf)
+//  instance(state, d)
+(
+  buf[2] < 1 ? ( // d < 1
+    buf[5] = 2; // state = 2
+  ) : (
+    adsr_s(buf);
+  );
+);
+
+function adsr_a(scale, buf)
+  // instance(state, a, env)
+(
+  buf[6] = scale; // this.scale = scale
+
+  buf[1] < 1 ? ( // a < 1
+    buf[5] = 1; // state = 1
+  ) : (
+    buf[0] = scale; // env = scale
+    adsr_d(buf);
+  );
+);
+
+function adsr_process(buf)
+local (env, a, d, s, r, state, scale)
+  //instance(state, a, d, s, r, env, scale)
+(
+  env = buf[0];
+  a = buf[1];
+  d = buf[2];
+  s = buf[3];
+  r = buf[4];
+  state = buf[5];
+  scale = buf[6];
+  buf[5] ? (
+
+    // Decay
+    buf[5] == 2 ? (
+      buf[0] += d * (scale * s - env);
+      abs(buf[0] - scale * s) <= scale * 0.000001 ? adsr_s(buf);
+    ) :
+
+    // Release
+    buf[5] == 8 ? (
+      buf[0] += r * (0 - env);
+      abs(buf[0]) <= scale * 0.000001 ? adsr_reset(buf);
+    ) :
+
+    // Attack
+    buf[5] == 1 ? (
+      buf[0] += a * (scale - env);
+      abs(buf[0] - scale) <= scale * exp(-5) ? adsr_d(buf);
+    );
+  );
+
+  buf[5];
+);

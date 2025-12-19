@@ -1,0 +1,595 @@
+desc:Wavetable oscillator
+
+// Copyright (C) 2015-2017 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+/* Example
+
+   desc:Sine wave wavetable oscillator
+
+   slider1:440<20,20000,1>Freq (Hz)
+   slider2:1<0,2,1{Truncate,Linear,Spline}>Mode
+
+   import Tale/wavetable.jsfx-inc
+
+   @init
+
+   function render_sin(buf, size, gain)
+     local(x, dx)
+   (
+     x = 0;
+     dx = 2*$pi / size;
+     loop(size,
+       buf[] = gain * sin(x);
+       buf += 1;
+       x += dx;
+     );
+   );
+
+   osc.wave_init(0, 16);
+   render_sin(osc.buf, osc.size, 0.25);
+
+   @slider
+
+   osc.wave_setf(slider1);
+   mode = slider2|0;
+
+   @sample
+
+   spl0 = spl1 =
+   mode == 0 ? osc.wave_trunc() :
+   mode == 1 ? osc.wave_lerp() :
+   mode == 2 ? osc.wave_spline3();
+
+   Initialisation Functions
+
+    * wave_init(index, size)
+      Example: osc.wave_init(0, 1024);
+      Sets the offset and size of the local memory buffer that will hold the
+      waveform, and returns the next available memory index (i.e.
+      index+size).
+
+    * wave_alloc(size)
+    * wave_free()
+      Example: osc.wave_alloc(1024);
+      Allocates/deallocates a block of local memory that will hold the
+      waveform, and returns its index.
+
+      Note: Requires malloc.jsfx-inc.
+
+   Setting Functions
+
+    * wave_setf(freq)
+      Example: osc.wave_setf(440);
+      Sets the oscillator frequency (specified in Hz), and returns the
+      frequency in seconds/sample.
+
+      (To convert from Hz to seconds/sample, divide by srate. To convert
+      from seconds/sample to Hz, multiply with srate.)
+
+    * wave_setf(note, tuning)
+      Example: osc.wave_setf(60, 440);
+      Sets the oscillator frequency to the specified MIDI note and tuning
+      (in Hz), and returns the frequency in seconds/sample.
+
+    * wave_setdt(time)
+      Example: osc2.wave_setdt(osc1.dt);
+      Sets the oscillator frequency (specified in seconds/sample), and
+      returns this value.
+
+   Interpolation Functions
+
+    * wave_trunc()     -- Truncate
+    * wave_round()     -- Round to nearest
+    * wave_lerp()      -- Linear
+
+    * wave_hermite3()  -- Catmull-Rom spline (4-point, 3rd-order)
+    * wave_hermite5()  -- Hermite (6-point, 5th-order)
+
+    * wave_quint()     -- Quintic spline (6-point, 5th-order)
+
+    * wave_spline3()   -- B-spline (4-point, 3rd-order)
+    * wave_spline5()   -- B-spline (6-point, 5th-order)
+
+    * wave_osculate3() -- 2nd-order-osculating (4-point, 5th-order)
+    * wave_osculate5() -- 2nd-order-osculating (6-point, 5th-order)
+
+    * wave_lagrange2() -- Lagrange (3-point, 2nd-order)
+    * wave_lagrange3() -- Lagrange (4-point, 3rd-order)
+    * wave_lagrange4() -- Lagrange (5-point, 4th-order)
+    * wave_lagrange5() -- Lagrange (6-point, 5th-order)
+    * wave_lagrange(n) -- Lagrange (N+1-point, Nth-order)
+      Example: sample = osc.wave_lerp();
+      Returns a sample from the wavetable, and increments the oscillator
+      phase.
+
+   Miscellaneous Functions
+
+    * wave_sync(phase)
+      Example: osc2.wave_sync(osc1.t + 0.5);
+      Synchronizes the oscillator with the specified phase, and returns the
+      normalized phase.
+
+      Note: You can safely specify out or range (and even negative) values
+      here.
+
+    * wave_inc()
+      Example: osc.wave_inc();
+      Increments the oscillator phase, and returns it.
+
+      Note: The interpolation functions automatically increment the phase.
+
+    * wave_getdc()
+    * wave_getrms()
+      Example: dc = osc.wave_getdc();
+      Calculates the DC/RMS value of the waveform.
+
+   Instance Variables
+
+    * buf
+      Example: wavetbl_index = osc.buf;
+      The local memory index of the wavetable.
+
+    * size
+      Example: wavetbl_size = osc.size;
+      The size of the wavetable, in samples.
+
+    * t
+      Example: phase = osc.t;
+      The current phase [0.0..1.0) of the oscillator.
+
+    * dt
+      Example: freq = osc.dt * srate;
+      The oscillator frequency, in seconds/sample.
+
+*/
+
+@init
+
+function wave_init(index, size)
+  instance(buf)
+(
+  buf = index;
+  this.size = size;
+
+  buf + size;
+);
+
+function wave_setf(freq)
+  // global(srate)
+  instance(dt)
+(
+  dt = freq / srate;
+);
+
+function wave_setf(note, tuning)
+  // global(srate)
+  instance(dt)
+(
+  dt = exp(/* log(2)/12 */ 0.057762265046662109 * (note - 69)) * tuning / srate;
+);
+
+function wave_setdt(time)
+  instance(dt)
+(
+  dt = time;
+);
+
+function wave_sync(phase)
+  instance(t)
+(
+  t = phase;
+  t >= 0 ? t -= t|0 : t += 1 - (t|0);
+);
+
+function wave_inc()
+  instance(t, dt)
+(
+  t += dt;
+  t -= t|0;
+);
+
+function wave_getdc()
+  instance(buf, size)
+  local(sum, ptr)
+(
+  sum = 0;
+  ptr = buf;
+  loop(size,
+    sum += ptr[];
+    ptr += 1;
+  );
+  sum / size;
+);
+
+function wave_getrms()
+  instance(buf, size)
+  local(sum, ptr)
+(
+  sum = 0;
+  ptr = buf;
+  loop(size,
+    sum += sqr(ptr[]);
+    ptr += 1;
+  );
+  sqrt(sum / size);
+);
+
+// Truncate
+
+function wave_trunc()
+  instance(buf, size, t)
+  local(i)
+(
+  i = (t * size)|0;
+  this.wave_inc();
+
+  buf[i];
+);
+
+// Round to nearest
+
+function wave_round()
+  instance(buf, size, t)
+  local(i)
+(
+  i = (t * size + 0.5)|0;
+  this.wave_inc();
+
+  i >= size ? i = 0;
+  buf[i];
+);
+
+// Linear
+
+function wave_lerp()
+  instance(buf, size, t)
+  local(x, i, j)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i + 1;
+  j >= size ? j = 0;
+
+  (1 - x) * buf[i] + x * buf[j];
+);
+
+// Catmull-Rom spline (4-point, 3rd-order)
+
+function wave_hermite3()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 1; j < 0 ? j += size; y0 = buf[j];
+  y1 = buf[i];
+  i += 1; i >= size ? i = 0; y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+
+  a0 = 0.5*(y3 - y0) + 1.5*(y1 - y2);
+  a1 = y0 - 2.5*y1 + 2*y2 - 0.5*y3;
+  a2 = 0.5*(y2 - y0);
+  a3 = y1;
+
+  // x^3*a0 + x^2*a1 + x*a2 + a3
+  x*(x*(x*a0 + a1) + a2) + a3;
+);
+
+// Hermite (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_hermite5()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 2; j < 0 ? j += size; y0 = buf[j];
+  j += 1; j >= size ? j = 0; y1 = buf[j];
+  y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+  i += 1; i >= size ? i = 0; y4 = buf[i];
+  i += 1; i >= size ? i = 0; y5 = buf[i];
+
+  a0 = 1/24*(y5 - y0) + 5/24*(y1 - y4) + 5/12*(y3 - y2);
+  a1 = 0.125*y0 - 7/12*y1 + 13/12*y2 - y3 + 11/24*y4 - 1/12*y5;
+  a2 = 5/12*y2 - 7/12*y3 + 7/24*y4 - 1/24*(y0 + y1 + y5);
+  a3 = 13/12*y1 - 25/12*y2 + 1.5*y3 - 11/24*y4 + 1/12*y5 - 0.125*y0;
+  a4 = 1/12*(y0 - y4) + 2/3*(y3 - y1);
+  a5 = y2;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
+);
+
+// Quintic spline (6-point, 5th-order) from
+// http://musicdsp.org/archive.php?classid=5#60
+
+function wave_quint()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 2; j < 0 ? j += size; y0 = buf[j];
+  j += 1; j >= size ? j = 0; y1 = buf[j];
+  y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+  i += 1; i >= size ? i = 0; y4 = buf[i];
+  i += 1; i >= size ? i = 0; y5 = buf[i];
+
+  y2 + 1/24*x*((y3-y1)*16+(y0-y4)*2
+  + x *((y3+y1)*16-y0-y2*30- y4
+  + x *(y3*66-y2*70-y4*33+y1*39+ y5*7- y0*9
+  + x *( y2*126-y3*124+y4*61-y1*64- y5*12+y0*13
+  + x *((y3-y2)*50+(y1-y4)*25+(y5-y0)*5)))));
+);
+
+// B-spline (4-point, 3rd-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_spline3()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 1; j < 0 ? j += size; y0 = buf[j];
+  y1 = buf[i];
+  i += 1; i >= size ? i = 0; y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+
+  a0 = 0.5*(y1 - y2) + 1/6*(y3 - y0);
+  a1 = 0.5*(y0 + y2) - y1;
+  a2 = 0.5*(y2 - y0);
+  a3 = 1/6*(y0 + y2) + 2/3*y1;
+
+  x*(x*(x*a0 + a1) + a2) + a3;
+);
+
+// B-spline (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_spline5()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 2; j < 0 ? j += size; y0 = buf[j];
+  j += 1; j >= size ? j = 0; y1 = buf[j];
+  y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+  i += 1; i >= size ? i = 0; y4 = buf[i];
+  i += 1; i >= size ? i = 0; y5 = buf[i];
+
+  a0 = 1/120*(y5 - y0) + 1/24*(y1 - y4) + 1/12*(y3 - y2);
+  a1 = 1/24*(y0 + y4) - 1/6*(y1 + y3) + 0.25*y2;
+  a2 = 1/12*(y4 - y0) - 1/6*(y3 - y1);
+  a3 = 1/12*(y0 + y4) + 1/6*(y1 + y3) - 0.5*y2;
+  a4 = 1/24*(y4 - y0) + 5/12*(y3 - y1);
+  a5 = 1/120*(y0 + y4) + 13/60*(y1 + y3) + 11/20*y2;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
+);
+
+// 2nd-order-osculating (4-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_osculate3()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, a0, a1, a2, a3, a4, a5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 1; j < 0 ? j += size; y0 = buf[j];
+  y1 = buf[i];
+  i += 1; i >= size ? i = 0; y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+
+  a0 = y0 + 3*(y2 - y1) - y3;
+  a1 = 2.5*(y3 - y0) - 7.5*(y2 - y1);
+  a2 = 4.5*(y2 - y1) - 1.5*(y3 - y0);
+  a3 = 0.5*(y0 + y2) - y1;
+  a4 = 0.5*(y2 - y0);
+  a5 = y1;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
+);
+
+// 2nd-order-osculating (6-point, 5th-order) x-form adapted from
+// http://www.student.oulu.fi/~oniemita/dsp/deip.pdf
+
+function wave_osculate5()
+  instance(buf, size, t)
+  local(x, i, j, y0, y1, y2, y3, y4, y5, a0, a1, a2, a3, a4, a5)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  j = i - 2; j < 0 ? j += size; y0 = buf[j];
+  j += 1; j >= size ? j = 0; y1 = buf[j];
+  y2 = buf[i];
+  i += 1; i >= size ? i = 0; y3 = buf[i];
+  i += 1; i >= size ? i = 0; y4 = buf[i];
+  i += 1; i >= size ? i = 0; y5 = buf[i];
+
+  a0 = 5/24*(y5 - y0) + 25/24*(y1 - y4) + 25/12*(y3 - y2);
+  a1 = 13/24*y0 - 8/3*y1 + 5.25*y2 - 31/6*y3 + 61/24*y4 - 0.5*y5;
+  a2 = 1.625*y1 - 35/12*y2 + 2.75*y3 - 1.375*y4 + 7/24*y5 - 0.375*y0;
+  a3 = 2/3*(y1 + y3) - 1/24*(y0 + y4) - 1.25*y2;
+  a4 = 1/12*(y0 - y4) + 2/3*(y3 - y1);
+  a5 = y2;
+
+  x*(x*(x*(x*(x*a0 + a1) + a2) + a3) + a4) + a5;
+);
+
+// Lagrange (3-point, 2nd-order)
+
+function wave_lagrange2()
+  instance(buf, size, t)
+  local(x, h, i, j)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  h = i - 1; h < 0 ? h += size;
+  j = i + 1; j >= size ? j = 0;
+
+  0.5 *           x * (x - 1) * buf[h] -
+        (x + 1)     * (x - 1) * buf[i] +
+  0.5 * (x + 1) * x           * buf[j];
+);
+
+// Lagrange (4-point, 3rd-order)
+
+function wave_lagrange3()
+  instance(buf, size, t)
+  local(x, h, i, j, k)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  h = i - 1; h < 0 ? h += size;
+  j = i + 1; j >= size ? j = 0;
+  k = j + 1; k >= size ? k = 0;
+
+  -1/6 *           x * (x - 1) * (x - 2) * buf[h] +
+  0.5  * (x + 1)     * (x - 1) * (x - 2) * buf[i] -
+  0.5  * (x + 1) * x           * (x - 2) * buf[j] -
+  -1/6 * (x + 1) * x * (x - 1)           * buf[k];
+);
+
+// Lagrange (5-point, 4th-order)
+
+function wave_lagrange4()
+  instance(buf, size, t)
+  local(x, g, h, i, j, k)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  g = i - 2; g < 0 ? g += size;
+  h = g + 1; h >= size ? h = 0;
+  j = i + 1; j >= size ? j = 0;
+  k = j + 1; k >= size ? k = 0;
+
+  1/24 *           (x + 1) * x * (x - 1) * (x - 2) * buf[g] -
+  1/6  * (x + 2)           * x * (x - 1) * (x - 2) * buf[h] +
+  0.25 * (x + 2) * (x + 1)     * (x - 1) * (x - 2) * buf[i] -
+  1/6  * (x + 2) * (x + 1) * x           * (x - 2) * buf[j] +
+  1/24 * (x + 2) * (x + 1) * x * (x - 1)           * buf[k];
+);
+
+// Lagrange (6-point, 5th-order)
+
+function wave_lagrange5()
+  instance(buf, size, t)
+  local(x, g, h, i, j, k, l)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  g = i - 2; g < 0 ? g += size;
+  h = g + 1; h >= size ? h = 0;
+  j = i + 1; j >= size ? j = 0;
+  k = j + 1; k >= size ? k = 0;
+  l = k + 1; l >= size ? l = 0;
+
+  -1/120 *           (x + 1) * x * (x - 1) * (x - 2) * (x - 3) * buf[g] +
+  1/24   * (x + 2)           * x * (x - 1) * (x - 2) * (x - 3) * buf[h] -
+  1/12   * (x + 2) * (x + 1)     * (x - 1) * (x - 2) * (x - 3) * buf[i] +
+  1/12   * (x + 2) * (x + 1) * x           * (x - 2) * (x - 3) * buf[j] -
+  1/24   * (x + 2) * (x + 1) * x * (x - 1)           * (x - 3) * buf[k] -
+  -1/120 * (x + 2) * (x + 1) * x * (x - 1) * (x - 2)           * buf[l];
+);
+
+// Lagrange (N+1-point, Nth-order)
+
+function wave_lagrange(n)
+  instance(buf, size, t)
+  local(x, i, j, m, ofs, sum, mul)
+(
+  x = t * size;
+  this.wave_inc();
+
+  i = x|0;
+  x -= i;
+
+  ofs = (n / 2)|0;
+  i -= ofs; i < 0 ? i += size;
+  x += ofs;
+
+  sum = j = 0;
+  loop(n + 1,
+    mul = buf[i];
+    i += 1; i >= size ? i = 0;
+
+    m = 0;
+    loop(n,
+      m == j ? m += 1;
+      mul *= (x - m) / (j - m);
+      m += 1;
+    );
+    sum += mul;
+    j += 1;
+  );
+  sum;
+);
+
+// Legacy
+
+function wave_cube() ( this.wave_hermite3() );
+
+// Deprecated
+
+function wave_cube6() ( this.wave_hermite5() );
+function wave_cube8() ( this.wave_hermite5() );
+
+function wave_quint6() ( this.wave_quint() );
+function wave_quint8() ( this.wave_quint() );

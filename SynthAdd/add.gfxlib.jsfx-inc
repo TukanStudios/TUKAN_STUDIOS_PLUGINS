@@ -1,0 +1,213 @@
+desc:add.gfxlib.jsfx-inc
+
+@init
+
+COLOR_ACTIVE = 0x5de4b1;
+COLOR_BG = 0x141618;
+
+selknob_nslider = 0;
+selknob_min = 0;
+selknob_max = 0;
+selknob_is_log = 0;
+
+wheelknob_nslider = 0;
+wheelknob_min = 0;
+wheelknob_max = 0;
+wheelknob_is_log = 0;
+
+doubleclk_nslider = 0;
+
+function deg2rad (deg) (deg * $pi / 180;);
+RAD130 = deg2rad(130);
+
+
+function set_color(color) (
+  gfx_r = (color & 0xFF0000) / 0xFF0000;
+  gfx_g = (color & 0x00FF00) / 0x00FF00;
+  gfx_b = (color & 0x0000FF) / 0x0000FF;
+);
+
+function draw_wave(x, y, w, h, buf, len)
+local(i, _x, _y)
+(
+  set_color(COLOR_ACTIVE);
+  loop(i = 0; len,
+    _x = i * w / len + x;
+    _y = buf[i] * h / 2 + h / 2 + y;
+    i == 0 ? (
+      gfx_x = _x;
+      gfx_y = _y;
+    );
+    gfx_lineto(_x, _y);
+    i += 1;
+  );
+);
+
+function log_scale (value, max, min)
+local (minP, maxP, scale) (
+    minP = min;
+    maxP = max;
+
+    minV = log(min);
+    maxV = log(max);
+
+    scale = (maxV - minV) / (maxP - minP);
+    exp(minV + scale * (value - minP));
+);
+
+function inverse_log_scale (lg, max, min)
+local (minP, maxP, scale) (
+    minP = min;
+    maxP = max;
+
+    minV = log(min);
+    maxV = log(max);
+
+    scale = (maxV - minV) / (maxP - minP);
+    (log(lg) - minV) / scale + minP;
+);
+
+function mouse_in_rect (x, y, w ,h) (
+  mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
+);
+
+function draw_knob(x, y, nslider, label, default, _min, _max, is_log, is_sym, val_label)
+local (scale)
+(
+  set_color(0x282D32);
+  gfx_arc(x+20, y+20, 20, -RAD130, RAD130, 1);
+  gfx_arc(x+20, y+20, 19.5, -RAD130, RAD130, 1);
+  gfx_arc(x+20, y+20, 19, -RAD130, RAD130, 1);
+  gfx_arc(x+20, y+20, 18.5, -RAD130, RAD130, 1);
+
+  slider_val = slider(nslider);
+  nslider == 15 && lslider != slider_val ? (
+    lsliderrrr += 1;
+    lsliderr = slider_val;
+    lsliderrr = lslider;
+    lslider = slider_val;
+  );
+  is_log ? (
+    slider_val = inverse_log_scale(slider_val, _max, _min);
+  );
+
+  // linear map value from min/max to -130deg +130deg
+  scale = (130 - -130) / (_max-_min);
+  _offset = (-_min * (130 - -130)) / (_max - _min) + -130;
+  slider_deg = slider_val * scale + _offset;
+  slider_rad = deg2rad(slider_deg);
+
+  gfx_circle(x+20, y+20, 15, 1, 1);
+  set_color(COLOR_ACTIVE);
+  gfx_circle(x+20-sin(-slider_rad)*10, y+20-cos(-slider_rad)*10, 3, 1);
+
+  gfx_arc(x+20, y+20, 20, is_sym ? 0 : -RAD130, slider_rad, 1);
+  gfx_arc(x+20, y+20, 19.5, is_sym ? 0 : -RAD130, slider_rad, 1);
+  gfx_arc(x+20, y+20, 19, is_sym ? 0 : -RAD130, slider_rad, 1);
+  gfx_arc(x+20, y+20, 18.5, is_sym ? 0 : -RAD130, slider_rad, 1);
+
+  set_color(0xFFFFFF);
+  gfx_x = x - 20;
+  gfx_y = y + 20 * 2 + 5;
+  selknob_nslider == nslider ? (
+    gfx_drawstr(val_label, 1, x+20+20*2, y+100);
+  ) : (
+    gfx_drawstr(label, 1, x+20+20*2, y+100);
+  );
+
+  mouse_in_rect(x, y, 40, 40) ? (
+    mouse.double_click ? (
+      slider(nslider) = default;
+      doubleclk_nslider = nslider;
+    );
+    mouse.left_click ? (
+      selknob_nslider = nslider;
+      selknob_min = _min;
+      selknob_max = _max;
+      selknob_is_log = is_log;
+    );
+    mouse.wheel ? (
+      wheelknob_nslider = nslider;
+      wheelknob_min = _min;
+      wheelknob_max = _max;
+      wheelknob_is_log = is_log;
+    );
+  );
+);
+
+function draw_button (x, y, w, label, toggled) (
+  set_color(COLOR_ACTIVE);
+  gfx_rect(x, y - 2, w, 10 + 2);
+  gfx_x = x; gfx_y = y;
+  !toggled ? (
+    set_color(COLOR_BG);
+    gfx_rect(x+1, y+1-2, w-2, 10);
+  );
+  set_color(toggled ? 0xFFFFFF : COLOR_ACTIVE);
+  gfx_drawstr(label, 1, x+w, y+10);
+);
+
+function draw_grey_button (x, y, w, label) (
+  set_color(0x666666);
+  gfx_rect(x, y - 2, w, 10 + 2);
+  gfx_x = x; gfx_y = y;
+  set_color(0x141618);
+  gfx_drawstr(label, 1, x+w, y+10);
+);
+
+function harmonic_phase(h1, h2) (
+  atan2(h1, h2);
+);
+
+function harmonic_amplitude(h1, h2) (
+  sqrt(pow(h1,2) + pow(h2,2));
+);
+
+function draw_harmonics(x, y, w, h, buf, nharm)
+local (harm_w, amp, i, mouse_active, hx, ph, yamp, phase, real, img, yphase)
+(
+  set_color(0x666666);
+  gfx_rect(x - 2,y - 2,w + 4,h + 4);
+  set_color(COLOR_BG);
+  gfx_rect(x - 1, y - 1, w + 2, h + 2);
+  set_color(COLOR_ACTIVE);
+  harm_w = (w / nharm) | 0;
+  mouse_active = edit_mode && mouse.left && mouse_in_rect(x,y,w,h);
+
+  phase_mode ? gfx_a = 0.3;
+  loop(i=0; nharm,
+    amp = harmonic_amplitude(buf[i], buf[i+1]);
+    amp > 1 ? amp = 1;
+    hx = x + harm_w * i / 2; // harmonic x
+    gfx_rect(hx, y + h - floor(amp * h), harm_w - 1, amp * h);
+    !phase_mode && mouse_active && mouse_in_rect(hx, y, harm_w, h) ? (
+      yamp = mouse.control ? 0 : 1 - (mouse.y - y) / h;
+      phase = harmonic_phase(buf[i], buf[i+1]);
+      buf[i+1] = yamp * cos(phase); // real = r * cos(p)
+      buf[i] = yamp * sin(phase); // img = r * sin(p)
+    );
+    i += 2;
+  );
+  gfx_a = 0.75;
+  set_color(0xFFFFFF);
+  phase_mode ? (
+    loop(i=0; nharm,
+      phase = atan2(buf[i], buf[i+1]);
+      hx = x + harm_w * i / 2;
+      ph = phase/$pi*h/2; // phase height
+      phase >= 0 ? (
+        gfx_rect(hx, y + h/2 - ph, harm_w-1, max(ph, 1)|0);
+      ) : (
+        gfx_rect(hx, y + h/2, harm_w-1, max(-ph, 1)|0);
+      );
+      phase_mode && mouse_active && mouse_in_rect(hx, y, harm_w, h) ? (
+        yphase = mouse.control ? 0 : (mouse.y - y) / h * -2 - 1;
+        amp = harmonic_amplitude(buf[i], buf[i+1]);
+        buf[i+1] = amp * cos(yphase*$pi); // real
+        buf[i] = amp * sin(yphase*$pi); // img
+      );
+      i += 2;
+    );
+  );
+  gfx_a = 1;
+);

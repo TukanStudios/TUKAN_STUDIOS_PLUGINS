@@ -1,0 +1,269 @@
+desc:Simple two-dimensional array interface
+
+// Copyright (C) 2015-2019 Theo Niessink <theo@taletn.com>
+// This work is free. You can redistribute it and/or modify it under the
+// terms of the Do What The Fuck You Want To Public License, Version 2,
+// as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+/* Example
+
+   desc:Last-note priority mono synth
+
+   import Tale/array.jsfx-inc
+   import Tale/midi_queue.jsfx-inc
+   import Tale/poly_blep.jsfx-inc
+
+   @init
+
+   voice.array_init(0, 128, 2);
+
+   @sample
+
+   while(midi.midiq_recv()) (
+     midi.msg1 &= 0xF0;
+
+     // Note On
+     midi.msg1 == 0x90 && midi.msg3 ? (
+
+       // Remove note if somehow it is already playing.
+       ptr = voice.array_find(midi.msg2);
+       ptr >= 0 ? voice.array_remove(ptr);
+
+       // Add note, and set pointer to it.
+       ptr = voice.array_add();
+       ptr[0] = midi.msg2;
+
+       // Set oscillator frequency.
+       ptr[1] = osc.poly_setf(midi.msg2, 440);
+       osc.a *= 0.5;
+     ) :
+
+     // Note Off
+     midi.msg1 == 0x80 || midi.msg1 == 0x90 ? (
+
+       // Remove note.
+       ptr = voice.array_find(midi.msg2);
+       ptr >= 0 ? (
+         voice.array_remove(ptr);
+         !voice.size ? osc.a = 0 : (
+
+           // Update pointer to new last note.
+           ptr = voice.array_get(voice.size - 1);
+           osc.poly_setdt(ptr[1]);
+           osc.a *= 0.5;
+         );
+       );
+     ) :
+
+     // All Notes Off
+     midi.msg1 == 0xB0 && midi.msg2 == 123 ? (
+       voice.array_clear();
+     );
+   );
+
+   spl0 = spl1 = osc.poly_saw();
+
+   Initialization Functions
+
+    * array_init(index, max_rows[, cols])
+      Example: array.array_init(0, 64, 2);
+      Sets the offset and size of the local memory buffer to store the array
+      in, and returns the next available memory index (i.e.
+      index+rows*cols). If cols is omitted, then it defaults to 1.
+
+    * array_alloc(max_rows[, cols])
+    * array_free()
+      Example: array.array_alloc(64, 2);
+      Allocates/deallocates a block of local memory to store the array in,
+      and returns its index.
+
+      Note: Requires Tale/malloc.jsfx-inc.
+
+   Array Functions
+
+    * array_get(row)
+      Example: ptr = array.array_get(0);
+      Returns a pointer to the local memory index of the specified row.
+
+    * array_add()
+      Example: ptr = array.array_add();
+      Adds a row to the end of the array and returns its local memory index.
+      Note that the row is added but not initialized (i.e. it does not
+      contain any data yet, nor is it zeroed.).
+
+    * array_insert(ptr)
+      Example: array.array_insert(array.array_get(0));
+      Inserts a row into the array. Note that the row is inserted but not
+      initialized.
+
+    * array_remove(ptr)
+      Example: array.array_remove(array.array_get(0));
+      Removes a row from the array.
+
+    * array_clear()
+      Example: array.array_clear();
+      Removes all rows from the array.
+
+   Miscellaneous Functions
+
+    * array_first()
+      Example: ptr = array.array_first();
+      Returns a pointer to the local memory index of the first row, or -1 if
+      there are no rows.
+
+    * array_next(ptr)
+      Example: ptr = array.array_next(ptr);
+      Returns a pointer to the local memory index of the next row, or -1 if
+      there is no next row.
+
+    * array_last()
+      Example: ptr = array.array_last();
+      Returns a pointer to the local memory index of the last row, or -1 if
+      there are no rows.
+
+    * array_find(value[, col[, ptr]])
+      Example: ptr = array_find(123);
+      Finds a value in the array at the specified column (0 by default),
+      starting at the specified row pointer (first row by default), and
+      returns the local memory index of the entire row, or -1 if the value
+      was not found.
+
+   Instance Variables
+
+    * buf
+      Example: ptr = array.buf;
+      The local memory address of the buffer in which the array is stored.
+
+    * size
+      Example: num_rows = array.size;
+      The current size of the array in rows.
+
+    * num
+      Example: num_cols = array.num;
+      The number of columns in each row.
+
+*/
+
+@init
+
+function array_init(index, max_rows, cols)
+  instance(buf, size, num)
+(
+  buf = index;
+  size = 0;
+  num = cols;
+
+  buf + max_rows * num;
+);
+
+function array_init(index, max_rows)
+(
+  this.array_init(index, max_rows, 1);
+);
+
+function array_get(row)
+  instance(buf, num)
+(
+  buf + row * num;
+);
+
+function array_add()
+  instance(buf, size, num)
+(
+  buf + ((size += 1) - 1) * num;
+);
+
+function array_insert(ptr)
+  instance(buf, size, num)
+  local(end)
+(
+  end = buf + size * num;
+  size += 1;
+  ptr < end ? memcpy(ptr + num, ptr, end - ptr);
+
+  // Returning the pointer here might not be very useful, but it is
+  // consistent with array_add().
+  ptr;
+);
+
+function array_remove(ptr)
+  instance(buf, size, num)
+  local(end)
+(
+  end = buf + (size -= 1) * num;
+  ptr < end ? memcpy(ptr, ptr + num, end - ptr);
+
+  // Again, returning the pointer here is not very useful; meh.
+  ptr;
+);
+
+function array_first()
+  instance(buf, size)
+(
+  size ? buf : -1;
+);
+
+function array_next(ptr)
+  instance(buf, size, num)
+(
+  ptr += num;
+  ptr < buf + size * num ? ptr : -1;
+);
+
+function array_last()
+  instance(buf, size, num)
+(
+  size ? buf + (size - 1) * num : -1;
+);
+
+function array_find(value, col, ptr)
+  instance(buf, size, num)
+  local(ret, end)
+(
+  ret = -1;
+  end = buf + size * num;
+  while(
+    ptr < end ? (
+      ptr[col] == value ? (
+        ret = ptr;
+        0; // break
+      ) : (
+        ptr += num;
+        1; // continue
+      );
+    );
+  );
+  ret;
+);
+
+function array_find(value, col)
+  instance(buf)
+(
+  this.array_find(value, col, buf);
+);
+
+function array_find(value)
+  instance(buf, size, num)
+  local(ret, ptr, end)
+(
+  ret = -1;
+  end = (ptr = buf) + size * num;
+  while(
+    ptr < end ? (
+      ptr[] == value ? (
+        ret = ptr;
+        0; // break
+      ) : (
+        ptr += num;
+        1; // continue
+      );
+    );
+  );
+  ret;
+);
+
+function array_clear()
+  instance(size)
+(
+  size = 0;
+);
