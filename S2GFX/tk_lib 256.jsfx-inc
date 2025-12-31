@@ -255,6 +255,18 @@ instance (U_Val dB_Val dB_Val_Max S2_meter_fallback)
 			):(link_group = 0;
 			);
 
+		):( // nicht in Gruppe
+					slider_loop_temp = 1;
+			      		loop(S2_numbers_of_sliders,
+        					sliders_old[slider_loop_temp] = slider(slider_loop_temp);
+						slider_loop_temp += 1;
+        				);
+					slider_loop_temp = 1;
+      					loop(S2_numbers_of_generics,
+        					generics_old[slider_loop_temp] = group_generics[slider_loop_temp];
+						slider_loop_temp += 1;
+					);
+
 		);
 	);
 
