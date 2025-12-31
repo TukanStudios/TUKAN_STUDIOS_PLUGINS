@@ -11,10 +11,10 @@ slider7:0<0,1,0.01>-HPF (Hz)
 slider8:0<0,10,0.01>-Clipper
 slider9:0<0,10,0.01>-Dist
 slider10:0<0,10,.01>-Odd Harm (%)
-slider11:0<0,1,0.01>-LPF (Hz)
-slider12:1<0,4,1{0 dB,6 dB,12 dB,18 dB,24 dB}>-HPF slope (dB/oct)
-slider13:1<0,4,1{0 dB,6 dB,12 dB,18 dB,24 dB}>-LPF slope (dB/oct)
-slider14:2<0,3,1{Off, 2x, 4x, 8x}>-Oversampling
+slider11:1<0,1,0.01>-LPF (Hz)
+slider12:0<0,4,1{0 dB,6 dB,12 dB,18 dB,24 dB}>-HPF slope (dB/oct)
+slider13:0<0,4,1{0 dB,6 dB,12 dB,18 dB,24 dB}>-LPF slope (dB/oct)
+slider14:1<0,3,1{Off, 2x, 4x, 8x}>-Oversampling
 
 slider15:0<0,1,1>-Extend Lows
 slider16:0<0,1,1>-De Mud
@@ -865,31 +865,31 @@ BLPF.button_config(13, 190, 190);
       ledon = HPF_Slope == 0;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 64*zoom; gfx_y = 165*zoom;
       ledon = HPF_Slope == 1;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 64*zoom; gfx_y = 130*zoom;
       ledon = HPF_Slope == 2;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 64*zoom; gfx_y = 95*zoom;
       ledon = HPF_Slope == 3;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 64*zoom; gfx_y = 60*zoom;
       ledon = HPF_Slope == 4;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       
       
@@ -897,31 +897,31 @@ BLPF.button_config(13, 190, 190);
       ledon = LPF_Slope == 0;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x -= 22*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 184*zoom; gfx_y = 165*zoom;
       ledon = LPF_Slope == 1;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x -= 22*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 184*zoom; gfx_y = 130*zoom;
       ledon = LPF_Slope == 2;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x -= 22*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 184*zoom; gfx_y = 95*zoom;
       ledon = LPF_Slope == 3;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x -= 22*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x = 184*zoom; gfx_y = 60*zoom;
       ledon = LPF_Slope == 4;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x -= 22*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       
 
@@ -972,7 +972,7 @@ BLPF.button_config(13, 190, 190);
             ledon = Autogain;
             gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
             gfx_x += 30*zoom; gfx_y += 3*zoom;
-            gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+            gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
             gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
             gfx_x += 27*zoom; gfx_y += 9*zoom;
             gfx_drawstr("KEEP LEVEL");
@@ -1041,12 +1041,12 @@ BLPF.button_config(13, 190, 190);
        
        ledon = clip_L > 0;
        gfx_x -= 89*zoom; gfx_y += 9*zoom;
-       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
        gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
        
        ledon = clip_R > 0;
        gfx_x += 80*zoom; //gfx_y += 9*zoom;
-       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
        gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
  
  
@@ -1058,7 +1058,7 @@ BLPF.button_config(13, 190, 190);
       ledon = slider(BLow.slider);
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("Extend Lows");
@@ -1068,7 +1068,7 @@ BLPF.button_config(13, 190, 190);
       ledon = slider(BMud.slider);
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("De - Mud");
@@ -1078,7 +1078,7 @@ BLPF.button_config(13, 190, 190);
       ledon = slider(BHarsh.slider);
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("De - Harsh");
@@ -1088,7 +1088,7 @@ BLPF.button_config(13, 190, 190);
       ledon = slider(BAir.slider);
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("Air Boost");
@@ -1137,7 +1137,7 @@ BLPF.button_config(13, 190, 190);
        ledon = slider(BBypass.slider);
        gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
        gfx_x += 30*zoom; gfx_y += 3*zoom;
-       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+       gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
        gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
        gfx_x += 27*zoom; gfx_y += 9*zoom;
        gfx_drawstr("BYPASS ALL");
@@ -1153,7 +1153,7 @@ BLPF.button_config(13, 190, 190);
       ledon = OS == 1;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("OFF");
@@ -1170,7 +1170,7 @@ BLPF.button_config(13, 190, 190);
       ledon = OS == 2;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("2 x");
@@ -1180,7 +1180,7 @@ BLPF.button_config(13, 190, 190);
       ledon = OS == 4;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("4 x");
@@ -1190,7 +1190,7 @@ BLPF.button_config(13, 190, 190);
       ledon = OS == 8;
       gfx_blit(3,0.5*zoom,0,0,70*ledon,70,70);
       gfx_x += 30*zoom; gfx_y += 3*zoom;
-      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5,1);
+      gfx_circle(gfx_x+14*zoom,gfx_y+14*zoom,5*zoom,1);
       gfx_blit(oled,0.23*zoom,0,0,ledon*128,128,128);
       gfx_x += 27*zoom; gfx_y += 9*zoom;
       gfx_drawstr("8 x");
