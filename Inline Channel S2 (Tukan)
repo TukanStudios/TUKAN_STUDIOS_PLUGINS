@@ -124,7 +124,7 @@ options:gmem=TukanInLineS2
 
 
 @init
-Inline_VERSION = 1.16;
+Inline_VERSION = 1.17;
 
 gfx_ext_flags = 0x100;
 
@@ -1064,6 +1064,7 @@ gmem[5000 + 100*TrackIndx + 97] = str_getchar(#CH_nName, 7);
        );
        
        
+       
 //Left_Meter_In.feed_Meter(spl0); 
 //Right_Meter_In.feed_Meter(spl1);
 
@@ -1081,7 +1082,7 @@ while_spl += 1;
 //Right_Meter_In_Post.feed_Meter(spl1*inputlevel);
 
 
-HPS_ON || LPF_S ? (
+HPF_ON || LPF_S ? (
   band1.filter.svf_tick();
   band6.filter.svf_tick();
   
@@ -1366,7 +1367,7 @@ page.iquicklink_button();
 
 
 
-
+spl_available = 10;
 
 
 @gfx 100 475
@@ -1375,6 +1376,7 @@ get_host_numchan() < 4 ? set_host_numchan(4);
 
 _global.Tukan_Inline_Style >= 10 ? style = _global.Tukan_Inline_Style - 10;
 
+gfx_process == -10 ? process = 0;
 
 style == 0 ? (
 a_n_g = 1;
@@ -1778,7 +1780,7 @@ style_ == 8 ? rgb(189,88,243);
     gfx_setfont(1);
     gfx_measurestr(#readout, rdow, rdoh);
     
-    gfx_x = zoom; gfx_y = this.yIn*zoom + this.size*zoom*0.5 - gfx_texth - 2*zoom;
+    gfx_x = (is_small ? 0 : page_x) +zoom; gfx_y = this.yIn*zoom + this.size*zoom*0.5 - gfx_texth - 2*zoom;
     
     gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
     gfx_r=gfx_g=gfx_b=0.8;
@@ -3186,13 +3188,14 @@ gfx_rect(0,0,gfx_w,gfx_h);
           g_collision(0,GR_Balken, sgfx_w, 19*zoom) ? GR_Meter.dB_Val_Max_GR = 0;
        );
        
-       (mouseClick == 1 && superkey) ? (
+       (mouseClick == 1 && superkey) || MouseClickR == 2 ? (
         gfx_display = 0;
         page.iquicklink_button();
        );
        
        
        g_collision(0,0,ngfx_w,gfx_h) ? Fall_Back = 0;
+       gen_dragging ? fall_back = 0;
        //caller == 1 ? fall_back = 0;
        
        
@@ -3882,33 +3885,36 @@ gfx_rect(0,0,gfx_w,gfx_h);
               gfx_x = 370*zoom; gfx_y = 100*zoom;
               gfx_blit(4,zoom,0);
               
-              gfx_x += 3*zoom;
-              gfx_y+=140*zoom;
+              gfx_x = 373*zoom;
+              gfx_y = 240*zoom;
               gfx_drawstr("TUKAN STUDIOS");
               
-              gfx_x -= 117*zoom;
-              gfx_y+=20*zoom;
+              gfx_x = 372*zoom;
+              gfx_y =260*zoom;
               gfx_drawstr("INLINE CHANNEL");
               
               lakeblue();
-               gfx_x -= 92*zoom;
-               gfx_y+=20*zoom;
+               gfx_x = 400*zoom;
+               gfx_y =280*zoom;
                gfx_drawstr("SERIES 2");
                
                
               lightgrey();
-              gfx_x -= 105*zoom;
-              gfx_y += 30*zoom;
+              gfx_x = 360*zoom;
+              gfx_y = 310*zoom;
               gfx_drawstr("Get back to main page");
-              gfx_x -= 159*zoom;
-              gfx_y += 20*zoom;
+              gfx_x = 355*zoom;
+              gfx_y = 330*zoom;
               gfx_drawstr("with Win+click (mac: ctrl)");
+              gfx_x = 380*zoom;
+              gfx_y = 350*zoom;
+              gfx_drawstr("or just right-click");
               
-              gfx_x -= 170*zoom;
-              gfx_y += 30*zoom;
+              gfx_x = 355*zoom;
+              gfx_y = 380*zoom;
               gfx_drawstr("Toogle Shelves / HPF/LPF");
-               gfx_x -= 136*zoom;
-              gfx_y += 20*zoom;
+               gfx_x = 395*zoom;
+              gfx_y = 400*zoom;
               gfx_drawstr("with alt+click");
                /*
               chain_pos_flags == 1 ? (
@@ -3947,13 +3953,16 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        
        //gfx_x = gfx_y = 10;
-       //gfx_drawnumber(gmem[5000 + 100*TrackIndx + 0],0);
+       //gfx_drawnumber(gfx_process,0);//gmem[5000 + 100*TrackIndx + 0],0);
        
        
        
        gfx_display != 0 && is_small ? gfx_ext_flags = 0x100;
        
+       spl_available = max(0, spl_available-1);
+       !spl_available ? (
        gfx_process = max(-10, gfx_process-10);
+       );
        mouse_wheel=0;
        //gfx_x = gfx_y = 3; gfx_setfont(3);
        //gfx_drawnumber(gmem[5000 + 100*TrackIndx + 1],0);
