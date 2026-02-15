@@ -1367,7 +1367,7 @@ page.iquicklink_button();
 
 
 
-
+spl_available = 10;
 
 
 @gfx 100 475
@@ -1376,7 +1376,7 @@ get_host_numchan() < 4 ? set_host_numchan(4);
 
 _global.Tukan_Inline_Style >= 10 ? style = _global.Tukan_Inline_Style - 10;
 
-process == 1 ? gfx_process = 1;
+gfx_process == -10 ? process = 0;
 
 style == 0 ? (
 a_n_g = 1;
@@ -3953,13 +3953,16 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        
        //gfx_x = gfx_y = 10;
-       //gfx_drawnumber(gmem[5000 + 100*TrackIndx + 0],0);
+       //gfx_drawnumber(gfx_process,0);//gmem[5000 + 100*TrackIndx + 0],0);
        
        
        
        gfx_display != 0 && is_small ? gfx_ext_flags = 0x100;
        
+       spl_available = max(0, spl_available-1);
+       !spl_available ? (
        gfx_process = max(-10, gfx_process-10);
+       );
        mouse_wheel=0;
        //gfx_x = gfx_y = 3; gfx_setfont(3);
        //gfx_drawnumber(gmem[5000 + 100*TrackIndx + 1],0);
@@ -4681,5 +4684,4 @@ caller == 1 ? (
 );
 );
 S2_sample_on = 0;
-
 
