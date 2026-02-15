@@ -1106,11 +1106,11 @@ HPF_ON || LPF_S ? (
   ):(
     HPF_on ? (
     spl0 = band1.filter.svf_svf0(spl0);
-    spl0 = band1.filter.svf_svf1(spl0);
+    spl1 = band1.filter.svf_svf1(spl1);
     );
     LPF_S ? (
     spl0 = band6.filter.svf_svf0(spl0);
-    spl0 = band6.filter.svf_svf1(spl0);
+    spl1 = band6.filter.svf_svf1(spl1);
     );
   );
 );
@@ -4684,4 +4684,5 @@ caller == 1 ? (
 );
 );
 S2_sample_on = 0;
+
 
