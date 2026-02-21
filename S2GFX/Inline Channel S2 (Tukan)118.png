@@ -4124,12 +4124,14 @@ page_x = 0;
        );
        );
        
+       sidechain ? (
        gfx_setfont(2);
        gfx_x = sgfx_x + 79*zoom; gfx_y = sgfx_y + 58*zoom;
        black();
        gfx_rect(gfx_x-zoom, gfx_y, 18*zoom, 15*zoom);
        rgb(230,0,30);
-       sidechain ? gfx_drawstr("SC");       
+       gfx_drawstr("SC");       
+       );
        
        outline(style);
        gfx_rect(lscope_x, lscope_y, sgfx_w, sgfx_h,0);
