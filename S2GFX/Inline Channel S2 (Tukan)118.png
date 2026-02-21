@@ -2682,7 +2682,7 @@ page_x = 0;
        gfx_drawstr("Compressor:", 0x05, gfx_x + ngfx_w, gfx_y + 22*zoom);
        gfx_x = 6*zoom; gfx_y = 390*zoom;
        gfx_drawstr("Sidechain", 0x04, gfx_x + ngfx_w, gfx_y + 22*zoom);
-       gfx_rect(80*zoom, 393*zoom, 16*zoom, 16*zoom,0);
+       gfx_rect(gfx_x=80*zoom, gfx_y=393*zoom, 16*zoom, 16*zoom,0);
        mouseClick == 1 && g_collision(gfx_x,gfx_y,16*zoom,16*zoom) ? last_clicked_item = sidechain ? 49 : 50;
        sidechain ? (green(); gfx_rect(83*zoom, 396*zoom, 10*zoom, 10*zoom,1));
        lightgrey();
