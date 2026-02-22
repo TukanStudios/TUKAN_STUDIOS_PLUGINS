@@ -5,14 +5,14 @@ slider2:5<0,10.5,0.1>-Attack
 slider3:5<0,10.5,0.1>-Release
 slider4:5.5<0,10,0.1>-Output
 slider5:4<0,8,1{1,2,3,4,6,10,20,Lim}>-Ratio
-slider6:0<0,2,1{Dist1, Dist2, Dist3}>-Dist
+slider6:1<0,3,1{OFF, Dist1, Dist2, Dist3}>-Saturate
 slider7:0<0,1,1{Run,Bypass}>-Bypass Compressor
-slider8:0<0,1,1{Off, HPF}>-DetHPF unused
+slider8:0<0,1,1{Self, SideChain}>-Sidechain
 slider9:0<0,45.02,0.1>-HPF unused
 slider10:100<23,100,0.11>-LPF
 slider11:0<0,3,1{OFF,12,18,24}>-LPF Order
 
-slider12:0<0,45.02,0.1>-HPF F
+slider12:0<-30,30,0.01>-Input Gain
 slider13:0<-16,16,0.1>-LS Gain
 slider14:37.5<22.7,71.5,0.01>-LMF Freq
 slider15:0<-16,16,0.1>-LMF Gain
@@ -34,11 +34,14 @@ slider30:1<0,1,1{EQ-Comp, Comp-EQ}>-Routing
 slider31:0<0,10,1>-Color
 slider32:0<0,1,1>-Bypass Plugin
 
-slider33:1<0.2,2,0.01>-Scale Plugin
-slider34:1<0.2,2,0.01>-Scale Tracks
-slider35:scroll_x=0<0,1>-Scroll X
-slider36:scroll_y=0<0,1>-Scroll Y
-slider37:0<0,8,1{3D, Flat, RLive, CubeX, PT, ReArtist, ReaperTips, Reaper7, Flogic}>-Theme
+slider33:0<0,8,1{3D, Flat, RLive, CubeX, PT, ReArtist, ReaperTips, Reaper7, Flogic}>-Theme
+slider34:0<0,2,1{Off, Minphase, Filters}>-Oversample if in single Speed
+
+slider35:1<0.2,2,0.01>-Scale Plugin
+slider36:1<0.2,2,0.01>-Scale Tracks
+slider37:scroll_x=0<0,1>-Scroll X
+slider38:scroll_y=0<0,1>-Scroll Y
+slider39:0<0,8,1{3D, Flat, RLive, CubeX, PT, ReArtist, ReaperTips, Reaper7, Flogic}>-Theme
 
 import S2GFX/tk_lib.jsfx-inc
 import S2GFX/cookdsp.jsfx-inc
@@ -117,7 +120,7 @@ options:gfx_idle
 
 
 @init
-Inline_VERSION = 1.16;
+Inline_VERSION = 1.18;
 
 gfx_ext_flags = 0x100;
 
@@ -146,8 +149,8 @@ number_input_invalid = 0;
 number_input_sign=1;
 rename_ch = -2045;
 
-s2_numbers_of_sliders = 32; //////////////////////////// NACHLEGEN
-s2_numbers_of_generics = 4; //////////////////////////// NACHLEGEN
+s2_numbers_of_sliders = 34; //////////////////////////// NACHLEGEN
+s2_numbers_of_generics = 5; //////////////////////////// NACHLEGEN
 group_generics =0; // fuer group_generics[bis zu 200]
 sliders_old = group_generics + 16*200;
 generics_old = sliders_old + 16*64;
@@ -541,13 +544,13 @@ function q_to_per(q, range) (
 
       function xpotDrag()
             local      (val nachkomma)
-              instance   (valOld minVal maxVal yOld step slider xIn yIn link_ch_idx touched_link_group)
+              instance   (valOld minVal maxVal yOld step slider xIn yIn link_ch_idx touched_link_group readval)
                        (
                         mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*gfx_ext_retina);
                         Shift ? mstep = (this.maxval - this.minval)/(S2_Mouse_Sensivity*S2_Mouse_Finetune*gfx_ext_retina);
                         Shift_superkey ? mstep = (this.maxval - this.minval)/(2000*gfx_ext_retina);
                         val = xxval = valOld + (yOld - mouse_y) * mstep;
-                        xxval = min(max(val, minVal), maxVal);
+                        readval = xxval = min(max(val, minVal), maxVal);
                         //slider(slider) = val;
                         //slider_automate(slider(slider));
                         !touched_link_group ? (
@@ -603,7 +606,7 @@ function parameters_update () (
 parameters_update_on = 1;
 old_w=0;
 
-style= slider37;
+style= slider39;
 
 KThreshold.Parameter_Boundaries();
 KRatio.Parameter_Boundaries();
@@ -882,6 +885,7 @@ file_var(0, while_playing);
 file_var(0, while_recording);
 file_var(0, while_stopped);
 file_var(0, link_group);
+
 file_var(0, Inline_VERSION);
 file_var(0, free_scroll);
 file_var(0, Filter_Muted);
@@ -899,6 +903,9 @@ file_var(0, Filter_C10);
 file_var(0, Filter_C11);
 file_var(0, #CH_nName);
 
+file_var(0, alt_gain);
+file_var(0, Alt_LS);
+
 seriloop = 0;
 loop(64*16 + 27 + 16,
 file_var(0, gmem[seriloop]);
@@ -911,6 +918,18 @@ file_var(0, group_generics[seriloop]);
 seriloop += 1;
 );
 
+Inline_Version < 1.18 ? (
+det_version = Inline_VERSION;
+alt_gain = 0;
+alt_ls = 0;
+  slider39 = scroll_x;
+  scroll_y = slider36;
+  scroll_x = slider35;
+  slider36 = slider34;
+  slider35 = slider33;
+  inline_version = 1.18;
+  caller = 1;  
+);
 
 @block
 histsize_out = sgfx_w;// * 10;
@@ -1657,12 +1676,15 @@ Right_Meter_Out.S2_meter_fallback = 40;
     gfx_setfont(1);
     gfx_measurestr(#readout, rdow, rdoh);
     
-    gfx_x = zoom; gfx_y = this.yIn*zoom + this.size*zoom*0.5 - gfx_texth - 2*zoom;
+    this.link_ch_idx == ch_idx ? (
+    gfx_x = zoom+page_x; gfx_y = this.yIn*zoom + this.size*zoom*0.75 - 2*zoom;
     
-    gfx_r=gfx_b=gfx_g=0; gfx_rect(gfx_x+2*zoom, gfx_y, rdow+3*zoom, gfx_texth+2*zoom);
+    gfx_r=gfx_b=gfx_g=0.1; gfx_rect(gfx_x+ngfx_w/2-2*zoom-0.5* rdow, gfx_y, rdow+6*zoom, gfx_texth+2*zoom);
     gfx_r=gfx_g=gfx_b=0.8;
     gfx_x += 3*zoom;
-    gfx_drawstr(#readout);
+    this.link_ch_idx == ch_idx ? gfx_drawstr(#readout, 0x01, gfx_x+ngfx_w, gfx_y+gfx_texth);
+    );
+    
     );
     
     
@@ -1719,10 +1741,10 @@ Right_Meter_Out.S2_meter_fallback = 40;
 //s2_zoom_y < s2_zoom_x && !is_small ? (zoom = s2_zoom_y; ngfx_w = gfx_h/4.75);
 //zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
 
-zoom1 = slider33 * gfx_ext_retina;
+zoom1 = slider35 * gfx_ext_retina;
 
 
-zoom = zoom1*slider34;// * gfx_ext_retina;
+zoom = zoom1*slider36;// * gfx_ext_retina;
 zoom_off == 1 ? zoom = gfx_ext_retina;
 ngfx_w = 100*zoom;
 
@@ -1778,6 +1800,9 @@ gfx_rect(0,0,gfx_w,gfx_h);
        BRouting.button_config(30,0,0); 
        BColor.button_config(31,0,0); 
        BFallback.button_config(26,0,0); 
+       BDist.button_config(6,0,0); 
+       BSidechain.button_config(8,0,0); 
+       BOversample.button_config(34,0,0);
        
        KHsh.parameter_config       (18,       0,      -16,      16,   20,  5,  120, 200,    1,       a_c_g);
        KHF.parameter_config        (16,    65.7,       33,    94.4,   20,  90,  120, 200,    1,      a_c_ee);
@@ -1813,8 +1838,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        
        
-       scroll_x.parameter_config       (35,     0,      0,      1,   20,  5,  120, 200,    1,       2);
-       scroll_y.parameter_config       (36,     0,      0,      1,   20,  5,  120, 200,    1,       2);
+       scroll_x.parameter_config       (37,     0,      0,      1,   20,  5,  120, 200,    1,       2);
+       scroll_y.parameter_config       (38,     0,      0,      1,   20,  5,  120, 200,    1,       2);
        
        would_fit = floor((gfx_w-5*zoom) / (101*zoom));
        scroll_x_size = would_fit / instances;
@@ -1986,6 +2011,63 @@ gfx_rect(0,0,gfx_w,gfx_h);
        box_w = ngfx_w-1; box_h = ngfx_w * 0.75;
         gfx_rect(box_x, box_y, box_w, box_h);   
        gfx_a = 0.6; lines(style); gfx_rect(box_x, box_y+box_h/2, box_w, max(1,zoom));
+       
+       terz_switch = 0;
+       g_collision(box_x, box_y, box_w, box_h) ? (
+          foreground(style);
+          gfx_x = box_x + 2*zoom; gfx_y = box_y + 2*zoom;
+          gfx_drawstr("Analyser");
+          green();
+          gfx_rect(box_x + box_w*0.8, box_y + 4*zoom, 15*zoom, 15*zoom, xTerz_on);
+          g_collision(box_x + box_w*0.8, box_y + 4*zoom, 15*zoom, 15*zoom) && mouseClick == 1 ? (
+              xTerz_on == 0 ? xterz_on = 1 : xterz_on = 0;
+              terz_switch = 1;
+              !xLink_group ? gmem[remote_link] = ch_idx;
+              !xLink_group ? gmem[16*64 + 1] = 107;
+              !xLink_group ? gmem[16*64 + 3] = 2;
+              !xLink_group ? gmem[16*64 + 2] = xTerz_on;
+              //link_group ? group_generics[5] = terz_on;
+              xlink_group ? gmem[16*64+27+48+5+(xLink_Group-1)*200] = xTerz_on;
+              caller = 1;
+          );
+       );
+       
+       EQ_Plot(style);
+       xterz_on ? (
+       tb_floor = -20;
+       tband = 0; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz01))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz02))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz03))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz04))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz05))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz06))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz07))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz08))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz09))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz10))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz11))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz12))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz13))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz14))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz15))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz16))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz17))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz18))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz19))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz20))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz21))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz22))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz23))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz24))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz25))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz26))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz27))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz28))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz29))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz30))/(-tb_floor)))  ));
+       tband+= 1; gfx_x = box_x + tBand * box_w/31; gfx_y = box_y + box_h; gfx_rectto(gfx_x + box_w/31, max(box_y, min(box_y+box_h, box_y+box_h - box_h * ((-tb_floor + ratio2db(xTerz31))/(-tb_floor)))  ));
+       );
+       
        gfx_a = 1; 
         
        tmp_loop = old_gfx_x = 0;
@@ -2108,7 +2190,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        //KFallback.parameter_config    (26,       2,      0,    10,     20,  385,  120, 200,    1,       1);
        Koutvol.parameter_config      (28,       1,      0,    2,      20,  390,  120, 200,    1,       a_n_g);
-       
+       KInvol.parameter_config      (12,        0,    -30,   30,      20,  390,  120, 200,    1,       a_c_ee);
+       /*
        xoutput_item < 1 ? rgb(255,40,40) : rgb(40,255,40);
        gfx_arc(page_x+KOutvol.xIn*zoom+Koutvol.size*zoom*0.25, page_y+Koutvol.yIn*zoom+Koutvol.size*zoom*0.25, Koutvol.size*zoom*0.24,
                -$pi*(140/180) + $pi*(140/180)*xslider[KOutvol.slider],
@@ -2125,9 +2208,11 @@ gfx_rect(0,0,gfx_w,gfx_h);
        gfx_arc(page_x+KOutvol.xIn*zoom+Koutvol.size*zoom*0.25, page_y+Koutvol.yIn*zoom+Koutvol.size*zoom*0.25, Koutvol.size*zoom*0.24-zoom,
                -$pi*(140/180) + $pi*(140/180)*xslider[KOutvol.slider],
                -$pi*(140/180) + $pi*(140/180)*xslider[KOutvol.slider]*xoutput_item);
-               
+        */       
        foreground(style);//lightgrey();        
        gfx_setfont(1);
+       
+       !alt_gain ? (
        Koutvol.xknob();
        gfx_x -= 15*zoom;
        gfx_y = page_y+Koutvol.yIn*zoom + Koutvol.size*zoom*0.5 - gfx_texth;
@@ -2136,10 +2221,22 @@ gfx_rect(0,0,gfx_w,gfx_h);
        gfx_x = page_x+70*zoom; gfx_y = page_y+Koutvol.yIn*zoom - 18*zoom;
        ledon ? (led_dim ? gfx_a = 0.8; gfx_blit(gled,zoom*0.3,0,0,128,128,128); gfx_a = 1);
        !ledon ? (led_dim ? gfx_a = 0.8; gfx_blit(rled,zoom*0.3,0,0,128,128,128); gfx_a = 1);
-       gfx_x = page_x+29*zoom; gfx_setfont(3);
+       gfx_x = page_x+13*zoom; gfx_setfont(3);
        gfx_y = page_y+Koutvol.yIn*zoom + Koutvol.size*zoom*0.5 + 5*zoom;
-       gfx_Drawstr("GAIN");
-       
+       gfx_Drawstr("OUT GAIN");
+       ):(
+       KInvol.xknob();
+       gfx_x -= 15*zoom;
+       gfx_y = page_y+Koutvol.yIn*zoom + Koutvol.size*zoom*0.5 - gfx_texth;
+       gfx_drawstr("Off"); gfx_x += 52*zoom; gfx_drawstr("+6");
+       ledon = !xbypass_all;
+       gfx_x = page_x+70*zoom; gfx_y = page_y+Koutvol.yIn*zoom - 18*zoom;
+       ledon ? (led_dim ? gfx_a = 0.8; gfx_blit(gled,zoom*0.3,0,0,128,128,128); gfx_a = 1);
+       !ledon ? (led_dim ? gfx_a = 0.8; gfx_blit(rled,zoom*0.3,0,0,128,128,128); gfx_a = 1);
+       gfx_x = page_x+20*zoom; gfx_setfont(3);
+       gfx_y = page_y+Koutvol.yIn*zoom + Koutvol.size*zoom*0.5 + 5*zoom;
+       gfx_Drawstr("IN GAIN");
+       );
        
        !xlink_group ? (
        xplugin_linked ? qlink_back(style,1) : qlink_back(style,0);
@@ -2277,7 +2374,11 @@ gfx_rect(0,0,gfx_w,gfx_h);
              
              mouseClick == 1 ? (
        
-               KOutvol.xk_collision() ? KOutvol.xdragstart();
+               !alt_gain ? KOutvol.xk_collision() ? KOutvol.xdragstart();
+               alt_gain ? KInvol.xk_collision() ? KInvol.xdragstart();
+               
+               alt && (KOutvol.xk_collision() || KInvol.xk_collision()) ? alt_gain == 0 ? alt_gain = 1 : alt_gain = 0;
+               
                 !xlink_group ? xg_collision(8*zoom, 340*zoom, ngfx_w-16*zoom, 30*zoom) ? (
                     xplugin_linked == 1 ? plugin_linked = 0 : plugin_linked = 1;
                     gmem[remote_link] = ch_idx;
@@ -2299,19 +2400,22 @@ gfx_rect(0,0,gfx_w,gfx_h);
             
             mouseclick == -1 ? (
                KOutvol.xdragstop();
+               KInvol.xdragstop();
 
             );
             
             
             mouse_wheel ? 
                 (
-                KOutvol.xk_collision() ? KOutvol.xpotwheel();
+                !alt_gain ? KOutvol.xk_collision() ? KOutvol.xpotwheel();
+                alt_gain ? KInvol.xk_collision() ? KInvol.xpotwheel();
 
                  //mouse_wheel=0;
                  caller = 1;
                 );
              
-              KOutvol.dragging ? (KOutvol.xpotdrag(););
+              KOutvol.dragging ? (KOutvol.xpotdrag(); sprintf(#readout, "%.2f", ratio2db(Koutvol.readval)); KOutvol.readout_inline());
+              KInvol.dragging ? (KInvol.xpotdrag(); sprintf(#readout, "%.2f", KInvol.readval); KInvol.readout_inline());
 
        
        
@@ -2330,7 +2434,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
         last_clicked_item = -1;
         Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
         menu_x = 2 + (page_x/zoom); menu_y =305 + (page_y/zoom);
-       
+       gfx_setfont(3);
        gfx_x = menu_x * zoom; gfx_y = menu_y * zoom; gfx_a=1;
        //gfx_blit(menu,zoom/2,0);
        foreground(style);// lightgrey(); //red();
@@ -2404,6 +2508,24 @@ gfx_rect(0,0,gfx_w,gfx_h);
            xslider[26] == 3 ? #allitems += ">Back to main page|No automatic page switching|1 Second|2 Seconds|!3 Seconds|4 Seconds|";
            xslider[26] == 4 ? #allitems += ">Back to main page|No automatic page switching|1 Second|2 Seconds|3 Seconds|!4 Seconds|";
            
+           
+           #allitems += "<|>Compressor|";
+           #allitems += ">Key|";
+           !xslider[8] ? #allitems += "!"; #allitems += "Self|";
+           xslider[8] ? #allitems += "!"; #allitems += "<Sidechain|";
+           #allitems += ">Saturate|";
+           xslider[6] == 0 ? #allitems += "!"; #allitems += "OFF|";
+           xslider[6] == 1 ? #allitems += "!"; #allitems += "Mode 1|";
+           xslider[6] == 2 ? #allitems += "!"; #allitems += "Mode 2|";
+           xslider[6] == 3 ? #allitems += "!"; #allitems += "<Mode 3|<|";
+           
+           #allitems += ">2 x Oversample|";
+           xslider[34] == 0 ? #allitems += "!"; #allitems += "OFF|";
+           xslider[34] == 1 ? #allitems += "!"; #allitems += "Minphase (anti alias)|";
+           xslider[34] == 2 ? #allitems += "!"; #allitems += "<Only filter shapes|";
+           
+           #allitems += "#Version "; #allitems += sprintf(#, "%.2f", Inline_VERSION);
+           
           last_clicked_item = gfx_showmenu(#allitems);
         );
         );
@@ -2431,7 +2553,7 @@ gfx_rect(0,0,gfx_w,gfx_h);
             gmem[remote_link] = ch_idx;
             gmem[16*64 + 1] = 104;
             gmem[16*64 + 3] = 2;
-            gmem[16*64 + 2] = while_stopped;    
+            gmem[16*64 + 2] = while_stopped;
         );
        
          cgroup = last_clicked_item - 3;
@@ -2479,6 +2601,18 @@ gfx_rect(0,0,gfx_w,gfx_h);
         last_clicked_item > 33 && last_clicked_item < 39 ? (
         (slider(BFallback.slider) = last_clicked_item-34; caller = 1; BFallback.iquicklink_button());
         );
+        
+        last_clicked_item == 39 ? (Slider(BSidechain.slider) = 0; caller = 1; BSidechain.iquicklink_button());
+        last_clicked_item == 40 ? (Slider(BSidechain.slider) = 1; caller = 1; BSidechain.iquicklink_button());
+        
+        last_clicked_item == 41 ? (Slider(BDist.slider) = 0; caller = 1; BDist.iquicklink_button());
+        last_clicked_item == 42 ? (Slider(BDist.slider) = 1; caller = 1; BDist.iquicklink_button());
+        last_clicked_item == 43 ? (Slider(BDist.slider) = 2; caller = 1; BDist.iquicklink_button());
+        last_clicked_item == 44 ? (Slider(BDist.slider) = 3; caller = 1; BDist.iquicklink_button());
+        
+        last_clicked_item == 45 ? (Slider(BOversample.slider) = 0; caller = 1; BOversample.iquicklink_button());
+        last_clicked_item == 46 ? (Slider(BOversample.slider) = 1; caller = 1; BOversample.iquicklink_button());
+        last_clicked_item == 47 ? (Slider(BOversample.slider) = 2; caller = 1; BOversample.iquicklink_button());
         ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
         
         
@@ -2575,6 +2709,9 @@ gfx_rect(0,0,gfx_w,gfx_h);
      xratio > 1 && xratio < 100 ? (gfx_drawstr("1:"); gfx_drawnumber(xratio,0); gfx_drawstr(" @ "); gfx_drawnumber(xthreshold,1));
      xratio == 100 ? (gfx_drawstr("LIM "); gfx_drawstr(" @ "); gfx_drawnumber(xthreshold,1));
      
+     rgb(230,0,30);
+     gfx_x = cgfx_x + 2*zoom; gfx_y = sgfx_y + 17*zoom;
+     xslider[8] ? gfx_drawstr("SC");
      
        outline(style);//lightgrey();
        gfx_rect(lscope_x, lscope_y, sgfx_w, sgfx_h,0);
@@ -2610,12 +2747,12 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        
        (mouseClick == 1 && gfx_display == 0) ? (
-          g_collision(box_x, box_y, box_w, box_h) ? (gfx_display = 1; fall_back = 0);// page.iquicklink_button(););
+          !Terz_switch && g_collision(box_x, box_y, box_w, box_h) ? (gfx_display = 1; fall_back = 0);// page.iquicklink_button(););
           g_collision(sgfx_x, sgfx_y, sgfx_w, sgfx_h) ? (gfx_display = 2; fall_back = 0);// page.iquicklink_button(););
           g_collision(0,GR_Balken, sgfx_w, 19*zoom) ? GR_Meter.dB_Val_Max_GR = 0;
        );
        
-       (mouseClick == 1 && superkey) ? (
+       (mouseClick == 1 && superkey) || mouseClickR == 2 ? (
         gfx_display = 0;
         //page.iquicklink_button();
        );
@@ -2955,6 +3092,9 @@ gfx_rect(0,0,gfx_w,gfx_h);
                alt_ls ? (
                KLPF.xk_collision() ? KLPF.xdragstart();
                
+               g_collision(HS_LED_x, HS_LED_y, 18*zoom, 18*zoom) ?  (slider(BLPFS.slider) > 0 ? (slider(BLPFS.slider) = 0 ?  1; caller = 1):(slider(BLPFS.slider) = 1; caller =1);BLPFS.iquicklink_button());
+               
+               
                xg_collision(14*zoom, LPF_y-page_y, 23*zoom, 17*zoom) ? (slider(BLPFS.slider) = 0; caller = 1; BLPFS.iquicklink_button());
                xg_collision(42*zoom, LPF_y-page_y, 17*zoom, 17*zoom) ? (slider(BLPFS.slider) = 1; caller = 1; BLPFS.iquicklink_button());
                xg_collision(60*zoom, LPF_y-page_y, 17*zoom, 17*zoom) ? (slider(BLPFS.slider) = 2; caller = 1; BLPFS.iquicklink_button());
@@ -2992,14 +3132,14 @@ gfx_rect(0,0,gfx_w,gfx_h);
 
                 );
              
-              KHSH.dragging ? (KHSH.xpotdrag(); sprintf(#readout, "%.2f", band5.gain/2); KHSH.readout_inline(); caller = 1;);
-              KHF.dragging ? (KHF.xpotdrag(); sprintf(#readout, "%.0f", Band4.frequency); KHF.readout_inline();  caller = 1;);
-              KHG.dragging ? (KHG.xpotdrag(); sprintf(#readout, "%.2f", band4.gain); KHG.readout_inline();  caller = 1;);
-              KLF.dragging ? (KLF.xpotdrag(); sprintf(#readout, "%.0f", band3.frequency); KLF.readout_inline();  caller = 1;);
-              KLG.dragging ? (KLG.xpotdrag(); sprintf(#readout, "%.2f", band3.gain); KLG.readout_inline();  caller = 1;);
-              KLSH.dragging ? (KLSH.xpotdrag(); sprintf(#readout, "%.2f", band2.gain); KLSH.readout_inline();  caller = 1;);
-              KHPF.dragging ? (KHPF.xpotdrag(); sprintf(#readout, "%.0f", Band1.frequency); KHPF.readout_inline();  caller = 1;);
-              KLPF.dragging ? (KLPF.xpotdrag(); sprintf(#readout, "%.0f", Band6.frequency); KLPF.readout_inline();  caller = 1;);
+              KHSH.dragging ? (KHSH.xpotdrag(); sprintf(#readout, "%.2f", KHSH.readval); KHSH.readout_inline(); caller = 1;);
+              KHF.dragging ? (KHF.xpotdrag(); sprintf(#readout, "%.0f", per_to_freq(KHF.readval,100)); KHF.readout_inline();  caller = 1;);
+              KHG.dragging ? (KHG.xpotdrag(); sprintf(#readout, "%.2f", KHG.readval); KHG.readout_inline();  caller = 1;);
+              KLF.dragging ? (KLF.xpotdrag(); sprintf(#readout, "%.0f", per_to_freq(KLF.readval,100)); KLF.readout_inline();  caller = 1;);
+              KLG.dragging ? (KLG.xpotdrag(); sprintf(#readout, "%.2f", KLG.readval); KLG.readout_inline();  caller = 1;);
+              KLSH.dragging ? (KLSH.xpotdrag(); sprintf(#readout, "%.2f", KLSH.readval); KLSH.readout_inline();  caller = 1;);
+              KHPF.dragging ? (KHPF.xpotdrag(); sprintf(#readout, "%.0f", per_to_freq(KHPF.readval,100)); KHPF.readout_inline();  caller = 1;);
+              KLPF.dragging ? (KLPF.xpotdrag(); sprintf(#readout, "%.0f", per_to_freq(KLPF.readval,100)); KLPF.readout_inline();  caller = 1;);
        
        /*
             Link_Group == 0 ? (
@@ -3049,7 +3189,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        gfx_display == 2 ? (
        
-       KInput.parameter_config     (1,       0,      -40,       0,   20,  90,  120, 200,    1,       a_n_g);
+       !xslider[8] ? KInput.parameter_config     (1,       0,      -40,       0,   20,  90,  120, 200,    1,       a_n_g);
+       xslider[8] ? KInput.parameter_config     (1,       0,      -40,       0,   20,  90,  120, 200,    1,       a_n_b);
        KAttack.parameter_config    (2,       5,        0,    10.5,   20,  175,  120, 200,    1,      a_n_ee);
        KRelease.parameter_config   (3,       5,        0,    10.5,   20,  250,  120, 200,    1,      a_n_ee);
        KOutput.parameter_config    (4,       5,      0,    10.5,     20,  335,  120, 200,    1,      a_c_g);
@@ -3245,10 +3386,10 @@ gfx_rect(0,0,gfx_w,gfx_h);
               KOutput.xk_collision() ? KOutput.xpotwheel();
                 );
              
-              KInput.dragging ? (KInput.xpotdrag(); sprintf(#readout, "%.2f", slider_input); KInput.readout_inline(); caller = 1;);
-              KAttack.dragging ? (KAttack.xpotdrag(); sprintf(#readout, "%.2f", slider_attack); KAttack.readout_inline();  caller = 1;);
-              KRelease.dragging ? (KRelease.xpotdrag(); sprintf(#readout, "%.2f", slider_release); KRelease.readout_inline();  caller = 1;);
-              KOutput.dragging ? (KOutput.xpotdrag(); sprintf(#readout, "%.2f", slider_output); KOutput.readout_inline();  caller = 1;);
+              KInput.dragging ? (KInput.xpotdrag(); sprintf(#readout, "%.2f", KInput.readval); KInput.readout_inline(); caller = 1;);
+              KAttack.dragging ? (KAttack.xpotdrag(); sprintf(#readout, "%.2f", KAttack.readval); KAttack.readout_inline();  caller = 1;);
+              KRelease.dragging ? (KRelease.xpotdrag(); sprintf(#readout, "%.2f", KRelease.readval); KRelease.readout_inline();  caller = 1;);
+              KOutput.dragging ? (KOutput.xpotdrag(); sprintf(#readout, "%.2f", KOutput.readval); KOutput.readout_inline();  caller = 1;);
        
        
             
@@ -3325,6 +3466,41 @@ gfx_rect(0,0,gfx_w,gfx_h);
             xprocess = gmem[5000 + 100*ch_idx + 13];// = process;
             xoutput_item = db2ratio(gmem[5000 + 100*ch_idx + 80]);
             //gmem[5000 + 50*ch_idx + 14] = 0; //spare
+            
+            xTerz01 = gmem[5000 + 100*ch_idx + 58]; 
+            xTerz02 = gmem[5000 + 100*ch_idx + 59]; 
+            xTerz03 = gmem[5000 + 100*ch_idx + 60]; 
+            xTerz04 = gmem[5000 + 100*ch_idx + 61]; 
+            xTerz05 = gmem[5000 + 100*ch_idx + 62]; 
+            xTerz06 = gmem[5000 + 100*ch_idx + 63]; 
+            xTerz07 = gmem[5000 + 100*ch_idx + 64]; 
+            xTerz08 = gmem[5000 + 100*ch_idx + 65]; 
+            xTerz09 = gmem[5000 + 100*ch_idx + 66]; 
+            xTerz10 = gmem[5000 + 100*ch_idx + 67]; 
+            xTerz11 = gmem[5000 + 100*ch_idx + 68]; 
+            xTerz12 = gmem[5000 + 100*ch_idx + 69]; 
+            xTerz13 = gmem[5000 + 100*ch_idx + 70]; 
+            xTerz14 = gmem[5000 + 100*ch_idx + 71]; 
+            xTerz15 = gmem[5000 + 100*ch_idx + 72]; 
+            xTerz16 = gmem[5000 + 100*ch_idx + 73]; 
+            xTerz17 = gmem[5000 + 100*ch_idx + 74]; 
+            xTerz18 = gmem[5000 + 100*ch_idx + 75]; 
+            xTerz19 = gmem[5000 + 100*ch_idx + 76]; 
+            xTerz20 = gmem[5000 + 100*ch_idx + 77]; 
+            xTerz21 = gmem[5000 + 100*ch_idx + 78]; 
+            xTerz22 = gmem[5000 + 100*ch_idx + 79]; 
+            xTerz23 = gmem[5000 + 100*ch_idx + 80]; 
+            xTerz24 = gmem[5000 + 100*ch_idx + 81]; 
+            xTerz25 = gmem[5000 + 100*ch_idx + 82]; 
+            xTerz26 = gmem[5000 + 100*ch_idx + 83]; 
+            xTerz27 = gmem[5000 + 100*ch_idx + 84]; 
+            xTerz28 = gmem[5000 + 100*ch_idx + 85]; 
+            xTerz29 = gmem[5000 + 100*ch_idx + 86]; 
+            xTerz30 = gmem[5000 + 100*ch_idx + 87]; 
+            xTerz31 = gmem[5000 + 100*ch_idx + 88]; 
+            xTerz_On = gmem[5000 + 100*ch_idx + 89];
+            
+            
             #xCh_nName = "";
             str_setchar(#xCh_nName, -0.3, gmem[5000 + 100*ch_idx + 90], 'c');// = str_getchar(#CH_nNmae, 0);
             str_setchar(#xCh_nName, -0.3, gmem[5000 + 100*ch_idx + 91], 'c');// = str_getchar(#CH_nNmae, 0);
@@ -3342,6 +3518,8 @@ gfx_rect(0,0,gfx_w,gfx_h);
                   xslider[gfx_sliders] = gmem[5000 + 100*ch_idx + 14 + gfx_sliders];
                   gfx_sliders+=1;
                 );
+                xslider[34] = gmem[5000 + 100*ch_idx + 14 + 34];
+                
                 xbypass_all = xslider[32];
                 xcolor = xslider[31];
                 xcompfirst = xslider[30];
@@ -3630,18 +3808,18 @@ gfx_rect(0,0,gfx_w,gfx_h);
        
        set_zoom == 1 ? (
        slider_show(slider26, 1);
-       slider_show(slider33, 1); 
-       slider_show(slider34, 1);
+       slider_show(slider35, 1); 
+       slider_show(slider36, 1);
        ):(
        slider_show(slider26, 0);
-       slider_show(slider33, 0); 
-       slider_show(slider34, 0);
+       slider_show(slider35, 0); 
+       slider_show(slider36, 0);
        );
        
        set_theme == 1 ? (
-       slider_show(slider37, 1);
+       slider_show(slider39, 1);
        ):(
-       slider_show(slider37, 0);
+       slider_show(slider39, 0);
        );
        
        mouseClick == 1 && g_collision(2*zoom1,gfx_y,18*zoom1,18*zoom1) ? (
