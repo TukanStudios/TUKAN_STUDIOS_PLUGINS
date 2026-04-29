@@ -1,0 +1,2557 @@
+@init
+
+
+function lerp_output_settings_block(me)
+local(pan, new_panning, new_gain)
+global(samplesblock, invblock, MIN_GAIN, MAX_GAIN, mute, solo, mmm)
+instance(
+  current_left, current_right, delta_left, delta_right, target_left, target_right, vel,
+  gain_slider, pan_slider, gain_slider_vel, pan_slider_vel, total_gain,
+  alive,
+)
+(
+  new_panning = min(1, max(-1, slider(pan_slider) + vel * slider(pan_slider_vel)));
+  new_gain = min(MAX_GAIN, max(MIN_GAIN, slider(gain_slider) + vel * slider(gain_slider_vel)));
+
+  pan = 0.5 * (new_panning + 1);
+  total_gain = pow(10, new_gain / 20);
+  
+  mute & (1 << me) ? ( total_gain = 0; );
+  
+  target_left = total_gain * sin(0.5 * (1.0 - pan) * $pi);
+  target_right = total_gain * sin(0.5 * pan * $pi);
+
+  delta_left = (target_left - current_left) * invblock;
+  delta_right = (target_right - current_right) * invblock;
+
+  ((abs(delta_left) + abs(delta_right)) > 0.00000001) ? (
+    alive = samplesblock;
+  );
+);
+
+
+
+function reinit()
+(
+  kick.init_linearSVF(0.65, .75);
+  kick.mud_dip.set_bell(480, 12.0, -50);
+  kick.click_boost.set_bell(3413.3, 0.5, 6.3);
+  snare.init_linearSVF(0.66, .2);
+  snare.clap.init_linearSVF(0.65, .432);
+  snare.mud_dip.set_bell(480, 12.0, -50);
+  kick.shift_6hz.init_cheapest_freq_shifter(7);
+  snare.shift.init_cheapest_freq_shifter(12.5);
+  aa.init_linearSVF_invq(10000, 1);
+  ride.fshift.init_cheapest_freq_shifter(110);
+);
+
+function naiveTri(t)
+(
+  t -= floor(t);
+  t <= 0.5 ? (
+    (4.0 * t - 1.0)
+  ) : (
+    (3.0 - 4.0 * t)
+  )
+);
+
+function tanh(x)
+local()
+global()
+instance()
+(
+  (2/(1+exp(-2*x)) - 1)
+);
+
+function polynomial_aa_sq(t, dt)
+(
+  // 0 <= t < 1
+  (t < dt) ?
+  (
+    t /= dt;
+    t+t - sqr(t) - 1.0
+  ) : (t > 1.0 - dt) ? (
+    t = (t - 1.0) / dt;
+    sqr(t) + t+t + 1.0
+  );
+);
+
+
+function saw(t, dt)
+local(phase, y)
+global()
+instance()
+(
+  phase = t - floor(t);
+  y = 2.0 * phase - 1.0;
+  y - polynomial_aa_sq(phase, dt)
+);
+
+function sqs(t)
+(
+  2.0 * (t - floor(t) > .5) - 1.0
+);
+
+function sq(t, dt, duty)
+local(phase, y)
+global()
+instance()
+(
+  phase = t - floor(t);
+  y = 2.0 * (phase >duty) - 1.0;
+  y - polynomial_aa_sq(phase, dt) + polynomial_aa_sq(phase + (1.0 - duty) - floor(phase + (1.0 - duty)), dt)
+);
+
+ALIVE_COUNT = 256;
+
+function kick_reset()
+local()
+global(srate, time_factor, kick_pitch_decay, kick_amp_decay, kick_noise_envelope, ALIVE_COUNT)
+instance(pitch, amp, t_osc, t_osc2, smooth, noise_level, noise_decay, alive)
+(
+  alive = ALIVE_COUNT;
+  
+  pitch.k_rise = time_factor * 0.5;  // 2 ms rise time (1/3)
+  pitch.k_decay = time_factor * 0.33 * exp(-4.605170185988092*kick_pitch_decay);
+  pitch.attack_samples = 0.01 * srate; // 10 ms
+  pitch.val = 0;
+  pitch.t = 0;
+  
+  kick_noise_envelope ? noise_level = 2 : noise_level = 0;
+  noise_decay = time_factor * 13 * exp(-4.605170185988092*kick_noise_envelope);
+  
+  amp.k_rise = time_factor;  // 1 ms rise time (1/3)
+  amp.k_decay = time_factor * 0.033 * exp(-4.605170185988092*kick_amp_decay);
+  amp.k_high_decay = 4 * amp.k_decay;
+  
+  amp.attack_samples = 0.04 * srate; // 100 ms
+  amp.val = 0;
+  amp.t = 0;
+  
+  t_osc = 0;
+  t_osc2 = 0;
+  smooth = 5;
+);
+
+function kick_stop()
+local()
+global()
+instance(
+  amp
+)
+(
+  amp.k_decay = amp.k_high_decay;
+);
+
+function env_tick()
+instance(t, k_rise, k_decay, attack_samples, val)
+global()
+(
+  (t < attack_samples) ? (
+    val += k_rise * (1.0 - val);
+    t += 1;
+  ) : (
+    val -= k_decay * val;
+  );
+  
+  val
+);
+
+
+// snare_bottom
+function snare1_reset(decay, snare_amp_decay, snare_envelope, snare_noise_decay)
+local(t_s, snare_bottom)
+instance(punch, bp, bp2, bp3, bp4, bp5, bp6, bp7, bp8, bp9, noise)
+global(srate, israte, time_factor, snare_tune, sample_ratio)
+(
+  t_s = 0.015 * (0.2 + 1.3 * decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  punch.attack_fast = 1;
+  punch.twack = 66.6666 * snare_envelope;
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (30 * 5 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.015 * 0.5 * srate));
+  punch.k_atk_fast = pow(10, -24 / (20 * t_s * srate * (1.0 - snare_amp_decay))); 
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  snare_noise_decay = snare_noise_decay + 0.8;
+  noise.vol = 0.4 + 0.6 * decay;
+  noise.k_rise = time_factor * 0.006;  // 2 ms rise time (1/3)
+  noise.k_decay = time_factor * 0.4 * exp(-4.605170185988092*(0.5 + decay*.4));
+  noise.fast_decay = noise.k_decay * 2;
+  noise.attack_samples = 0.07 * snare_noise_decay * srate;
+  noise.val = 0;
+  noise.t = 0;  
+  
+   // Gain = 6.4 + 6.4
+  snare_bottom = 170 + 230 * snare_tune;
+  bp.init_linearSVF_invq(snare_bottom, 0.03 + (1 - decay));
+  bp8.init_linearSVF_invq(snare_bottom * 1.05, 0.03);
+  bp2.init_linearSVF_invq(1.25 * snare_bottom, 0.05 + 0.02 * (1 - decay));
+  bp3.init_linearSVF_invq(1.4 * snare_bottom, 0.04);
+  bp4.init_linearSVF_invq(1.575 * snare_bottom, 0.04 + 0.02 * (1 - decay));
+  bp5.init_linearSVF_invq(2.15 * snare_bottom, 0.03 + 0.02 * (1 - decay));
+  bp6.init_linearSVF_invq(7000, 1.4);
+  bp7.init_linearSVF_invq(4000, 0.8);
+  bp9.init_linearSVF_invq(700, 0.8);
+);
+
+function snare1_tick()
+local(y, noise_env, late_noise)
+instance(punch, bp, bp2, bp3, bp4, bp5, bp6, bp7, bp8, bp9, noise)
+global()
+(
+  y = 0.7 * (1.0 - punch.attack_fast) * (
+    0.27 * bp.eval_linearSVF_BP(punch.state3) + 
+    0.6 * bp8.eval_linearSVF_BP(punch.state3 + rand() - 0.5) * punch.state3 +
+    0.11 * bp2.eval_linearSVF_BP(punch.state3) + 
+    0.15 * bp3.eval_linearSVF_BP(punch.state2 + rand() - 0.5) * punch.state3 +
+    0.14 * bp4.eval_linearSVF_BP(punch.state3) +
+    0.12 * bp5.eval_linearSVF_BP(punch.state3)
+  );
+  
+  punch.twack *= punch.k_atk;
+  punch.atk *= punch.k_atk;
+  punch.attack_fast *= punch.k_atk_fast;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+  
+  noise_env = noise.env_tick();
+  late_noise = 0.5 * noise.vol * noise_env * bp6.eval_linearSVF_BP((rand() - 0.5) * (0.3 + rand() > 0.85));
+  y += late_noise;
+  y += 1.4 * noise_env * noise.vol * bp9.eval_linearSVF_BP((rand() - 0.5) * (0.3 + rand() > 0.85)) * sqr(punch.state3);
+  y += 2 * min(1.0, punch.twack) * noise.vol * (1.0 - punch.attack_fast) * (bp7.eval_linearSVF_LP(rand() * 2 - 1) + 0.3 * (rand() * 2 - 1)) * punch.atk;
+  y = (4 * y) / (1 + abs(y + y));
+  
+  y
+);
+
+function snare_reset()
+local()
+global(snare_type, time_factor, srate, snare_decay, snare_amp_decay, snare_noise_decay, snare_envelope, ALIVE_COUNT)
+instance(amp, pitch, noise, t_osc, t_osc2, smooth, alive)
+(
+  alive = ALIVE_COUNT;
+  
+  (snare_type == 0) ? (
+    this.snare1_reset(snare_decay, snare_amp_decay, snare_envelope, snare_noise_decay);
+  ) : (
+    pitch.k_rise = time_factor * (1/2);  // 2 ms rise time (1/3)
+    pitch.k_decay = time_factor * 0.933 * exp(-4.605170185988092*snare_decay);
+    pitch.attack_samples = 0.01 * srate; // 10 ms
+    pitch.val = 0;
+    pitch.t = 0;
+    
+    noise.k_rise = time_factor * (1/1);  // 2 ms rise time (1/3)
+    noise.k_decay = time_factor * 0.4 * exp(-4.605170185988092 * (0.6 + snare_noise_decay*.3));
+    noise.fast_decay = 2 * noise.k_decay;
+    noise.attack_samples = 0.08 * snare_noise_decay * srate; // 10 ms
+    noise.val = 0;
+    noise.t = 0;
+    
+    amp.k_rise = time_factor * (1/1);  // 1 ms rise time (1/3)
+    amp.k_decay = time_factor * 0.33 * exp(-4.605170185988092*snare_amp_decay);
+    amp.attack_samples = 0.04 * srate; // 100 ms
+    amp.val = 0;
+    amp.t = 0;
+    
+    t_osc = 0;
+    t_osc2 = 0;
+    smooth = 5;
+  );
+);
+
+function snare_stop()
+local()
+global(snare_type)
+instance(amp, noise)
+(
+  (snare_type == 0) ? (
+    noise.k_decay = noise.fast_decay;
+  ) : (snare_type == 1) ? (
+    noise.k_decay = 2 * noise.fast_decay;
+    amp.k_decay = 0.25 * noise.fast_decay;
+  ) : (snare_type == 2) ? (
+    noise.k_decay = noise.fast_decay;
+  ) : (snare_type == 3) ? (
+    noise.k_decay = noise.fast_decay;
+  );
+);
+
+function snare_tick()
+local(timestep, amp_env, noise_env)
+instance(pitch, noise, amp, smooth, y, ly, pitch_hz, t_osc, mud_dip, shift, clap)
+global(snare_type, snare_envelope, snare_bottom, freq_shift, sample_ratio)
+(
+  ly = y;
+  (snare_type == 0) ? (
+    y = this.snare1_tick()
+  ) : (snare_type == 3) ? (
+    pitch_hz = .5 * exp((1 - .4 * snare_envelope * pitch.env_tick()) * snare_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc);
+    
+    y *= .3 * amp.env_tick();
+    y += this.eval_linearSVF_BP(noise.env_tick() * (rand() - 0.5));
+    y = smooth ? (smooth -= 1; .9 * ly + .1*y) : y;
+    y = 2 * mud_dip.bell_tick(y);
+  ) : (snare_type == 1) ? (
+    pitch_hz = .5 * exp((1 - .4 * snare_envelope * pitch.env_tick()) * snare_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc);
+    y = 0.91 * (tanh(2 * y + 0.1) - 0.1) + 0.1 * y;
+    noise.val < 0.4 * rand() ? noise.t = 0;
+    amp_env = amp.env_tick();
+    y += 2 * noise.env_tick() * (rand() - 0.5);
+    y = smooth ? (smooth -= 1; .9 * ly + .1*y) : y;
+    y = mud_dip.bell_tick(clap.eval_linearSVF_BP(y)) * amp_env;
+  ) : (snare_type == 2) ? (
+    pitch_hz = .5 * exp((1 - .4 * snare_envelope * pitch.env_tick()) * snare_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc);
+    y = 0.91 * (tanh(2 * y + 0.1) - 0.1) + 0.1 * y;
+    noise_env = noise.env_tick();
+    amp_env = amp.env_tick();
+    y *= .5 * amp_env * noise_env;
+    y += this.eval_linearSVF_BP(noise_env * noise_env * (rand() - 0.5)) * (1 - amp_env * y * y);
+    y = smooth ? (smooth -= 1; .9 * ly + .1*y) : y;
+    y = mud_dip.bell_tick(y);
+    freq_shift ? y = shift.eval_cheapest_freq_shifter(y);
+    y
+  );
+);
+
+function clap_reset()
+local(db, t_s, t2_s, t3_s, t4_s, t_wash)
+global(israte, srate, clap_attack, clap_decay, clap_type, ALIVE_COUNT)
+instance(attack, wash, bp, hp, hp2, bp2, bp3, atk_level, wash_level, hf_level, alive, sr, current_clap, sample_idx, chan)
+(
+  alive = ALIVE_COUNT;
+
+  current_clap = clap_type;
+
+  clap_type == 0 ? (
+    db = -24;
+    t_s = 10 * 0.001 * (0.5 + clap_attack);
+    t2_s = 14 * 0.001 * (0.5 + clap_attack);
+    t3_s = 210 * 0.001 * (0.5 + clap_attack + max(0, clap_decay - 0.25));
+    
+    t_wash = t3_s + 240 * (0.5 + 2 * clap_decay) * 0.001;
+    
+    // -24 dB at 9, 19, 33 and 240 ms
+    //
+    // We'll just use a simple multiplicative process.
+    //   k ^ n = 10^(-24 / 20)
+    //
+    // Where n is the desired sample index where we want the gain to be at that level.
+    // 
+    //   n = srate * t_s
+    //
+    //   k = 10^(-24 / (20 * t * srate))
+    
+    attack.thresh = pow(10, -24 / 20);
+    attack.k_current = pow(10, -24 / (20 * t_s * srate));
+    attack.k1 = pow(10, -24 / (20 * t_s * srate));
+    attack.k2 = pow(10, -24 / (20 * t2_s * srate));
+    attack.k3 = pow(10, -100 / (20 * t3_s * srate));
+    attack.snap = 0;
+    attack.k_current = attack.k1;
+    attack.state = 1;
+    
+    // Wash has -40 dB at 480 ms
+    wash.rate = pow(10, -40 / (20 * t_wash * srate));
+    wash.state = 1;
+    wash.trigger = 0;
+    
+    hp.init_linearSVF_invq(550, 2.0);  // 550 Hz, Q = 0.5
+    bp.init_linearSVF_invq(908, 1.0);  // 900 Hz, Q = 1.0
+    hp2.init_linearSVF_invq(8000, 1.0);  // 8000 Hz, Q = 1.0
+    bp2.init_linearSVF_invq(880, 0.72);  // 880 Hz, Q = 1.4
+    bp3.init_linearSVF_invq(850, 0.74);  // 850 Hz, Q = 1.35
+    
+    atk_level = 5.25; // 14.4 dB
+    wash_level = 0.5888; // -11 + 6.4 dB
+    hf_level = 0.305; // -13.5 + 0.4 + 2.8 dB
+    
+  ) : (clap_type == 1) ? (
+    //12, 23, 38
+    db = -24;
+    t_s = 12 * 0.001 * (0.5 + clap_attack);
+    t2_s = 13 * 0.001 * (0.5 + clap_attack);
+    t3_s = 13 * 0.001 * (0.5 + clap_attack);
+    t4_s = 350 * 0.001 * (0.5 + clap_attack);
+    
+    t_wash = 500 * (0.5 + 2 * clap_decay) * 0.001;
+    
+    attack.thresh = pow(10, -24 / 20);
+    attack.k_current = pow(10, -24 / (20 * t_s * srate));
+    attack.k1 = pow(10, -24 / (20 * t2_s * srate));
+    attack.k2 = pow(10, -24 / (20 * t3_s * srate));
+    attack.k3 = pow(10, -100 / (20 * t4_s * srate));
+    
+    attack.snap = 0;
+    attack.k_current = attack.k1;
+    attack.state = 1;
+    
+    wash.rate = pow(10, -40 / (20 * t_wash * srate));
+    wash.state = 0;
+    
+    hp.init_linearSVF_invq(650, 2.38);   // 550 Hz, Q = 0.42
+    bp.init_linearSVF_invq(990, 0.5);    // 900 Hz, Q = 2.0
+    bp2.init_linearSVF_invq(990, 1.0);  // 990 Hz, Q = 1.0
+    bp3.init_linearSVF_invq(970, 1.0);  // 970 Hz, Q = 1.0
+    
+    atk_level = 4.36; // 12.8 dB
+    wash_level = 0.16; // -16 dB
+    hf_level = 0;
+  ) : (clap_type == 2) ? (
+    db = -24;
+    t_s = 12 * 0.001 * (0.5 + clap_decay);
+    t2_s = 13 * 0.001 * (0.5 + clap_decay);
+    t3_s = 13 * 0.001 * (0.5 + clap_decay);
+    t4_s = 350 * 0.001 * (0.5 + clap_decay);
+    
+    t_wash = 500 * (0.5 + 2 * clap_decay) * 0.001;
+    
+    attack.thresh = pow(10, -24 / 20);
+    attack.k_current = pow(10, -24 / (20 * t_s * srate));
+    attack.k1 = pow(10, -24 / (20 * t2_s * srate));
+    attack.k2 = pow(10, -24 / (20 * t3_s * srate));
+    attack.k3 = pow(10, -100 / (20 * t4_s * srate));
+    
+    attack.snap = 0;
+    attack.k_current = attack.k1;
+    attack.state = 1;
+    
+    sr = 970 * israte * (0.5 + clap_attack);
+    
+    wash.rate = pow(10, -40 / (20 * t_wash * srate));
+    wash.state = 1;
+    
+    hp.init_linearSVF_invq(650, 2.38);
+    hp2.init_linearSVF_invq(990, 0.4);
+    bp.init_linearSVF_invq(990, 1.25);
+    bp2.init_linearSVF_invq(990, 1.0);
+    bp3.init_linearSVF_invq(1970, 1.0);
+    
+    atk_level = 4.36; // 12.8 dB
+    wash_level = 0.26; // -16 dB
+    hf_level = 0.8;
+  ) : (clap_type == 3) ? (
+    chan.start_sample(sample_idx - 1, - 6 + clap_decay * 12, clap_attack);
+  );
+);
+
+function clap_stop()
+local()
+global()
+instance(attack, wash, current_clap, chan)
+(
+  current_clap == 0 ? (
+    attack.k_current *= 0.996;
+    attack.k3 *= 0.996;
+    attack.k2 *= 0.996;
+    wash.rate *= 0.99985;
+  ) : ( current_clap == 3) ? (
+    chan.k_decay *= 0.9997;
+  ) : (
+    attack.k_current *= 0.6;
+    attack.k3 *= 0.6;
+    attack.k2 *= 0.6;
+    wash.rate *= 0.9999;
+  );
+);
+
+function clap_tick()
+local(attack_hf, srt, srt2, yy)
+global(polynomial_aa_sq)
+instance(current_clap, ts, ts2, attack, wash, bp, hp, hp2, bp2, bp3, hf_level, atk_level, wash_level, sr, chan)
+(
+  (current_clap < 2) ? (
+    attack.state *= attack.k_current;
+    (attack.state < attack.thresh) && (attack.snap < 3) ? (
+      attack.state = 1;
+      attack.snap += 1;
+      (attack.snap == 1) ? (attack.k_current = attack.k1)
+      : (attack.snap == 2) ? (attack.k_current = attack.k2; (current_clap == 1) ? wash.state = 1;)
+      : (attack.snap == 3) ? (attack.k_current = attack.k3);
+    );
+    
+    attack = hp.eval_linearSVF_HP(bp.eval_linearSVF_BP(attack.state * (rand() - 0.5)));
+    
+    attack_hf = (current_clap == 0) ? hp2.eval_linearSVF_HP(attack.state * (rand() - 0.5)) : 0;
+  
+    wash.state *= wash.rate;
+    wash = bp3.eval_linearSVF_BP(bp2.eval_linearSVF_BP(wash.state * (rand() - 0.5)));
+    
+    atk_level * attack + wash_level * wash + hf_level * attack_hf
+  ) : (current_clap == 2) ? (
+    attack.state *= attack.k_current;
+    (attack.state < attack.thresh) && (attack.snap < 3) ? (
+      attack.state = 1;
+      attack.snap += 1;
+      (attack.snap == 1) ? (attack.k_current = attack.k1)
+      : (attack.snap == 2) ? (attack.k_current = attack.k2; (current_clap == 1) ? wash.state = 1;)
+      : (attack.snap == 3) ? (attack.k_current = attack.k3);
+    );
+    
+    srt = sr * (1.0 + 1.0 * attack.state);
+    ts += srt;
+    ts > 1 ? ts = 0;
+    
+    srt2 = sr * (1.0 - 0.5 * attack.state);
+    ts2 += srt2;
+    ts2 > 1.0 ? ts2 = 0;
+    yy = polynomial_aa_sq(ts, srt) + polynomial_aa_sq(ts2, srt2);
+    attack = hp.eval_linearSVF_HP(bp.eval_linearSVF_BP(attack.state * ((1.5 + 0.8 * rand()) * yy)));
+    attack_hf = hp2.eval_linearSVF_HP(attack.state * (rand() - 0.5));
+    
+    wash.state *= wash.rate;
+    wash = bp3.eval_linearSVF_BP(bp2.eval_linearSVF_BP(wash.state * (rand() - 0.5 + 0.2 * yy)));
+    
+    atk_level * attack + wash_level * wash + hf_level * attack_hf
+  ) : (current_clap == 3) ? (
+    chan.play_channel()
+  );
+);
+
+function ride_stop()
+instance(
+  k1_2_rel, k1_3_rel, k2_rel, k3_rel,
+  k1_2_rel_fast, k1_3_rel_fast, k2_rel_fast, k3_rel_fast,
+  e1, e2, e3, e4, chan
+)
+global()
+(
+  k1_2_rel = k1_2_rel_fast;
+  k1_3_rel = k1_3_rel_fast;
+  k2_rel = k2_rel_fast;
+  k3_rel = k3_rel_fast;
+  
+  chan.k_decay *= 0.9997;
+  
+  e1.rel = e2.rel = e3.rel = e4.rel = e4.fast_release;
+);
+
+function ride_reset_2()
+local(t_s)
+global(srate, israte, ride_attack, ride_decay, ride_tone, ALIVE_COUNT)
+instance(
+  t,
+  bp_wide, peak1, peak2, peak3, peak4, peak5, peak6, peak7, peak8, peak9,
+  alive,
+  e1, e2, e3, e4,
+  dt1, dt2, dt3, dt4,
+  fshift2,
+  israte_decay
+)
+(
+  alive = ALIVE_COUNT;
+  t = 0;
+
+  bp_wide.init_linearSVF_invq(6000, 0.5);
+  peak1.init_linearSVF_invq(8200.75, 0.02);
+  peak2.init_linearSVF_invq(5889, 0.02);
+  peak3.init_linearSVF_invq(2456, 0.03);
+  peak4.init_linearSVF_invq(3712.49, 0.02);
+  peak5.init_linearSVF_invq(10012.49, 0.08);
+  peak6.init_linearSVF_invq(12000.49, 0.1);
+  peak7.init_linearSVF_invq(8200.49, 0.1);
+  
+  peak8.init_linearSVF_invq(6200.49, 1.0);
+  peak9.init_linearSVF_invq(14200.49, 1.0);
+  
+  fshift2.init_cheapest_freq_shifter(0.4);
+  
+  t_s = 0.66 * (0.5 + ride_decay);
+  
+  dt1 = 25.3 * israte;
+  dt2 = 169.6 * israte * (0.5 + 0.4 * ride_tone);
+  dt3 = 304.4 * israte;
+  dt4 = 522.7 * israte * (0.5 + 0.6 * ride_tone);
+  
+  israte_decay = 1.0 / (srate * (0.3 + ride_decay));
+  e1.amp = 0.05;
+  e1.n = 0.01 * 0.13362501578292 * srate;
+  e1.atk = 7.264430222920869 / e1.n;
+  e1.rel = 7.264430222920869 * israte_decay;
+  
+  e3.amp = 0.02;
+  e3.n = 0.13362501578292 * srate;
+  e3.atk = 7.264430222920869 / e1.n;
+  e3.rel = 2 * 7.264430222920869 * israte_decay;
+  
+  e4.amp = 0.05;
+  e4.n = 0.13362501578292 * srate;
+  e4.atk = 7.264430222920869 / (500 * e1.n);
+  e4.rel = 7.264430222920869 * israte_decay;
+  
+  e4.fast_release = 2 * e4.rel;
+   
+  t_s = 0.03 * (0.2 + ride_decay);
+  e2.state = 0.014;
+  e2.k = pow(10, -24 / (20 * t_s * srate));
+);
+
+function ride_reset_3()
+local(attack_factor, decay_factor, israte_with_decay, israte_with_decay2, idecay, tone_ctrl, israte_tone, open)
+global(srate, israte, ALIVE_COUNT, ride_attack, ride_decay, ride_tone)
+instance(
+  t,
+  current_hat_type,
+  current_hat_body,
+  t1, t2, t3, t4, t5, t6, dt1, dt2, dt3, dt4, dt5, dt6,
+  t7, t8, t9, t10, t11, t12, t13, dt7, dt8, dt9, dt10, dt11, dt12, dt13,
+  lp, bp, bp2, bp3, hp1, hp2, hp3,
+  bps1, bps2, bps3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+  alive,
+)
+(
+  alive = ALIVE_COUNT;
+  t = 0;
+
+  bp.init_linearSVF_invq(4666, 1.2);
+  tone_ctrl = 2.1 * ride_tone - 1;
+  bps1.init_linearSVF_invq(1529.49 + tone_ctrl * 100, 0.08);
+  bps2.init_linearSVF_invq(988.49 + tone_ctrl * 100, 0.13);
+  bps3.init_linearSVF_invq(3500.49 + tone_ctrl * 1000, 0.04);
+  bp2.init_linearSVF_invq(3963.75 + tone_ctrl * 400, 0.41733);
+  bp3.init_linearSVF_invq(6963.75 + tone_ctrl * 400, 0.41733);
+  lp.init_linearSVF_invq(3000.49, 1.14538744609);
+  hp1.init_linearSVF_invq(2477.49, 1.04538744609);
+  hp2.init_linearSVF_invq(8268.56, 1.16018963454);
+  hp3.init_linearSVF_invq(6633.49, 1.2170202297);
+  
+  // Duty cycle of the square is D = t_charge / T = 47.98% (time spent in high state)
+  // Frequencies are 205.3, 369.6, 304.4, 522.7, 359.4-1149.9 (default: 800) 254.3-627.2 (default: 540)
+  //t1 += 205.3 / srate;
+
+  israte_tone = israte * (0.8 + 0.5 * ride_tone);
+  
+  dt1 = 205.3 * israte_tone;
+  dt2 = 369.6 * israte_tone;
+  dt3 = 304.4 * israte_tone;
+  dt4 = 522.7 * israte_tone;
+  
+  dt5 = 443.0 * israte_tone;
+  dt6 = 509.0 * israte_tone;
+  
+  //dt7 = 3392.9200658769764 * israte_tone;
+  dt7 = 3892.9200658769764 * israte_tone;
+  dt8 = dt7 * 1.4471;
+  dt9 = dt7 * 1.6170;
+  dt10 = dt7 * 1.9265;
+  dt11 = dt7 * 0.968;
+  dt13 = dt11 * 1.001;
+  dt12 = dt7 * 2.6637;
+  
+  // Attack and release are given by - log(fraction) / time / srate
+  // fraction = 7e-4 -> log(7e-4) -> -7.264430222920869
+  //
+  // Best fit curves fitting to squared exponential curves (amplitude, attack, release):
+  // env 1_2: 5.886297285230614 0.13362501578292 12.830314491926522
+  // env 1_3: 2.446983835532773 0.0013941882299170012 11.784588871968632
+  // env 2: 5.112817165724925 0.023312507777462504 2.082148383059353
+  // env 3: 13.459926564551697 0.0014790265731799877 0.21747253516471457
+  attack_factor = pow(10, ride_attack - 0.5);
+  decay_factor = pow(10, -(ride_decay - 0.5));
+  idecay = 1.0 / decay_factor;
+  israte_with_decay = israte * decay_factor;
+  israte_with_decay2 = israte * decay_factor / 2;
+  
+  a1_2 = 5.886297285230614 * (0.5 + (idecay > 1.0 ? 1.0 : idecay) * 0.5) * (0.95 + 0.1 * rand());
+  n1_2 = 0.13362501578292 * srate * attack_factor;
+  k1_2_atk = 7.264430222920869 / n1_2;
+  k1_2_rel = 10*7.264430222920869 * israte_with_decay / 12.830314491926522;
+  
+  a1_3 = 2.446983835532773;
+  n1_3 = 0.0013941882299170012 * srate * attack_factor;
+  k1_3_atk = 7.264430222920869 / n1_3;
+  k1_3_rel = 7.264430222920869 * israte_with_decay2 / 11.784588871968632;
+  
+  a2 = 5.112817165724925;
+  n2 = 0.023312507777462504 * srate * attack_factor;
+  k2_atk = 7.264430222920869 / n2;
+  k2_rel = 7.264430222920869 * israte_with_decay2 / 2.082148383059353;
+  
+  a3 = 13.459926564551697;
+  n3 = 0.0014790265731799877 * srate * attack_factor;
+  k3_atk = 7.264430222920869 / n3;
+  k3_rel = 7.264430222920869 * israte_with_decay / 0.541747253516471457;
+);
+
+function ride_tick_3()
+local(oscs, one, metal2, v2, v3, noise, noise2, noise3, ss2)
+instance(
+  t,
+  current_hat_type,
+  current_hat_body,
+  t1, t2, t3, t4, t5, t6, dt1, dt2, dt3, dt4, dt5, dt6,
+  t7, t8, t9, t10, t11, t12, t13, dt7, dt8, dt9, dt10, dt11, dt12, dt13,
+  lp, bp, bp2, bp3, hp1, hp2, hp3,
+  bps1, bps2, bps3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+)
+global()
+(
+  t1 += dt1;
+  t2 += dt2;
+  t3 += dt3;
+  t4 += dt4;// * (1 + 0.007 * sin(0.04 * t3));
+  
+  oscs = sq(t1, dt1, 0.5) + sq(t2, dt2, 0.5) + sq(t3, dt3, 0.5) + sq(t4, dt4, 0.5);
+  
+  t7 += dt7;
+  t8 += dt8;
+  t9 += dt9;
+  t10 += dt10;
+  t11 += dt11;
+  t12 += dt12;
+  
+  one = 0;
+  one ? (
+    metal2 = 0.003 * (sqs(t7) + sqs(t8) + sqs(t9) + sqs(t10) + sqs(t11) + sqs(t12));
+  ) : (
+    t5 += dt5;
+    t6 += dt6;
+    t13 += dt13;
+    metal2 = 0.003 * (
+      sq(t7, dt7, 0.15) + 
+      sq(t8, dt8, 0.5) + 
+      sq(t9, dt9, 0.5) + 
+      sq(t10, dt10, 0.85) + 
+      sq(t12, dt12, 0.25) + 
+      0.009 * sq(t6, dt6, 0.5) * s3 +   // t6
+      0.906 * (sq(t13, dt13, 0.5) + sq(t11, dt11, 0.5)) +
+      0.006 * sq(t5, dt5, 0.5) * s3      // t5
+    ) + 0.0044 * (rand() - 0.5);
+  );
+
+  // Bandpasses
+  v3 = v2 = 25 * bp2.eval_linearSVF_BP(oscs);
+  
+  // Envelopes
+  s1_2 += (t < n1_2) ? k1_2_atk * (a1_2 - s1_2) : - k1_2_rel * s1_2;
+  s1_3 += (t < n1_3) ? k1_3_atk * (a1_3 - s1_3) : - k1_3_rel * s1_3;
+  s2 += (t < n2) ? k2_atk * (a2 - s2) : - k2_rel * s2;
+  s3 += (t < n3) ? k3_atk * (a3 - s3) : - k3_rel * s3;
+  
+  t += 1;
+  ss2 = sqr(s2);
+  noise = ((rand() - 0.5) * ss2 * s1_2);
+  noise2 = 2 * ((rand() * rand() - 0.5) * ss2);
+  noise3 = (rand() - 0.5) * ss2;
+  
+  0.001 * (1.7 * bp3.eval_linearSVF_BP(noise) + 2  * bp.eval_linearSVF_BP(noise3) + 0.2 * bps1.eval_linearSVF_BP(noise) + 0.35 * bps2.eval_linearSVF_BP(noise) + 0.416 * bps3.eval_linearSVF_BP(noise2 + noise3)) + 
+  0.00007 * (1.0493863499171737 * ss2 * sqr(s1_3) * hp2.eval_linearSVF_HP(v2 + 0.6 * noise2) + 2.1827788623083535 * sqr(s3) * hp3.eval_linearSVF_HP(v3)) + metal2 * s3 * s1_3;
+);
+
+
+function ride_tick_2()
+local(oscs, oscs2, v1, v2, v3, crash, crash_env)
+global(srate, israte, ride_duty, ride_tone)
+instance(
+  t,
+  bp_wide, peak1, peak2, peak3, peak4, peak5, peak6, peak7, peak8, peak9,
+  e1, e2, e3, e4,
+  is_crash,
+  dt1, dt2, dt3, dt4, t1, t2, t3, t4,
+)
+(
+  t1 += dt1;
+  t2 += dt2;
+  t3 += dt3;
+  t4 += dt4;
+  
+  oscs = saw(t1, dt1) + sq(t2, dt2, ride_duty) * e1.state + saw(t3, dt3) + sq(t4, dt4, ride_duty);
+  oscs = this.fshift.eval_cheapest_freq_shifter(oscs);
+  oscs2 = this.fshift2.eval_cheapest_freq_shifter(oscs);
+  
+  0 ? (
+    crash_env = min(1.0, 10 * e3.state + 4 * e4.state + sqrt(e4.state));
+    crash = min(1.0, e3.state + e4.state) * peak8.eval_linearSVF_BP((rand() > 0.5) * (sin(811*t1) + sin(9811*t1)) * 0.5 - 0.25);
+    crash += peak9.eval_linearSVF_BP((rand() * sin(2111*t1) * 0.5 - 0.25) * crash_env);
+    oscs += crash;
+  ) : (
+    crash_env = 0;
+    crash = 0;
+  );
+
+  e1.state += (t < e1.n) ? e1.atk * (e1.amp - e1.state) : - e1.rel * e1.state;
+  e3.state += (t < e3.n) ? e3.atk * (e3.amp - e3.state) : - e3.rel * e3.state;
+  e2.state *= e2.k;
+  e4.state += (t < e4.n) ? e4.atk * (e4.amp - e4.state) : - e4.rel * e4.state;
+
+  t += 1;
+  
+  v2 = (0.06 * e1.state + e2.state + 0.002 * crash_env) * (
+    peak1.eval_linearSVF_BP(rand() * 2.0 - 1.0) + 
+    peak2.eval_linearSVF_BP(rand() * 2.0 - 1.0 + oscs) +
+    peak3.eval_linearSVF_BP(rand() * 2.0 - 1.0) +
+    peak4.eval_linearSVF_BP(rand() * 2.0 - 1.0) +
+    peak5.eval_linearSVF_BP(rand() * 2.0 - 1.0 + oscs) +
+    peak6.eval_linearSVF_BP(rand() * 2.0 - 1.0 + oscs);
+  );
+  
+  v3 = 0.6 * (bp_wide.eval_linearSVF_HP(oscs) * (e1.state + crash_env * 0.03) + peak7.eval_linearSVF_HP(rand() * 0.5 - 0.25 + 0.4 * oscs2) * (e3.state + crash_env * 0.05));
+  
+  v1 = v2 + v3 + 0.2 * crash;
+  v1 + v1
+);
+
+function ride_reset_1()
+local(attack_factor, decay_factor, israte_with_decay, idecay)
+global(srate, israte, ride_attack, ride_decay, ride_tone, ALIVE_COUNT)
+instance(
+  t,
+  bp, bp2, hp1, hp2, hp3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+  dt1, dt2, dt3, dt4,
+  dt7, dt8, dt9, dt10, dt11, dt12,
+  alive,
+)
+(
+  alive = ALIVE_COUNT;
+
+  bp.init_linearSVF_invq(3210, 0.17228);
+  bp2.init_linearSVF_invq(6963.75, 0.21733);
+  hp1.init_linearSVF_invq(2477.49, 1.04538744609);
+  hp2.init_linearSVF_invq(8268.56, 1.16018963454);
+  hp3.init_linearSVF_invq(10433.49, 0.2170202297);
+  
+  t = 0;
+  
+  // Duty cycle of the square is D = t_charge / T = 47.98% (time spent in high state)
+  // Frequencies are 205.3, 369.6, 304.4, 522.7, 359.4-1149.9 (default: 800) 254.3-627.2 (default: 540)
+  //t1 += 205.3 / srate;
+  
+  dt1 = 205.3 * israte;
+  dt2 = 369.6 * israte;
+  dt3 = 304.4 * israte;
+  dt4 = 522.7 * israte;
+  
+  // Attack and release are given by - log(fraction) / time / srate
+  // fraction = 7e-4 -> log(7e-4) -> -7.264430222920869
+  //
+  // Best fit curves fitting to squared exponential curves (amplitude, attack, release):
+  // env 1_2: 5.886297285230614 0.13362501578292 12.830314491926522
+  // env 1_3: 2.446983835532773 0.0013941882299170012 11.784588871968632
+  // env 2: 5.112817165724925 0.023312507777462504 2.082148383059353
+  // env 3: 13.459926564551697 0.0014790265731799877 0.21747253516471457
+  attack_factor = pow(10, ride_attack - 0.5);
+  decay_factor = pow(10, -(ride_decay - 0.5));
+  idecay = 1.0 / decay_factor;
+  israte_with_decay = israte * decay_factor;
+  
+  a1_2 = 5.886297285230614 * (0.5 + (idecay > 1.0 ? 1.0 : idecay) * 0.5) * (0.95 + 0.1 * rand());
+  n1_2 = 0.13362501578292 * srate * attack_factor;
+  k1_2_atk = 7.264430222920869 / n1_2;
+  k1_2_rel = 7.264430222920869 * israte_with_decay / 12.830314491926522;
+  
+  a1_3 = 2.446983835532773;
+  n1_3 = 0.0013941882299170012 * srate * attack_factor;
+  k1_3_atk = 7.264430222920869 / n1_3;
+  k1_3_rel = 7.264430222920869 * israte_with_decay / 11.784588871968632;
+  
+  a2 = 5.112817165724925;
+  n2 = 0.023312507777462504 * srate * attack_factor;
+  k2_atk = 7.264430222920869 / n2;
+  k2_rel = 7.264430222920869 * israte_with_decay / 2.082148383059353;
+  
+  a3 = 13.459926564551697;
+  n3 = 0.0014790265731799877 * srate * attack_factor;
+  k3_atk = 7.264430222920869 / n3;
+  k3_rel = 7.264430222920869 * israte_with_decay / 0.21747253516471457;
+);
+
+function ride_reset()
+local()
+global(ride_type, ride_decay, ride_tone, ALIVE_COUNT)
+instance(
+  current_ride,
+  k1_2_rel_fast, k1_2_rel,
+  k1_3_rel_fast, k1_3_rel,
+  k2_rel_fast, k2_rel,
+  k3_rel_fast, k3_rel,
+  sample_idx, alive,
+  chan,
+)
+(
+  (ride_type == 0) ? (
+    this.ride_reset_1();
+  ) : (ride_type == 1) ? (
+    this.ride_reset_2();
+  ) : (ride_type == 2) ? (
+    this.ride_reset_3();
+  ) : (ride_type == 3) ? (
+    alive = ALIVE_COUNT;
+    chan.start_sample(sample_idx - 1, - 6 + ride_tone * 12, ride_decay);
+  );
+  
+  k1_2_rel_fast = k1_2_rel * 9;
+  k1_3_rel_fast = k1_3_rel * 2;
+  k2_rel_fast = k2_rel * 2;
+  k3_rel_fast = k3_rel * 2;
+  
+  current_ride = ride_type;
+);
+
+function ride_tick_1()
+local(oscs, v1, v2, v3, metal2)
+global(srate, israte, ride_duty, ride_tone)
+instance(
+  t,
+  t1, t2, t3, t4, t5, t6, dt1, dt2, dt3, dt4, dt5, dt6,
+  bp, bp2, hp1, hp2, hp3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+)
+(
+  // Tunable
+  dt5 = ride_tone < 0.5 ? (359.4 + 881.2 * ride_tone) : (450.09 + 699.8 * ride_tone);
+  dt5 *= israte;
+  dt6 = ride_tone < 0.5 ? (254.3 + 571.4 * ride_tone) : (452.8 + 174.4 * ride_tone);
+  dt6 *= israte;
+  
+  t1 += dt1;
+  t2 += dt2;
+  t3 += dt3;
+  t4 += dt4;
+  t5 += dt5;
+  t6 += dt6;
+  
+  oscs = sq(t1, dt1, ride_duty) + sq(t2, dt2, ride_duty) + sq(t3, dt3, ride_duty) + sq(t4, dt4, ride_duty) + sq(t5, dt5, ride_duty) + sq(t6, dt6, ride_duty) + 0.1 * rand();
+
+  // Bandpasses
+  v1 = 2.40728073 * bp.eval_linearSVF_BP(oscs);
+  v2 = v3 = 3.324654 * bp2.eval_linearSVF_BP(oscs);
+  
+  // Envelopes
+  s1_2 += (t < n1_2) ? k1_2_atk * (a1_2 - s1_2) : - k1_2_rel * s1_2;
+  s1_3 += (t < n1_3) ? k1_3_atk * (a1_3 - s1_3) : - k1_3_rel * s1_3;
+  s2 += (t < n2) ? k2_atk * (a2 - s2) : - k2_rel * s2;
+  s3 += (t < n3) ? k3_atk * (a3 - s3) : - k3_rel * s3;
+
+  t += 1;
+  
+  0.00012 * (hp1.eval_linearSVF_HP(v1) * sqr(s1_2) + 2.1493863499171737 * sqr(s2) * sqr(s1_3) * hp2.eval_linearSVF_HP(v2) + 3.1827788623083535 * sqr(s3) * hp3.eval_linearSVF_HP(v3)) + metal2 * s3;
+  
+);
+
+function ride_tick()
+local()
+instance(current_ride, chan)
+global()
+(
+  (current_ride == 0) ? (
+    this.ride_tick_1();
+  ) : (current_ride == 1) ? (
+    this.ride_tick_2();
+  ) : (current_ride == 2) ? (
+    this.ride_tick_3();
+  ) : (current_ride == 3) ? (
+    chan.play_channel()
+  );
+);
+
+function hat_reset(closed, hat_attack, hat_decay, hat_tone, hat_type, hat_body)
+local(attack_factor, decay_factor, israte_with_decay, idecay, tone_ctrl, israte_tone, open)
+global(srate, israte, ALIVE_COUNT)
+instance(
+  t,
+  bp, bp2, bps1, bps2, bps3, lp, hp1, hp2, hp3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+  
+  k1_2_rel_fast, k1_3_rel_fast, k2_rel_fast, k3_rel_fast,
+  
+  dt1, dt2, dt3, dt4, dt5, dt6,
+  dt7, dt8, dt9, dt10, dt11, dt12, dt13,
+  alive,
+  is_closed,
+  current_hat_type,
+  current_hat_body,
+  sample_idx,
+  chan,
+)
+(
+  current_hat_body = hat_body;
+  current_hat_type = hat_type;
+
+  alive = ALIVE_COUNT;
+  is_closed = closed;
+  t = 0;
+  (hat_type == 1) ? (
+    bp.init_linearSVF_invq(3210, 0.17228);
+    bp2.init_linearSVF_invq(6963.75, 0.21733);
+    hp1.init_linearSVF_invq(2477.49, 1.04538744609);
+    hp2.init_linearSVF_invq(8268.56, 1.16018963454 - 0.2 * hat_body);
+    hp3.init_linearSVF_invq(10433.49, 0.2170202297);
+    
+    // Duty cycle of the square is D = t_charge / T = 47.98% (time spent in high state)
+    // Frequencies are 205.3, 369.6, 304.4, 522.7, 359.4-1149.9 (default: 800) 254.3-627.2 (default: 540)
+    //t1 += 205.3 / srate;
+
+    israte_tone = israte * (0.8 + 0.4 * hat_tone);
+    
+    dt1 = 205.3 * israte_tone;
+    dt2 = 369.6 * israte_tone;
+    dt3 = 304.4 * israte_tone;
+    dt4 = 522.7 * israte_tone;
+    
+    dt7 = 3392.9200658769764 * israte_tone;
+    dt8 = dt7 * 1.4471;
+    dt9 = dt7 * 1.6170;
+    dt10 = dt7 * 1.9265;
+    dt11 = dt7 * 2.5028;
+    dt12 = dt7 * 2.6637;
+    
+    // Attack and release are given by - log(fraction) / time / srate
+    // fraction = 7e-4 -> log(7e-4) -> -7.264430222920869
+    //
+    // Best fit curves fitting to squared exponential curves (amplitude, attack, release):
+    // env 1_2: 5.886297285230614 0.13362501578292 12.830314491926522
+    // env 1_3: 2.446983835532773 0.0013941882299170012 11.784588871968632
+    // env 2: 5.112817165724925 0.023312507777462504 2.082148383059353
+    // env 3: 13.459926564551697 0.0014790265731799877 0.21747253516471457
+    attack_factor = pow(10, hat_attack - 0.5);
+    decay_factor = pow(10, -(hat_decay - 0.5));
+    closed ? decay_factor = decay_factor * 2;
+    idecay = 1.0 / decay_factor;
+    israte_with_decay = israte * decay_factor;
+    
+    a1_2 = 5.886297285230614 * (0.5 + (idecay > 1.0 ? 1.0 : idecay) * 0.5) * (0.95 + 0.1 * rand());
+    n1_2 = 0.13362501578292 * srate * attack_factor;
+    k1_2_atk = 7.264430222920869 / n1_2;
+    k1_2_rel = 10*7.264430222920869 * israte_with_decay / 12.830314491926522;
+    
+    a1_3 = 2.446983835532773;
+    n1_3 = 0.0013941882299170012 * srate * attack_factor;
+    k1_3_atk = 7.264430222920869 / n1_3;
+    k1_3_rel = 7.264430222920869 * israte_with_decay / 11.784588871968632;
+    
+    a2 = 5.112817165724925;
+    n2 = 0.023312507777462504 * srate * attack_factor;
+    k2_atk = 7.264430222920869 / n2;
+    k2_rel = 7.264430222920869 * israte_with_decay / 2.082148383059353;
+    
+    a3 = 13.459926564551697;
+    n3 = 0.0014790265731799877 * srate * attack_factor;
+    k3_atk = 7.264430222920869 / n3;
+    k3_rel = 7.264430222920869 * israte_with_decay / 0.21747253516471457;
+  ) : (hat_type == 0) ? (
+    bp.init_linearSVF_invq(6666, 1/2);
+    tone_ctrl = 2 * hat_tone - 1;
+    bps1.init_linearSVF_invq(1529.49 + tone_ctrl * 100, 0.04);
+    bps2.init_linearSVF_invq(988.49 + tone_ctrl * 100, 0.05);
+    bps3.init_linearSVF_invq(3800.49 + tone_ctrl * 1000, 0.05);
+    bp2.init_linearSVF_invq(6963.75, 0.21733);
+    lp.init_linearSVF_invq(3000.49, 1.14538744609);
+    hp1.init_linearSVF_invq(2477.49, 1.04538744609);
+    hp2.init_linearSVF_invq(8268.56, 1.16018963454);
+    hp3.init_linearSVF_invq(10433.49, 0.2170202297);
+    
+    israte_tone = israte * (0.8 + 0.4 * hat_tone);
+    
+    dt1 = 1014.3 * israte_tone;
+    dt2 = 1529.6 * israte_tone;
+    dt3 = 3737.4 * israte_tone;
+    dt4 = 1491.7 * israte_tone;
+    
+    dt7 = 3392.9200658769764 * israte_tone;
+    dt8 = dt7 * 1.4471;
+    dt9 = dt7 * 1.6170;
+    dt10 = dt7 * 1.9265;
+    dt11 = dt7 * 2.5028;
+    dt12 = dt7 * 2.6637;
+    dt6 = 0.825 * dt7;
+    dt5 = 0.406 * dt7;
+    dt13 = 0.106 * dt7;
+    
+    attack_factor = pow(10, hat_attack - 0.5);
+    decay_factor = pow(10, -(hat_decay - 0.5));
+    closed ? decay_factor = decay_factor * 2;
+    idecay = 1.0 / decay_factor;
+    israte_with_decay = israte * decay_factor;
+  
+    a1_2 = 5.886297285230614 * (0.5 + (idecay > 1.0 ? 1.0 : idecay) * 0.5) * (0.95 + 0.1 * rand());
+    n1_2 = 0.13362501578292 * srate * attack_factor;
+    k1_2_atk = 7.264430222920869 / n1_2;
+    k1_2_rel = 10*7.264430222920869 * israte_with_decay / 12.830314491926522;
+    
+    a1_3 = 2.446983835532773;
+    n1_3 = 0.0013941882299170012 * srate * attack_factor;
+    k1_3_atk = 7.264430222920869 / n1_3;
+    k1_3_rel = 7.264430222920869 * israte / 11.784588871968632;
+    
+    a2 = 5.112817165724925;
+    n2 = 0.023312507777462504 * srate * attack_factor;
+    k2_atk = 7.264430222920869 / n2;
+    k2_rel = 7.264430222920869 * israte_with_decay / 2.082148383059353;
+    
+    a3 = 13.459926564551697;
+    n3 = 0.0014790265731799877 * srate * attack_factor;
+    k3_atk = 7.264430222920869 / n3;
+    k3_rel = 7.264430222920869 * israte_with_decay / 0.21747253516471457;
+  ) : (hat_type == 2) ? (
+    open = 1 - closed;
+    bp.init_linearSVF_invq(5666, 1.5);
+    tone_ctrl = 2 * hat_tone - 1;
+    bps1.init_linearSVF_invq(8529.49 + tone_ctrl * 100, 0.2 - 0.18 * open);
+    bps2.init_linearSVF_invq(8388.49 + tone_ctrl * 100, 0.2);
+    bps3.init_linearSVF_invq(8120.49 + tone_ctrl * 1000, 0.68);
+    bp2.init_linearSVF_invq(1100.75, 0.51733);
+    lp.init_linearSVF_invq(11100.49, 0.7538744609 + 0.5 * open);
+    hp1.init_linearSVF_invq(377.49, 0.034538744609 + (0.5 * open));
+    hp2.init_linearSVF_invq(770.56 + 4000 * (1 - closed) + 50 * tone_ctrl, 0.056018963454 + (0.5 * open));
+    hp3.init_linearSVF_invq(664.49, 0.020202297 + (0.5 * open));
+    
+    israte_tone = israte * (0.8 + 0.4 * hat_tone);
+    
+    dt1 = 5014.3 * israte_tone;
+    dt2 = 4429.6 * israte_tone;
+    dt3 = 5737.4 * israte_tone;
+    dt4 = 6491.7 * israte_tone;
+    
+    dt7 = 3392.9200658769764 * israte_tone;
+    dt8 = dt7 * 1.4471;
+    dt9 = dt7 * 1.6170;
+    dt10 = dt7 * 1.9265;
+    dt11 = dt7 * 2.5028;
+    dt12 = dt7 * 2.6637;
+    dt6 = 0.825 * dt7;
+    dt5 = 0.406 * dt7;
+    dt13 = 0.106 * dt7;
+    
+    attack_factor = pow(10, hat_attack - 0.5);
+    decay_factor = pow(10, -(hat_decay - 0.5));
+    closed ? decay_factor = decay_factor * 2;
+    idecay = 1.0 / decay_factor;
+    israte_with_decay = israte * decay_factor;
+    
+    a1_2 = 5.886297285230614 * (0.5 + (idecay > 1.0 ? 1.0 : idecay) * 0.5) * (0.95 + 0.1 * rand());
+    n1_2 = 0.13362501578292 * srate * attack_factor;
+    k1_2_atk = 7.264430222920869 / n1_2;
+    k1_2_rel = 10*7.264430222920869 * israte_with_decay / 12.830314491926522;
+    
+    a1_3 = 2.446983835532773;
+    n1_3 = 0.0013941882299170012 * srate * attack_factor;
+    k1_3_atk = 7.264430222920869 / n1_3;
+    k1_3_rel = 7.264430222920869 * israte / 11.784588871968632;
+    
+    a2 = 5.112817165724925;
+    n2 = 0.023312507777462504 * srate * attack_factor;
+    k2_atk = 7.264430222920869 / n2;
+    k2_rel = 7.264430222920869 * israte_with_decay / 2.082148383059353;
+    
+    a3 = 13.459926564551697;
+    n3 = 0.0014790265731799877 * srate * attack_factor;
+    k3_atk = 7.264430222920869 / n3;
+    k3_rel = 7.264430222920869 * israte_with_decay / 0.21747253516471457;
+  ) : (hat_type == 3) ? (
+    alive = ALIVE_COUNT;
+    chan.start_sample(sample_idx - 1, - 6 + hat_tone * 12, hat_decay);
+  );
+  
+  k1_2_rel_fast = k1_2_rel * 9;
+  k1_3_rel_fast = k1_3_rel * 2;
+  k2_rel_fast = k2_rel * 2;
+  k3_rel_fast = k3_rel * 2;
+);
+
+function hat_tick()
+local(oscs, v1, v2, v3, metal2, metal3, noise, noise2, noise3, one)
+global(srate, israte)
+instance(
+  t,
+  current_hat_type,
+  current_hat_body,
+  t1, t2, t3, t4, t5, t6, dt1, dt2, dt3, dt4, dt5, dt6,
+  t7, t8, t9, t10, t11, t12, t13, dt7, dt8, dt9, dt10, dt11, dt12, dt13,
+  lp, bp, bp2, hp1, hp2, hp3,
+  bps1, bps2, bps3,
+  s1_2, n1_2, k1_2_atk, k1_2_rel, a1_2,
+  s1_3, n1_3, k1_3_atk, k1_3_rel, a1_3,
+  s2, n2, k2_atk, k2_rel, a2,
+  s3, n3, k3_atk, k3_rel, a3,
+  
+  chan,
+)
+(
+  (current_hat_type == 1) ? (
+    t1 += dt1;
+    t2 += dt2;
+    t3 += dt3;
+    t4 += dt4;
+    
+    oscs = sq(t1, dt1, 0.5) + sq(t2, dt2, 0.5) + sq(t3, dt3, 0.5) + sq(t4, dt4, 0.5);
+    
+    t7 += dt7;
+    t8 += dt8;
+    t9 += dt9;
+    t10 += dt10;
+    t11 += dt11;
+    t12 += dt12;
+    
+    metal2 = 0.0045 * (sq(t7, dt7, 0.5) + sq(t8, dt8, 0.5) + sq(t9, dt9, 0.5) + sq(t10, dt10, 0.5) + sq(t11, dt11, 0.5) + sq(t12, dt12, 0.5));
+  
+    noise2 = rand();
+    oscs += 0.1 * current_hat_body * ((noise2 * noise2 - 0.5) * sqr(s2));
+  
+    // Bandpasses
+    v1 = 2.40728073 * bp.eval_linearSVF_BP(oscs);
+    v2 = v3 = 3.324654 * bp2.eval_linearSVF_BP(oscs);
+    
+    // Envelopes
+    s1_2 += (t < n1_2) ? k1_2_atk * (a1_2 - s1_2) : - k1_2_rel * s1_2;
+    s1_3 += (t < n1_3) ? k1_3_atk * (a1_3 - s1_3) : - k1_3_rel * s1_3;
+    s2 += (t < n2) ? k2_atk * (a2 - s2) : - k2_rel * s2;
+    s3 += (t < n3) ? k3_atk * (a3 - s3) : - k3_rel * s3;
+    
+    t += 1;
+    
+    0.00012 * (hp1.eval_linearSVF_HP(v1) * sqr(s1_2) + 2.1493863499171737 * sqr(s2) * sqr(s1_3) * hp2.eval_linearSVF_HP(v2) + 3.1827788623083535 * sqr(s3) * hp3.eval_linearSVF_HP(v3)) + metal2 * s3;
+  ) : (current_hat_type == 0) ? (
+    t1 += dt1;
+    t2 += dt2;
+    t3 += dt3;
+    t4 += dt4;
+    
+    oscs = sq(t1, dt1, 0.5) + sq(t2, dt2, 0.5) + sq(t3, dt3, 0.5) + sq(t4, dt4, 0.5);
+    
+    t7 += dt7;
+    t8 += dt8;
+    t9 += dt9;
+    t10 += dt10;
+    t11 += dt11;
+    t12 += dt12;
+    
+    one = 0;
+    one ? (
+      metal2 = 0.003 * (sqs(t7) + sqs(t8) + sqs(t9) + sqs(t10) + sqs(t11) + sqs(t12));
+    ) : (
+      t5 += dt5;
+      t6 += dt6;
+      t13 += dt13;
+      metal2 = 0.003 * (
+        sq(t7, dt7, 0.5) + 
+        sq(t8, dt8, 0.5) + 
+        sq(t9, dt9, 0.5) + 
+        sq(t10, dt10, 0.5) + 
+        sq(t11, dt11, 0.5) + 
+        sq(t12, dt12, 0.5) + 
+        0.28 * sq(t6, dt6, 0.5) + 
+        0.06 * sq(t13, dt13, 0.5) +
+        0.2 * sq(t5, dt5, 0.5)
+      ) + 0.0044 * (rand() - 0.5);
+    );
+  
+    // Bandpasses
+    v2 = v3 = 1.824654 * bp2.eval_linearSVF_BP(oscs);
+    
+    // Envelopes
+    s1_2 += (t < n1_2) ? k1_2_atk * (a1_2 - s1_2) : - k1_2_rel * s1_2;
+    s1_3 += (t < n1_3) ? k1_3_atk * (a1_3 - s1_3) : - k1_3_rel * s1_3;
+    s2 += (t < n2) ? k2_atk * (a2 - s2) : - k2_rel * s2;
+    s3 += (t < n3) ? k3_atk * (a3 - s3) : - k3_rel * s3;
+    
+    t += 1;
+    
+    noise = ((rand() - 0.5) * sqr(s2) * s1_2);
+    noise2 = 2 * ((rand() * rand() - 0.5) * sqr(s2));
+    
+    0.003 * (0.7 * bp.eval_linearSVF_BP(noise) + current_hat_body * lp.eval_linearSVF_BP(noise2) + 0.05 * bps1.eval_linearSVF_BP(noise) + 0.05 * bps2.eval_linearSVF_BP(noise) + 0.06 * bps3.eval_linearSVF_BP(noise)) + 
+    0.0001 * (1.1493863499171737 * sqr(s2) * sqr(s1_3) * hp2.eval_linearSVF_HP(v2) + 3.1827788623083535 * sqr(s3) * hp3.eval_linearSVF_HP(v3)) + metal2 * s3 * s1_3;
+  ) : (current_hat_type == 2) ? (
+  
+    t1 += dt1;
+    t2 += dt2;
+    t3 += dt3;
+    t4 += dt4;
+    
+    oscs = 0.4 * (sq(t1, dt1, 0.5) + sq(t2, dt2, 0.5)) + sq(t3, dt3, 0.5) + sq(t4, dt4, 0.5);
+    
+    t7 += dt7;
+    t8 += dt8;
+    t9 += dt9;
+    t10 += dt10;
+    t11 += dt11;
+    t12 += dt12;
+    
+    metal2 = 0.002 * (0.85 * sqs(t7) + 0.9 * sqs(t8) + sqs(t9) + 0.6 * sqs(t10) + 1.2 * sqs(t11) + 1.3 * sqs(t12));
+    
+    // Bandpasses
+    v2 = 1.824654 * bp2.eval_linearSVF_BP(oscs);
+ 
+    // Envelopes
+    s1_2 += (t < n1_2) ? k1_2_atk * (a1_2 - s1_2) : - k1_2_rel * s1_2;
+    s1_3 += (t < n1_3) ? k1_3_atk * (a1_3 - s1_3) : - k1_3_rel * s1_3;
+    s2 += (t < n2) ? k2_atk * (a2 - s2) : - k2_rel * s2;
+    s3 += (t < n3) ? k3_atk * (a3 - s3) : - k3_rel * s3;
+    
+    t += 1;
+    
+    noise = ((rand() - 0.5) * sqr(s2) * s1_2);
+    noise2 = 2 * ((rand() * rand() - 0.5) * sqr(s2));
+    noise3 = 5.0 * (rand() - 0.5) * s1_2;
+    
+    metal3 = 0.003 * (0.005 * bp.eval_linearSVF_BP(noise) * sqr(s2) + 0.04 * s2 * s1_3 * s2 * lp.eval_linearSVF_BP(noise2) + 0.05 * bps1.eval_linearSVF_BP(noise) + 0.05 * bps2.eval_linearSVF_BP(noise)) + 
+             (metal2 + 0.00004 * (hp2.eval_linearSVF_HP(noise) + hp1.eval_linearSVF_HP(noise) + hp3.eval_linearSVF_HP(noise))) * s3 * s1_3 + 0.03 * v2 * s3;
+  ) : (current_hat_type == 3) ? (
+    chan.play_channel()
+  );
+);
+ 
+function hat_stop()
+instance(
+  k1_2_rel, k1_3_rel, k2_rel, k3_rel,
+  k1_2_rel_fast, k1_3_rel_fast, k2_rel_fast, k3_rel_fast,
+  chan,
+)
+global()
+(
+  k1_2_rel = k1_2_rel_fast;
+  k1_3_rel = k1_3_rel_fast;
+  k2_rel = k2_rel_fast;
+  k3_rel = k3_rel_fast;
+  
+  chan.k_decay *= 0.9997;
+);
+
+function tom_synth1_reset(which, tune, decay)
+local(t_s, w, tuning, decay_mod, core_freq)
+global(srate, israte)
+instance(punch, lp, bp)
+(
+  t_s = 0.3 * (0.5 + decay + 0.2 * (which == 2)); // punch_decay
+  
+  punch.state = 1 + 0.1 * (which == 2);
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k_atk = pow(10, -24 / (20 * 0.00025 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  which == 0 ? (
+    core_freq = 154 * tuning;
+  ) : (which == 1) ? (
+    core_freq = 147 * tuning;
+  ) : (which == 2) ? (
+    core_freq = 101 * tuning;
+  );
+  punch.dt = 2.0 * $pi * core_freq * israte;  // oscillating at 147 Hz
+  
+  w = punch.dt;
+  punch.sin_coeff = 2.0 * cos(w);
+  punch.t += punch.dt;
+  punch.sin_1 = - cos(- w + punch.t);
+  punch.sin_2 = - cos(- 2.0 * w + punch.t);
+  punch.t -= punch.dt;
+  
+  bp.init_linearSVF_invq(core_freq, 0.5);    // 900 Hz, Q = 2.0
+  lp.init_linearSVF_invq(564, 1);    // 900 Hz, Q = 2.0
+);
+
+function tom_synth1_eval()
+local(st, y)
+global()
+instance(punch, lp, bp)
+(
+  punch.t += punch.dt;
+  st = punch.sin_coeff * punch.sin_1 - punch.sin_2;
+  punch.sin_2 = punch.sin_1;
+  punch.sin_1 = st;
+  punch.state *= punch.k;
+  punch.atk *= punch.k_atk;
+  
+  y = (1.0 - punch.atk) * st * sqr(punch.state) + 0.5 * lp.eval_linearSVF_LP(bp.eval_linearSVF_BP(rand() - 0.5)) * punch.state;
+  y * 0.8
+);
+
+function tom_synth2_reset(which, tune, decay)
+local(t_s, w, tuning, pitch_decay, decay_mod, core_freq, shift)
+global(srate, israte)
+instance(punch, lp, lp2, bp, bp2, low_scale, gain)
+(
+  t_s = 0.66 * (0.5 + decay + 0.2 * (which == 2)); // punch_decay
+  
+  punch.state = 1 + 0.1 * (which == 2);
+  punch.state2 = 1;
+  punch.state3 = 1;
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -64 / (20 * t_s * srate));
+  punch.k3 = pow(10, -64 / (1 * t_s * srate));
+  punch.k_atk = pow(10, -24 / (20 * 0.005 * srate));
+  
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  which == 0 ? (
+    core_freq = 115 * tuning;
+    shift = 30 * tuning;
+    gain = 1.0;
+    punch.dt3 = 115 * israte;
+    low_scale = 1.0;
+  ) : (which == 1) ? (
+    core_freq = 90 * tuning;
+    shift = 25 * tuning;
+    gain = 1.0;
+    low_scale = 1.1;
+    punch.dt3 = 105 * israte;
+  ) : (which == 2) ? (
+    core_freq = 81 * tuning;
+    shift = 20 * tuning;
+    low_scale = 1.1;
+    gain = 0.7;
+    punch.dt3 = 88 * israte;
+  );
+  punch.dt = core_freq * israte;
+  punch.dt2 = shift * israte;
+  
+  bp.init_linearSVF_invq(core_freq, 0.9);
+  bp2.init_linearSVF_invq(core_freq, 0.5);
+  lp.init_linearSVF_invq(2564, 1);
+  lp2.init_linearSVF_invq(444 + core_freq, 0.2);
+  
+  bp2.init_linearSVF_invq(600 + core_freq, 0.2);
+);
+
+function tom_synth2_eval()
+local(st, noise, y)
+global()
+instance(punch, lp, lp2, bp, bp2, low_scale, gain, sqp)
+(
+  punch.t += (punch.dt + punch.dt2);
+  punch.t3 += (punch.dt3 + punch.dt2);
+  punch.dt2 *= punch.pitch_decay;
+  
+  st = bp.eval_linearSVF_BP(
+    lp.eval_linearSVF_LP(
+      0.6 * naiveTri(low_scale * punch.t) + 
+      0.3 * punch.state2 * naiveTri(2.0 * punch.t3) + 
+      0.4 * punch.state2 * naiveTri(2.9 * punch.t3) + 
+      0.5 * naiveTri(0.7 * punch.t) + 
+      0.023 * naiveTri(1.4 * punch.t3)
+    )
+  );
+
+  st += 0.31 * st * st * st * punch.state2;
+  
+  punch.atk *= punch.k_atk;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+
+  noise = rand() - 0.5;
+  sqp = 2.0 * sqr(punch.state) * punch.state;
+  y = gain * ((1.0 - punch.atk) * st * sqp + gain * 1.0 * lp2.eval_linearSVF_BP(noise) * sqr(punch.state2) * sqr(punch.state2) + bp2.eval_linearSVF_BP(noise) * sqr(punch.state3));
+  0.45 * y
+);
+
+function tom_synth3_reset(which, tune, decay)
+local(t_s, w, tuning, pitch_decay, decay_mod, core_freq, shift)
+global(srate, israte)
+instance(punch, lp, lp2, bp, bp2)
+(
+  t_s = 0.42 * (0.5 + decay + 0.2 * (which == 2)); // punch_decay
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (20 * t_s * srate));
+  punch.k3 = pow(10, -60 / (20 * t_s * srate));
+  punch.k_atk = pow(10, -24 / (20 * 0.005 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  which == 0 ? (
+    core_freq = 130 * tuning;
+    shift = 140 * tuning;
+  ) : (which == 1) ? (
+    core_freq = 120 * tuning;
+    shift = 130 * tuning;
+    punch.dt3 = 105 * israte;
+  ) : (which == 2) ? (
+    core_freq = 80 * tuning;
+    shift = 120 * tuning;
+    punch.dt3 = 88 * israte;
+  );
+  punch.dt = core_freq * israte;
+  punch.dt2 = shift * israte;
+  
+  bp.init_linearSVF_invq(600, 2);
+  bp2.init_linearSVF_invq(core_freq, 0.5);
+  lp.init_linearSVF_invq(364, 1);
+  lp2.init_linearSVF_invq(444 + core_freq, 0.6);
+  bp2.init_linearSVF_invq(600 + core_freq, 0.2);
+);
+
+function tom_synth3_eval()
+local(st, noise)
+global()
+instance(punch, lp, lp2, bp, bp2, sqp)
+(
+  punch.t += (punch.dt + punch.dt2);
+  punch.dt2 *= punch.pitch_decay;
+  
+  st = bp.eval_linearSVF_LP(
+    lp.eval_linearSVF_LP(
+      0.6 * sqs(punch.t) +
+      0.12 * sqs(2.0 * punch.t)
+    );
+  );
+
+  //st += 0.31 * st * st * st * punch.state2;
+  
+  punch.atk *= punch.k_atk;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+
+  noise = rand() - 0.5;
+  sqp = 2.0 * punch.state;
+  (sqp < 0.95) ? punch.state *= punch.k * punch.k * punch.k * punch.k;
+  noise = 2.0 * lp2.eval_linearSVF_BP(noise) * sqr(punch.state2) + bp2.eval_linearSVF_BP(noise) * sqr(punch.state3);
+  sqp = ((1.0 - punch.atk) * st * sqp + noise * punch.state2);
+  
+  0.3 * (abs(sqp) > 0.001 ? sqp = floor(sqp * 512) / 512);
+);
+
+function hi_tom_reset()
+local()
+global(tom_type, high_tom_tune, high_tom_decay, ALIVE_COUNT)
+instance(current_tom, alive)
+(
+  alive = ALIVE_COUNT;
+  current_tom = tom_type;
+  
+  (current_tom == 1) ? (
+    this.tom_synth1_reset(0, high_tom_tune, high_tom_decay);
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_reset(0, high_tom_tune, high_tom_decay);
+  ): (current_tom == 2) ? (
+    this.tom_synth3_reset(0, high_tom_tune, high_tom_decay);
+  );;
+);
+
+function mid_tom_reset()
+local()
+global(tom_type, mid_tom_tune, mid_tom_decay, ALIVE_COUNT)
+instance(current_tom, alive)
+(
+  alive = ALIVE_COUNT;
+  current_tom = tom_type;
+  
+  (current_tom == 1) ? (
+    this.tom_synth1_reset(1, mid_tom_tune, mid_tom_decay);
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_reset(1, mid_tom_tune, mid_tom_decay);
+  ): (current_tom == 2) ? (
+    this.tom_synth3_reset(1, mid_tom_tune, mid_tom_decay);
+  );
+);
+
+function low_tom_reset()
+local()
+global(tom_type, low_tom_tune, low_tom_decay, ALIVE_COUNT)
+instance(current_tom, alive)
+(
+  alive = ALIVE_COUNT;
+  current_tom = tom_type;
+  
+  (current_tom == 1) ? (
+    this.tom_synth1_reset(2, low_tom_tune, low_tom_decay);
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_reset(2, low_tom_tune, low_tom_decay);
+  ) : (current_tom == 2) ? (
+    this.tom_synth3_reset(2, low_tom_tune, low_tom_decay);
+  );
+);
+
+function hi_tom_tick()
+local()
+global()
+instance(current_tom)
+(
+  (current_tom == 1) ? (
+    this.tom_synth1_eval();
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_eval();
+  ) : (current_tom == 2) ? (
+    this.tom_synth3_eval();
+  );
+);
+
+function mid_tom_tick()
+local()
+global()
+instance(current_tom)
+(
+  (current_tom == 1) ? (
+    this.tom_synth1_eval();
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_eval();
+  ) : (current_tom == 2) ? (
+    this.tom_synth3_eval();
+  );
+);
+
+function low_tom_tick()
+local()
+global()
+instance(current_tom)
+(
+  (current_tom == 1) ? (
+    this.tom_synth1_eval();
+  ) : (current_tom == 0) ? (
+    this.tom_synth2_eval();
+  ) : (current_tom == 2) ? (
+    this.tom_synth3_eval();
+  );
+);
+
+function hi_tom_stop()
+local()
+global(srate)
+instance(current_tom, punch)
+(
+  punch.k = pow(10, -64 / (12 * srate));
+  punch.k2 = pow(10, -64 / (12 * srate));
+  punch.k3 = pow(10, -64 / (12 * srate));
+);
+
+function mid_tom_stop()
+local()
+global(srate)
+instance(current_tom, punch)
+(
+  punch.k = pow(10, -64 / (8 * srate));
+  punch.k2 = pow(10, -64 / (12 * srate));
+  punch.k3 = pow(10, -64 / (12 * srate));
+);
+
+function low_tom_stop()
+local()
+global(srate)
+instance(current_tom, punch)
+(
+  punch.k = pow(10, -64 / (14 * srate));
+  punch.k2 = pow(10, -64 / (8 * srate));
+  punch.k3 = pow(10, -64 / (4 * srate));
+);
+
+function rim_synth1_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, bp, bp2, bp3, bp4, bp5)
+global(srate, israte)
+(
+  t_s = 0.015 * (0.5 + decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (30 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.0004 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  
+   // Gain = 6.4 + 6.4
+  bp.init_linearSVF_invq(220 * tuning, 0.005);
+  bp2.init_linearSVF_invq(511 * tuning, 0.01);
+  bp3.init_linearSVF_invq(1000, 0.06);
+  bp4.init_linearSVF_invq(2600 * tuning, 0.02);
+  bp5.init_linearSVF_invq(737, 0.01);
+);
+
+function rim_synth1_tick()
+local(y)
+instance(punch, bp, bp2, bp3, bp4, bp5)
+global()
+(
+  punch.atk *= punch.k_atk;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+   
+  y = (1 - punch.atk) * punch.state3 * (
+    1.4 * bp.eval_linearSVF_BP(punch.state2) + 
+    1.7 * bp2.eval_linearSVF_BP(punch.state3) * punch.state2 + 
+    0.8 * bp3.eval_linearSVF_BP(punch.state + rand() - 0.5) * punch.state3 +
+    0.2 * bp4.eval_linearSVF_BP(punch.state + rand() - 0.5) * punch.state3 +
+    0.4 * bp5.eval_linearSVF_BP(punch.state + rand() - 0.5) * punch.state3
+  );
+  
+  y = y / (1 + abs(y));
+);
+
+function rim_synth2_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, bp, bp2, bp3, bp4, bp5)
+global(srate, israte)
+(
+  t_s = 0.015 * (0.5 + decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (30 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.003 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  
+   // Gain = 6.4 + 6.4
+  bp.init_linearSVF_invq(1750 * tuning, 0.05);
+  bp2.init_linearSVF_invq(511 * tuning, 0.01);
+  bp3.init_linearSVF_invq(908, 0.06);
+  bp4.init_linearSVF_invq(4600 * tuning, 1);
+  bp5.init_linearSVF_invq(708, 0.01);
+);
+
+function rim_synth2_tick()
+local(y)
+instance(punch, bp, bp2, bp3, bp4, bp5)
+global()
+(
+  punch.atk *= punch.k_atk;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+  
+  y = (1 - punch.atk) * punch.state3 * (
+    1.4 * bp.eval_linearSVF_BP(punch.state2) + 
+    1.7 * bp2.eval_linearSVF_BP(punch.state3) * punch.state2 + 
+    0.8 * bp3.eval_linearSVF_BP(punch.state + rand() - 0.5) * punch.state3 +
+    5 * bp4.eval_linearSVF_BP(rand() - 0.5) * sqr(punch.state3) * punch.state3 +
+    0.1 * bp5.eval_linearSVF_BP(punch.state) * punch.state3
+  );
+  
+  y = y / (1 + abs(y));
+);
+
+function rim_synth3_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, bp, bp2, bp3, bp4)
+global(srate, israte)
+(
+  t_s = 0.015 * (0.5 + decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (30 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.003 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  
+  bp.init_linearSVF_invq(413 * tuning, 0.002);
+  bp2.init_linearSVF_invq(1040 * tuning, 0.01);
+  bp3.init_linearSVF_invq(1887, 0.06);
+  bp4.init_linearSVF_invq(1130 * tuning, 1);
+);
+
+
+function rim_synth3_tick()
+local(y, t_s)
+instance(punch, bp, bp2, bp3, bp4)
+global()
+(
+  punch.atk *= punch.k_atk;
+  punch.state *= punch.k;
+  punch.state2 *= punch.k2;
+  punch.state3 *= punch.k3;
+  
+  y = (1 - punch.atk) * (
+    0.4 * punch.state3 * bp.eval_linearSVF_BP(punch.state2) + 
+    0.3 * bp2.eval_linearSVF_BP(rand() - 0.5) * punch.state2 + 
+    0.1 * bp3.eval_linearSVF_BP(punch.state3) * punch.state +
+    0.5 * bp4.eval_linearSVF_BP(rand() - 0.5) * sqr(punch.state3)
+  );
+  
+  y = 2.0 * y / (1 + abs(y));
+);
+
+function rim_reset()
+local()
+global(rim_type, rim_tune, rim_decay, ALIVE_COUNT)
+instance(current_rim, alive, sample_idx, chan)
+(
+  alive = ALIVE_COUNT;
+  current_rim = rim_type;
+  
+  (current_rim == 0) ? (
+    this.rim_synth1_reset(rim_tune, rim_decay);
+  ) : (current_rim == 1) ? (
+    this.rim_synth2_reset(rim_tune, rim_decay);
+  ) : (current_rim == 2) ? (
+    this.rim_synth3_reset(rim_tune, rim_decay);
+  ) : (current_rim == 3) ? (
+    chan.start_sample(sample_idx - 1, - 6 + rim_tune * 12, rim_decay);
+  );
+);
+
+function rim_tick()
+local()
+global()
+instance(current_rim, chan)
+(
+  (current_rim == 0) ? (
+    this.rim_synth1_tick()
+  ) : (current_rim == 1) ? (
+    this.rim_synth2_tick()
+  ) : (current_rim == 2) ? (
+    this.rim_synth3_tick()
+  ) : (current_rim == 3) ? (
+    chan.play_channel()
+  );
+);
+
+function rim_stop()
+local()
+global()
+instance(chan)
+(
+  chan.k_decay *= 0.9997;
+);
+
+function cowbell_synth1_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, lp, bp, bp2, bp3, bp4, bp5, bp6, pulse, pulse2)
+global(srate)
+(
+  t_s = 0.03 * (0.5 + decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  
+  pulse = 0.005 * srate;
+  pulse2 = 0.02 * srate * (0.5 + decay);
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (50 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.003 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  
+  bp.init_linearSVF_invq(487 * tuning, 0.002);
+  bp2.init_linearSVF_invq(1033 * tuning, 0.01);
+  bp3.init_linearSVF_invq(1496, 0.06);
+  bp4.init_linearSVF_invq(2000 * tuning, 1);
+  bp5.init_linearSVF_invq(2300 * tuning, 0.001);
+  bp6.init_linearSVF_invq(3000 * tuning, 0.001);
+  lp.init_linearSVF_invq(1500 * tuning, 1);
+);
+
+function cowbell_synth1_tick()
+local(y, noise, noise2)
+instance(punch, lp, bp, bp2, bp3, bp4, bp5, bp6, pulse, pulse2)
+global()
+(
+  punch.atk *= punch.k_atk;
+  pulse -= 1;
+  pulse2 -= 1;
+  
+  pulse2 < 0 ? (
+    punch.state *= punch.k;
+    punch.state2 *= punch.k2;
+    punch.state3 *= punch.k3;
+  );
+  
+  noise = 2 * rand() - 1;
+  noise2 = bp2.eval_linearSVF_BP(noise);
+  y = 0.15 * (1 - punch.atk) * (
+    1.4 * punch.state3 * bp.eval_linearSVF_BP(pulse > 0) + 
+    0.3 * noise2 * punch.state2 + 
+    3 * bp3.eval_linearSVF_BP(punch.state3) * punch.state +
+    0.4 * bp4.eval_linearSVF_BP(noise) * sqr(punch.state3) +
+    0.02 * bp5.eval_linearSVF_BP(noise) * punch.state3 +
+    0.01 * bp6.eval_linearSVF_BP(noise) * punch.state2 +
+    lp.eval_linearSVF_LP(noise) * punch.state
+  );
+  
+  y
+);
+
+function cowbell_synth2_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, bp, pulse)
+global(srate, israte)
+(
+  t_s = 0.036 * (0.25 + 1.25 * decay);
+
+  tuning = pow(2, tune - 0.5);
+
+  pulse = 0.002 * srate * (0.5 + decay);
+  punch.dt = 823 * israte * tuning;
+  punch.dt2 = 557 * israte * tuning;
+  
+  punch.dt = 823.3 * israte * tuning; // 293.66
+  punch.dt2 = 557.2 * israte * tuning; // 2^(7/12)
+  
+  punch.dt = 848.3 * israte * tuning; // 293.66
+  punch.dt2 = 563.2 * israte * tuning; // 2^(7/12)
+  
+  punch.t = 0.5;
+  punch.t2 = 0.5;
+  
+  punch.atk = 1;
+  punch.k_atk = pow(10, -24 / (20 * 0.0002 * srate));
+  punch.state = 1.0;
+  punch.state2 = 0.15;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (20 * 10 * t_s * srate));
+  
+  bp.init_linearSVF_invq(709.3 * tuning, 0.4);
+);
+
+function cowbell_synth2_tick()
+local(y, noise, noise2, sqrs)
+instance(punch, bp, pulse)
+global()
+(
+  (pulse < 0) ? (
+    punch.state *= punch.k;
+    punch.state2 *= punch.k2;
+  ) : (
+    punch.state = 1.0 - 1.0 * punch.atk;
+    punch.atk *= punch.k_atk;
+  );
+  pulse -= 1;
+  
+  punch.t += punch.dt;
+  punch.t2 += punch.dt2;
+  
+  sqrs = punch.state + punch.state2;
+  sqrs = sqrs / (1.0 + sqrs);
+  0.35 * (
+    0.5 * saw(punch.t, punch.dt) + 3 * bp.eval_linearSVF_BP(saw(punch.t, punch.dt)) // + 0.3 * rand() - 0.1)
+    + saw(punch.t2, punch.dt2)
+  ) * sqrs;
+);
+
+function cowbell_synth3_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, cbp, cbp2, cbp3, cbp4, cbp5, cbp6, cbp7, pulse, pulse2)
+global(srate)
+(
+  t_s = 0.15 * (0.5 + decay);
+  
+  punch.state = 1;
+  punch.state2 = 1;
+  punch.state3 = 1;
+  
+  pulse = 0.005 * srate;
+  pulse2 = 0.02 * srate * (0.25 + decay);
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (30 * t_s * srate));
+  punch.k3 = pow(10, -24 / (50 * t_s * srate));
+  
+  punch.k_atk = pow(10, -24 / (20 * 0.003 * srate));
+  punch.pitch_decay = pow(10, -24 / (20 * 0.5 * srate));
+  
+  tuning = pow(2, tune - 0.5);
+  
+  cbp.init_linearSVF_invq(387 * tuning, 0.002);
+  cbp2.init_linearSVF_invq(430 * tuning, 0.001);
+  cbp3.init_linearSVF_invq(802, 0.006);
+  cbp4.init_linearSVF_invq(1281 * tuning, 0.05);
+  cbp5.init_linearSVF_invq(2596 * tuning, 0.001);
+  cbp6.init_linearSVF_invq(3172 * tuning, 0.001);
+  cbp7.init_linearSVF_invq(4400 * tuning, 0.1);
+);
+
+function cowbell_synth3_tick()
+local(y, noise, noise2)
+instance(punch, cbp, cbp2, cbp3, cbp4, cbp5, cbp6, cbp7, pulse, pulse2)
+global()
+(
+  punch.atk *= punch.k_atk;
+  pulse -= 1;
+  pulse2 -= 1;
+  
+  pulse2 < 0 ? (
+    punch.state *= punch.k;
+    punch.state2 *= punch.k2;
+    punch.state3 *= punch.k3;
+  );
+  
+  noise = 2 * rand() - 1;
+  noise2 = cbp2.eval_linearSVF_BP(punch.state3);
+  y = 0.24 * (1 - punch.atk) * (
+    1.4 * punch.state3 * cbp.eval_linearSVF_BP(pulse > 0) + 
+    0.9 * noise2 * punch.state2 + 
+    0.3 * cbp3.eval_linearSVF_BP(punch.state) * punch.state +
+    2.8 * cbp4.eval_linearSVF_BP(punch.state + 0.1 * noise) * sqr(punch.state3) +
+    0.2 * cbp5.eval_linearSVF_BP(punch.state) * punch.state3 +
+    0.2 * cbp6.eval_linearSVF_BP(punch.state) * punch.state2 +
+    6 * cbp7.eval_linearSVF_BP(punch.state) * punch.state
+  );
+  
+  y
+);
+
+function cowbell_synth4_reset(tune, decay)
+local(t_s, tuning)
+instance(punch, cbp, cbp2, cbp3, cbp4, cbp5, cbp6, cbp7, pulse, pulse2, tc, tc2, sr, sr2)
+global(srate, israte)
+(
+  t_s = 0.15 * (0.5 + decay);
+  sr = 2.0 * $pi * (600 + 4200 * tune) * israte;
+  sr2 = 0.62 * sr;
+  tc = 0; tc2 = 0;
+  
+  punch.state = 1;
+  punch.state2 = 2.0 * $pi * 3600 * israte;
+  
+  pulse = 0.005 * srate;
+  pulse2 = 0.02 * srate * (0.25 + decay);
+  
+  punch.atk = 1;
+  punch.k = pow(10, -24 / (20 * t_s * srate));
+  punch.k2 = pow(10, -24 / (0.05 * t_s * srate));
+  punch.k_atk = pow(10, -24 / (20 * 0.003 * srate));
+  
+  cbp3.init_linearSVF_invq(802 + 400 * tune, 0.0006);
+);
+
+function cowbell_synth4_tick()
+local(y, noise, noise2)
+instance(punch, cbp, cbp2, cbp3, cbp4, cbp5, cbp6, cbp7, pulse, pulse2, tc, tc2, sr, sr2)
+global()
+(
+  punch.atk *= punch.k_atk;
+  pulse -= 1;
+  pulse2 -= 1;
+  
+  pulse2 < 0 ? (
+    punch.state *= punch.k;
+    punch.state2 *= punch.k2;
+  );
+  
+  tc += sr + punch.state2;
+  tc2 += sr2;
+  noise2 = 0.1 * sin(tc) * (0.5 + sin(tc2)) * punch.state * (1 + 0.2 * rand());
+ 
+  y = 0.04 * (1 - punch.atk) * (
+    cbp3.eval_linearSVF_BP(rand() - 0.5) * punch.state
+  ) + noise2;
+ 
+  y
+);
+
+function cowbell_reset()
+local()
+global(cowbell_type, cowbell_tune, cowbell_decay, ALIVE_COUNT)
+instance(current_cowbell, alive)
+(
+  alive = ALIVE_COUNT;
+  current_cowbell = cowbell_type;
+  
+  (current_cowbell == 0) ? (
+    this.cowbell_synth1_reset(cowbell_tune, cowbell_decay);
+  ) : (current_cowbell == 1) ? (
+    this.cowbell_synth2_reset(cowbell_tune, cowbell_decay);
+  ) : (current_cowbell == 2) ? (
+    this.cowbell_synth3_reset(cowbell_tune, cowbell_decay);
+  ) : (current_cowbell == 3) ? (
+    this.cowbell_synth4_reset(cowbell_tune, cowbell_decay);
+  );
+);
+
+function cowbell_tick()
+local()
+global()
+instance(current_cowbell)
+(
+  (current_cowbell == 0) ? (
+    this.cowbell_synth1_tick()
+  ) : (current_cowbell == 1) ? (
+    this.cowbell_synth2_tick()
+  ) : (current_cowbell == 2) ? (
+   this.cowbell_synth3_tick();
+  ) : (current_cowbell == 3) ? (
+    this.cowbell_synth4_tick();
+  );;
+);
+
+function cowbell_stop()
+(
+  0
+);
+
+function shaker_reset()
+local(t_decay, t_atk, tuning)
+global(shaker_decay, shaker_tune, shaker_type, srate, ALIVE_COUNT, shaker_tune_freq)
+instance(env, lp, lp2, hp, hp2, bell, bell2, bell3, current_shaker, alive, sample_idx, t, dt, chan)
+(
+  alive = ALIVE_COUNT;
+  current_shaker = shaker_type;
+
+  (current_shaker == 0) ? (
+    t_atk = 0.015;
+    tuning = min(0.5 + shaker_tune, 1.5);
+    t_decay = 0.03 * (0.5 + shaker_decay);
+    
+    lp.init_linearSVF_invq(5982 * tuning, 0.25);
+    lp2.init_linearSVF_invq(11340 * tuning, 0.25);
+    bell3.init_linearSVF_bell(850 * tuning, 3, 0.01);
+    
+  ) : (current_shaker == 1) ? (
+    t_atk = 0.03 * (0.5 + 0.25 * shaker_decay);
+    tuning = 0.5 + shaker_tune;
+    t_decay = 0.3 * (0.5 + 0.25 * shaker_decay);
+    
+    hp.init_linear1p(500 * tuning);
+    hp2.init_linearSVF_invq(3000 * tuning, 1);
+    bell.init_linearSVF_bell(5121 * tuning, 7, 20);
+    bell2.init_linearSVF_bell(10121 * tuning, 9, 20);
+    shaker_tune_freq = max(shaker_tune_freq, 10121 * tuning);
+    env.state2 = 1;
+  ) : (current_shaker == 2) ? (
+    t = 0;
+    dt = (0.0006 + 0.0003 * shaker_decay) * 44100 / srate;
+    t_atk = 0.03 * (0.5 + 0.25 * shaker_decay);
+    tuning = 0.5 + shaker_tune;
+    t_decay = 0.5 * (0.5 + 0.5 * shaker_decay);
+    
+    hp.init_linear1p(500 * tuning);
+    hp2.init_linearSVF_invq(3000 * tuning, 1);
+    bell.init_linearSVF_bell(5121 * tuning, 7, 20);
+    bell2.init_linearSVF_bell(7121 * tuning, 9, 20);
+    shaker_tune_freq = max(shaker_tune_freq, 10121 * tuning);
+    env.state2 = 1;
+    env.state3 = 1;
+  ) : (current_shaker == 3) ? (
+    chan.start_sample(sample_idx - 1, - 6 + shaker_tune * 12, shaker_decay);
+  );
+  
+  env.k = pow(10, -24 / (20 * t_decay * srate));
+  env.k_atk = pow(10, -24 / (20 * t_atk * srate));
+  env.k_fast = pow(10, -24 / (10 * t_decay * srate));
+  env.k_slow = pow(10, -24 / (30 * t_decay * t_decay * srate));
+  env.attack = 1;
+  env.n_attack = 2 * t_atk * srate;
+);
+
+function shaker_tick()
+local(noise, noise2, y)
+global()
+instance(current_shaker, env, lp, lp2, hp, hp2, bell, bell2, bell3, t, dt, chan)
+(
+  (env.n_attack > 0) ? (
+    env.n_attack -= 1;
+    env.state = (1.0 - env.attack);
+    env.attack *= env.k_atk;
+  ) : (
+    env.state *= env.k;
+  );
+  
+  noise = rand() - 0.5;
+  
+  (current_shaker == 0) ? (
+    y = 100 * env.state * (
+      lp2.eval_linearSVF_LP(lp.eval_linearSVF_LP(bell3.eval_linearSVF_bell(noise * noise * noise))) + 
+      0.0001 * noise
+    );
+  ) : (current_shaker == 1) ? (
+    env.state < 0.75 ? env.state *= env.k_fast;
+    env.state2 *= env.k_fast;
+    noise2 = rand() - 0.5;
+    
+    y = 0.75 * sqr(env.state) * (
+      0.005 * bell.eval_linearSVF_bell(hp2.eval_linearSVF_HP(noise)) + 
+      0.007 * env.state2 * bell2.eval_linearSVF_bell(hp.eval_linear1p_HP(noise2)) + 
+      0.0005 * noise
+    );
+  ) : (current_shaker == 2) ? (
+    env.state < 0.175 ? env.state *= env.k_fast;
+    env.state2 *= env.k_fast;
+    env.state3 *= env.k_slow;
+    noise2 = (rand() > 0.15) * (rand() - 0.5);
+    noise *= (rand() > 0.995);
+    
+    t += dt;
+    y = 0.75 * cos(t) * (sqr(env.state) + env.state3 * (1 - env.state) * (1 - env.state2)) * (
+      0.005 * bell.eval_linearSVF_bell(hp2.eval_linearSVF_HP(noise)) + 
+      0.009 * env.state2 * bell2.eval_linearSVF_bell(hp.eval_linear1p_HP(noise2)) + 
+      0.0005 * noise
+    );
+  ) : (current_shaker == 3) ? (
+    y = chan.play_channel()
+  );
+  
+  y
+);
+
+function shaker_stop()
+local()
+global()
+instance(chan)
+(
+  chan.k_decay *= 0.9997;
+);
+
+function kick_tick()
+local(y, env_tick)
+global(kick_type, kick_envelope, kick_bottom, srate, timestep, pitch_hz, freq_shift, sample_ratio, myy)
+instance(ly, amp, pitch, t_osc, t_osc2, t_osc3, env, smooth, noise_level, noise_decay, mud_dip, shift_6hz, click_boost)
+(
+  ly = y;
+  (kick_type == 0) ? (
+    pitch_hz = .5 * exp((1 - kick_envelope * pitch.env_tick()) * kick_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc);
+    y = 0.91 * (tanh(2 * y + 0.1) - 0.1) + 0.1 * y;
+    y *= amp.env_tick();
+    y = mud_dip.bell_tick(y);
+    freq_shift ? y = shift_6hz.eval_cheapest_freq_shifter(y);
+  ) : (kick_type == 1) ? (
+    pitch_hz = .5 * exp((1 - kick_envelope * pitch.env_tick()) * kick_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc) * amp.env_tick();
+    y = 0.91 * (tanh(2 * y + 0.1) - 0.1) + 0.1 * y;
+    y = mud_dip.bell_tick(y);
+    freq_shift ? y = shift_6hz.eval_cheapest_freq_shifter(y);
+  ) : (kick_type == 2) ? (
+    pitch_hz = .5 * exp((1 - kick_envelope * pitch.env_tick()) * kick_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    t_osc += timestep;
+    y = naiveTri(t_osc);
+    y = tanh(2 * y) * amp.env_tick();
+    freq_shift ? y = shift_6hz.eval_cheapest_freq_shifter(y);
+    y = mud_dip.bell_tick(y);
+    y = click_boost.bell_tick(y);
+  ) : (kick_type == 3) ? (
+    env_tick = pitch.env_tick();
+    pitch_hz = .5 * exp((1 - kick_envelope * env_tick) * kick_bottom) * sample_ratio;
+    timestep = pitch_hz;
+    y = sin(2 * $pi * t_osc) * amp.env_tick();
+    
+    t_osc2 += 8 * timestep;
+    t_osc += timestep + .001 * env_tick * sin(2 * $pi * t_osc2) * sample_ratio;
+    freq_shift ? y = y + shift_6hz.eval_cheapest_freq_shifter((tanh(2 * y) - y) * 0.5);
+    y = click_boost.bell_tick(y);
+  );
+  
+
+  noise_level -= noise_decay * noise_level;
+  y += this.eval_linearSVF_BP(noise_level * (rand() - 0.5));
+  y = smooth ? (smooth -= 1; .9 * ly + .1*y) : y;
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function hard_update()
+local()
+global(samplesblock)
+instance(
+  current_left, current_right, delta_left, delta_right, target_left, target_right,
+  vel,
+  last_vel,
+  alive,
+)
+(
+  // Only force a vel update immediately if it's louder (otherwise things get clicky)
+  (vel > last_vel) ? (
+    this.lerp_output_settings_block();
+    
+    current_left = target_left;
+    current_right = target_right;
+    delta_left = 0;
+    delta_right = 0;
+    
+    alive = samplesblock;
+  );
+  last_vel = vel;
+);
+
+function kick_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  kick_pitch_decay = max(0, min(1, _kick_pitch_decay + vel * kick_pitch_decay_vel));
+  kick_tune = max(0, min(1, _kick_tune + vel * kick_tune_vel));
+  kick_amp_decay = max(0, min(1, _kick_amp_decay + vel * kick_amp_decay_vel));
+  kick_envelope = max(0, min(0.5, _kick_envelope + vel * kick_envelope_vel));
+  kick_noise_envelope = max(0, min(1, _kick_noise_envelope + vel * kick_noise_envelope_vel));
+  kick_decay = max(0, min(1, _kick_decay + vel * kick_decay_vel));
+  
+  this.hard_update();
+);
+
+function snare_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  snare_decay = max(0, min(1, _snare_decay + vel * snare_decay_vel));
+  snare_tune = max(0, min(1, _snare_tune + vel * snare_tune_vel));
+  snare_amp_decay = max(0, min(1, _snare_amp_decay + vel * snare_amp_decay_vel));
+  snare_envelope = max(0, min(0.5, _snare_envelope + vel * snare_envelope_vel));
+  snare_noise_decay = max(0, min(1, _snare_noise_decay + vel * snare_noise_decay_vel));
+  
+  this.hard_update();
+);
+
+function clap_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  clap_attack = max(0, min(1, _clap_attack + vel * clap_attack_vel));
+  clap_decay = max(0, min(1, _clap_decay + vel * clap_decay_vel));
+  
+  this.hard_update();
+);
+
+function rim_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  rim_decay = max(0, min(1, _rim_decay + vel * rim_decay_vel));
+  rim_tune = max(0, min(1, _rim_tune + vel * rim_tune_vel));
+  
+  this.hard_update();
+);
+
+function hat_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  hat_attack = max(0, min(1, _hat_attack + vel * hat_attack_vel));
+  hat_decay = max(0, min(1, _hat_decay + vel * hat_decay_vel));
+  hat_tone = max(0, min(1, _hat_tone + vel * hat_tone_vel));
+  
+  ohat_attack = max(0, min(1, _open_hat_attack + vel * open_hat_attack_vel));
+  ohat_decay = max(0, min(1, _open_hat_decay + vel * open_hat_decay_vel));
+  ohat_tone = max(0, min(1, _open_hat_tone + vel * open_hat_tone_vel));
+  
+  this.hard_update();
+);
+
+function cowbell_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  cowbell_tune = max(0, min(1, _cowbell_tune + vel * cowbell_tune_vel));
+  cowbell_decay = max(0, min(1, _cowbell_decay + vel * cowbell_decay_vel));
+  
+  this.hard_update();
+);
+
+function ride_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  ride_attack = max(0, min(1, _ride_attack + vel * ride_attack_vel));
+  ride_decay = max(0, min(1, _ride_decay + vel * ride_decay_vel));
+  ride_tone = max(0, min(1, _ride_tone + vel * ride_tone_vel));
+  ride_duty = max(0.2, min(0.8, _ride_duty + vel * ride_duty_vel));
+  
+  this.hard_update();
+);
+
+function shaker_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  shaker_tune = max(0, min(1, _shaker_tune + vel * shaker_tune_vel));
+  shaker_decay = max(0, min(1, _shaker_decay + vel * shaker_decay_vel));
+  
+  this.hard_update();
+);
+
+function low_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  low_tom_tune = max(0, min(1, _low_tom_tune + vel * low_tom_tune_vel));
+  low_tom_decay = max(0, min(1, _low_tom_decay + vel * low_tom_decay_vel));
+  
+  this.hard_update();
+);
+
+function mid_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  mid_tom_tune = max(0, min(1, _mid_tom_tune + vel * mid_tom_tune_vel));
+  mid_tom_decay = max(0, min(1, _mid_tom_decay + vel * mid_tom_decay_vel));
+  
+  this.hard_update();
+);
+
+function high_update(_vel)
+instance(vel)
+(
+  vel = _vel;
+  high_tom_tune = max(0, min(1, _high_tom_tune + vel * high_tom_tune_vel));
+  high_tom_decay = max(0, min(1, _high_tom_decay + vel * high_tom_decay_vel));
+  
+  this.hard_update();
+);
+
+
+
+
+
+
+
+
+function check_alive(y)
+instance(ly, alive, hly, current_left, delta_left, current_right, delta_right, left_out, right_out)
+local()
+global()
+(
+  hly = max(hly, ly);
+  ly = max(0.999 * ly, abs(y) + abs(delta_left) + abs(delta_right));
+  // 0.00001584893 = -96 dB
+  ly < 0.0000001584893 ? alive -= 1;
+
+  current_left += delta_left;
+  current_right += delta_right;
+  left_out = y * current_left;
+  right_out = y * current_right;
+);
+
