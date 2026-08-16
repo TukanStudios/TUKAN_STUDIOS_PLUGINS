@@ -1,0 +1,175 @@
+desc:tukans OBJ VU library
+
+@init
+
+
+
+
+Function obj_mn_meter_reinit(speed_) (
+this.cosp = 0;
+this.dbL = -130;
+this.force = 0;
+this.mnblitscale = 0;
+this.mnmeterpng = -1;
+this.nd_posL = this.nd_posL = 0;
+this.nd_SpeedL = 0;
+this.ph = 0;
+this.r1 = 0;
+this.scnt = 0;
+this.sinP = 0;
+this.smpLL = 0;
+this.w1 = this.w2 = this.x1 = this.x2 = this.xa = this.xd = this.xw = this.y1 = this.y2 = this.ya = this.yd = this.yw = 0;
+
+//mn_Meter_speed = 61;
+this.mn_meter_speed = speed_;
+this.mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
+this.mn_Meter_mom = 0.00010 + 0.00032 *  this.mn_Meter_speed^3 / 125000;
+this.mn_Meter_dt = 10 / srate;
+this.mn_Meter_offset = 0.0074;
+this.mn_meter_damp = 1 - 0.005 * (48000 / srate);
+
+this.GR_mn_meter_speed = 40;
+this.GR_mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
+this.GR_mn_Meter_mom = 0.00010 + 0.00032 *  this.GR_mn_Meter_speed^3 / 125000;
+this.GR_mn_Meter_dt = 10 / srate;
+this.GR_mn_Meter_offset = 0.0074;
+this.GR_mn_meter_damp = 1 - 0.005 * (48000 / srate);
+);
+
+function obj_mnMetersample(meterIn) //Mom = speed
+(
+
+this.smpL = abs(MeterIn);
+ 
+this.scnt += 1;
+
+
+this.scnt === 10 ? (
+    
+  // move needle
+  
+    this.force = this.smpL * this.mn_Meter_fact_up  -  (this.nd_posL * .1 + this.mn_Meter_offset);
+    
+    this.nd_SpeedL += this.force * this.mn_Meter_dt / this.mn_Meter_mom;  
+    this.nd_SpeedL = this.nd_SpeedL * this.mn_meter_damp;
+    this.nd_posL += this.nd_SpeedL * this.mn_Meter_dt;
+    this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
+  
+    this.nd_posL = min(max(this.nd_posL,0),1);
+  
+    this.scnt = 0;
+  
+);
+);
+
+function obj_GR_mnMetersample(meterIn) //Mom = speed
+(
+
+this.smpL = abs(MeterIn);
+ 
+this.scnt += 1;
+
+
+this.scnt === 10 ? (
+    
+  // move needle
+  
+    this.force = this.smpL * this.GR_mn_Meter_fact_up  -  (this.nd_posL * .1 + this.GR_mn_Meter_offset);
+    
+    this.nd_SpeedL += this.force * this.GR_mn_Meter_dt / this.GR_mn_Meter_mom;  
+    this.nd_SpeedL = this.nd_SpeedL * this.GR_mn_Meter_damp;
+    this.nd_posL += this.nd_SpeedL * this.GR_mn_Meter_dt;
+    this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
+  
+    this.nd_posL = min(max(this.nd_posL,0),1);
+  
+    this.scnt = 0;
+  
+);
+);
+
+
+function obj_mn_meter_init () (
+this.cosp = 0;
+this.dbL = -130;
+this.force = 0;
+this.mnblitscale = 0;
+this.mnmeterpng = -1;
+this.nd_posL = this.nd_posL = 0;
+this.nd_SpeedL = 0;
+this.ph = 0;
+this.r1 = 0;
+this.scnt = 0;
+this.sinP = 0;
+this.smpLL = 0;
+this.w1 = this.w2 = this.x1 = this.x2 = this.xa = this.xd = this.xw = this.y1 = this.y2 = this.ya = this.yd = this.yw = 0;
+);
+
+function obj_mnmetergfx(mnmeterscale, mnmeterx, mnmetery, mnmeterpng) local (linestep) //(0=flexible, x,y,redneedle, channel 1or2)
+(
+
+this.nd_posL_g = this.nd_posL;
+
+  this.dbL = (this.nd_posL_g * 23) - 20;
+  this.mnmeterpng = mnmeterpng;
+  
+gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+;
+mnmeterscale == 0 ? (this.mnblitscale = gfx_w/190):(this.mnblitscale = mnmeterscale);
+gfx_a = 1;
+this.mnmeterpng >= 0 ? gfx_blit(this.mnmeterpng,this.mnblitscale / 2,0);
+gfx_a = 1;
+
+this.w1 = $pi * 16.5 / 180; 
+this.w2 = $pi * 45 / 180;
+
+this.xw = 190*this.mnblitscale; //max(1,floor((gfx_w-30) / 2));
+this.yw = 92*this.mnblitscale;//floor(this.xw / 1.5);
+
+this.r1 = 130*this.mnblitscale;//floor(this.yw * 0.85);
+
+
+
+ this.xd = 10;// + chan*(this.xw+10);
+  
+  this.yd = 10;
+
+  this.xa = this.mnblitscale*190/2;//gfx_w/2;//floor(this.xd + this.xw / 2);
+  this.ya = floor(this.yd + this.yw * 1.1);
+
+
+  this.ph = this.dbL;
+  this.ph = 51.5 + (this.ph+20.1)/23*83;//51 + (this.ph+20)/23*83
+
+  this.r1 = this.mnblitscale*(80+abs((90 - abs(this.ph)))/5);
+  
+  this.ph = this.ph * ($pi / 180);
+    
+  this.cosp = cos(this.ph);
+  this.sinP = sin(this.ph);
+    
+    this.ya = mnmetery+110*this.mnblitscale;
+    this.xa = mnmeterx+(190*this.mnblitscale/2);//-(gfx_w/50);
+  this.x1 = this.xa - this.cosp * this.r1 * 0.25;
+  this.y1 = this.ya - this.sinP * this.r1 * 0.25;
+
+  this.x2 = this.xa - this.cosp * this.r1 * 1.1;
+  this.y2 = this.ya - this.sinP * this.r1 * 1.1;
+
+  gfx_x = this.x1;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2, this.y2);
+  this.mnblitscale > 1 ? (
+    linestep = 0;
+    loop(this.mnblitscale * 2,
+      linestep += 0.25;
+      gfx_line(this.x1+linestep,this.y1,this.x2+linestep,this.y2);
+    );
+  );
+  
+  gfx_a = 0.3;
+  gfx_x = this.x1-2;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2- 2, this.y2);
+  gfx_a = 1;
+  );
