@@ -1,0 +1,401 @@
+desc:tukans VU library
+
+@init
+
+Function mn_meter_reinit(speed_) (
+this.cosp = 0;
+this.dbL = -130;
+this.force = 0;
+this.mnblitscale = 0;
+this.mnmeterpng = -1;
+this.nd_posL = this.nd_posL = 0;
+this.nd_SpeedL = 0;
+this.ph = 0;
+this.r1 = 0;
+this.scnt = 0;
+this.sinP = 0;
+this.smpLL = 0;
+this.w1 = this.w2 = this.x1 = this.x2 = this.xa = this.xd = this.xw = this.y1 = this.y2 = this.ya = this.yd = this.yw = 0;
+
+//mn_Meter_speed = 61;
+mn_meter_speed = speed_;
+mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
+mn_Meter_mom = 0.00010 + 0.00032 *  mn_Meter_speed^3 / 125000;
+mn_Meter_dt = 10 / srate;
+mn_Meter_offset = 0.0074;
+mn_meter_damp = 1 - 0.0053 * (48000 / srate);
+
+GR_mn_meter_speed = 40;
+GR_mn_Meter_fact_up = 10 ^ (( 0 - 10)/20) * 0.3785;
+GR_mn_Meter_mom = 0.00010 + 0.00032 *  GR_mn_Meter_speed^3 / 125000;
+GR_mn_Meter_dt = 10 / srate;
+GR_mn_Meter_offset = 0.0074;
+GR_mn_meter_damp = 1 - 0.0053 * (48000 / srate);
+);
+
+function mnMetersample(meterIn) //Mom = speed
+(
+
+this.smpL = abs(MeterIn);
+
+This.peak_db_old = this.peak_db;
+this.peak_db = max(this.peak_db-(40/srate), log(abs(this.smpl))*(20/log(10)));
+This.peak_db > this.peak_db_old ? (This.peak_hold_cnt += 1);
+This.peak_hold_cnt >= srate/2 ? (this.peak_hold_db = -100; this.peak_hold_cnt=0);
+This.peak_db > this.peak_db_old ? (this.peak_hold_db = this.peak_db; this.peak_hold_cnt=0);
+
+this.scnt += 1;
+
+
+this.scnt == 10 ? (
+    
+  // move needle
+  
+    this.force = this.smpL * mn_Meter_fact_up  -  (this.nd_posL * .1 + mn_Meter_offset);
+    
+    this.nd_SpeedL += this.force * mn_Meter_dt / mn_Meter_mom;  
+    this.nd_SpeedL = this.nd_SpeedL * mn_meter_damp;
+    this.nd_posL += this.nd_SpeedL * mn_Meter_dt;
+    this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
+  
+    this.nd_posL = min(max(this.nd_posL,0),1);
+  
+    this.scnt = 0;
+  
+);
+);
+
+function GR_mnMetersample(meterIn) //Mom = speed
+(
+
+this.smpL = abs(MeterIn);
+
+This.peak_db_old = this.peak_db;
+this.peak_db = max(this.peak_db-(40/srate), log(abs(this.smpl))*(20/log(10)));
+This.peak_db > this.peak_hold_db ? (This.peak_hold_cnt += 1);
+This.peak_hold_cnt >= srate/2 ? (this.peak_hold_db = 0; this.peak_hold_cnt=0);
+This.peak_db < this.peak_hold_db ? (AA +=1; this.peak_hold_db = this.peak_db; this.peak_hold_cnt=0);
+ 
+this.scnt += 1;
+
+
+this.scnt === 10 ? (
+    
+  // move needle
+  
+    this.force = this.smpL * GR_mn_Meter_fact_up  -  (this.nd_posL * .1 + GR_mn_Meter_offset);
+    
+    this.nd_SpeedL += this.force * GR_mn_Meter_dt / GR_mn_Meter_mom;  
+    this.nd_SpeedL = this.nd_SpeedL * GR_mn_Meter_damp;
+    this.nd_posL += this.nd_SpeedL * GR_mn_Meter_dt;
+    this.nd_posL < 0 || this.nd_posL > 1 ? this.nd_SpeedL = 0;
+  
+    this.nd_posL = min(max(this.nd_posL,0),1);
+  
+    this.scnt = 0;
+  
+);
+);
+
+
+function mn_meter_init () (
+this.cosp = 0;
+this.dbL = -130;
+this.force = 0;
+this.mnblitscale = 0;
+this.mnmeterpng = -1;
+this.nd_posL = this.nd_posL = 0;
+this.nd_SpeedL = 0;
+this.ph = 0;
+this.r1 = 0;
+this.scnt = 0;
+this.sinP = 0;
+this.smpLL = 0;
+this.w1 = this.w2 = this.x1 = this.x2 = this.xa = this.xd = this.xw = this.y1 = this.y2 = this.ya = this.yd = this.yw = 0;
+);
+
+function mnmetergfx(mnmeterscale, mnmeterx, mnmetery, mnmeterpng, metertype) local (linestep mnlooptmp mnx mny mnw) //(0=flexible, x,y,redneedle, channel 1or2)
+(
+
+
+this.nd_posL_g = this.nd_posL;
+
+  this.dbL = (this.nd_posL_g * 23) - 20;
+  this.mnmeterpng = mnmeterpng;
+  
+gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+;
+mnmeterscale == 0 ? (this.mnblitscale = gfx_w/190):(this.mnblitscale = mnmeterscale);
+
+Metertype == 0 ? (
+
+gfx_a = 1;
+this.mnmeterpng >= 0 ? gfx_blit(this.mnmeterpng,this.mnblitscale / 2,0);
+gfx_a = 1;
+
+this.w1 = $pi * 16.5 / 180; 
+this.w2 = $pi * 45 / 180;
+
+this.xw = 190*this.mnblitscale; //max(1,floor((gfx_w-30) / 2));
+this.yw = 92*this.mnblitscale;//floor(this.xw / 1.5);
+
+this.r1 = 130*this.mnblitscale;//floor(this.yw * 0.85);
+
+
+
+ this.xd = 10;// + chan*(this.xw+10);
+  
+  this.yd = 10;
+
+  this.xa = this.mnblitscale*190/2;//gfx_w/2;//floor(this.xd + this.xw / 2);
+  this.ya = floor(this.yd + this.yw * 1.1);
+
+
+  this.ph = this.dbL;
+  this.ph = 51.5 + (this.ph+20.1)/23*83;//51 + (this.ph+20)/23*83
+
+  this.r1 = this.mnblitscale*(80+abs((90 - abs(this.ph)))/5);
+  
+  this.ph = this.ph * ($pi / 180);
+    
+  this.cosp = cos(this.ph);
+  this.sinP = sin(this.ph);
+    
+    this.ya = mnmetery+110*this.mnblitscale;
+    this.xa = mnmeterx+(190*this.mnblitscale/2);//-(gfx_w/50);
+  this.x1 = this.xa - this.cosp * this.r1 * 0.25;
+  this.y1 = this.ya - this.sinP * this.r1 * 0.25;
+
+  this.x2 = this.xa - this.cosp * this.r1 * 1.1;
+  this.y2 = this.ya - this.sinP * this.r1 * 1.1;
+
+  gfx_x = this.x1;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2, this.y2);
+  this.mnblitscale > 1 ? (
+    linestep = 0;
+    loop(this.mnblitscale * 2,
+      linestep += 0.25;
+      gfx_line(this.x1+linestep,this.y1,this.x2+linestep,this.y2);
+    );
+  );
+  
+  gfx_a = 0.3;
+  gfx_x = this.x1-2;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2- 2, this.y2);
+  gfx_a = 1;
+  
+
+
+): metertype == 1 ? (
+
+  gfx_r=gfx_b=gfx_g=0;
+  gfx_rect(mnmeterx,mnmetery,191* this.mnblitscale,92* this.mnblitscale);
+
+mnx = mnmeterx +5*this.mnblitscale;
+mny = mnmetery + 46*this.mnblitscale;
+mnw = 180*this.mnblitscale;
+gfx_r=gfx_b=gfx_g=0.7;
+
+mnlooptmp = 0;
+loop(9,
+gfx_rect(mnx + mnlooptmp*mnw/40,mny-12*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+gfx_rect(mnx + mnlooptmp*mnw/40,mny+5*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+mnlooptmp += 5;
+);
+
+mnlooptmp = 0;
+loop(5,
+gfx_rect(mnx + mnlooptmp*mnw/40,mny-19*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+gfx_rect(mnx + mnlooptmp*mnw/40,mny+12*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+mnlooptmp += 10;
+);
+
+gfx_setfont(16,"Arial",15*this.mnblitscale,'b');
+gfx_x = mnx; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("-30");
+gfx_x = mnx + 78*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("-10");
+gfx_x = mnx + 132*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("0");
+gfx_x = mnx + 167*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("10");
+
+this.peak_db <= -30 ? mnx_target = mnx : mnx_target = min(mnx+mnw,mnx + 0.75*mnw + this.peak_db*(mnw/40));
+this.peak_hold_db <= -30 ? mnx_target_hold = mnx : mnx_target_hold = min(mnx+mnw,mnx + 0.75*mnw + this.peak_hold_db*(mnw/40));
+gfx_r=gfx_b=0;gfx_g=0.6;
+gfx_x = mnx; gfx_y = mny-5*this.mnblitscale;
+this.peak_db <= -5 ? gfx_rectto(mnx_target,mny+6*this.mnblitscale) : gfx_rectto(mnx+5*mnw/8,mny+6*this.mnblitscale);
+gfx_r=gfx_b=0;gfx_g=1;
+this.peak_db >= -5 ? (
+gfx_r=0.6;gfx_b=0;gfx_g=0.6;
+gfx_x = mnx+5*mnw/8; gfx_y = mny-5*this.mnblitscale;
+this.peak_db <= 5 ? gfx_rectto(mnx_target,mny+6*this.mnblitscale) : gfx_rectto(mnx+7*mnw/8,mny+6*this.mnblitscale);
+gfx_r=1;gfx_b=0;gfx_g=1;
+);
+this.peak_db >= 5 ? (
+gfx_r=0.6;gfx_b=0;gfx_g=0;
+gfx_x = mnx+7*mnw/8; gfx_y = mny-5*this.mnblitscale;
+this.peak_db <= 10 ? gfx_rectto(mnx_target,mny+6*this.mnblitscale) : gfx_rectto(mnx+mnw,mny+6*this.mnblitscale);
+gfx_r=1;gfx_b=0;gfx_g=0;
+);
+
+gfx_rect(mnx_target,mny-5*this.mnblitscale,3*this.mnblitscale,10*this.mnblitscale);
+
+this.peak_hold_db >= 5 ? (gfx_r=1;gfx_b=0;gfx_g=0) :
+this.peak_hold_db >= -5 ? (gfx_r=1;gfx_b=0;gfx_g=1) :
+this.peak_hold_db < -5 ? (gfx_r=0;gfx_b=0;gfx_g=1) ;
+gfx_rect(mnx_target_hold,mny-5*this.mnblitscale,3*this.mnblitscale,10*this.mnblitscale);
+
+); //metertype
+
+  );
+
+
+
+
+
+
+
+
+function mnGRmetergfx(mnmeterscale, mnmeterx, mnmetery, mnmeterpng, metertype) local (linestep mnlooptmp mnx mny mnw) //(0=flexible, x,y,redneedle, channel 1or2)
+(
+
+
+this.nd_posL_g = this.nd_posL;
+
+  this.dbL = (this.nd_posL_g * 23) - 20;
+  this.mnmeterpng = mnmeterpng;
+  
+gfx_a = 1; gfx_x = mnmeterx; gfx_y=mnmetery
+;
+mnmeterscale == 0 ? (this.mnblitscale = gfx_w/190):(this.mnblitscale = mnmeterscale);
+
+Metertype == 0 ? (
+
+gfx_a = 1;
+this.mnmeterpng >= 0 ? gfx_blit(this.mnmeterpng,this.mnblitscale / 2,0);
+gfx_a = 1;
+
+this.w1 = $pi * 16.5 / 180; 
+this.w2 = $pi * 45 / 180;
+
+this.xw = 190*this.mnblitscale; //max(1,floor((gfx_w-30) / 2));
+this.yw = 92*this.mnblitscale;//floor(this.xw / 1.5);
+
+this.r1 = 130*this.mnblitscale;//floor(this.yw * 0.85);
+
+
+
+ this.xd = 10;// + chan*(this.xw+10);
+  
+  this.yd = 10;
+
+  this.xa = this.mnblitscale*190/2;//gfx_w/2;//floor(this.xd + this.xw / 2);
+  this.ya = floor(this.yd + this.yw * 1.1);
+
+
+  this.ph = this.dbL;
+  this.ph = 51.5 + (this.ph+20.1)/23*83;//51 + (this.ph+20)/23*83
+
+  this.r1 = this.mnblitscale*(80+abs((90 - abs(this.ph)))/5);
+  
+  this.ph = this.ph * ($pi / 180);
+    
+  this.cosp = cos(this.ph);
+  this.sinP = sin(this.ph);
+    
+    this.ya = mnmetery+110*this.mnblitscale;
+    this.xa = mnmeterx+(190*this.mnblitscale/2);//-(gfx_w/50);
+  this.x1 = this.xa - this.cosp * this.r1 * 0.25;
+  this.y1 = this.ya - this.sinP * this.r1 * 0.25;
+
+  this.x2 = this.xa - this.cosp * this.r1 * 1.1;
+  this.y2 = this.ya - this.sinP * this.r1 * 1.1;
+
+  gfx_x = this.x1;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2, this.y2);
+  this.mnblitscale > 1 ? (
+    linestep = 0;
+    loop(this.mnblitscale * 2,
+      linestep += 0.25;
+      gfx_line(this.x1+linestep,this.y1,this.x2+linestep,this.y2);
+    );
+  );
+  
+  gfx_a = 0.3;
+  gfx_x = this.x1-2;
+  gfx_y = this.y1; 
+  gfx_lineto(this.x2- 2, this.y2);
+  gfx_a = 1;
+  
+
+
+): metertype == 1 ? (
+
+  gfx_r=gfx_b=gfx_g=0;
+  gfx_rect(mnmeterx,mnmetery,191* this.mnblitscale,92* this.mnblitscale);
+
+mnx = mnmeterx +5*this.mnblitscale;
+mny = mnmetery + 46*this.mnblitscale;
+mnw = 180*this.mnblitscale;
+gfx_r=gfx_b=gfx_g=0.7;
+
+mnlooptmp = 0;
+loop(9,
+gfx_rect(mnx + mnlooptmp*mnw/40,mny-12*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+gfx_rect(mnx + mnlooptmp*mnw/40,mny+5*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+mnlooptmp += 5;
+);
+
+mnlooptmp = 0;
+loop(5,
+gfx_rect(mnx + mnlooptmp*mnw/40,mny-19*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+gfx_rect(mnx + mnlooptmp*mnw/40,mny+12*this.mnblitscale,2*this.mnblitscale,7*this.mnblitscale);
+mnlooptmp += 10;
+);
+
+gfx_setfont(16,"Arial",15*this.mnblitscale,'b');
+gfx_x = mnx; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("-30");
+gfx_x = mnx + 78*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("-10");
+gfx_x = mnx + 132*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("0");
+gfx_x = mnx + 167*this.mnblitscale; gfx_y = mny + 20*this.mnblitscale;
+gfx_drawstr("10");
+
+
+this.peak_db <= -30 ? mnx_target = mnx : mnx_target = min(mnx+mnw,mnx + 0.75*mnw + this.peak_db*(mnw/40));
+
+this.peak_hold_db <= -30 ? mnx_target_hold = mnx : mnx_target_hold = min(mnx+mnw,mnx + 0.75*mnw + this.peak_hold_db*(mnw/40));
+
+
+gfx_r=gfx_b=0;gfx_g=0.6;
+gfx_x = mnx; gfx_y = mny-5*this.mnblitscale;
+
+
+
+gfx_r=0.6;gfx_b=0;gfx_g=0.6;
+gfx_x = mnx+6*mnw/8; gfx_y = mny-5*this.mnblitscale;
+this.peak_db >= -5 ? gfx_rectto(mnx_target,mny+6*this.mnblitscale) : gfx_rectto(mnx+5*mnw/8,mny+6*this.mnblitscale);
+gfx_r=1;gfx_b=0;gfx_g=1;
+
+this.peak_db < -5 ? (
+gfx_r=0.6;gfx_b=0;gfx_g=0;
+gfx_x = mnx+5*mnw/8; gfx_y = mny-5*this.mnblitscale;
+	gfx_rectto(mnx_target,mny+6*this.mnblitscale);
+gfx_r=1;gfx_b=0;gfx_g=0;
+);
+
+gfx_rect(mnx_target,mny-5*this.mnblitscale,3*this.mnblitscale,10*this.mnblitscale);
+
+this.peak_hold_db >= -5 ? (gfx_r=1;gfx_b=0;gfx_g=1) :
+this.peak_hold_db < -5 ? (gfx_r=1;gfx_b=0;gfx_g=0) ;
+gfx_rect(mnx_target_hold,mny-5*this.mnblitscale,3*this.mnblitscale,10*this.mnblitscale);
+
+); //metertype
+
+  );
