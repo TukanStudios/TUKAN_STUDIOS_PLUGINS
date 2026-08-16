@@ -1719,7 +1719,7 @@ tt_time >= 0 ? (
             ttw = max(ttw1,max(ttw2,ttw3));
       gfx_setimgdim(120, ttw+6*zoom,zeilen*18*zoom);
       gfx_dest = 120;
-      S3_ttx = _posx*zoom; S3_tty = _posy*zoom;
+      S3_ttx = _posx; S3_tty = _posy;
       S3_ttx + ttw > gfx_w ? S3_ttx = gfx_w - ttw;
       zeilen > 0 ? (
         black(); gfx_a = 1;
