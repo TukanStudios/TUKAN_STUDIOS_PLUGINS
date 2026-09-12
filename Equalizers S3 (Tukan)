@@ -189,7 +189,7 @@ sliders_old = group_generics + 200;
 generics_old = sliders_old + 256;
 
 new_memory_inx = generics_old + 210;
-Version = 1;
+Version = 1.1;
 tt_time = -1;
   
   /*
@@ -346,7 +346,7 @@ tt_time = -1;
   this.gfx.band_set_filter(my_filter_type, per_to_freq(slider(startslider+2),100), slider(startslider+1), per_to_q(slider(startslider+3),100), slider(startslider+4));
   this.gfx.filter.svf_set_to_target();
   );
-  !this.on || !slider(startslider+1) ? this.filter.svf_reset();
+  !this.on || (!slider(startslider+1) && (my_filter_type != 1 && my_filter_type != 5) ) ? this.filter.svf_reset();
   );
   
   
@@ -1904,7 +1904,8 @@ gfx_x = box_x; gfx_y = box_y;
 function draw_one_filter(infill, the_number) local (rr gg bb tmp_loop0 Line_at tmp_loop2 nullinie) (
 rr = gfx_r; gg = gfx_g; bb = gfx_b;
 //gfx_r=rr; gfx_g=gg;gfx_b=bb; 
-!this.on ? (rgb(95,80,80); gfx_a = 0.7);
+!this.on && draw_node != this.number ? (rgb(95,80,80); gfx_a = 0.7; infill = 0);
+!this.on && draw_node == this.number ? (rgb(170,170,170); gfx_a = 1; infill = 0.5);
 gfx_a_old = gfx_a;
 nullinie = floor((grf_h/2));
 
@@ -1961,6 +1962,10 @@ g_collision(gfx_x+grf_x, gfx_y+grf_y, 24*zoom, 24*zoom) && mouseClick == 1 ? (
   slider31 = this.number;
   circle_clicked = 1;  circle_drag = 1;
 );
+g_collision(gfx_x+grf_x, gfx_y+grf_y, 24*zoom, 24*zoom) && mouseClick_R == 2 ? (
+  slider31 = this.number;
+  circle_clicked = 2;
+);
 g_collision(gfx_x+grf_x, gfx_y+grf_y, 24*zoom, 24*zoom) && mouse_wheel ? (
   slider(this.first_slider+3) = max(0,min(100,slider(this.first_slider+3) + mouse_wheel/72));
   caller = 1;
@@ -1983,6 +1988,7 @@ rr = gfx_r; gg = gfx_g; bb = gfx_b;
 
 gfx_a_old = gfx_a;
 nullinie = floor((grf_h/2));
+//!draw_node ? (gfx_a = 0.9; white()):(gfx_a = 0.0; rgb(250,50,50));
 gfx_a = 0.9; white();
 tmp_loop0 = 0;
 loop(grf_w,
@@ -2662,61 +2668,111 @@ spectrum.draw_grid(0);
 
 //sgfx_w = gfx_w;
 //sgfx_h = sgfx_w/2;
+      draw_node = 0;
+      g_collision(165*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 1;
+      g_collision(210*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 2;
+      g_collision(255*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 3;
+      g_collision(300*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 4;
+      g_collision(345*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 5;
+      g_collision(390*zoom, 80*zoom, 38*zoom,65*zoom) ? draw_node = 6;
+      g_collision(325*zoom, 170*zoom+10*zoom, 80*zoom, 352*zoom) || g_collision(165*zoom, 260*zoom+10*zoom, 38*zoom,152*zoom) ? draw_node = slider31;
+      
+slider31 != 1 || draw_node ? (
+rgb(200,0,250); draw_node ? gfx_a = 0.2 : gfx_a = 0.35;//gfx_a = 0.35;
+draw_node == 1 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band1.draw_one_filter(0.5, 1)
+):(
+  EQ_band1.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
+slider31 != 2 || draw_node ? (
+rgb(0,190,250); draw_node ? gfx_a = 0.2 : gfx_a = 0.35;//gfx_a = 0.35;
+draw_node == 2 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band2.draw_one_filter(0.5, 1)
+):(
+  EQ_band2.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
+slider31 != 3 || draw_node ? (
+rgb(0,250,220); draw_node ? gfx_a = 0.2 : gfx_a = 0.35;//gfx_a = 0.35;
+draw_node == 3 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band3.draw_one_filter(0.5, 1)
+):(
+  EQ_band3.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
+slider31 != 4 || draw_node ? (
+rgb(210,210,50);draw_node ? gfx_a = 0.2 : gfx_a = 0.35; //gfx_a = 0.35;
+draw_node == 4 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band4.draw_one_filter(0.5, 1)
+):(
+  EQ_band4.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
+slider31 != 5 || draw_node ? (
+rgb(80,250,50); draw_node ? gfx_a = 0.2 : gfx_a = 0.35;//gfx_a = 0.35;
+draw_node == 5 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band5.draw_one_filter(0.5, 1)
+):(
+  EQ_band5.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
+slider31 != 6 || draw_node ? (
+rgb(250,120,150); draw_node ? gfx_a = 0.2 : gfx_a = 0.35;//gfx_a = 0.35;
+draw_node == 6 ? (
+  gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5; gfx_a = 1;
+  EQ_band6.draw_one_filter(0.5, 1)
+):(
+  EQ_band6.draw_one_filter(0.7, 1); //infill facor, number
+);
+);
 
-
-slider31 != 1 ? (
-rgb(200,0,250); gfx_a = 0.35;
-EQ_band1.draw_one_filter(0.7, 1); //infill facor, number
-);
-slider31 != 2 ? (
-rgb(0,190,250); gfx_a = 0.35;
-EQ_band2.draw_one_filter(0.7, 1); //infill facor, number
-);
-slider31 != 3 ? (
-rgb(0,250,220); gfx_a = 0.35;
-EQ_band3.draw_one_filter(0.7, 1); //infill facor, number
-);
-slider31 != 4 ? (
-rgb(210,210,50); gfx_a = 0.35;
-EQ_band4.draw_one_filter(0.7, 1); //infill facor, number
-);
-slider31 != 5 ? (
-rgb(80,250,50); gfx_a = 0.35;
-EQ_band5.draw_one_filter(0.7, 1); //infill facor, number
-);
-slider31 != 6 ? (
-rgb(250,120,150); gfx_a = 0.35;
-EQ_band6.draw_one_filter(0.7, 1); //infill facor, number
-);
-
+!draw_node ? (
 slider31 == 1 ? (
-rgb(200,0,250); gfx_a = 1;
+rgb(200,0,250); gfx_a = 1; draw_node == 1 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
 EQ_band1.draw_one_filter(0.4, 1); //infill facor, number
 );
 slider31 == 2 ? (
-rgb(0,190,250); gfx_a = 1;
-EQ_band2.draw_one_filter(0.4, 1); //infill facor, number
+rgb(0,190,250); gfx_a = 1; draw_node == 2 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
+EQ_band2.draw_one_filter(draw_node == 2 ? 0.5 : 0.4, 1); //infill facor, number
 );
 slider31 == 3 ? (
-rgb(0,250,220); gfx_a = 1;
+rgb(0,250,220); gfx_a = 1; draw_node == 3 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
 EQ_band3.draw_one_filter(0.4, 1); //infill facor, number
 );
 slider31 == 4 ? (
-rgb(210,210,50); gfx_a = 1;
+rgb(210,210,50); gfx_a = 1; draw_node == 4 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
 EQ_band4.draw_one_filter(0.4, 1); //infill facor, number
 );
 slider31 == 5 ? (
-rgb(80,250,50); gfx_a = 1;
+rgb(80,250,50); gfx_a = 1; draw_node == 5 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
 EQ_band5.draw_one_filter(0.4, 1); //infill facor, number
 );
 slider31 == 6 ? (
-rgb(250,120,150); gfx_a = 1;
+rgb(250,120,150); gfx_a = 1; draw_node == 6 ? (gfx_r*=1.5; gfx_g*=1.5; gfx_b*=1.5);
 EQ_band6.draw_one_filter(0.4, 1); //infill facor, number
 );
-
+);
 
 draw_eq_curve();
-
+gfx_a = 1;
+      //orange(); gfx_rect(165*zoom, 113*zoom+10*zoom, 38*zoom, 22*zoom,0);
+      /*
+      S3Button(31, 1, 1, 165, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png 
+      S3Button(31, 2, 1, 210, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png 
+      S3Button(31, 3, 1, 255, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png 
+      S3Button(31, 4, 1, 300, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png 
+      S3Button(31, 5, 1, 345, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png 
+      S3Button(31, 6, 1, 390, 70, 2); //slider, onvalue, toggle to 0, posx, posy, png
+      
+      orange(); gfx_rect(325*zoom, 170*zoom+10*zoom, 80*zoom, 352*zoom,0);
+      orange(); gfx_rect(165*zoom, 260*zoom+10*zoom, 38*zoom, 152*zoom,0);
+      */
 g_collision (grf_x,grf_y,grf_w,grf_h) ? (
 circle_clicked = 0;
     rgb(200,0,250); EQ_band1.draw_circle();
@@ -2725,7 +2781,16 @@ circle_clicked = 0;
     rgb(210,210,50);EQ_band4.draw_circle();
     rgb(80,250,50);EQ_band5.draw_circle();
     rgb(250,120,150);EQ_band6.draw_circle();
+):(
+    draw_node == 1 ? (rgb(200,0,250); EQ_band1.draw_circle(););
+    draw_node == 2 ? (rgb(0,190,250);EQ_band2.draw_circle());
+    draw_node == 3 ? (rgb(0,250,220);EQ_band3.draw_circle());
+    draw_node == 4 ? (rgb(210,210,50);EQ_band4.draw_circle(););
+    draw_node == 5 ? (rgb(80,250,50);EQ_band5.draw_circle());
+    draw_node == 6 ? (rgb(250,120,150);EQ_band6.draw_circle());
 );
+
+
 
            #S3_tt1 = "Select/Drag the node (gain/frequency) or";
            #S3_tt2 = "scroll on the node (bandwidth)";
@@ -2983,13 +3048,11 @@ gfx_setfont(4,"Arial",15*zoom,'b');
       gfx_x = 167*zoom; gfx_y=240*zoom;gfx_setfont(4,"Arial",22*zoom,'b');
       gfx_drawstr("FILTER #"); gfx_drawnumber(slider31,0);
       
-      
-      
 gain_visible==1 ? (
-circle_clicked ? (Mod9_Gain.v_dragstart_S3(); caller = 1);
+circle_clicked == 1 ? (Mod9_Gain.v_dragstart_S3(); caller = 1);
 Mod9_Gain.v_dragging ? (Mod9_Gain.v_potdrag_S3(grf_h); caller = 1);
 );
-circle_clicked ? (Mod9_Frequency.h_dragstart_S3(); caller = 1);
+circle_clicked == 1 ? (Mod9_Frequency.h_dragstart_S3(); caller = 1);
 Mod9_Frequency.h_dragging ? (Mod9_Frequency.h_potdrag_S3(grf_w); caller = 1);
 MouseClick == - 1 ? (
           circle_drag = 0;
@@ -3001,6 +3064,26 @@ MouseClick == - 1 ? (
                                  //gmem[16*256 + 3] = 0;
                                  gen_dragging = 0; caller = 1;
                                  );
+
+circle_clicked == 2 ? (
+  slider(gfx_startslider) ? #allitems = "!" : #allitems = "";
+  #allitems += "Filter #"; #allitems += sprintf(#,"%i", slider31); #allitems += " on||";
+  slider(gfx_startslider+5) == 4 ? #allitems += "!"; #allitems += "High Cut (LPF)|";
+  slider(gfx_startslider+5) == 3 ? #allitems += "!"; #allitems += "High Shelf|";
+  slider(gfx_startslider+5) == 2 ? #allitems += "!"; #allitems += "EQ|";
+  slider(gfx_startslider+5) == 1 ? #allitems += "!"; #allitems += "Low Shelf|";
+  slider(gfx_startslider+5) == 0 ? #allitems += "!"; #allitems += "Low Cut (HPF)|";
+  gfx_x = mouse_x; gfx_y = mouse_y;
+  last_clicked_item = gfx_showmenu(#allitems);
+  last_clicked_item ? (
+    last_clicked_item == 1 ? (slider(gfx_startslider) == 0 ? slider(gfx_startslider) = 1 : slider(gfx_startslider) = 0) :
+    (
+    slider(gfx_startslider+5) = 6 - last_clicked_item;
+    );
+    caller = 1;
+  );
+  circle_clicked = 0;
+);
 
 );
 
