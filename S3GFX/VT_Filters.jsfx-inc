@@ -1,0 +1,229 @@
+//desc:Matched 2nd order filters
+
+// Source: https://vicanek.de/articles/BiquadFits.pdf
+/*
+slider1:0<0,9,1{freqLfilter}>Mode
+slider2:1000<1,24000,1>Freq (Hz)
+slider3:1.0<0.1,10.0,0.01>Q
+slider4:0.0<-72.0,36.0,0.1>Gain (dB)
+
+@slider
+
+mode = slider1|0;
+freq = slider2;
+Q_ = slider3;
+G = 10^(slider4/20);
+*/
+@init
+
+function setfilter(mode, freq, Q_, gain) (
+G = 10^(gain/20);
+
+// Matched Peaking EQ
+mode == 5 ? Q_ *= sqrt(G);
+
+f0 = min(2*freq/srate, 1);
+w0 = $pi*f0;
+q = 1/(2*Q_);
+
+// a1 = -(z1 + z2) = -2*exp(-q*w0)*cos(sqrt(1 - q^2)*w0)   if q <= 1
+//                   -2*exp(-q*w0)*cosh(sqrt(q^2 - 1)*w0)  if q > 1
+// a2 = z1*z2 = exp(-2*q*w0)
+
+q <= 1 ? (
+  this.a1 = -2*exp(-q*w0)*cos(sqrt(1 - sqr(q))*w0);
+) : (
+  tmp = sqrt(sqr(q) - 1);
+  this.a1 = -exp((-tmp - q)*w0) - exp((tmp - q)*w0);
+);
+
+this.a2 = exp(-2*q*w0);
+
+//            B0*Phi0 + B1*Phi1 + B2*Phi2
+// |H(z)|^2 = ---------------------------
+//            A0*Phi0 + A1*Phi1 + A2*Phi2
+
+Phi1 = sqr(sin(w0/2));
+Phi0 = 1 - Phi1;
+Phi2 = 4*Phi0*Phi1;
+
+A0 = sqr(1 + this.a1 + this.a2);
+A1 = sqr(1 - this.a1 + this.a2);
+A2 = -4*this.a2;
+
+// B0 = (b0 + b1 + b2)^2
+// B1 = (b0 - b1 + b2)^2
+// B2 = -4*b0*b2
+
+// Matched Lowpass
+mode == 0 ? (
+  // H_LP(s) = w0^2 / (w0^2 + s*w0/Q + s^2)
+
+  // Unity gain at DC: H(z = 1) = 1
+  B0 = A0;
+
+  // |H(z)|w=w0 = |H_LP(s = i*w0)| = Q
+  R1 = /* B0*Phi0 + B1*Phi1 = */ (A0*Phi0 + A1*Phi1 + A2*Phi2)*sqr(Q_);
+  B1 = (R1 - B0*Phi0)/Phi1;
+
+  // sqrt(B0) = 1 + a1 + a2
+  sqrt_B0 = 1 + this.a1 + this.a2;
+
+  this.b0 = 0.5*(sqrt_B0 + sqrt(B1));
+  this.b1 = sqrt_B0 - this.b0;
+
+  // Single zero
+  this.b2 = 0;
+) :
+
+// Matched Highpass
+mode == 1 ? (
+  // H_HP(s) = s^2 / (w0^2  + s*w0/Q + s^2)
+
+  // |H(z)|w=w0 = |H_HP(s = i*w0)| = Q
+  this.b0 = sqrt(A0*Phi0 + A1*Phi1 + A2*Phi2) / (4*Phi1) * Q_;
+
+  // Double zero at z = 1
+  this.b1 = -2*this.b0;
+  this.b2 = this.b0;
+) :
+
+// Matched Bandpass 1 (constant skirt gain) 
+mode == 2 ? (
+  // H_BP1(s) = s*w0 / (w0^2 + s*w0/Q + s^2)
+
+  // Single zero at DC: b0 + b1 + b2 = 0
+  B0 = 0;
+
+  // Maximum at w0: d/dw * |H(z)|^2|w=w0 = 0
+  // |H(z)|w=w0 = H_BP1(s = i*w0) = Q
+  R1 = /* B1*Phi1 + B2*Phi2 = */ (A0*Phi0 + A1*Phi1 + A2*Phi2)*sqr(Q_);
+  R2 = /* B1 + 4*(Phi0 - Phi1)*B2 = */ (-A0 + A1 + 4*(Phi0 - Phi1)*A2)*sqr(Q_);
+
+  B2 = (R1 - R2*Phi1) / (4*sqr(Phi1));
+  B1 = R2 + 4*(Phi1 - Phi0)*B2;
+
+  this.b1 = -0.5*sqrt(B1);
+  this.b0 = 0.5*(sqrt(B2 + sqr(this.b1)) - this.b1);
+  this.b2 = -this.b0 - this.b1;
+) :
+
+// Matched Bandpass 2 (constant peak gain)
+mode == 3 ? (
+  // H_BP(s) = s*w0/Q / (w0^2 + s*w0/Q + s^2)
+
+  // Single zero at DC: b0 + b1 + b2 = 0
+  B0 = 0;
+
+  // Maximum at w0: d/dw * |H(z)|^2|w=w0 = 0
+  // Unity gain at w0: |H(z)|^2|w=w0 = 1
+  R1 = /* B1*Phi1 + B2*Phi2 = */ A0*Phi0 + A1*Phi1 + A2*Phi2;
+  R2 = /* B1 + 4*(Phi0 - Phi1)*B2 = */ -A0 + A1 + 4*(Phi0 - Phi1)*A2;
+
+  B2 = (R1 - R2*Phi1) / (4*sqr(Phi1));
+  B1 = R2 + 4*(Phi1 - Phi0)*B2;
+
+  this.b1 = -0.5*sqrt(B1);
+  this.b0 = 0.5*(sqrt(B2 + sqr(this.b1)) - this.b1);
+  this.b2 = -this.b0 - this.b1;
+) :
+
+// Matched Bandstop
+mode == 4 ? (
+  // H_BS(s) = (w0^2 + s^2) / (w0^2 + s*w0/Q + s^2)
+
+  // Unity gain at DC: H(z = 1) = 1
+  B0 = A0;
+
+  // |H(z)|w=w0 = 0
+  // d/dw * |H(z)|^2|w=w0 = 0
+  B2 = -B0 / (4*sqr(Phi1));
+  B1 = B0 + 4*(Phi1 - Phi0)*B2;
+
+  // b2 = b0
+  this.b0 = sqrt(-B2/4);
+  this.b1 = 0.5*(sqrt(B0) - sqrt(B1));
+  this.b2 = this.b0;
+) :
+
+// Matched Peaking EQ
+mode == 5 ? (
+  // H_EQ(s) = (w0^2 + s*w0*sqrt(G)/Q + s^2) / (w0^2 + s*w0/(sqrt(G)*Q) + s^2)
+
+  // Unity gain at DC: H(z = 1) = 1
+  B0 = A0;
+
+  // |H(z)|w=w0 = G
+  // d/dw * |H(z)|^2|w=w0 = 0
+  R1 = /* B0*Phi0 + B1*Phi1 + B2*Phi2 = */ (A0*Phi0 + A1*Phi1 + A2*Phi2)*sqr(G);
+  R2 = /* -B0 + B1 + 4*(Phi0  - Ph1)*B2 = */ (-A0 + A1 + 4*(Phi0 - Phi1)*A2)*sqr(G);
+
+  B2 = (R1 - R2*Phi1 - B0) / (4*sqr(Phi1));
+  B1 = R2 + B0 + 4*(Phi1 - Phi0)*B2;
+
+  W = 0.5*(sqrt(B0) + sqrt(B1));
+  this.b0 = 0.5*(W + sqrt(sqr(W) + B2));
+  this.b1 = 0.5*(sqrt(B0) - sqrt(B1));
+  this.b2 = -B2/(4*this.b0);
+) :
+
+// Even Simpler Lowpass
+mode == 6 ? (
+  r0 = /* b0 + b1 = */ 1 + this.a1 + this.a2;
+  r1 = /* b0 - b1 = */ (1 - this.a1 + this.a2)*sqr(f0) / sqrt(sqr(1 - sqr(f0)) + sqr(f0)/sqr(Q_));
+
+  this.b0 = (r0 + r1)/2;
+  this.b1 = r0 - this.b0;
+  this.b2 = 0;
+) :
+
+// Even Simpler Highpass
+mode == 7 ? (
+  r1 = /* b0 - b1 + b2 = */ (1 - this.a1 + this.a2) / sqrt(sqr(1 - sqr(f0)) + sqr(f0)/sqr(Q_));
+
+  this.b0 = r1/4;
+  this.b1 = -2*this.b0;
+  this.b2 = this.b0;
+) :
+
+// Even Simpler Bandpass 1 (constant skirt gain)
+mode == 8 ? (
+  r0 = /* b0 - b2 = */ (1 + this.a1 + this.a2) / ($pi*f0);
+  r1 = /* b0 - b1 + b2 = */ (1 - this.a1 + this.a2)*f0 / sqrt(sqr(1 - sqr(f0)) + sqr(f0)/sqr(Q_));
+
+  this.b1 = -r1/2;
+  this.b0 = (r0 - this.b1)/2;
+  this.b2 = -this.b0 - this.b1;
+) :
+
+// Even Simpler Bandpass 2 (constant peak gain)
+mode == 9 ? (
+  r0 = /* b0 - b2 = */ (1 + this.a1 + this.a2) / ($pi*f0*Q_);
+  r1 = /* b0 - b1 + b2 = */ (1 - this.a1 + this.a2)*f0/Q_ / sqrt(sqr(1 - sqr(f0)) + sqr(f0)/sqr(Q_));
+
+  this.b1 = -r1/2;
+  this.b0 = (r0 - this.b1)/2;
+  this.b2 = -this.b0 - this.b1;
+);
+
+); // end function
+
+
+
+
+//@sample
+
+function df1(sample)
+  instance(a1, a2, b0, b1, b2, x0, x1, y0, y1)
+  local(x2, y2)
+(
+  x2 = x1;
+  x1 = x0;
+  x0 = sample;
+
+  y2 = y1;
+  y1 = y0;
+  y0 = b0*x0 + b1*x1 + b2*x2 - a1*y1 - a2*y2;
+);
+
+//spl0 = spl1 = this.df1((spl0 + spl1) * 0.5);

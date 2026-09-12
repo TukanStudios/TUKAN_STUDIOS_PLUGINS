@@ -1,0 +1,1431 @@
+@init
+
+function set_scaling_behaviour()
+(
+  absolute_frequencies ? (
+    MB_freq_max = 22050;
+    norm_MB_freq_min = 20.0 / MB_freq_max;
+    norm_MB_freq_max = MB_freq_max / srate;
+
+  //MB_freq_max = 44100/2;//22050 * (srate/44100);
+  //norm_MB_freq_min = 20.0 / (MB_freq_max/2);
+  //norm_MB_freq_max = MB_freq_max / srate;
+  ) : (
+    MB_freq_max = 0.5 * srate;
+    norm_MB_freq_min = 20.0 / 22050;
+    norm_MB_freq_max = 0.5;
+  );
+);
+  
+
+
+  function f_trafo(freq)
+  local()
+  global(srate, MB_freq_max, norm_MB_freq_min)
+  instance()
+  (
+    MB_freq_max * exp( (1-freq) * log(norm_MB_freq_min) )
+  );
+
+  function initBands()
+  local()
+  global()
+  instance(lg1, lg2, lg3, lg4, lg5, b1, b2, b3, b4, b5)
+  (
+    lg1 = lg2 = lg3 = lg4 = lg5 = -1000000;
+    b1.ldrive = b2.ldrive = b3.ldrive = b4.ldrive = b5.ldrive = -1000000;
+    b1.initialized = b2.initialized = b3.initialized = b4.initialized = b5.initialized = 0;
+  );
+
+//driveMax = 60;
+//driveMin = -40;
+//driveRange = driveMax - driveMin;
+
+// Precompute some things
+//gainRange = ( gainMax - gainMin );
+//iGainRange = 1.0 / gainRange;
+//iDriveRange = 1.0 / driveRange;
+
+///////////////////
+/* SLIDER LAYOUT */
+///////////////////
+/* Keep these updated with the slider locations */
+/*
+frequencyLocation = 2;
+driveLocation     = 6;
+
+// Shift slider data right (for different bands) 
+function shiftRight(loc, fromIdx, numElements)
+  local(midx)
+  global()
+  (
+    midx = loc + numElements;
+    loop(numElements-fromIdx,
+      slider(midx) = slider(midx-1);
+      midx = midx - 1;
+    );
+  );
+
+// Shift slider data left  (for different bands)
+function shiftLeft(loc, fromIdx, numElements)
+  local(midx)
+  global()
+  (
+    midx = loc+fromIdx;
+    loop(numElements-fromIdx,
+      slider(midx) = slider(midx+1);
+      midx = midx + 1;
+    );
+  );
+  
+// Shift slider data right (for different bands) 
+function shiftRightMem(loc, fromIdx, numElements)
+  local(midx)
+  global()
+  (
+    midx = loc + numElements;
+    loop(numElements-fromIdx,
+      midx[] = midx[-1];
+      midx -= 1;
+    );
+  );
+
+// Shift slider data left  (for different bands) 
+function shiftLeftMem(loc, fromIdx, numElements)
+  local(midx)
+  global()
+  (
+    midx = loc+fromIdx;
+    loop(numElements-fromIdx,
+      midx[] = midx[1];
+      midx += 1;
+    );
+  );  
+
+// Make room for a new band in the slider data
+function addBand(idx)
+  local(midx)
+  instance()
+  (
+    shiftRight( driveLocation,     idx, maxCuts );
+    shiftRight( frequencyLocation, idx, maxCuts-1 );
+    
+    cuts = cuts + 1;
+  );
+  
+// Remove a band and move other slider data accordingly 
+function remBand(idx)
+  local(midx)
+  instance()
+  (
+    shiftLeft( driveLocation,     idx, maxCuts );
+    shiftLeft( frequencyLocation, idx, maxCuts-1 );
+    
+    cuts = cuts - 1;
+  );  
+/*
+
+/* Feed sample to FFT */
+function feedSample(sample)
+  global(fftSize)
+  instance(recPtr, window, rStart, rEnd, fftLoc)
+  local()
+  (
+    recPtr[] = sample;
+    recPtr = (recPtr+1) >= rEnd ? rStart : recPtr + 1;
+  );
+
+/* Initialize FFT windowing function */
+function initWindow(windowtype)
+  global(fftSize)
+  instance(recPtr, window, rStart, rEnd, fftLoc)
+  local(i, pwr, dwindowpos, windowpos)
+  (
+    windowpos = 0;
+    dwindowpos = $pi*2/fftSize;
+    i = 0; pwr = 0;
+    loop(fftSize*.5+1,
+       pwr += (window[i] = (
+         windowtype==1 ? ( 0.53836 - cos(windowpos)*0.46164 ) :
+         windowtype==2 ? ( 0.35875 - 0.48829 * cos(windowpos) + 0.14128 * cos(2*windowpos) - 0.01168 * cos(3*windowpos) ) :
+         windowtype==3 ? ( 0.42 - 0.50 * cos(windowpos) + 0.08 * cos(2.0*windowpos) ) :
+         windowtype==4 ? ( 1.0 ) :
+         ( .21557895 - 0.41663158 * cos(windowpos) + 0.277263158 * cos(2*windowpos) - 0.083578947 * cos(3*windowpos) + 0.006947368 * cos(4*windowpos) )
+         ) );
+       i+=1;
+       windowpos+=dwindowpos;
+    );
+    pwr=.5/(pwr*2-window[i-1]);
+    loop(fftsize*.5+1,window[i-=1]*=pwr);
+ );
+  
+function setToFFTLoc()
+ global(fftSize)
+ instance(recPtr, rStart)
+ local()
+ ( 
+    recPtr = rStart + fftSize;
+ ); 
+
+/* Calculate current spectrum */
+function calcFFT()
+  global(fftSize)
+  instance(recPtr, window, rStart, rEnd, fftLoc, slope, yshift)
+  local(buf1, buf2, buf3, yOut, i, prec, ty)
+  (
+    buf1=recPtr-fftSize;
+    buf1<rStart ? buf1+=(rEnd-rStart);
+    buf2=window;
+    buf3=fftLoc;
+    loop(fftSize*.5 + 1,
+      buf3[] = buf1[]*buf2[];
+      buf3+=1;
+    
+      buf2+=1;
+      (buf1+=1) >= rEnd ? buf1 -= (rEnd-rStart);
+    );
+    buf2-=1;
+    loop(fftSize*.5 - 1,
+      buf3[] = buf1[]*(buf2-=1)[];
+      buf3+=1;
+      (buf1+=1) >= rEnd ? buf1 -= (rEnd-rStart);
+    );
+    
+    fft_real(fftLoc,fftSize);
+    fft_permute(fftLoc,fftSize/2);
+    
+    buf3    = fftLoc;
+    yOut    = fftLoc;  
+    i       = 0;
+    slope   = .5*log(2)*slope;
+    yshift  = slope*log(1.0+.5*fftSize);
+    prec    = (10^(-500/20*2));
+    loop(fftSize*0.5,   
+      ty      = sqr(buf3[0])+sqr(buf3[1]);
+      ty      = log(max(ty,prec));
+      
+      ty      = ty + slope*log(1.0+i) - yshift;
+      yOut[]  = ty;
+      yOut    += 1;
+      buf3    += 2;    
+      
+      i += 1;
+    );
+  );  
+
+/* Set location of a window */
+function setWindowLocation(_x, _y, _w, _h)
+  global()
+  instance(x, y, w, h, cap)
+  local()
+  ( 
+    x = _x;
+    y = _y;
+    w = _w;
+    h = _h;
+  );
+
+
+function isOver(mx, my)
+  instance(x, y, w, h)
+  global(overRange)
+  local()
+  (
+    ( ( mx >= (x-overRange) ) && ( mx <= (x+w+overRange) ) && ( my >= (y-overRange) ) && ( my <= (y+h+overRange) ) ) ? 1 : 0;
+  );
+
+function clamp(value, mini, maxi)
+  local()
+  global()
+  (
+    max(min(value,maxi),mini)
+  );
+
+function overRect(x, y, w, h, mx, my)
+  local()
+  global()
+  (
+    ( (mx > x) && (mx < (x+w) ) && (my > y) && (my < (y+h) ) )
+  );
+
+function updateBands()
+  global(Freq1,   Freq2,   Freq3,   Freq4,
+         Ceil1,   Ceil2,   Ceil3,   Ceil4,
+         /*Drive1,  Drive2,  Drive3,  Drive4,  Drive5,*/
+         fftSize, driveRange, driveMax, abs_placement, cuts,
+         norm_MB_freq_min)
+  instance(x, y, w, h, hzoffset,
+           x1,  x2,  x3,  x4,  x5,  /* Frequencies          */
+           y1,  y2,  y3,  y4,  y5,  /* Drives               */
+           )
+  local(F1, F2, F3, F4, F5, wsc, hfft, lmin, irange, dmax)
+  (
+    abs_placement ? (
+      F1 = clamp(Freq1, 0, cuts > 1 ? Freq2 : 1);
+      F2 = clamp(Freq2, Freq1, cuts > 2 ? Freq3 : 1);
+      F3 = clamp(Freq3, Freq2, cuts > 3 ? Freq4 : 1);
+      F4 = clamp(Freq4, Freq3, 1.0);
+    ) : (
+      F1 = Freq1;
+      F2 = Freq1  + Freq2 * (1 - Freq1);
+      F3 = F2     + Freq3 * (1 - F2);
+      F4 = F3     + Freq4 * (1 - F3);
+    );
+    
+    hfft = 0.5*fftSize;
+    lmin = log(norm_MB_freq_min);
+    
+    wsc = w/log(1+fftSize*0.5-hzoffset);
+    x1 = ( x + log( hfft * exp( (1-F1) * lmin ) - hzoffset ) * wsc );
+    x2 = ( x + log( hfft * exp( (1-F2) * lmin ) - hzoffset ) * wsc );
+    x3 = ( x + log( hfft * exp( (1-F3) * lmin ) - hzoffset ) * wsc );
+    x4 = ( x + log( hfft * exp( (1-F4) * lmin ) - hzoffset ) * wsc );
+    x5 = ( x + log( hfft * exp( lmin ) - hzoffset ) * wsc );
+       
+    iRange = 1/driveRange;
+    dmax = iRange * driveMax;
+    
+    y1 = y+h*(dmax-iRange);//*Drive1);
+    y2 = y+h*(dmax-iRange);//*Drive2);
+    y3 = y+h*(dmax-iRange);//*Drive3);
+    y4 = y+h*(dmax-iRange);//*Drive4);
+    y5 = y+h*(dmax-iRange);//*Drive5);
+  );
+
+
+  
+  
+function setOffset(offset)
+  local()
+  global()
+  instance(scopeptr, readptr, scopebuffermax, scopebuffer, frac)
+  (
+    readptr   = scopeptr;
+    frac      = offset - floor(offset);
+    readptr  -= floor(offset);
+    readptr < scopebuffer ? readptr += (scopebuffermax-scopebuffer+1);
+  );
+  
+function readBuffer()
+  local(c1, c2)
+  global()
+  instance(readptr, scopebuffermax, scopebuffer, frac)
+  (
+    c1 = readptr[];
+    readptr += 1;
+    readptr > scopebuffermax ? readptr = scopebuffer;
+    
+    c2 = readptr[];
+    c2 * (1.0-frac) + c1 * frac
+  );
+  
+function updateBuffer(M)
+  local()
+  global()
+  instance(scopeptr, scopebuffermax, scopebuffer)
+  (
+    scopeptr[] = M;
+    scopeptr += 1;
+    scopeptr > scopebuffermax ? scopeptr = scopebuffer;
+    
+    M
+  );  
+  
+function clearBuffer()
+  local()
+  global(MAXBUFFERSIZE)
+  instance(scopeptr, scopebuffermax, scopebuffer)
+  (
+    memset( scopebuffer, 0, MAXBUFFERSIZE );
+    scopeptr = scopebuffer;
+  );   
+  
+  function processBands()
+  local(BW2)
+  global( /*Drive1,    Drive2,    Drive3,     Drive4,     Drive5*/
+          play1,     play2,     play3,      play4,      play5, katze )
+  instance(b1, b2, b3, b4, b5, F1, F2, F3, F4, F5,
+           g1,       g2,       g3,       g4,       g5,
+           lg1,      lg2,      lg3,      lg4,      lg5 )
+  (
+    /*
+    ( lg1 != Drive1 ) ? ( g1 = (10^(0.05*Drive1)); lg1 = Drive1; );
+    ( lg2 != Drive2 ) ? ( g2 = (10^(0.05*Drive2)); lg2 = Drive2; );
+    ( lg3 != Drive3 ) ? ( g3 = (10^(0.05*Drive3)); lg3 = Drive3; );
+    ( lg4 != Drive4 ) ? ( g4 = (10^(0.05*Drive4)); lg4 = Drive4; );
+    ( lg5 != Drive5 ) ? ( g5 = (10^(0.05*Drive5)); lg5 = Drive5; );
+
+    b1.l = b2.l = b3.l = b4.l = b5.l = 0;
+    b1.r = b2.r = b3.r = b4.r = b5.r = 0;
+    play1 ? (
+      b1.l = g1*b1.inL;
+      b1.r = g1*b1.inR;
+    );
+    play2 ? (
+      b2.l = g2*b2.inL;
+      b2.r = g2*b2.inR;
+    );
+    play3 ? (
+      b3.l = g3*b3.inL;
+      b3.r = g3*b3.inR;
+    );
+    play4 ? (
+      b4.l = g4*b4.inL;
+      b4.r = g4*b4.inR;
+    );
+    play5 ? (
+      b5.l = g5*b5.inL;
+      b5.r = g5*b5.inR;
+    );
+    */
+    b1.l = b1.inL;b1.r = b1.inR;
+    b2.l = b2.inL;b2.r = b2.inR;
+    b3.l = b3.inL;b3.r = b3.inR;
+    b4.l = b4.inL;b4.r = b4.inR;
+    b5.l = b5.inL;b5.r = b5.inR;
+  ); 
+  
+
+
+
+
+
+function MB_Block () (
+set_scaling_behaviour();
+(MB_FIR) ? (
+  MB_chunkSize = (fftCalcSize - MB_FIRSize - 1);
+  newPDC = MB_chunkSize + 0.5*MB_FIRSize;
+) : (
+  newPDC = 0;
+);
+);
+
+
+  function init_LR2(freq)
+    global(srate, norm_MB_freq_max, norm_MB_freq_min, band_mode)
+    local(f0, ct, st, div)
+    instance(k, a1, a2, a3)
+    (
+      f0 = norm_MB_freq_max * $pi * exp( (1.0 - freq) * log(norm_MB_freq_min) );
+      k = band_mode == 0 ? sqrt(2) : 2; /* Note the different peak resonance because we're combining 2 SVFs into the Linkwitz-Riley structure */
+
+      ct = cos(f0);
+      st = sin(f0);
+      div = 1.0 / (1.0 + k * st * ct);
+      a1 = ct * ct * div;
+      a2 = st * ct * div;
+      a3 = st * st * div;
+    );
+  
+  function reset_LR()
+    global()
+    local()
+    instance(ic1eq, ic2eq, ic3eq, ic4eq, ic5eq, ic6eq, k, a1, a2, a3)
+    (
+      ic1eq = ic2eq = 0;  
+    );  
+
+  function eval_LRLP(v0)
+    global()
+    local(v1, v2, v3)
+    instance(ic3eq, ic4eq, a1, a2, a3)
+    (
+      v3 = v0 - ic4eq;
+      v1 = a1 * ic3eq + a2 * v3;
+      v2 = ic4eq + a2 * ic3eq + a3 * v3;
+      ic3eq = 2*v1 - ic3eq;
+      ic4eq = 2*v2 - ic4eq;
+      
+      v2
+    );  
+ 
+  function eval_LRAP(v0)
+    global()
+    local(v1, v2, v3)
+    instance(ic5eq, ic6eq, k, a1, a2, a3)
+    (
+      v3 = v0 - ic6eq;
+      v1 = a1 * ic5eq + a2 * v3;
+      v2 = ic6eq + a2 * ic5eq + a3 * v3;
+      ic5eq = 2*v1 - ic5eq;
+      ic6eq = 2*v2 - ic6eq;    
+      
+      v0 - 2*k*v1
+    );
+    
+  function eval_LR2(v0)
+    global()
+    local(v1, v2, v3, all)
+    instance(ic1eq, ic2eq, k, a1, a2, a3, hp, lp)
+    (
+      v3 = v0 - ic2eq;
+      v1 = a1 * ic1eq + a2 * v3;
+      v2 = ic2eq + a2 * ic1eq + a3 * v3;
+      ic1eq = 2*v1 - ic1eq;
+      ic2eq = 2*v2 - ic2eq;
+      
+      all = v0 - 2 * k * v1;
+ 
+      lp = this.eval_LRLP(v2); 
+      hp = all - lp;
+    );
+    
+  function eval_LR1(v0)
+    global()
+    local(v1, v2, v3)
+    instance(ic1eq, ic2eq, k, a1, a2, a3, hp, lp)
+    (
+      v3 = v0 - ic2eq;
+      v1 = a1 * ic1eq + a2 * v3;
+      v2 = ic2eq + a2 * ic1eq + a3 * v3;
+      ic1eq = 2*v1 - ic1eq;
+      ic2eq = 2*v2 - ic2eq;
+ 
+      lp = v2;
+      hp = v0 - k * v1 - lp;
+    );
+    
+  function init_AP1(freq)
+    global(srate, norm_MB_freq_min, norm_MB_freq_max)
+    instance(k)
+    local(f0, st)
+    (
+      f0 = norm_MB_freq_max * $pi * exp((1 - freq) * log(norm_MB_freq_min));
+      st = sin(f0);
+      k = st / (st + cos(f0));
+    );
+    
+  function eval_AP1(v0)
+    global()
+    instance(k, state)
+    local(v, y)
+    (
+      v = (v0 - state) * k;
+      y = v + state;
+      state = y + v;
+      y - (v0 - y)
+    );
+  
+  function resetBands()
+  local()
+  global()
+  instance( b1, b2, b3, b4, b5 )
+  (
+    b1.r = b1.l = b2.r = b2.l = b3.r = b3.l = b4.r = b4.l = b5.l = 0;
+  );
+  
+  function resetFilters()
+  global()
+  local()
+  instance(
+            LF1, LF2, LF3, LF4            /* Lowpass left */
+            LA_F2,                        /* Allpass frequency 2 left */
+            LA_F3, LA_F3_2,               /* Allpass frequency 3 left */
+            LA_F4, LA_F4_2, LA_F4_3,      /* Allpass frequency 4 left */
+            RF1, RF2, RF3, RF4            /* Lowpass right */
+            RA_F2,                        /* Allpass frequency 2 right */
+            RA_F3, RA_F3_2,               /* Allpass frequency 3 right */
+            RA_F4, RA_F4_2, RA_F4_3,      /* Allpass frequency 4 right */  
+  )
+  (
+    // LR2  => ic1eq, ic2eq, ic3eq, ic4eq
+    // LPLP => ic3eq, ic4eq
+    // LRAP => ic5eq, ic6eq
+    
+    LF1.ic1eq = LF1.ic2eq = LF1.ic3eq = LF1.ic4eq = 0;
+    LF2.ic1eq = LF2.ic2eq = LF2.ic3eq = LF2.ic4eq = 0;
+    LF3.ic1eq = LF3.ic2eq = LF3.ic3eq = LF3.ic4eq = 0;
+    LF4.ic1eq = LF4.ic2eq = LF4.ic3eq = LF4.ic4eq = 0;
+
+    RF1.ic1eq = RF1.ic2eq = RF1.ic3eq = RF1.ic4eq = 0;
+    RF2.ic1eq = RF2.ic2eq = RF2.ic3eq = RF2.ic4eq = 0;
+    RF3.ic1eq = RF3.ic2eq = RF3.ic3eq = RF3.ic4eq = 0;
+    RF4.ic1eq = RF4.ic2eq = RF4.ic3eq = RF4.ic4eq = 0;
+
+    LA_F2.state = LA_F3.state = LA_F4.state = 0;
+    RA_F2.state = RA_F3.state = RA_F4.state = 0;
+    
+    LA_F3_2.state = LA_F4_2.state = LA_F4_3.state = 0;
+    RA_F3_2.state = RA_F4_2.state = RA_F4_3.state = 0;
+    
+    LA_F4.ic5eq = LA_F4.ic6eq = LA_F3.ic5eq = LA_F3.ic6eq = LA_F2.ic5eq = LA_F2.ic6eq = 0;
+    RA_F4.ic5eq = RA_F4.ic6eq = RA_F3.ic5eq = RA_F3.ic6eq = RA_F2.ic5eq = RA_F2.ic6eq = 0;
+
+    LA_F4_2.ic5eq = LA_F4_2.ic6eq = LA_F3_2.ic5eq = LA_F3_2.ic6eq = LA_F4_3.ic5eq = LA_F4_3.ic6eq = 0;
+    RA_F4_2.ic5eq = RA_F4_2.ic6eq = RA_F3_2.ic5eq = RA_F3_2.ic6eq = RA_F4_3.ic5eq = RA_F4_3.ic6eq = 0;
+  );
+  
+  // Make sure the delay is the same on all bands (identical number of filters)
+  function splitBands(sl, sr)
+  local()
+  global(Cuts, MB_FIR, band_mode, lband_mode)
+  instance( LF1, LF2, LF3, LF4            /* Lowpass left */
+            LA_F2,                        /* Allpass frequency 2 left */
+            LA_F3, LA_F3_2,               /* Allpass frequency 3 left */
+            LA_F4, LA_F4_2, LA_F4_3,      /* Allpass frequency 4 left */
+            RF1, RF2, RF3, RF4            /* Lowpass right */
+            RA_F2,                        /* Allpass frequency 2 right */
+            RA_F3, RA_F3_2,               /* Allpass frequency 3 right */
+            RA_F4, RA_F4_2, RA_F4_3,      /* Allpass frequency 4 right */
+            b1, b2, b3, b4, b5, lcuts )
+  (
+    ( lcuts != cuts ) ? (
+      lcuts = cuts;
+      this.resetBands();
+    );
+    
+    band_mode == 0 ? (
+      // 4p filters
+      (cuts==0) ? (
+        b1.inL = sl;
+        b1.inR = sr;
+      ) : (cuts==1) ? (
+        LF1.eval_LR2(sl);
+        b1.inL = LF1.lp;
+        b2.inL = LF1.hp;
+          
+        RF1.eval_LR2(sr);
+        b1.inR = RF1.lp;
+        b2.inR = RF1.hp;
+      ) : (cuts==2) ? (
+        LF1.eval_LR2(sl);
+        b1.inL   = LA_F2.eval_LRAP(LF1.lp);
+          
+        LF2.eval_LR2(LF1.hp);
+        b2.inL   = LF2.lp;
+        b3.inL   = LF2.hp;
+          
+        RF1.eval_LR2(sr);
+        b1.inR   = RA_F2.eval_LRAP(RF1.lp);
+          
+        RF2.eval_LR2(RF1.hp);
+        b2.inR   = RF2.lp;
+        b3.inR   = RF2.hp;
+      ) : (cuts == 3) ? (
+        LF1.eval_LR2(sl);
+        b1.inL   = LA_F3.eval_LRAP(LA_F2.eval_LRAP(LF1.lp));
+          
+        LF2.eval_LR2(LF1.hp);
+        b2.inL   = LA_F3_2.eval_LRAP(LF2.lp);
+          
+        LF3.eval_LR2(LF2.hp);
+        b3.inL   = LF3.lp;
+        b4.inL   = LF3.hp;
+          
+        RF1.eval_LR2(sr);
+        b1.inR   = RA_F3.eval_LRAP(RA_F2.eval_LRAP(RF1.lp));
+        
+        RF2.eval_LR2(RF1.hp);
+        b2.inR   = RA_F3_2.eval_LRAP(RF2.lp);
+        
+        RF3.eval_LR2(RF2.hp);
+        b3.inR   = RF3.lp;
+        b4.inR   = RF3.hp;
+      ) : (cuts == 4) ? (
+        LF1.eval_LR2(sl);
+        b1.inL   = LA_F4.eval_LRAP(LA_F3.eval_LRAP(LA_F2.eval_LRAP(LF1.lp)));
+        
+        LF2.eval_LR2(LF1.hp);
+        b2.inL   = LA_F4_2.eval_LRAP(LA_F3_2.eval_LRAP(LF2.lp));
+          
+        LF3.eval_LR2(LF2.hp);
+        b3.inL   = LA_F4_3.eval_LRAP(LF3.lp);
+          
+        LF4.eval_LR2(LF3.hp);
+        b4.inL   = LF4.lp;
+        b5.inL   = LF4.hp;
+          
+        RF1.eval_LR2(sr);
+        b1.inR   = RA_F4.eval_LRAP(RA_F3.eval_LRAP(RA_F2.eval_LRAP(RF1.lp)));
+          
+        RF2.eval_LR2(RF1.hp);
+        b2.inR   = RA_F4_2.eval_LRAP(RA_F3_2.eval_LRAP(RF2.lp));
+          
+        RF3.eval_LR2(RF2.hp);
+        b3.inR   = RA_F4_3.eval_LRAP(RF3.lp);
+          
+        RF4.eval_LR2(RF3.hp);
+        b4.inR   = RF4.lp;
+        b5.inR   = RF4.hp;
+      );
+    ) : (
+      // 2p filters
+      (cuts==0) ? (
+        b1.inL = sl;
+        b1.inR = sr;
+      ) : (cuts==1) ? (
+        LF1.eval_LR1(sl);
+        b1.inL = LF1.lp;
+        b2.inL = - LF1.hp;
+          
+        RF1.eval_LR1(sr);
+        b1.inR = RF1.lp;
+        b2.inR = - RF1.hp;
+      ) : (cuts==2) ? (
+        LF1.eval_LR1(sl);
+        b1.inL   = LA_F2.eval_AP1(LF1.lp);
+          
+        LF2.eval_LR1(LF1.hp);
+        b2.inL   = -LF2.lp;
+        b3.inL   = LF2.hp;
+            
+        RF1.eval_LR1(sr);
+        b1.inR   = RA_F2.eval_AP1(RF1.lp);
+            
+        RF2.eval_LR1(RF1.hp);
+        b2.inR   = -RF2.lp;
+        b3.inR   = RF2.hp;
+      ) : (cuts == 3) ? (
+        LF1.eval_LR1(sl);
+        b1.inL   = LA_F3.eval_AP1(LA_F2.eval_AP1(LF1.lp));
+          
+        LF2.eval_LR1(LF1.hp);
+        b2.inL   = - LA_F3_2.eval_AP1(LF2.lp);
+        
+        LF3.eval_LR1(LF2.hp);
+        b3.inL   = LF3.lp;
+        b4.inL   = - LF3.hp;
+          
+        RF1.eval_LR1(sr);
+        b1.inR   = RA_F3.eval_AP1(RA_F2.eval_AP1(RF1.lp));
+        
+        RF2.eval_LR1(RF1.hp);
+        b2.inR   = - RA_F3_2.eval_AP1(RF2.lp);
+        
+        RF3.eval_LR1(RF2.hp);
+        b3.inR   = RF3.lp;
+        b4.inR   = - RF3.hp;
+      ) : (cuts == 4) ? (
+        LF1.eval_LR1(sl);
+        b1.inL   = LA_F4.eval_AP1(LA_F3.eval_AP1(LA_F2.eval_AP1(LF1.lp)));
+        
+        LF2.eval_LR1(LF1.hp);
+        b2.inL   = - LA_F4_2.eval_AP1(LA_F3_2.eval_AP1(LF2.lp));
+          
+        LF3.eval_LR1(LF2.hp);
+        b3.inL   = LA_F4_3.eval_AP1(LF3.lp);
+          
+        LF4.eval_LR1(- LF3.hp);
+        b4.inL   = LF4.lp;
+        b5.inL   = - LF4.hp;
+          
+        RF1.eval_LR1(sr);
+        b1.inR   = RA_F4.eval_AP1(RA_F3.eval_AP1(RA_F2.eval_AP1(RF1.lp)));
+          
+        RF2.eval_LR1(RF1.hp);
+        b2.inR   = - RA_F4_2.eval_AP1(RA_F3_2.eval_AP1(RF2.lp));
+          
+        RF3.eval_LR1(RF2.hp);
+        b3.inR   = RA_F4_3.eval_AP1(RF3.lp);
+          
+        RF4.eval_LR1(- RF3.hp);
+        b4.inR   = RF4.lp;
+        b5.inR   = - RF4.hp;
+      );
+    );
+  );  
+  
+  // Convert to linear phase
+  function linearPhase(fft_mem, fftCalcSize)
+  local(fwd, r1, i1, mag1, flip, i, w)
+  global()
+  instance()
+  (
+    fwd = fft_mem;
+    
+    /* Making the filter linear phase involves both removing
+       the phase; but then also shifting the impulse response
+       to overlap with our chunk. If we just remove the phase, 
+       we'd get an impulse response like this:
+       \____/
+       The goal is to shift it to the middle of the MB_FIR section.
+       Considering that the MB_FIR section is at .25 of the spectrum,
+       we have to shift it further than we normally would (a step of
+       1.5 * pi rather than pi. */
+    
+    flip = 1;
+    i = 0;
+    loop(fftCalcSize,
+      r1  = fwd[];
+      i1  = fwd[1];
+      
+      mag1      = sqrt(sqr(r1) + sqr(i1));
+            
+      fwd[]     = mag1 * cos($pi*i);
+      fwd[1]    = mag1 * sin($pi*i);
+
+      i += 1.5;
+      fwd += 2;
+    );
+    
+    /*i = 0;
+    loop(1,
+      fft_mem[2*i] = 0;
+      fft_mem[2*fftCalcSize-2*i] = 0;
+      i = i + 1;
+    );*/
+    
+  );
+  
+  
+  function updateCoeffs_nicht()
+  local(fptr1, fptr2, fptr3, fptr4, fptr5, middle, i, M)
+  global(Cuts, Freq1, Freq2, Freq3, Freq4, FIR, FIR_quality,
+         FIR1, FIR2, FIR3, FIR4, FIR5, bufferDist,
+         firSize, fftCalcSize, band_mode, lband_mode, abs_placement, srate_changed)
+  instance( F1,  F2,  F3,  F4
+            LF1, LF2, LF3, LF4            /* Lowpass left */
+            LA_F2,                        /* Allpass frequency 2 left */
+            LA_F3, LA_F3_2,               /* Allpass frequency 3 left */
+            LA_F4, LA_F4_2, LA_F4_3,      /* Allpass frequency 4 left */
+            RF1, RF2, RF3, RF4            /* Lowpass right */
+            RA_F2,                        /* Allpass frequency 2 right */
+            RA_F3, RA_F3_2,               /* Allpass frequency 3 right */
+            RA_F4, RA_F4_2, RA_F4_3,      /* Allpass frequency 4 right */
+            lcuts, lFIR, lFIR_quality,
+            lF1, lF2, lF3, lF4,
+            labs_placement,
+            updateRequired
+            )
+  (
+      updateRequired = 0;
+      updateRequired = (
+        ( labs_placement != abs_placement ) ||
+        ( lF1 != Freq1 ) ||
+        ( lF2 != Freq2 ) ||
+        ( lF3 != Freq3 ) ||
+        ( lF4 != Freq4 ) ||
+        ( cuts != lcuts ) ||
+        ( FIR != lFIR ) ||
+        ( FIR_quality != lFIR_quality ) ||
+        srate_changed ||
+        ( band_mode != lband_mode ));
+        srate_changed = 0;
+      updateRequired ? (
+        M = 4;
+        (FIR_quality > 0) ? M *= 2;
+        (FIR_quality > 1) ? M *= 2;
+        firSize = 512*M;
+        fftCalcSize = 1024*M;
+        lband_mode = band_mode;
+        labs_placement = abs_placement;
+      
+        lF1 = Freq1;
+        lF2 = Freq2;
+        lF3 = Freq3;
+        lF4 = Freq4;
+        lFIR = FIR;
+        lFIR_quality = FIR_quality;
+        lcuts = cuts;
+      
+        abs_placement ? (
+          F1 = clamp(Freq1, 0, 1);
+          F2 = clamp(Freq2, F1, cuts > 2 ? F3 : 1);
+          F3 = clamp(Freq3, F2, cuts > 3 ? F4 : 1);
+          F4 = clamp(Freq4, F3, 1.0);
+        ) : (
+          F1 = Freq1;
+          F2 = Freq1  + Freq2 * (1 - Freq1);
+          F3 = F2     + Freq3 * (1 - F2);
+          F4 = F3     + Freq4 * (1 - F3);
+        );
+          
+        (cuts==1) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+        ) : (cuts==2) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+          ) : (
+            LA_F2.init_AP1(F2);
+          );
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        ) : (cuts == 3) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          LF3.init_LR2(F3);
+          RF3.k  = LF3.k;
+          RF3.a1 = LF3.a1;
+          RF3.a2 = LF3.a2;
+          RF3.a3 = LF3.a3;
+          
+          // All-passes for maintaining the phase relation between the bands
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+            LA_F3.init_LR2(F3);
+          ) : (
+            LA_F2.init_AP1(F2);
+            LA_F3.init_AP1(F3);
+          );
+          
+          RA_F3.k   = RA_F3_2.k  = LA_F3_2.k  = LA_F3.k;
+          RA_F3.a1  = RA_F3_2.a1 = LA_F3_2.a1 = LA_F3.a1;
+          RA_F3.a2  = RA_F3_2.a2 = LA_F3_2.a2 = LA_F3.a2;
+          RA_F3.a3  = RA_F3_2.a3 = LA_F3_2.a3 = LA_F3.a3;
+    
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        ) : (cuts == 4) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          LF3.init_LR2(F3);
+          RF3.k  = LF3.k;
+          RF3.a1 = LF3.a1;
+          RF3.a2 = LF3.a2;
+          RF3.a3 = LF3.a3;
+          LF4.init_LR2(F4);
+          RF4.k  = LF4.k;
+          RF4.a1 = LF4.a1;
+          RF4.a2 = LF4.a2;
+          RF4.a3 = LF4.a3;
+          
+          // All-passes for maintaining the phase relation between the bands
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+            LA_F3.init_LR2(F3);
+            LA_F4.init_LR2(F4);
+          ) : (
+            LA_F2.init_AP1(F2);
+            LA_F3.init_AP1(F3);
+            LA_F4.init_AP1(F4);
+          );
+          
+          RA_F4.k  = RA_F4_2.k  = RA_F4_3.k  = LA_F4_2.k  = LA_F4_3.k  = LA_F4.k;
+          RA_F4.a1 = RA_F4_2.a1 = RA_F4_3.a1 = LA_F4_2.a1 = LA_F4_3.a1 = LA_F4.a1;
+          RA_F4.a2 = RA_F4_2.a2 = RA_F4_3.a2 = LA_F4_2.a2 = LA_F4_3.a2 = LA_F4.a2;
+          RA_F4.a3 = RA_F4_2.a3 = RA_F4_3.a3 = LA_F4_2.a3 = LA_F4_3.a3 = LA_F4.a3;
+          
+          RA_F3.k   = RA_F3_2.k  = LA_F3_2.k  = LA_F3.k;
+          RA_F3.a1  = RA_F3_2.a1 = LA_F3_2.a1 = LA_F3.a1;
+          RA_F3.a2  = RA_F3_2.a2 = LA_F3_2.a2 = LA_F3.a2;
+          RA_F3.a3  = RA_F3_2.a3 = LA_F3_2.a3 = LA_F3.a3;
+    
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        );
+        
+        /* Are we dealing with a FIR filter? */
+        FIR ? (
+          // CalcFIR
+          memset(FIR1, 0, bufferDist);
+          memset(FIR2, 0, bufferDist);
+          memset(FIR3, 0, bufferDist);
+          memset(FIR4, 0, bufferDist);
+          memset(FIR5, 0, bufferDist);
+          
+          this.resetFilters();
+        
+          /* Fetch impulse response */
+          fptr1 = FIR1;
+          fptr2 = FIR2;
+          fptr3 = FIR3;
+          fptr4 = FIR4;
+          fptr5 = FIR5;
+
+          this.splitBands(1.0/fftCalcSize, 1.0/fftCalcSize);
+               
+          loop(firSize,
+            fptr1[] = this.b1.inL; fptr1 += 2;
+            fptr2[] = this.b2.inL; fptr2 += 2;
+            fptr3[] = this.b3.inL; fptr3 += 2;
+            fptr4[] = this.b4.inL; fptr4 += 2;
+            fptr5[] = this.b5.inL; fptr5 += 2;
+          
+            this.splitBands(0, 0);
+          );
+          
+          //FIR1[0]=1/fftCalcSize;
+                    
+          /* Transform impulse responses */
+          fft(FIR1, fftCalcSize);
+          fft(FIR2, fftCalcSize);
+          fft(FIR3, fftCalcSize);
+          fft(FIR4, fftCalcSize);
+          fft(FIR5, fftCalcSize);
+          
+          fft_permute(FIR1, fftCalcSize);
+          fft_permute(FIR2, fftCalcSize);
+          fft_permute(FIR3, fftCalcSize);
+          fft_permute(FIR4, fftCalcSize);
+          fft_permute(FIR5, fftCalcSize);
+          
+          /* Remove phase information (converts to linear phase) */
+          linearPhase(FIR1, fftCalcSize);
+          linearPhase(FIR2, fftCalcSize);
+          linearPhase(FIR3, fftCalcSize);
+          linearPhase(FIR4, fftCalcSize);
+          linearPhase(FIR5, fftCalcSize);
+          
+          fft_ipermute(FIR1, fftCalcSize);
+          fft_ipermute(FIR2, fftCalcSize);
+          fft_ipermute(FIR3, fftCalcSize);
+          fft_ipermute(FIR4, fftCalcSize);
+          fft_ipermute(FIR5, fftCalcSize);
+        );
+      );
+    
+    updateRequired
+  );
+
+
+  function updateCoeffs()
+  local(fptr1, fptr2, fptr3, fptr4, fptr5, middle, i, M)
+  global(Cuts, Freq1, Freq2, Freq3, Freq4, MB_FIR, MB_FIR_quality,
+         MB_FIR1, MB_FIR2, MB_FIR3, MB_FIR4, MB_FIR5, bufferDist,
+         MB_FIRSize, fftCalcSize, band_mode, lband_mode, abs_placement,
+         set_scaling_behaviour,
+         absolute_frequencies, srate_changed)
+  instance( F1,  F2,  F3,  F4
+            LF1, LF2, LF3, LF4            /* Lowpass left */
+            LA_F2,                        /* Allpass frequency 2 left */
+            LA_F3, LA_F3_2,               /* Allpass frequency 3 left */
+            LA_F4, LA_F4_2, LA_F4_3,      /* Allpass frequency 4 left */
+            RF1, RF2, RF3, RF4            /* Lowpass right */
+            RA_F2,                        /* Allpass frequency 2 right */
+            RA_F3, RA_F3_2,               /* Allpass frequency 3 right */
+            RA_F4, RA_F4_2, RA_F4_3,      /* Allpass frequency 4 right */
+            lcuts, lMB_FIR, lMB_FIR_quality,
+            lF1, lF2, lF3, lF4,
+            labs_placement, labs_freq,
+            updateRequired, 
+            )
+  (
+      updateRequired = 0;
+      updateRequired = (
+        ( labs_freq != absolute_frequencies ) ||
+        ( labs_placement != abs_placement ) ||
+        ( lF1 != Freq1 ) ||
+        ( lF2 != Freq2 ) ||
+        ( lF3 != Freq3 ) ||
+        ( lF4 != Freq4 ) ||
+        ( cuts != lcuts ) ||
+        ( MB_FIR != lMB_FIR ) ||
+        ( MB_FIR_quality != lMB_FIR_quality ) ||
+        ( band_mode != lband_mode ) || srate_changed
+      );
+
+      updateRequired ? (
+	srate_changed = 0;
+        // Make sure that if we are going to bother updating the coefficients,
+        // we have the correct global filter scaling.
+        set_scaling_behaviour();
+        M = 4;
+        (MB_FIR_quality > 0) ? M *= 2;
+        (MB_FIR_quality > 1) ? M *= 2;
+        MB_FIRSize = 512*M;
+        fftCalcSize = 1024*M;
+        lband_mode = band_mode;
+        labs_placement = abs_placement;
+        labs_freq = absolute_frequencies;
+      
+        lF1 = Freq1;
+        lF2 = Freq2;
+        lF3 = Freq3;
+        lF4 = Freq4;
+        lMB_FIR = MB_FIR;
+        lMB_FIR_quality = MB_FIR_quality;
+        lcuts = cuts;
+      
+        abs_placement ? (
+          F1 = clamp(Freq1, 0, cuts > 1 ? Freq2 : 1);
+          F2 = clamp(Freq2, Freq1, cuts > 2 ? Freq3 : 1);
+          F3 = clamp(Freq3, Freq2, cuts > 3 ? Freq4 : 1);
+          F4 = clamp(Freq4, Freq3, 1.0);
+        ) : (
+          F1 = Freq1;
+          F2 = Freq1  + Freq2 * (1 - Freq1);
+          F3 = F2     + Freq3 * (1 - F2);
+          F4 = F3     + Freq4 * (1 - F3);
+        );
+          
+        (cuts==1) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+        ) : (cuts==2) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+          ) : (
+            LA_F2.init_AP1(F2);
+          );
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        ) : (cuts == 3) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          LF3.init_LR2(F3);
+          RF3.k  = LF3.k;
+          RF3.a1 = LF3.a1;
+          RF3.a2 = LF3.a2;
+          RF3.a3 = LF3.a3;
+          
+          // All-passes for maintaining the phase relation between the bands
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+            LA_F3.init_LR2(F3);
+          ) : (
+            LA_F2.init_AP1(F2);
+            LA_F3.init_AP1(F3);
+          );
+          
+          RA_F3.k   = RA_F3_2.k  = LA_F3_2.k  = LA_F3.k;
+          RA_F3.a1  = RA_F3_2.a1 = LA_F3_2.a1 = LA_F3.a1;
+          RA_F3.a2  = RA_F3_2.a2 = LA_F3_2.a2 = LA_F3.a2;
+          RA_F3.a3  = RA_F3_2.a3 = LA_F3_2.a3 = LA_F3.a3;
+    
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        ) : (cuts == 4) ? (
+          LF1.init_LR2(Freq1);
+          RF1.k  = LF1.k;
+          RF1.a1 = LF1.a1;
+          RF1.a2 = LF1.a2;
+          RF1.a3 = LF1.a3;
+          LF2.init_LR2(F2);
+          RF2.k  = LF2.k;
+          RF2.a1 = LF2.a1;
+          RF2.a2 = LF2.a2;
+          RF2.a3 = LF2.a3;
+          LF3.init_LR2(F3);
+          RF3.k  = LF3.k;
+          RF3.a1 = LF3.a1;
+          RF3.a2 = LF3.a2;
+          RF3.a3 = LF3.a3;
+          LF4.init_LR2(F4);
+          RF4.k  = LF4.k;
+          RF4.a1 = LF4.a1;
+          RF4.a2 = LF4.a2;
+          RF4.a3 = LF4.a3;
+          
+          // All-passes for maintaining the phase relation between the bands
+          (band_mode == 0) ? (
+            LA_F2.init_LR2(F2);
+            LA_F3.init_LR2(F3);
+            LA_F4.init_LR2(F4);
+          ) : (
+            LA_F2.init_AP1(F2);
+            LA_F3.init_AP1(F3);
+            LA_F4.init_AP1(F4);
+          );
+          
+          RA_F4.k  = RA_F4_2.k  = RA_F4_3.k  = LA_F4_2.k  = LA_F4_3.k  = LA_F4.k;
+          RA_F4.a1 = RA_F4_2.a1 = RA_F4_3.a1 = LA_F4_2.a1 = LA_F4_3.a1 = LA_F4.a1;
+          RA_F4.a2 = RA_F4_2.a2 = RA_F4_3.a2 = LA_F4_2.a2 = LA_F4_3.a2 = LA_F4.a2;
+          RA_F4.a3 = RA_F4_2.a3 = RA_F4_3.a3 = LA_F4_2.a3 = LA_F4_3.a3 = LA_F4.a3;
+          
+          RA_F3.k   = RA_F3_2.k  = LA_F3_2.k  = LA_F3.k;
+          RA_F3.a1  = RA_F3_2.a1 = LA_F3_2.a1 = LA_F3.a1;
+          RA_F3.a2  = RA_F3_2.a2 = LA_F3_2.a2 = LA_F3.a2;
+          RA_F3.a3  = RA_F3_2.a3 = LA_F3_2.a3 = LA_F3.a3;
+    
+          RA_F2.k  = LA_F2.k;
+          RA_F2.a1 = LA_F2.a1;
+          RA_F2.a2 = LA_F2.a2;
+          RA_F2.a3 = LA_F2.a3;
+        );
+        
+        /* Are we dealing with a MB_FIR filter? */
+        MB_FIR ? (
+          // CalcMB_FIR
+          memset(MB_FIR1, 0, bufferDist);
+          memset(MB_FIR2, 0, bufferDist);
+          memset(MB_FIR3, 0, bufferDist);
+          memset(MB_FIR4, 0, bufferDist);
+          memset(MB_FIR5, 0, bufferDist);
+          
+          this.resetFilters();
+        
+          /* Fetch impulse response */
+          fptr1 = MB_FIR1;
+          fptr2 = MB_FIR2;
+          fptr3 = MB_FIR3;
+          fptr4 = MB_FIR4;
+          fptr5 = MB_FIR5;
+
+          this.splitBands(1.0 / fftCalcSize, 1.0 / fftCalcSize);
+          
+          loop(MB_FIRSize,
+            fptr1[] = this.b1.inL; fptr1 += 2;
+            fptr2[] = this.b2.inL; fptr2 += 2;
+            fptr3[] = this.b3.inL; fptr3 += 2;
+            fptr4[] = this.b4.inL; fptr4 += 2;
+            fptr5[] = this.b5.inL; fptr5 += 2;
+          
+            this.splitBands(0, 0);
+          );
+           
+          /* Transform impulse responses */
+          fft(MB_FIR1, fftCalcSize);
+          fft(MB_FIR2, fftCalcSize);
+          fft(MB_FIR3, fftCalcSize);
+          fft(MB_FIR4, fftCalcSize);
+          fft(MB_FIR5, fftCalcSize);
+          
+          fft_permute(MB_FIR1, fftCalcSize);
+          fft_permute(MB_FIR2, fftCalcSize);
+          fft_permute(MB_FIR3, fftCalcSize);
+          fft_permute(MB_FIR4, fftCalcSize);
+          fft_permute(MB_FIR5, fftCalcSize);
+          
+          /* Remove phase information (converts to linear phase) */
+          linearPhase(MB_FIR1, fftCalcSize);
+          linearPhase(MB_FIR2, fftCalcSize);
+          linearPhase(MB_FIR3, fftCalcSize);
+          linearPhase(MB_FIR4, fftCalcSize);
+          linearPhase(MB_FIR5, fftCalcSize);
+          
+          fft_ipermute(MB_FIR1, fftCalcSize);
+          fft_ipermute(MB_FIR2, fftCalcSize);
+          fft_ipermute(MB_FIR3, fftCalcSize);
+          fft_ipermute(MB_FIR4, fftCalcSize);
+          fft_ipermute(MB_FIR5, fftCalcSize);
+        );
+      );
+    
+    updateRequired
+  );
+  
+  function doMB_FIR(l, r, block1, block2, fftCalcSize, filterSize, filterLoc, MB_cPos)
+  instance(curBlock, lastBlock, initialized, MB_chunkSize, MB_chunksizeT2)
+  local(tmp, MB_cPosT2)
+  global(bufferdist)
+  (
+    !initialized ? (
+      curBlock  = block1;
+      lastBlock = block2;
+      
+      memset(curBlock, 0, bufferdist);
+      memset(lastBlock, 0, bufferdist);
+      initialized = 1;
+      
+      MB_chunkSize   = (fftCalcSize - filterSize - 1);
+      MB_chunkSizeT2 = MB_chunkSize * 2;
+    );
+  
+    MB_cPos >= MB_chunkSize ? 
+    (
+      tmp       = lastBlock;
+      lastBlock = curBlock;
+      curBlock  = tmp;
+     
+      /* Empty out the data beyond chunkSize of the block that has 
+         just been filled. This used to be the carried over overlap-add
+         tail of the previous one */
+      memset( curBlock + MB_chunkSizeT2, 0, (fftCalcSize-MB_chunkSize)*2 );
+    
+      /* Calculate FFT of current chunk */
+      fft(curBlock, fftCalcSize);
+      //fft_permute(curBlock, fftCalcSize);
+      
+      /* Convolve with the MB_FIR filter (already FFT'd) */
+      convolve_c(curBlock, filterLoc, fftCalcSize);
+      //fft_ipermute(curBlock, fftCalcSize);
+      ifft(curBlock, fftCalcSize);
+      
+      MB_cPos = 0;
+    );
+      
+    /* Save sample */
+    MB_cPosT2 = MB_cPos * 2;
+    lastBlock[MB_cPosT2]   = l;
+    lastBlock[MB_cPosT2+1] = r;
+    
+    this.inL = curBlock[MB_cPosT2];
+    this.inR = curBlock[MB_cPosT2+1];
+    
+    /* Overlap add the previous tail */
+    ( MB_cPos < (fftCalcSize-MB_chunkSize) ) ? 
+    (
+      this.inL += lastBlock[MB_chunkSizeT2+MB_cPosT2];
+      this.inR += lastBlock[MB_chunkSizeT2+MB_cPosT2+1];
+      1
+    );
+ 
+    MB_cPos + 1
+  );
+  
+  function processSample()
+  (  
+    MB_FIR ? (
+      filterBank.resetBands();   
+      MB_cPosNew = filterBank.b1.doMB_FIR(MB_inL, MB_inR, F1Block1, F1Block2, fftCalcSize, MB_FIRSize, MB_FIR1, MB_cPos);
+      ( cuts > 0 ) ? ( filterBank.b2.doMB_FIR(MB_inL, MB_inR, F2Block1, F2Block2, fftCalcSize, MB_FIRSize, MB_FIR2, MB_cPos); );
+      ( cuts > 1 ) ? ( filterBank.b3.doMB_FIR(MB_inL, MB_inR, F3Block1, F3Block2, fftCalcSize, MB_FIRSize, MB_FIR3, MB_cPos); );
+      ( cuts > 2 ) ? ( filterBank.b4.doMB_FIR(MB_inL, MB_inR, F4Block1, F4Block2, fftCalcSize, MB_FIRSize, MB_FIR4, MB_cPos); );
+      ( cuts > 3 ) ? ( filterBank.b5.doMB_FIR(MB_inL, MB_inR, F5Block1, F5Block2, fftCalcSize, MB_FIRSize, MB_FIR5, MB_cPos); );
+      MB_cPos = MB_cPosNew;
+    ) : (
+      filterBank.splitBands(MB_inL, MB_inR);
+    );
+    
+    filterBank.processBands();
+  );
+    
+  MB_FIR ? (
+    specBuffer.updateBuffer(.5*(spl0+spl1));
+    specBuffer.setOffset(newPDC+2);
+    cSpec = specBuffer.readBuffer();
+    spectrumIn.feedSample(cSpec);
+  ) : (
+    spectrumIn.feedSample(.5*(spl0+spl1));
+  );
+
+
+
+
+
+function MB_split_do() (
+
+srate != MB_srate_old ? (
+MB_srate_old = srate;
+//resetFilters();
+//re_init();
+//initBands();
+set_scaling_behaviour();
+Filterbank.updateRequired = 1;
+srate_changed = 1;
+);
+
+  // Split signal into bands
+  filterBank.updateCoeffs();
+  
+  MB_inL = spl0;
+  MB_inR = spl1;
+  
+  processSample();
+  
+  MB_SPL0 = filterBank.b1.l;
+  MB_SPL1 = filterBank.b1.r;
+  //out = spl0 + spl1;
+  ( cuts > 0 ) ? (
+    MB_SPL2 = filterBank.b2.l;
+    MB_SPL3 = filterBank.b2.r;
+    //out += spl2 + spl3;
+    ( cuts > 1 ) ? (
+      MB_SPL4 = filterBank.b3.l;
+      MB_SPL5 = filterBank.b3.r;
+      //out += spl4 + spl5;
+      ( cuts > 2 ) ? (
+        MB_SPL6 = filterBank.b4.l;
+        MB_SPL7 = filterBank.b4.r;
+        //out += spl6 + spl7;
+        ( cuts > 3 ) ? (
+          MB_SPL8 = filterBank.b5.l;
+          MB_SPL9 = filterBank.b5.r;
+          //out += spl8 + spl9;
+        );
+      );
+    );
+  );
+  
+
+  MB_curSample += 1;
+
+);
+
+
+
+
+
+
+
+function MB_init (buf_location) (
+absolute_frequencies=1;
+set_scaling_behaviour();
+maxCuts = 4;
+abs_placement = 1; // 1 = frequenzen sind mind. vorgängerfrequenz
+filterBank.initBands();
+// MEMORY LAYOUT
+fftSize     = 2*8192;
+bufferDist  = 65536;
+audioBufIn  = 0+buf_location;
+audioBufOut = bufferDist+buf_location;
+
+MB_FIR1        = 2*bufferDist+buf_location;
+MB_FIR2        = 3*bufferDist+buf_location;
+MB_FIR3        = 4*bufferDist+buf_location;
+MB_FIR4        = 5*bufferDist+buf_location;
+MB_FIR5        = 6*bufferDist+buf_location;
+
+F1Block1    = 7*bufferDist+buf_location;
+F1Block2    = 8*bufferDist+buf_location;
+F2Block1    = 9*bufferDist+buf_location;
+F2Block2    = 10*bufferDist+buf_location;
+F3Block1    = 11*bufferDist+buf_location;
+F3Block2    = 12*bufferDist+buf_location;
+F4Block1    = 13*bufferDist+buf_location;
+F4Block2    = 14*bufferDist+buf_location;
+F5Block1    = 15*bufferDist+buf_location;
+F5Block2    = 16*bufferDist+buf_location;
+
+specBufferLoc = 17*bufferDist+buf_location;
+//memset(buf_location, 18*bufferDist,0); //buf, value, size?
+resetFilters();
+MB_new_memory_index= 18*bufferDist+buf_location;
+);
+
+
+
+

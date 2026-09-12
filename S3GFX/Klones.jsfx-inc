@@ -1,0 +1,2247 @@
+
+//This Lib contains modified code from JClones, modified for Tukan Series 3...
+
+//MIT License
+
+//Copyright (c) 2026 JClones
+
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
+
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
+
+
+
+
+
+
+@init
+  
+  function TapeHead_setDrive(drive_logical)
+  (
+    // 1 .. 10
+    this.drive_k = pow(10.0, (drive_logical - 1.0) / 9.0) * 0.8;
+  );
+  
+  function TapeHead_setTrim(trim_dB)
+  (
+    this.trim_k = pow(10.0, trim_dB / 20.0) * 0.7;
+  );
+  
+  function TapeHead_setColor(color) local(freq_hz, gain)
+  (
+    freq_hz = (color == 0) ? 2100.0 : ((color == 1) ? 3680.0 : 5000.0);
+  
+    this.k1 = 5.0 / 7.0;
+    this.k2 = 2.0 * sin(freq_hz * $pi / srate);
+    this.k3 = 1.4 * (this.k2 * -1.0);
+  
+    gain = (srate < 88200.0) ? 1.4 : 2.0;
+  
+    this.g3 = pow(10.0, gain * 3.0 / 20.0) * -1.0 * this.k1;
+  );
+  
+  function TapeHead_reset()
+  (
+    this.y1 = 0.0;
+    this.y2 = 0.0;
+    this.y3 = 0.0;
+  );
+  
+  function TapeHead_clip(x)
+  (
+    (x < -1.0) ? -1.0 : (x > 1.0 ? 1.0 : x);
+  );
+  
+  function TapeHead_smoothstep(x) local(y)
+  (
+    (x < -1.0) ? (
+      y = -1.0;
+    ) : ((x > 1.0) ? (
+      y = 1.0;
+    ) : (
+      y = x * 1.5 - x * x * x * 0.5;
+    ));
+  
+    y;
+  );
+  
+  function TapeHead_processSample(x) local(y1_sat, y2_sat, y3, y)
+  (
+    (this.hard_clip) ?
+      x = TapeHead_clip(x);
+  
+    // filter
+    this.y1 += this.y2 * this.k2;
+    this.y3 = this.y1 * this.k1 + this.y2 - x;
+    this.y2 += this.y3 * this.k3;
+  
+    y1_sat = TapeHead_smoothstep(this.y1 * this.drive_k);
+    y2_sat = TapeHead_smoothstep(this.y2 * this.drive_k);
+    y3 = this.hard_clip ? TapeHead_clip(this.y3) : this.y3;
+  
+    y = (y3 * this.g3 + y1_sat + y2_sat) * this.trim_k;
+  
+    (this.hard_clip) ?
+      y = TapeHead_clip(y);
+  
+    y;
+  );
+  
+  function TapeHead_setHardClip(hard_clip)
+  (
+    this.hard_clip = hard_clip;
+  );
+  
+  // continue @init:
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+function DB_TO_K(x)
+(
+ 10 ^ (x / 20)
+);
+
+function K_TO_DB(x)
+(
+  20 * log10(x)
+);
+
+// for allocator
+function allocate(size) local(result)
+(
+  result = __memory_Index__;
+   __memory_Index__ += size;
+  result;
+);
+
+function sinh(x)
+(
+  (exp(x) - exp(-x)) * 0.5;
+);
+
+/*
+ * Filter2 - digital second order filter:
+ * X(z) = (a0 + a1*z^-1 + a2*z^-2) / (1 - b1*z^-1 - b2*z^-2)
+ */
+ 
+function Filter2_Init(a0, a1, a2, b1, b2)
+(
+  this.a0 = a0;
+  this.a1 = a1;
+  this.a2 = a2;
+  this.b1 = b1;
+  this.b2 = b2;
+);
+
+function Filter2_reset()
+(
+  this.x1 = 0;
+  this.x2 = 0;
+  this.y1 = 0;
+  this.y2 = 0;
+);
+
+function Filter2_processSample(x0) local(y0)
+(
+  y0 = x0 * this.a0 + this.x1 * this.a1 + this.x2 * this.a2 +
+    this.y1 * this.b1 + this.y2 * this.b2;
+    
+  // shift history
+  this.x2 = this.x1;
+  this.x1 = x0;
+  
+  this.y2 = this.y1;
+  this.y1 = y0;
+  
+  y0;
+);
+
+  function Filter2_crossfadeFrom2Filters(A_a0, A_a1, A_a2, A_b1, A_b2, mix_A, B_a0, B_a1, B_a2, B_b1, B_b2, mix_B)
+  (
+    this.a0 = A_a0 * mix_A + B_a0 * mix_B;
+    this.a1 = A_a1 * mix_A + B_a1 * mix_B;
+    this.a2 = A_a2 * mix_A + B_a2 * mix_B;
+    this.b1 = A_b1 * mix_A + B_b1 * mix_B;
+    this.b2 = A_b2 * mix_A + B_b2 * mix_B;
+  );
+  
+
+/*
+ * Interpolation stuff
+ */
+
+SEGMENT_LEN = 4;
+
+function generate_segments(table_x, table_y, table_len) local(table_segment, i, x0, x1, x2, x3, y0, y1, y2, y3, dy1, dy2, delta_x, delta_y, sum_dy,
+  delta_x2, delta_x3, s)
+(
+  table_segment = allocate(table_len * SEGMENT_LEN);
+
+  // cubic splines
+  i = 0;
+  loop(table_len,
+
+    // input points
+    x1 = table_x[i];
+    x2 = table_x[i + 1];
+
+    y1 = table_y[i];
+    y2 = table_y[i + 1];
+
+    // get derivatives
+
+    (i - 1 >= 0) ? (
+      x0 = table_x[i - 1];
+      y0 = table_y[i - 1];
+
+      dy1 = (y2 - y0) / (x2 - x0);
+    ) : (
+      dy1 = (y2 - y1) / (x2 - x1);
+    );
+
+    (i + 2 < table_len) ? (
+      x3 = table_x[i + 2];
+      y3 = table_y[i + 2];
+
+      dy2 = (y3 - y1) / (x3 - x1);
+    ) : (
+      dy2 = (y2 - y1) / (x2 - x1);
+    );
+
+    // get coefficients for x1..x2 -> y1 .. y2
+
+    delta_x = x2 - x1;
+    delta_y = y2 - y1;
+    sum_dy = dy1 + dy2;
+
+    delta_x2 = delta_x * delta_x;
+    delta_x3 = delta_x2 * delta_x;
+
+    s = table_segment + i * SEGMENT_LEN;
+    
+    // cubic spline
+    s[0] = (delta_x * sum_dy - 2 * delta_y) / delta_x3;
+    s[1] = -((dy1 + sum_dy) * delta_x2 + (sum_dy * x1 - delta_y) * 3.0 * delta_x - 6.0 * x1 * delta_y) / delta_x3;
+    s[2] = (dy1 * delta_x3 + (dy1 + sum_dy) * 2.0 * x1 * delta_x2 + (sum_dy * x1 - 2.0 * delta_y) * 3.0 * x1 * delta_x - 6.0 * x1 * x1 * delta_y) / delta_x3;
+    s[3] = -((x1 * dy1 - y1) * delta_x3 + (dy1 + sum_dy) * x1 * x1 * delta_x2 + (sum_dy * x1 - 3.0 * delta_y) * x1 * x1 * delta_x - 2.0 * x1 * x1 * x1 * delta_y) / delta_x3;
+
+    i += 1;
+  );
+
+  // line for the 1st point
+  x0 = table_x[0];
+  x1 = table_x[1];
+
+  y0 = table_y[0];
+  y1 = table_y[1];
+
+  i = 0;
+
+  s = table_segment + i * SEGMENT_LEN;
+  
+  s[0] = 0.0;
+  s[1] = 0.0;
+  s[2] = (y1 - y0) / (x1 - x0);
+  s[3] = (x1 * y0 - y1 * x0) / (x1 - x0);
+
+  // line for the last point
+  x0 = table_x[table_len - 2];
+  x1 = table_x[table_len - 1];
+
+  y0 = table_y[table_len - 2];
+  y1 = table_y[table_len - 1];
+
+  i = table_len - 2;
+
+  s = table_segment + i * SEGMENT_LEN;
+
+  s[0] = 0.0;
+  s[1] = 0.0;  
+  s[2] = (y1 - y0) / (x1 - x0);
+  s[3] = (x1 * y0 - y1 * x0) / (x1 - x0);
+
+ table_segment;
+);
+
+function interpolate(table_x, table_segment, table_len, x) local(left, right, mid, s)
+(
+  // find x interval
+
+  left = 0;
+  right = table_len - 1;
+
+  (x < table_x[left]) ? ( x = table_x[left] );
+  (x > table_x[right]) ? ( x = table_x[right] );
+
+  while (
+
+    mid = floor((left + right) / 2);
+
+    (x < table_x[mid]) ?
+      ( right = mid )
+    :
+      ( left = mid );
+    
+    right - left > 1;     
+  );
+
+  s = table_segment + left * SEGMENT_LEN;
+
+  // interpolate
+  x * x * x * s[0] + x * x * s[1] + x * s[2] + s[3];
+);
+
+
+/*
+ * RS124Compressor
+ */
+
+MIN_LEVEL = DB_TO_K(-65.0);
+
+function RS124Compressor_getFilterCoefficient(time_sec)
+(
+  pow(0.2, 1.0 / (time_sec * srate));
+);
+
+function RS124Compressor_Filter2_design_PK(freq_k, A_dB, Q) local(A_lin, SA_lin, w0, x1, x1_w0_2, A_lin2, SA_lin2, abs_1, abs_2, w02_pi2_2, inv_abs,
+  x2, x3, x32, abs_3, abs_4, tan_w0_12, x4, x5, abs_5, sabs_42, x6, abs_6, sabs_31, x7, x8, x9,
+  a0, a1, a2, b0, b1, b2)
+(
+  (A_dB != 0.0) ? (
+
+    A_lin = DB_TO_K(A_dB);
+    SA_lin = DB_TO_K(A_dB / 2.0);
+
+    w0 = freq_k * 2.0 * $pi;
+
+    x1 = sinh(log(sqrt(1.0 / (Q + Q) * (1.0 / (Q + Q)) + 1.0) + 1.0 / (Q + Q)) * (sin(w0) / w0));
+    x1_w0_2 = x1 * w0 + x1 * w0;
+    A_lin2 = A_lin * A_lin;
+    SA_lin2 = SA_lin * SA_lin;
+    abs_1 = abs(A_lin2 - 1.0);
+    abs_2 = abs(SA_lin2 - 1.0);
+    w02_pi2_2 = (w0 * w0 - $pi * $pi) * (w0 * w0 - $pi * $pi);
+    inv_abs = 1.0 / abs(A_lin2 - SA_lin2);
+    x2 = inv_abs * $pi * $pi * abs_2 * x1_w0_2 * x1_w0_2;
+    x3 = sqrt((A_lin * x2 * A_lin + w02_pi2_2) / (x2 + w02_pi2_2));
+    x32 = x3 * x3;
+    abs_3 = abs(A_lin2 - x32);
+    abs_4 = abs(SA_lin2 - x32);
+    tan_w0_12 = tan(w0 * 0.5);
+    x4 = tan_w0_12 * (sqrt(abs_3 / abs_1) * tan_w0_12);
+    x5 = (sqrt(abs_2 / abs_4) * x4 + 1.0) * tan(x1_w0_2 * 0.5);
+    abs_5 = abs(SA_lin2 - x3);
+    sabs_42 = sqrt(abs_4 * abs_2);
+    x6 = x5 * x5 * abs_4 - ((abs_5 - sabs_42) * x4 + (abs_5 - sabs_42) * x4);
+    abs_6 = abs(A_lin2 - x3);
+    sabs_31 = sqrt(abs_3 * abs_1);
+    x7 = (abs_6 - sabs_31) * x4 + (abs_6 - sabs_31) * x4;
+    x8 = sqrt((x7 + x6) * inv_abs);
+    x9 = sqrt((x7 * SA_lin * SA_lin + x6 * A_lin * A_lin) * inv_abs);
+
+    a0 = x4 + x9 + x3;
+    a1 = (x3 - x4) * -2.0;
+    a2 = x4 + x3 - x9;
+    b0 = x8 + x4 + 1.0;
+    b1 = (1.0 - x4) * -2.0;
+    b2 = x4 + 1.0 - x8;
+
+    this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+  ) : (
+    this.Filter2_Init(1.0, 0.0, 0.0, 0.0, 0.0);
+  );
+);
+
+function RS124Compressor_Filter2_design_HS(freq_k, A_dB, Q) local(SA_lin, w0, SA_lin_m, cos_w0, sin_w0, xm, xs, SA_lin_p, xp, xpm,
+  a0, a1, a2, b0, b1, b2)
+(
+  SA_lin = DB_TO_K(A_dB / 2.0);
+
+  w0 = freq_k * 2.0 * $pi;
+
+  SA_lin_m = SA_lin - 1.0;
+  cos_w0 = cos(w0);
+  sin_w0 = sin(w0);
+  xm = SA_lin_m * cos_w0;
+  xs = sin_w0 * sqrt((SA_lin * SA_lin + 1.0) / Q - SA_lin_m * SA_lin_m);
+  SA_lin_p = SA_lin + 1.0;
+  xp = SA_lin_p * cos_w0;
+  xpm = SA_lin_p - xm;
+
+  a0 = (xs + SA_lin_p + xm) * SA_lin;
+  a1 = (xp + SA_lin_m) * SA_lin * -2.0;
+  a2 = (SA_lin_p + xm - xs) * SA_lin;
+  b0 = xpm + xs;
+  b1 = SA_lin_m - xp + SA_lin_m - xp;
+  b2 = xpm - xs;
+
+  this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+);
+
+function RS124Compressor_Filter2_design_HPF(freq_k, Q) local(w0, cos_w0, sin_w0, sh, a0, a1, a2, b0, b1, b2)
+(
+  w0 = freq_k * 2.0 * $pi;
+
+  cos_w0 = cos(w0);
+  sin_w0 = sin(w0);
+  sh = sinh(log(2.0) * (w0 / sin_w0) * Q * 0.5) * sin_w0;
+
+  a0 = 0.5 * (cos_w0 + 1.0);
+  a1 = -(cos_w0 + 1.0);
+  a2 = a0;
+  b0 = sh + 1.0;
+  b1 = cos_w0 * -2.0;
+  b2 = 1.0 - sh;
+
+  this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+);
+
+function RS124Compressor_Filter2_design_HPF1(freq_k) local(w0, K, a0, a1, b0, b1)
+(
+  w0 = freq_k * 2.0 * $pi;
+
+  K = w0 / tan(w0 * 0.5);
+
+  a0 = K;
+  a1 = -K;
+  b0 = w0 + K;
+  b1 = w0 - K;
+
+  this.Filter2_Init(a0 / b0, a1 / b0, 0.0, -b1 / b0, 0.0);
+);
+
+function RS124Compressor_setParameters(
+  compressor_model,     // 0 to 2
+  input_gain_pos,       // 0 to 10
+  release_pos,          // 1 to 6 (JClones specific; was: stepped)
+  is_superfuse,
+  output_gain_pos,      // -30 to 0 (JClones specific; was: stepped)
+  box_tone)             // JClones specific
+(
+  // input gain
+  this.input_gain_k = DB_TO_K(
+    interpolate(
+      input_gain_table_x,
+      input_gain_table_segment[compressor_model],
+      input_gain_table_len,
+      input_gain_pos)
+    );
+
+  // output gain
+  this.output_gain_k = DB_TO_K(
+    interpolate(
+      output_gain_table_x,
+      output_gain_table_segment[compressor_model],
+      output_gain_table_len,
+      output_gain_pos) + 30.0
+    );
+
+  // filters:
+
+  (compressor_model == 2) ? (
+    this.pk.RS124Compressor_Filter2_design_PK(62.0 / srate, 0.0, 1.0);
+    this.sc.RS124Compressor_Filter2_design_HPF1(10.0 / srate);
+  ) : (
+    this.pk.RS124Compressor_Filter2_design_PK(62.0 / srate, 0.8, 1.0);
+    this.sc.RS124Compressor_Filter2_design_HPF1(32.9 / srate);
+  );
+
+  (compressor_model != 0) ? (
+    this.hs.RS124Compressor_Filter2_design_HS(13000.0 / srate, 4.0, 0.6);
+  ) : (
+    this.hs.RS124Compressor_Filter2_design_HS(12000.0 / srate, 2.8, 0.6);
+  );
+
+  // attack
+  this.attack_k = RS124Compressor_getFilterCoefficient(attack_time_table_sec[compressor_model]);
+
+  // release
+  (!is_superfuse) ? (
+    this.release_k = RS124Compressor_getFilterCoefficient(
+      interpolate(
+        release_time_table_sec_x,
+        release_time_table_sec_segment[compressor_model],
+        release_time_table_len,
+        release_pos);
+    );
+  ) : (
+    this.release_k = this.attack_k;
+  );
+
+  this.compressor_model = compressor_model;
+  this.box_tone = box_tone;
+);
+
+function RS124Compressor_setSampleRate()
+(
+  this.hpf.RS124Compressor_Filter2_design_HPF(8.0 / srate, 0.7);
+);
+
+function RS124Compressor_getLevel(x) local(level, filter_k)
+(
+  level = abs(x);
+  
+  (level > 1.0) ?
+    level = 1.0;
+
+  (level < MIN_LEVEL) ?
+    level = MIN_LEVEL;
+
+  filter_k = (level > this.level_state) ? this.attack_k : this.release_k;
+
+  (this.startup_counter >= this.startup_counter_max) ? (
+    // normal operation
+    this.level_state = (1.0 - filter_k) * level + this.level_state * filter_k;
+  ) : (
+    // warmup (JClones specific)
+    this.startup_level_sum += level * level;
+    this.startup_counter += 1;
+    this.level_state = sqrt(this.startup_level_sum / this.startup_counter);
+  );
+
+  this.level_state;
+);
+
+
+function RS124Compressor_processSample(x) local(xa, xb, xc, y, sc, level)
+(
+  (this.box_tone) ? (
+    xa = this.hpf.Filter2_processSample(x);
+    xb = this.pk.Filter2_processSample(xa);
+    xc = this.hs.Filter2_processSample(xb);
+  ) : (
+    xc = x;   // JClones specific
+  );
+
+  y = xc * this.input_gain_k * this.feedback_gr;
+
+  sc = this.sc.Filter2_processSample(y);
+
+  level = this.RS124Compressor_getLevel(sc);
+
+  this.feedback_gr = interpolate(gr_table_x[this.compressor_model], gr_table_segment[this.compressor_model], gr_table_len, level * 1.1);
+
+  y * this.output_gain_k;
+  
+//  x;
+);
+
+function RS124Compressor_reset()
+(
+  this.hpf.Filter2_reset();
+  this.pk.Filter2_reset();
+  this.hs.Filter2_reset();
+
+  this.sc.Filter2_reset();
+
+  this.level_state = 0.0;
+  this.feedback_gr = 1.0;
+
+  this.startup_counter = 0;
+  this.startup_counter_max = srate * 0.300; // 300 ms "warmup"
+  this.startup_level_sum = 0.0;
+);
+
+//=========== table of measured values ============
+
+function init_tables() local(i)
+(
+  input_gain_table_len = 11;
+
+  // input_gain_table_x
+  input_gain_table_x = allocate(input_gain_table_len);
+  input_gain_table_x[0] = 0.0;
+  input_gain_table_x[1] = 1.0;
+  input_gain_table_x[2] = 2.0;
+  input_gain_table_x[3] = 3.0;
+  input_gain_table_x[4] = 4.0;
+  input_gain_table_x[5] = 5.0;
+  input_gain_table_x[6] = 6.0;
+  input_gain_table_x[7] = 7.0;
+  input_gain_table_x[8] = 8.0;
+  input_gain_table_x[9] = 9.0;
+  input_gain_table_x[10] = 10.0;
+
+  // input_gain_table_y_raw
+  input_gain_table_y_raw = allocate(input_gain_table_len * 3);
+  input_gain_table_y_raw[0] = -90.5;
+  input_gain_table_y_raw[1] = -49.4;
+  input_gain_table_y_raw[2] = -35.5;
+  input_gain_table_y_raw[3] = -27.6;
+  input_gain_table_y_raw[4] = -24.7;
+  input_gain_table_y_raw[5] = -22.1;
+  input_gain_table_y_raw[6] = -16.6;
+  input_gain_table_y_raw[7] = -9.8;
+  input_gain_table_y_raw[8] = -5.6;
+  input_gain_table_y_raw[9] = -2.1;
+  input_gain_table_y_raw[10] = 0.0;
+  input_gain_table_y_raw[11] = -105.0;
+  input_gain_table_y_raw[12] = -47.3;
+  input_gain_table_y_raw[13] = -38.7;
+  input_gain_table_y_raw[14] = -30.1;
+  input_gain_table_y_raw[15] = -25.6;
+  input_gain_table_y_raw[16] = -21.5;
+  input_gain_table_y_raw[17] = -15.0;
+  input_gain_table_y_raw[18] = -10.0;
+  input_gain_table_y_raw[19] = -5.0;
+  input_gain_table_y_raw[20] = -1.3;
+  input_gain_table_y_raw[21] = 0.0;
+  input_gain_table_y_raw[22] = -92.5;
+  input_gain_table_y_raw[23] = -48.9;
+  input_gain_table_y_raw[24] = -33.8;
+  input_gain_table_y_raw[25] = -26.6;
+  input_gain_table_y_raw[26] = -23.6;
+  input_gain_table_y_raw[27] = -21.3;
+  input_gain_table_y_raw[28] = -16.3;
+  input_gain_table_y_raw[29] = -11.1;
+  input_gain_table_y_raw[30] = -6.0;
+  input_gain_table_y_raw[31] = -3.0;
+  input_gain_table_y_raw[32] = 0.0;
+
+  // 3 models:
+  input_gain_table_y = allocate(3);
+  input_gain_table_segment = allocate(3);
+  
+  i = 0;
+  loop(3,
+    input_gain_table_y[i] = input_gain_table_y_raw + input_gain_table_len * i;
+    input_gain_table_segment[i] = generate_segments(input_gain_table_x, input_gain_table_y[i], input_gain_table_len);
+    i += 1;
+  );
+
+  output_gain_table_len = 6;
+
+  // output_gain_table_x
+  output_gain_table_x = allocate(output_gain_table_len);
+  output_gain_table_x[0] = -30.0;
+  output_gain_table_x[1] = -20.0;
+  output_gain_table_x[2] = -15.0;
+  output_gain_table_x[3] = -10.0;
+  output_gain_table_x[4] = -5.0;
+  output_gain_table_x[5] = 0.0;
+
+  // output_gain_table_y_raw
+  output_gain_table_y_raw = allocate(output_gain_table_len * 3);
+  output_gain_table_y_raw[0] = -30.000;
+  output_gain_table_y_raw[1] = -19.970;
+  output_gain_table_y_raw[2] = -15.029;
+  output_gain_table_y_raw[3] = -9.979;
+  output_gain_table_y_raw[4] = -4.940;
+  output_gain_table_y_raw[5] = -0.452;
+  output_gain_table_y_raw[6] = -30.000;
+  output_gain_table_y_raw[7] = -20.060;
+  output_gain_table_y_raw[8] = -15.163;
+  output_gain_table_y_raw[9] = -10.239;
+  output_gain_table_y_raw[10] = -5.110;
+  output_gain_table_y_raw[11] = -0.470;
+  output_gain_table_y_raw[12] = -30.000;
+  output_gain_table_y_raw[13] = -20.369;
+  output_gain_table_y_raw[14] = -15.300;
+  output_gain_table_y_raw[15] = -10.240;
+  output_gain_table_y_raw[16] = -5.328;
+  output_gain_table_y_raw[17] = -0.603;
+  
+  // 3 models:
+  output_gain_table_y = allocate(3);
+  output_gain_table_segment = allocate(3);
+  
+  i = 0;
+  loop (3,
+    output_gain_table_y[i] = output_gain_table_y_raw + output_gain_table_len * i;
+    output_gain_table_segment[i] = generate_segments(output_gain_table_x, output_gain_table_y[i], output_gain_table_len);
+    i += 1;
+  );
+
+  // attack_time_table_sec
+  attack_time_table_sec = allocate(3);
+  attack_time_table_sec[0] = 0.147;
+  attack_time_table_sec[1] = 0.168;
+  attack_time_table_sec[2] = 0.050;
+
+  release_time_table_len = 7;
+
+  // release_time_table_sec_x
+  release_time_table_sec_x = allocate(release_time_table_len);
+  release_time_table_sec_x[0] = 1.0;
+  release_time_table_sec_x[1] = 2.0;
+  release_time_table_sec_x[2] = 3.0;
+  release_time_table_sec_x[3] = 4.0;
+  release_time_table_sec_x[4] = 5.0;
+  release_time_table_sec_x[5] = 6.0;
+  release_time_table_sec_x[6] = 7.0;
+
+  // release_time_table_sec_y_raw
+  release_time_table_sec_y_raw = allocate(release_time_table_len * 3);
+  release_time_table_sec_y_raw[0] = 3.4;
+  release_time_table_sec_y_raw[1] = 6.5;
+  release_time_table_sec_y_raw[2] = 11.4;
+  release_time_table_sec_y_raw[3] = 22.0;
+  release_time_table_sec_y_raw[4] = 38.0;
+  release_time_table_sec_y_raw[5] = 64.0;
+  release_time_table_sec_y_raw[6] = 3000.0;   // Hold
+  release_time_table_sec_y_raw[7] = 2.9;
+  release_time_table_sec_y_raw[8] = 5.0;
+  release_time_table_sec_y_raw[9] = 8.1;
+  release_time_table_sec_y_raw[10] = 15.6;
+  release_time_table_sec_y_raw[11] = 25.3;
+  release_time_table_sec_y_raw[12] = 44.0;
+  release_time_table_sec_y_raw[13] = 3000.0;  // Hold
+  release_time_table_sec_y_raw[14] = 1.0;
+  release_time_table_sec_y_raw[15] = 1.9;
+  release_time_table_sec_y_raw[16] = 3.2;
+  release_time_table_sec_y_raw[17] = 5.8;
+  release_time_table_sec_y_raw[18] = 9.8;
+  release_time_table_sec_y_raw[19] = 16.9;
+  release_time_table_sec_y_raw[20] = 3000.0;    // Hold
+
+  // 3 models:
+  release_time_table_sec_y = allocate(3);
+  release_time_table_sec_segment = allocate(3);
+  
+  i = 0;
+  loop (3,
+    release_time_table_sec_y[i] = release_time_table_sec_y_raw + release_time_table_len * i;
+    release_time_table_sec_segment[i] = generate_segments(release_time_table_sec_x, release_time_table_sec_y[i], release_time_table_len);
+    i += 1;
+  );
+
+  gr_table_len = 18;
+
+  // gr_table_x_raw
+  gr_table_x_raw = allocate(gr_table_len * 3);
+  gr_table_x_raw[0] = 0.0000000000000;
+  gr_table_x_raw[1] = 0.0002106149709;
+  gr_table_x_raw[2] = 0.0003686990847;
+  gr_table_x_raw[3] = 0.0006501130364;
+  gr_table_x_raw[4] = 0.0011044513000;
+  gr_table_x_raw[5] = 0.0016804788350;
+  gr_table_x_raw[6] = 0.0023251490470;
+  gr_table_x_raw[7] = 0.0029973624020;
+  gr_table_x_raw[8] = 0.0036842304960;
+  gr_table_x_raw[9] = 0.0043689564300;
+  gr_table_x_raw[10] = 0.0051289380440;
+  gr_table_x_raw[11] = 0.0061411803430;
+  gr_table_x_raw[12] = 0.0074524766260;
+  gr_table_x_raw[13] = 0.0089647505090;
+  gr_table_x_raw[14] = 0.0108051531700;
+  gr_table_x_raw[15] = 0.0135162656500;
+  gr_table_x_raw[16] = 0.0175188865400;
+  gr_table_x_raw[17] = 1.0000000000000;
+  gr_table_x_raw[18] = 0.0000000000000;
+  gr_table_x_raw[19] = 0.0001822577969;
+  gr_table_x_raw[20] = 0.0003190966185;
+  gr_table_x_raw[21] = 0.0005625128294;
+  gr_table_x_raw[22] = 0.0009804053352;
+  gr_table_x_raw[23] = 0.0015538258180;
+  gr_table_x_raw[24] = 0.0022126659440;
+  gr_table_x_raw[25] = 0.0028988540950;
+  gr_table_x_raw[26] = 0.0035634511280;
+  gr_table_x_raw[27] = 0.0042128857880;
+  gr_table_x_raw[28] = 0.0049078830270;
+  gr_table_x_raw[29] = 0.0057280561550;
+  gr_table_x_raw[30] = 0.0068850359210;
+  gr_table_x_raw[31] = 0.0083364521810;
+  gr_table_x_raw[32] = 0.0104270474000;
+  gr_table_x_raw[33] = 0.0134988681400;
+  gr_table_x_raw[34] = 0.0166703550600;
+  gr_table_x_raw[35] = 1.0000000000000;
+  gr_table_x_raw[36] = 0.0000000000000;
+  gr_table_x_raw[37] = 0.0002118388963;
+  gr_table_x_raw[38] = 0.0003683106940;
+  gr_table_x_raw[39] = 0.0006512028181;
+  gr_table_x_raw[40] = 0.0011267457390;
+  gr_table_x_raw[41] = 0.0017141596740;
+  gr_table_x_raw[42] = 0.0023674152850;
+  gr_table_x_raw[43] = 0.0030527255360;
+  gr_table_x_raw[44] = 0.0037581071970;
+  gr_table_x_raw[45] = 0.0045289696780;
+  gr_table_x_raw[46] = 0.0054706732940;
+  gr_table_x_raw[47] = 0.0066954517650;
+  gr_table_x_raw[48] = 0.0081442878920;
+  gr_table_x_raw[49] = 0.0096584563910;
+  gr_table_x_raw[50] = 0.0111818552200;
+  gr_table_x_raw[51] = 0.0139228675800;
+  gr_table_x_raw[52] = 0.0172579735900;
+  gr_table_x_raw[53] = 1.0000000000000;
+
+  // gr_table_y
+  gr_table_y_raw = allocate(gr_table_len * 3);
+  gr_table_y_raw[0] = 1.19441334700;
+  gr_table_y_raw[1] = 1.19441334700;
+  gr_table_y_raw[2] = 1.17514954100;
+  gr_table_y_raw[3] = 1.16456995300;
+  gr_table_y_raw[4] = 1.11193381000;
+  gr_table_y_raw[5] = 0.95086977030;
+  gr_table_y_raw[6] = 0.73942550540;
+  gr_table_y_raw[7] = 0.53572080760;
+  gr_table_y_raw[8] = 0.37008517710;
+  gr_table_y_raw[9] = 0.24665404760;
+  gr_table_y_raw[10] = 0.16273974240;
+  gr_table_y_raw[11] = 0.10951501340;
+  gr_table_y_raw[12] = 0.07469268520;
+  gr_table_y_raw[13] = 0.05049766445;
+  gr_table_y_raw[14] = 0.03420736713;
+  gr_table_y_raw[15] = 0.02404922493;
+  gr_table_y_raw[16] = 0.01751888654;
+  gr_table_y_raw[17] = 0.00000000000;
+  gr_table_y_raw[18] = 1.03359767900;
+  gr_table_y_raw[19] = 1.03359767900;
+  gr_table_y_raw[20] = 1.01705228000;
+  gr_table_y_raw[21] = 1.00764867400;
+  gr_table_y_raw[22] = 0.98704744970;
+  gr_table_y_raw[23] = 0.87920535940;
+  gr_table_y_raw[24] = 0.70365451860;
+  gr_table_y_raw[25] = 0.51811434480;
+  gr_table_y_raw[26] = 0.35795275110;
+  gr_table_y_raw[27] = 0.23784291470;
+  gr_table_y_raw[28] = 0.15572572970;
+  gr_table_y_raw[29] = 0.10214781390;
+  gr_table_y_raw[30] = 0.06900549260;
+  gr_table_y_raw[31] = 0.04695851429;
+  gr_table_y_raw[32] = 0.03301034542;
+  gr_table_y_raw[33] = 0.02401826988;
+  gr_table_y_raw[34] = 0.01667035506;
+  gr_table_y_raw[35] = 0.00000000000;
+  gr_table_y_raw[36] = 1.20135432000;
+  gr_table_y_raw[37] = 1.20135432000;
+  gr_table_y_raw[38] = 1.17391162900;
+  gr_table_y_raw[39] = 1.16652211600;
+  gr_table_y_raw[40] = 1.13437929100;
+  gr_table_y_raw[41] = 0.96992748780;
+  gr_table_y_raw[42] = 0.75286667980;
+  gr_table_y_raw[43] = 0.54561590170;
+  gr_table_y_raw[44] = 0.37750617640;
+  gr_table_y_raw[45] = 0.25568776440;
+  gr_table_y_raw[46] = 0.17358290440;
+  gr_table_y_raw[47] = 0.11939927650;
+  gr_table_y_raw[48] = 0.08162638572;
+  gr_table_y_raw[49] = 0.05440524970;
+  gr_table_y_raw[50] = 0.03539994489;
+  gr_table_y_raw[51] = 0.02477268373;
+  gr_table_y_raw[52] = 0.01725797359;
+  gr_table_y_raw[53] = 0.00000000000;
+
+  // 3 models:
+  gr_table_x = allocate(3);
+  gr_table_y = allocate(3);
+  gr_table_segment = allocate(3);
+  
+  i = 0;
+  loop(3,
+    gr_table_x[i] = gr_table_x_raw + gr_table_len * i;
+    gr_table_y[i] = gr_table_y_raw + gr_table_len * i;
+
+    gr_table_segment[i] = generate_segments(gr_table_x[i], gr_table_y[i], gr_table_len);
+  
+    i += 1;
+  );
+ 
+);
+
+
+
+
+
+
+const_1Em10 = 10.0 ^ -10.0;
+function getFilter1K(time_msec)
+(
+  1.0 - pow(0.05, 1.0 / (srate * (time_msec / 1000.0)));
+);
+
+
+function Filter2_generateLS(freq_k, gain_dB, Q) local(w0, sin_w0, cos_w0, gain_1, gain_0, gain_2, s_sin, x1, x2, x3, b1, b2, a0, a1, a2)
+(
+  w0 = freq_k * 2.0 * $pi;
+
+  sin_w0 = sin(w0);
+  cos_w0 = cos(w0);
+
+  gain_1 = DB_TO_K(gain_dB);
+
+  gain_0 = gain_1 - 1.0;
+  gain_2 = (gain_1 * gain_1 + 1.0) / Q - (gain_1 - 1.0) * (gain_1 - 1.0);
+
+  s_sin = sqrt(max(gain_2, 0.0)) * sin_w0;
+
+  x1 = gain_1 + 1.0 + gain_0 * cos_w0;
+  x2 = gain_1 + 1.0 - gain_0 * cos_w0;
+  x3 = gain_0 - (gain_1 + 1.0) * cos_w0;
+
+  b1 = ((gain_1 + 1.0) * cos_w0 + gain_0) * -2.0 / (s_sin + x1);
+  b2 = (x1 - s_sin) / (s_sin + x1);
+  a0 = (x2 + s_sin) * gain_1 / (s_sin + x1);
+  a1 = x3 * (gain_1 * 2.0) / (s_sin + x1);
+  a2 = (x2 - s_sin) * gain_1 / (s_sin + x1);
+
+  this.Filter2_Init(a0, a1, a2, -b1, -b2);
+);
+
+function Filter2_generateHS(freq_k, gain_dB, Q) local(w0, sin_w0, cos_w0, gain_1, gain_0, gain_2, s_sin, x1, x2, x3, b1, b2, a0, a1, a2)
+(
+  w0 = freq_k * 2.0 * $pi;
+
+  sin_w0 = sin(w0);
+  cos_w0 = cos(w0);
+
+  gain_1 = DB_TO_K(gain_dB);
+
+  gain_0 = gain_1 - 1.0;
+  gain_2 = (gain_1 * gain_1 + 1.0) / Q - (gain_1 - 1.0) * (gain_1 - 1.0);
+
+  s_sin = sqrt(max(gain_2, 0.0)) * sin_w0;
+
+  x1 = gain_1 + 1.0 - gain_0 * cos_w0;
+  x2 = gain_1 + 1.0 + gain_0 * cos_w0;
+  x3 = gain_0 + (gain_1 + 1.0) * cos_w0;
+  
+  b1 = (gain_0 - (gain_1 + 1.0) * cos_w0) * 2.0 / (s_sin + x1);
+  b2 = (x1 - s_sin) / (s_sin + x1);
+  a0 = (x2 + s_sin) * gain_1 / (s_sin + x1);
+  a1 = x3 * (gain_1 * -2.0) / (s_sin + x1);
+  a2 = (x2 - s_sin) * gain_1 / (s_sin + x1);
+
+  this.Filter2_Init(a0, a1, a2, -b1, -b2);
+);
+
+function Filter2_generatePK(freq_k, gain_dB) local(w0, sin_w0, cos_w0, gain_1, x1, x2, x3, b1, b2, a0, a1, a2)
+(
+  w0 = freq_k * 2.0 * $pi;
+
+  sin_w0 = sin(w0);
+  cos_w0 = cos(w0);
+
+  gain_1 = DB_TO_K(gain_dB);
+
+  x1 = ((freq_k * 2.0 + 1.0) * 0.187 / (1.0 - freq_k * 2.0) + 0.81) * sin_w0 / 0.42;
+  x2 = x1 / gain_1;
+  x3 = x1 * gain_1;
+
+  b1 = cos_w0 * -2.0 / (x2 + 1.0);
+  b2 = (1.0 - x2) / (x2 + 1.0);
+  a0 = (x3 + 1.0) / (x2 + 1.0);
+  a1 = cos_w0 * -2.0 / (x2 + 1.0);
+  a2 = (1.0 - x3) / (x2 + 1.0);
+
+  this.Filter2_Init(a0, a1, a2, -b1, -b2);
+);
+
+/*
+ * LACompressor
+ */
+
+function LACompressor_setGain(gain_k)
+(
+  this.output_gain_k = pow((pow(24.0, gain_k) - 1.0) / 23.0, 1.35) * 24.0;
+);
+
+function LACompressor_refreshFilters()
+(
+  this.biquad1.Filter2_generateLS(10.0 / srate, -9.0, 0.5);
+  this.biquad3.Filter2_generateHS(17000.0 / srate, -6.0, 0.3);
+  this.biquad5.Filter2_generatePK(220.0 / srate, this.R47_param * -13.0 * 0.5);
+  this.biquad7.Filter2_generateLS(43.0 / srate, 30.0, 0.6);
+
+  this.biquad2.Filter2_Init(this.biquad1.a0, this.biquad1.a1, this.biquad1.a2, this.biquad1.b1, this.biquad1.b2);
+  this.biquad4.Filter2_Init(this.biquad3.a0, this.biquad3.a1, this.biquad3.a2, this.biquad3.b1, this.biquad3.b2);
+  this.biquad6.Filter2_Init(this.biquad5.a0, this.biquad5.a1, this.biquad5.a2, this.biquad5.b1, this.biquad5.b2);
+  this.biquad8.Filter2_Init(this.biquad7.a0, this.biquad7.a1, this.biquad7.a2, this.biquad7.b1, this.biquad7.b2);
+);
+
+function LACompressor_setPeakReduction(peak_reduction_k) local(a)
+(
+  this.gr_const_A = (peak_reduction_k * 1.03 - 0.03) * -49.0;
+
+  this.threshold_dB = this.gr_const_A + 47.0;
+
+  this.threshold_lin = DB_TO_K(this.threshold_dB);
+
+  a = pow(2.0, 1.0 - peak_reduction_k);
+
+  this.gr_const_B = a + 1.2;
+  this.gr_const_C = log10(this.gr_const_B);
+
+  this.gr_const_D = DB_TO_K(this.gr_const_A);
+
+  this.peak_reduction_k = peak_reduction_k;
+
+  this.LACompressor_refreshFilters();
+);
+
+function LACompressor_setLimitMode(is_limit)
+(
+  this.is_limit = is_limit;
+
+  this.12_or_13 = !is_limit ? 1.2 : 1.3;
+  this.log_12_or_13 = log10(this.12_or_13);
+);
+
+function LACompressor_setR37(r37_k)
+(
+  this.R47_param = r37_k;
+
+  this.LACompressor_refreshFilters();
+);
+
+function LACompressor_setOptoCell(is_classic)
+(
+  this.photocell_memory_classic = is_classic;
+);
+
+function LACompressor_getGainReduction(input) local(s, max_gr_lpf4, attack_msec, dynamic_gr_lpf4_attack)
+(
+  // gr_lpf1
+  (input < this.gr_lpf1_s) ? (
+    this.gr_lpf1_s += (input - this.gr_lpf1_s) * this.gr_lpf1_attack;
+  ) : (
+    this.gr_lpf1_s += (input - this.gr_lpf1_s) * this.gr_lpf1_release;
+  );
+
+  this.gr_lpf1_s = max(this.gr_lpf1_s, 0.7);   // limit the envelope
+
+  // gr_lpf2
+  (input < this.gr_lpf2_s) ? (
+    this.gr_lpf2_s += (input - this.gr_lpf2_s) * this.gr_lpf2_attack;
+  ) : (
+    this.gr_lpf2_s += (min(input, this.gr_lpf1_s) - this.gr_lpf2_s) * this.gr_lpf2_release;  // refer to gr_lpf1 here
+  );
+
+  this.gr_lpf2_s = max(this.gr_lpf2_s, 0.4);   // limit the envelope
+
+  // gr_lpf3
+  (input < this.gr_lpf4_s) ? (  // input < prev_output
+    this.gr_lpf3_s += (input - this.gr_lpf3_s) * this.gr_lpf3_attack;
+  ) : (
+    this.gr_lpf3_s += (input - this.gr_lpf3_s) * this.gr_lpf3_release;
+  );
+
+  s = (this.gr_lpf3_s - 0.5) * 2.0;
+
+  (this.photocell_memory_classic) ? (
+    max_gr_lpf4 = input * 12.0;
+  ) : (
+    s /= 5.5;
+    max_gr_lpf4 = input * 6.0;
+    this.dynamic_attack_s = 0.9;
+  );
+
+  // dynamic attack for gr_lpf4
+  attack_msec = 70.0 * max(0.3, s);
+    
+  dynamic_gr_lpf4_attack = getFilter1K(attack_msec);
+
+  // gr_lpf4
+  (input < this.gr_lpf4_s) ? (
+    // attack
+
+    (input + 0.0001 < this.gr_lpf4_s) ? (
+      this.dynamic_attack_s += (1.0 - this.dynamic_attack_s) * this.dynamic_attack_attack;
+    );
+
+    this.gr_lpf4_s += (input - this.gr_lpf4_s) * dynamic_gr_lpf4_attack * this.dynamic_attack_s;
+
+    (this.gr_lpf4_s >= max_gr_lpf4) ? (
+      this.gr_lpf4_s = max_gr_lpf4;
+    );
+
+  ) : (
+    // release
+
+    this.dynamic_attack_s += (0.0 - this.dynamic_attack_s) * this.dynamic_attack_release;
+
+    this.gr_lpf4_s += (min(input, this.gr_lpf2_s) - this.gr_lpf4_s) * this.gr_lpf4_release;
+  );
+
+  this.gr_lpf4_s;
+);
+
+function LACompressor_processSampleStereo(x1, x2) local(sc_left, sc_right, 
+  level_left, level_right, level_max, level_max_dB, value_dB, value, 
+  gr_level, k, b_left, b_right, level_sc, level_b, v1, v2, v3, v4, v5, 
+  gain_reduction, sat_x1, delta_x1, sat_x2, delta_x2, gain_scale, y1, y2, 
+  y1_sat, delta_y1, y2_sat, delta_y2, delta_gr)
+(
+  // internal sidechain
+  sc_left = x1;
+  sc_right = x2;
+
+  sc_left = this.biquad5.Filter2_processSample(this.biquad3.Filter2_processSample(this.biquad1.Filter2_processSample(sc_left)));
+  sc_right = this.biquad6.Filter2_processSample(this.biquad4.Filter2_processSample(this.biquad2.Filter2_processSample(sc_right)));
+
+  // get level
+  this.rms_s_left += (sc_left * sc_left - this.rms_s_left) * this.rms_lpf_k;
+  this.rms_s_right += (sc_right * sc_right - this.rms_s_right) * this.rms_lpf_k;
+
+  level_left = sqrt(this.rms_s_left) * 0.25 + abs(sc_left) * 0.75;
+  level_right = sqrt(this.rms_s_right) * 0.25 + abs(sc_right) * 0.75;
+
+  // stereo-link
+  level_max = max(level_left, level_right);
+
+  level_max = max(level_max, const_1Em10);
+
+  // get gain reduction (threshold soft-clip)
+  level_max_dB = K_TO_DB(level_max);
+
+  level_max_dB -= this.gr_const_A;
+
+  value_dB = log10(pow(this.gr_const_B, level_max_dB) + 1) / this.gr_const_C + this.gr_const_A;
+
+  value = DB_TO_K(value_dB);
+
+  AAKatze =  gr_level = (value - this.gr_const_D) / level_max;
+
+  // apply attack/release to GR
+
+  k = (gr_level > this.gr_filter_s) ? this.attack_filter_k : this.release_filter_k;
+
+  this.gr_filter_s += (gr_level - this.gr_filter_s) * k;
+
+  sc_left *= this.gr_filter_s;
+  sc_right *= this.gr_filter_s;
+
+  //-----------------------------------------------------------
+
+  // apply integration to compressed sc
+
+  b_left = this.biquad7.Filter2_processSample(sc_left);
+  b_right = this.biquad8.Filter2_processSample(sc_right);
+
+  // get max level from compressed sc and integrated compressed sc
+
+  level_sc = max(abs(sc_left), abs(sc_right));
+  level_b = max(abs(b_left), abs(b_right));
+
+  level_sc = max(level_sc, const_1Em10);
+  level_b = max(level_b, const_1Em10);
+
+  // apply attack/release to both signals
+
+  k = (level_sc > this.sc_level_s) ? this.level_attack : this.level_release;
+
+  this.sc_level_s += (level_sc - this.sc_level_s) * k;
+
+  k = (level_b > this.b_level_s) ? this.level_attack : this.level_release;
+
+  this.b_level_s += (level_b - this.b_level_s) * k;
+
+  // calculate compression signal
+
+  v1 = K_TO_DB(this.b_level_s);
+  v2 = log10(pow(this.12_or_13, v1 - this.threshold_dB) + 1.0);
+  v3 = DB_TO_K(v2 / this.log_12_or_13 + this.threshold_dB);
+  v4 = this.threshold_lin / v3 * this.sc_level_s;
+  v5 = pow(this.gr_const_D / (this.gr_const_D + v4), !this.is_limit ? 0.79 : 0.94);
+
+  gain_reduction = this.LACompressor_getGainReduction(v5);
+  
+  this.gr = gain_reduction;
+
+  // input saturation
+
+  sat_x1 = (x1 >= 0.0) ?
+    x1 / (pow(x1 * 0.05, 1.3) + 1.0) :
+    x1 / (1.0 - x1 * 0.005);
+
+  delta_x1 = sat_x1 - x1;
+
+  sat_x2 = (x2 >= 0.0) ?
+    x2 / (pow(x2 * 0.05, 1.3) + 1.0) :
+    x2 / (1.0 - x2 * 0.005);
+
+  delta_x2 = sat_x2 - x2;
+
+  // apply gain reduction (to clean x)
+
+  gain_scale = this.peak_reduction_k * this.peak_reduction_k * 14.0 + 1.0;
+
+  y1 = x1 * gain_reduction * gain_scale;
+  y2 = x2 * gain_reduction * gain_scale;
+
+  // output saturation
+
+  y1_sat = (y1 >= 0.0) ?
+    y1 / (pow(y1 * 0.05, 1.3) + 1.0) :
+    y1 / (1.0 - y1 * 0.005);
+
+  delta_y1 = y1_sat - y1;
+
+  y2_sat = (y2 >= 0.0) ?
+    y2 / (pow(y2 * 0.05, 1.3) + 1.0) :
+    y2 / (1.0 - y2 * 0.005);
+
+  delta_y2 = y2_sat - y2;
+
+  // get saturation amount
+  delta_gr = max((1.0 - pow(gain_reduction * 0.98, 0.1)) * 18.0, 0.0);
+
+  // mix delta saturation back
+  this.y1 = ((delta_y1 * 0.5 + delta_x1 * 0.5) * delta_gr + x1) * gain_reduction * this.output_gain_k;
+  this.y2 = ((delta_y2 * 0.5 + delta_x2 * 0.5) * delta_gr + x2) * gain_reduction * this.output_gain_k;
+);
+
+function LACompressor_reset()
+(
+  this.biquad1.Filter2_reset();
+  this.biquad2.Filter2_reset();
+  this.biquad3.Filter2_reset();
+  this.biquad4.Filter2_reset();
+  this.biquad5.Filter2_reset();
+  this.biquad6.Filter2_reset();
+  this.biquad7.Filter2_reset();
+  this.biquad8.Filter2_reset();
+
+  this.rms_s_left = 0.0;
+  this.rms_s_right = 0.0;
+
+  this.gr_filter_s = 0.0;
+
+  this.sc_level_s = 0.0;
+  this.b_level_s = 0.0;
+
+  this.gr_lpf1_s = 1.0;
+  this.gr_lpf2_s = 1.0;
+  this.gr_lpf3_s = 1.0;
+  this.gr_lpf4_s = 1.0;
+  this.dynamic_attack_s = 0.0;
+);
+
+function LACompressor_setSampleRate()
+(
+  this.rms_lpf_k = getFilter1K(36.0);
+
+  this.attack_filter_k = getFilter1K(0.0);
+  this.release_filter_k = getFilter1K(20.0);
+
+  this.level_attack = getFilter1K(0.0);
+  this.level_release = getFilter1K(20.0);
+
+  this.gr_lpf1_attack = getFilter1K(35000.0);
+  this.gr_lpf1_release = getFilter1K(9000.0);
+
+  this.gr_lpf2_attack = getFilter1K(1400.0);
+  this.gr_lpf2_release = getFilter1K(900.0);
+
+  this.gr_lpf3_attack = getFilter1K(1100.0);
+  this.gr_lpf3_release = getFilter1K(12000.0);
+
+  this.gr_lpf4_release = getFilter1K(70.0);
+
+  this.dynamic_attack_attack = getFilter1K(15.0);
+  this.dynamic_attack_release = getFilter1K(2.0);
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  /*
+   * AChannel
+   */
+  
+  function AChannel_reset()
+  (
+    this.level_s = 0.0;
+  );
+  
+  function AChannel_getLevel(x) local(x_level, attack_k, filter_k)
+  (
+    x_level = abs(x);
+    
+    attack_k = this.attack_k * x_level;
+    
+    (attack_k > 1.0) ? ( attack_k = 1.0; );
+    
+    filter_k = (x_level > this.level_s) ? attack_k : this.release_k;
+    
+    this.level_s += (x_level - this.level_s) * filter_k;
+    
+    this.level_s * this.drive;
+  );
+  
+  function AChannel_processSample(x, x_level) local(x_level2, gr)
+  (
+    x_level2 = this.is_modern ? x_level * x_level : x_level;
+    
+    gr = (x_level2 * 0.5 - 1.0) * (x_level2 * 0.5 - 1.0) + x_level * this.a;
+    
+    (gr > 1.0) ? ( gr = 1.0 );
+    this.MY_GR = gr;
+    (x_level > 1.0) ? ( gr = 1.0 / (x_level + 0.00001) * (this.a + 0.25); );
+    
+    x * gr;
+  );
+  
+  function AChannel_setParameters(bias, curve, is_modern)
+  (
+    this.drive = bias;
+    this.a = curve;
+    this.is_modern = is_modern;
+  );
+  
+  function AChannel_setAttackRelease(attack_sec, release_sec)
+  (
+    this.attack_k = 1.0 / (srate * attack_sec);
+    this.release_k = 1.0 / (srate * release_sec);
+  );
+  
+
+
+
+
+  
+  /*
+   * Tape202
+   */
+  
+  function Tape202_Filter2_generateHighpass(freq_k, Q, is_second_order) local(tan_w0, tan_w0_pow2, a0, a1, a2, b0, b1, b2)
+  (
+      tan_w0 = tan(freq_k * $pi);
+      tan_w0_pow2 = tan_w0 * tan_w0;
+  
+      (is_second_order) ? (
+  
+          a0 = 1.0;
+          a1 = -2.0;
+          a2 = 1.0;
+          b0 = Q * tan_w0 + 1.0 + tan_w0_pow2;
+          b1 = tan_w0_pow2 * 2.0 - 2.0;
+          b2 = 1.0 - Q * tan_w0 + tan_w0_pow2;
+  
+      ) : (
+  
+          a0 = 1.0;
+          a1 = -1.0;
+          a2 = 0.0;
+          b0 = tan_w0 + 1.0;
+          b1 = tan_w0 - 1.0;
+          b2 = 0.0;
+  
+      );
+  
+      this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+  );
+  
+  function Tape202_Filter2_generateBump1(freq_k_A, gain_dB_A, freq_k_B, gain_dB_B) local(
+    tan_w0_A, gain_k_A, gain_boost_A, gain_cut_A,
+    first_a0, first_a1, first_b0, first_b1, tan_w0_B, gain_k_B, gain_boost_B, gain_cut_B,
+    second_a0, second_a1, second_b0, second_b1, a0, a1, a2, b1, b2)
+  (
+      // shelf 1
+      tan_w0_A = tan(freq_k_A * $pi);
+      gain_k_A = DB_TO_K(gain_dB_A);
+  
+      gain_boost_A = (gain_dB_A >= 0.0) ? gain_k_A : 1.0;
+      gain_cut_A = (gain_dB_A < 0.0) ? (1.0 / gain_k_A) : 1.0;
+  
+      first_a0 = tan_w0_A * gain_boost_A + 1.0;
+      first_a1 = tan_w0_A * gain_boost_A - 1.0;
+      first_b0 = tan_w0_A * gain_cut_A + 1.0;
+      first_b1 = tan_w0_A * gain_cut_A - 1.0;
+  
+      first_a0 /= first_b0;
+      first_a1 /= first_b0;
+      first_b1 /= first_b0;
+  
+      // shelf 2
+      tan_w0_B = tan(freq_k_B * $pi);
+      gain_k_B = DB_TO_K(gain_dB_B);
+  
+      gain_boost_B = (gain_dB_B >= 0.0) ? gain_k_B : 1.0;
+      gain_cut_B = (gain_dB_B < 0.0) ? (1.0 / gain_k_B) : 1.0;
+  
+      second_a0 = tan_w0_B * gain_boost_B + 1.0;
+      second_a1 = tan_w0_B * gain_boost_B - 1.0;
+      second_b0 = tan_w0_B * gain_cut_B + 1.0;
+      second_b1 = tan_w0_B * gain_cut_B - 1.0;
+  
+      second_a0 /= second_b0;
+      second_a1 /= second_b0;
+      second_b1 /= second_b0;
+  
+      // combine both shelves
+  
+      a0 = first_a0 * second_a0;
+      a1 = first_a0 * second_a1 + first_a1 * second_a0;
+      a2 = first_a1 * second_a1;
+  
+      b1 = first_b1 + second_b1;
+      b2 = first_b1 * second_b1;
+  
+      this.Filter2_Init(a0, a1, a2, -b1, -b2);
+  );
+  
+  function Tape202_Filter2_generateBump2(freq_k, gain_dB, dry_mix) local(tan_w0, tan_w0_pow2, gain_k, scale, gain_boost, gain_cut, mix, half_mix,
+    A, B, dry_a0, dry_a1, dry_a2, dry_b0, dry_b1, dry_b2, wet_a0, wet_a1, wet_a2, wet_b0, wet_b1, wet_b2, a0, a1, a2, b0, b1, b2)
+  (
+      tan_w0 = tan(freq_k * $pi);
+      tan_w0_pow2 = tan_w0 * tan_w0;
+  
+      gain_k = DB_TO_K(gain_dB);
+  
+      scale = sqrt(abs(gain_dB / 12.0));
+  
+      gain_boost = (gain_dB >= 0.0) ? gain_k : 1.0;
+      gain_cut = (gain_dB < 0.0) ? (1.0 / gain_k) : 1.0;
+  
+      mix = pow(dry_mix, freq_k * 10.0 + 0.1);
+      half_mix = 1.0 - mix * 0.5;
+  
+      A = (gain_dB >= 0.0) ? (scale * half_mix * -6.0 + sqrt(2)) : (scale * half_mix * -6.4 + sqrt(2));
+      B = (gain_dB >= 0.0) ? (scale * half_mix * -6.4 + sqrt(2)) : (scale * half_mix * -6.0 + sqrt(2));
+  
+      A *= sqrt(gain_boost) * tan_w0;
+      B *= sqrt(gain_cut) * tan_w0;
+  
+      dry_a0 = 1.0 + A + tan_w0_pow2 * gain_boost;
+      dry_a1 = gain_boost * 2.0 * tan_w0_pow2 - 2.0;
+      dry_a2 = 1.0 - A + tan_w0_pow2 * gain_boost;
+      dry_b0 = 1.0 + B + tan_w0_pow2 * gain_cut;
+      dry_b1 = gain_cut * 2.0 * tan_w0_pow2 - 2.0;
+      dry_b2 = 1.0 - B + tan_w0_pow2 * gain_cut;
+  
+      wet_a0 = gain_boost * tan_w0 + 1.0;
+      wet_a1 = gain_boost * tan_w0 - 1.0;
+      wet_a2 = 0.0;
+      wet_b0 = gain_cut * tan_w0 + 1.0;
+      wet_b1 = gain_cut * tan_w0 - 1.0;
+      wet_b2 = 0.0;
+  
+      // combine both filters
+      a0 = dry_a0 * mix + wet_a0 * (1.0 - mix);
+      a1 = dry_a1 * mix + wet_a1 * (1.0 - mix);
+      a2 = dry_a2 * mix + wet_a2 * (1.0 - mix);
+      b0 = dry_b0 * mix + wet_b0 * (1.0 - mix);
+      b1 = dry_b1 * mix + wet_b1 * (1.0 - mix);
+      b2 = dry_b2 * mix + wet_b2 * (1.0 - mix);
+  
+      this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+  );
+  
+  function Tape202_Filter2_generateBump3(freq_k, gain_dB) local(tan_w0, tan_w0_pow2, scale, gain_k, k1, scale_1, scale_2, scale_A, scale_B,
+    a0, a1, a2, b0, b1, b2)
+  (
+      tan_w0 = tan(freq_k * $pi);
+      tan_w0_pow2 = tan_w0 * tan_w0;
+  
+      scale = abs(gain_dB / 12.0);
+  
+      gain_k = DB_TO_K(gain_dB);
+  
+      k1 = (tan_w0 + 1.0) * 0.5;
+  
+      (gain_dB < 0.0) ? (
+  
+          scale_1 = k1;
+          scale_2 = k1 / gain_k;
+  
+          scale_A = (scale_2 * freq_k + 1.0 - freq_k) * scale + 1.0 - scale;
+          scale_B = 1.0;
+  
+      ) : (
+  
+          scale_1 = gain_k * k1;
+          scale_2 = k1;
+  
+          scale_A = 1.0;
+          scale_B = (scale_1 * freq_k + 1.0 - freq_k) * scale + 1.0 - scale;
+  
+      );
+  
+      a0 = tan_w0 * scale_1 + scale_B + tan_w0 * tan_w0;
+      a1 = tan_w0_pow2 * 2.0 - scale_B * 2.0;
+      a2 = scale_B - scale_1 * tan_w0 + tan_w0_pow2;
+      b0 = scale_2 * tan_w0 + scale_A + tan_w0_pow2;
+      b1 = tan_w0_pow2 * 2.0 - scale_A * 2.0;
+      b2 = scale_A - scale_2 * tan_w0 + tan_w0_pow2;
+  
+      this.Filter2_Init(a0 / b0, a1 / b0, a2 / b0, -b1 / b0, -b2 / b0);
+  );
+  
+  function Tape202_Filter2_generateShelf_1(freq_k_A, gain_dB_A, freq_k_B, gain_dB_B) local(
+    tan_w0_A, gain_k_A, gain_boost_A, gain_cut_A,
+    first_a0, first_a1, first_b0, first_b1, first_a0, first_a1, first_b1, tan_w0_B, gain_k_B, gain_boost_B, gain_cut_B,
+    second_a0, second_a1, second_b0, second_b1, a0, a1, a2, b1, b2)
+  (
+      // shelf 1
+      tan_w0_A = tan(freq_k_A * $pi);
+      gain_k_A = DB_TO_K(gain_dB_A);
+  
+      gain_boost_A = (gain_dB_A >= 0.0) ? gain_k_A : 1.0;
+      gain_cut_A = (gain_dB_A < 0.0) ? (1.0 / gain_k_A) : 1.0;
+  
+      first_a0 = tan_w0_A + gain_boost_A;
+      first_a1 = tan_w0_A - gain_boost_A;
+      first_b0 = tan_w0_A + gain_cut_A;
+      first_b1 = tan_w0_A - gain_cut_A;
+  
+      first_a0 /= first_b0;
+      first_a1 /= first_b0;
+      first_b1 /= first_b0;
+  
+      // shelf 2
+      tan_w0_B = tan(freq_k_B * $pi);
+      gain_k_B = DB_TO_K(gain_dB_B);
+  
+      gain_boost_B = (gain_dB_B >= 0.0) ? gain_k_B : 1.0;
+      gain_cut_B = (gain_dB_B < 0.0) ? (1.0 / gain_k_B) : 1.0;
+  
+      second_a0 = tan_w0_B + gain_boost_B;
+      second_a1 = tan_w0_B - gain_boost_B;
+      second_b0 = tan_w0_B + gain_cut_B;
+      second_b1 = tan_w0_B - gain_cut_B;
+  
+      second_a0 /= second_b0;
+      second_a1 /= second_b0;
+      second_b1 /= second_b0;
+  
+      // combine both shelves
+  
+      a0 = first_a0 * second_a0;
+      a1 = first_a0 * second_a1 + first_a1 * second_a0;
+      a2 = first_a1 * second_a1;
+  
+      b1 = first_b1 + second_b1;
+      b2 = first_b1 * second_b1;
+  
+      this.Filter2_Init(a0, a1, a2, -b1, -b2);
+  );
+  
+  function Tape202_Filter2_generateShelf_2(freq_k_A, gain_dB_A, freq_k_B, gain_dB_B) local(
+    tan_w0_A, gain_k_A, gain_boost_A, gain_cut_A,
+    first_a0, first_a1, first_b0, first_b1,
+    tan_w0_B, gain_k_B, gain_boost_B, gain_cut_B,
+    second_a0, second_a1, second_b0, second_b1,
+    a0, a1, a2, b1, b2)
+  (
+      // shelf 1
+      tan_w0_A = tan(freq_k_A * $pi);
+      gain_k_A = DB_TO_K(gain_dB_A);
+  
+      gain_boost_A = (gain_dB_A >= 0.0) ? gain_k_A : 1.0;
+      gain_cut_A = (gain_dB_A < 0.0) ? (1.0 / gain_k_A) : 1.0;
+  
+      first_a0 = tan_w0_A + gain_boost_A;
+      first_a1 = tan_w0_A - gain_boost_A;
+      first_b0 = tan_w0_A + gain_cut_A;
+      first_b1 = tan_w0_A - gain_cut_A;
+  
+      first_a0 /= first_b0;
+      first_a1 /= first_b0;
+      first_b1 /= first_b0;
+  
+      // shelf 2
+      tan_w0_B = tan(freq_k_B * $pi);
+      gain_k_B = DB_TO_K(gain_dB_B);
+  
+      gain_boost_B = (gain_dB_B >= 0.0) ? gain_k_B : 1.0;
+      gain_cut_B = (gain_dB_B < 0.0) ? (1.0 / gain_k_B) : 1.0;
+  
+      second_a0 = tan_w0_B * gain_boost_B + 1.0;
+      second_a1 = tan_w0_B * gain_boost_B - 1.0;
+      second_b0 = tan_w0_B * gain_cut_B + 1.0;
+      second_b1 = tan_w0_B * gain_cut_B - 1.0;
+  
+      second_a0 /= second_b0;
+      second_a1 /= second_b0;
+      second_b1 /= second_b0;
+  
+      // combine both shelves
+  
+      a0 = first_a0 * second_a0;
+      a1 = first_a0 * second_a1 + first_a1 * second_a0;
+      a2 = first_a1 * second_a1;
+  
+      b1 = first_b1 + second_b1;
+      b2 = first_b1 * second_b1;
+  
+      this.Filter2_Init(a0, a1, a2, -b1, -b2);
+  );
+  
+  function Tape202_setFilter(rolloff, bump, model)
+  (
+    (model == 0) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff / srate, 1.614 - sqrt(bump) * 1.164, 1);
+      this.flt2.Tape202_Filter2_generateBump1(rolloff / srate, 0.0, rolloff / srate, 0.0);
+    );
+    (model == 1) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff * 0.5 / srate, 2.0, 1);
+      this.flt2.Tape202_Filter2_generateBump2(rolloff / srate, 2.2 * sqrt(bump), 0.98);
+    );
+    (model == 2) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff / srate, 1.414, 0);
+      this.flt2.Tape202_Filter2_generateBump1(rolloff * 1.5 / srate, 18.0 * sqrt(bump), rolloff * 8.0 / srate, -9.0 * sqrt(bump));
+    );
+    (model == 3) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff / srate, 1.414 - sqrt(bump) * 1.014, 1);
+      this.flt2.Tape202_Filter2_generateBump3(rolloff * 2.0 / srate, sqrt(bump) * -6.0);
+    );
+    (model == 4) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff / srate, 1.514 - sqrt(bump) * 1.064, 1);
+      this.flt2.Tape202_Filter2_generateBump1(rolloff / srate, -9.0 * sqrt(bump), rolloff * 4.0 / srate, 6.0 * sqrt(bump));
+    );
+    (model == 5) ? (
+      this.flt1.Tape202_Filter2_generateHighpass(rolloff / srate, 1.4 - sqrt(bump) * 1.05, 1);
+      this.flt2.Tape202_Filter2_generateBump2(rolloff * 2.0 / srate, -2.0 * sqrt(bump), 0.97);
+    );
+  );
+  
+  function Tape202_setParams(bias, release_ms, tape_speed, eq_type, is_modern) local(curve, high_freq_hz, high_gain_dB, low_freq_hz, low_gain_dB, high_freq_hz_A, high_freq_hz_B)
+  (
+    (!is_modern) ? (
+      // vintage
+      tape_speed == 0 ? ( curve = 0.05 );
+      tape_speed == 1 ? ( curve = 0.1 );
+      tape_speed == 2 ? ( curve = 0.15 );
+    ) : (
+      // modern
+      tape_speed == 0 ? ( curve = 0.3 );
+      tape_speed == 1 ? ( curve = 0.35 );
+      tape_speed == 2 ? ( curve = 0.4 );
+    );
+  
+    this.ac.AChannel_setParameters(DB_TO_K(bias), curve, is_modern);
+    this.ac.AChannel_setAttackRelease(0.003, release_ms * 0.001);
+    
+    // dynamic EQ
+    (eq_type == 1) ? (
+      // IEC 2
+      
+      tape_speed == 0 ? ( high_freq_hz = 12000 );
+      tape_speed == 1 ? ( high_freq_hz = 16000 );
+      tape_speed == 2 ? ( high_freq_hz = 12000 );
+      
+      tape_speed == 0 ? ( high_gain_dB = -18 );
+      tape_speed == 1 ? ( high_gain_dB = -7 );
+      tape_speed == 2 ? ( high_gain_dB = 0 );
+  
+      low_freq_hz = 30;
+      
+      tape_speed == 0 ? ( low_gain_dB = 7.5 );
+      tape_speed == 1 ? ( low_gain_dB = 7.5 );
+      tape_speed == 2 ? ( low_gain_dB = 0.0 );
+      
+      this.dynamic_a.Tape202_Filter2_generateShelf_2(high_freq_hz / srate, high_gain_dB * bias / 12.0, low_freq_hz / srate, low_gain_dB * bias / 12.0);
+      this.dynamic_b.Tape202_Filter2_generateShelf_2(high_freq_hz / srate, 0.0, low_freq_hz / srate, 0.0);
+    
+    ) : (
+      // IEC 1
+      
+      tape_speed == 0 ? ( high_freq_hz_A = 11000 );
+      tape_speed == 1 ? ( high_freq_hz_A = 12000 );
+      tape_speed == 2 ? ( high_freq_hz_A = 10000 );
+      
+      tape_speed == 0 ? ( high_gain_dB = -15 );
+      tape_speed == 1 ? ( high_gain_dB = -10 );
+      tape_speed == 2 ? ( high_gain_dB = 3 );
+  
+      tape_speed == 0 ? ( high_freq_hz_B = 10000 );
+      tape_speed == 1 ? ( high_freq_hz_B = 10000 );
+      tape_speed == 2 ? ( high_freq_hz_B = 12000 );
+    
+      this.dynamic_a.Tape202_Filter2_generateShelf_1(high_freq_hz_A / srate, high_gain_dB * bias / 12.0, high_freq_hz_A / srate, 0.0);
+      this.dynamic_b.Tape202_Filter2_generateShelf_1(high_freq_hz_B / srate, 0.0, high_freq_hz_B / srate, 0.0);
+    
+    );
+    
+    this.level_k = 1.0 / (srate * 0.003);   // additional smoothing
+  );
+  
+  function Tape202_setGain(input_gain, output_gain)
+  (
+    this.input_gain = input_gain;
+    this.output_gain = output_gain;
+  );
+  
+  function Tape202_reset()
+  (
+    this.flt1.Filter2_reset();
+    this.flt2.Filter2_reset();
+    
+    this.ac.AChannel_reset();
+    
+    this.level_s = 0.0;
+    
+    this.dynamic.Filter2_reset();
+  );
+  
+  function Tape202_processSample(x) local(x1, level, x2, x3)
+  (
+    // input gain
+    x *= this.input_gain;
+  
+    // 1. filter
+    x1 = this.flt2.Filter2_processSample(this.flt1.Filter2_processSample(x));
+  
+    // 2. saturation
+    level = this.ac.AChannel_getLevel(x1);
+    x2 =this.ac.AChannel_processSample(x1, level);
+  
+    // 3. dynamic EQ:
+  
+    // limit level
+    (level > 1.0) ? ( level = 1.0; );
+  
+    // smooth level
+    this.level_s += this.level_k * (level - this.level_s);
+  
+    // generate dynamic filter
+    this.dynamic.Filter2_crossfadeFrom2Filters(
+      this.dynamic_a.a0, this.dynamic_a.a1, this.dynamic_a.a2, this.dynamic_a.b1, this.dynamic_a.b2,
+      this.level_s,
+      this.dynamic_b.a0, this.dynamic_b.a1, this.dynamic_b.a2, this.dynamic_b.b1, this.dynamic_b.b2,
+      1.0 - this.level_s);
+  
+    // apply dynamic filter
+    x3 = this.dynamic.Filter2_processSample(x2);
+    
+    // output gain
+    x3 * this.output_gain;
+  );
+  
+  // auto gain calculation
+  function get_auto_gain(bias, tape_speed, is_modern, input_gain) local(bias_lin, x, curve, val, output_gain)
+  (
+    bias_lin = bias < 0 ? DB_TO_K(bias) : 1;
+    
+    x = (bias_lin / 2 - 1) * (bias_lin / 2 - 1);
+  
+    (!is_modern) ? (
+      // vintage
+      tape_speed == 0 ? ( curve = 0.05 );
+      tape_speed == 1 ? ( curve = 0.1 );
+      tape_speed == 2 ? ( curve = 0.15 );
+    ) : (
+      // modern
+      tape_speed == 0 ? ( curve = 0.3 );
+      tape_speed == 1 ? ( curve = 0.35 );
+      tape_speed == 2 ? ( curve = 0.4 );
+    );
+    
+    gain_factor = curve * bias_lin + x;
+    
+    (gain_factor > 1) ? ( gain_factor = 1; );
+    
+    output_gain = (1 / gain_factor) / input_gain;
+    
+    (output_gain > 16) ? ( output_gain = 16; );
+    
+    output_gain;
+  );
+
+
+
+
+
+
+
+
+
+
+function FilterParam_generateLPF(freq_k) local(t, a)
+(
+  t = tan(freq_k * $pi);
+  a = 0.5 / (t + 1.0);
+  this.k0 = a * t;
+  this.k1 = a * t;
+  this.k2 = (1.0 - t) * a;
+);
+
+function FilterParam_generateHPF(freq_k) local(t, a)
+(
+  t = tan(freq_k * $pi);
+  a = 0.125 / (t + 1.0);
+  this.k0 = a;
+  this.k1 = -a;
+  this.k2 = (1.0 - t) * 0.5 / (t + 1.0);
+);
+
+function OInflator_applyProcessing(x) local(gr)
+(
+  gr = abs(x) * 2.0 * this.curve + (1.0 - this.curve);
+
+  gr = max(-1.0, min(1.0, gr));
+
+  (1.0 - abs(gr * x)) * (gr * x) * (this.effect * 2.0) + (1.0 - this.effect) * x;
+);
+
+function OInflator_processSample(x) local(y, high, half_mid, mid, low_x, low)
+(
+  x *= this.input_gain;
+
+  this.inmeter_spl = x = max(-this.clip_threshold, min(this.clip_threshold, x));
+
+  (!this.multiband) ? (
+  
+    y = this.OInflator_applyProcessing(x);
+
+  ) : (
+    // run crossover:
+    
+    // HIGH:
+    high = (this.high_hpf.k0 * x + this.high_hpf.state) * 2.0;
+    this.high_hpf.state = this.high_hpf.k1 * x + this.high_hpf.k2 * high;
+    high *= 4.0;
+
+    // MID:
+    half_mid = (this.mid_lpf.k0 * x + this.mid_lpf.state) * 2.0;
+    this.mid_lpf.state = this.mid_lpf.k1 * x + this.mid_lpf.k2 * half_mid;
+    half_mid *= 2.0;
+    mid = (this.mid_hpf.k0 * half_mid + this.mid_hpf.state) * 2.0;
+    this.mid_hpf.state = half_mid * this.mid_hpf.k1 + this.mid_hpf.k2 * mid;
+    mid *= 2.0;
+
+    // LOW:
+    low_x = x * 0.5;
+    low = (this.low_lpf.k0 * low_x + this.low_lpf.state) * 2.0;
+    this.low_lpf.state = low_x * this.low_lpf.k1 + this.low_lpf.k2 * low;
+    low *= 2.0;
+
+    // processing:
+    high = this.OInflator_applyProcessing(high);
+    mid = this.OInflator_applyProcessing(mid) * this.mid_gain;
+    low = this.OInflator_applyProcessing(low);
+
+    y = low + mid + high;
+  );
+  this.gr = abs(x - y);
+  y * this.output_gain;
+);
+
+function OInflator_setGains(input_gain, output_gain)
+(
+  this.input_gain = input_gain * 0.5;
+  this.output_gain = output_gain * 2.0;
+);
+
+function OInflator_setMode(clip, multiband, effect, curve) local(curve_normalised)
+(
+  this.clip_threshold = clip ? 0.5 : 0.9999999;
+  this.multiband = multiband;
+  this.effect = effect;
+
+  curve_normalised = curve / 100.0 + 0.5;    // curve: -50 .. +50 -> 0 .. 1
+
+  this.curve = 0.5 - curve_normalised * 0.5;
+);
+
+function OInflator_setSampleRate()
+(
+
+LOW_FREQ_HZ = 240.0;
+HIGH_FREQ_HZ = 2400.0;
+  this.high_hpf.FilterParam_generateHPF(HIGH_FREQ_HZ / srate);
+  this.mid_lpf.FilterParam_generateLPF(HIGH_FREQ_HZ / srate);
+  this.mid_hpf.FilterParam_generateHPF(LOW_FREQ_HZ / srate);
+  this.low_lpf.FilterParam_generateLPF(LOW_FREQ_HZ / srate);
+
+  this.mid_gain = 1.0 - tan(LOW_FREQ_HZ * $pi / srate) / tan(HIGH_FREQ_HZ * $pi / srate);
+);
+
+function OInflator_reset()
+(
+  this.low_lpf.state = 0.0;
+  this.mid_lpf.state = 0.0;
+  this.mid_hpf.state = 0.0;
+  this.high_hpf.state = 0.0;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function DaTube_init()
+  (
+    this.P = log(10.0) + 1.0;
+    this.P1 = this.P + 1.0;
+    this.P2 = this.P + 2.0;
+  );
+  
+  function DaTube_setSampleRate()
+  (
+    this.dc_k = DC_REMOVER_FREQ_HZ / srate * 2.0 * $pi;
+  );
+  
+  function DaTube_reset()
+  (
+    this.dc_s = 0.0;
+  );
+  
+  function DaTube_setDrive(drive, balance, output_gain, bit_crusher, fold_back)
+  (
+    this.drive = drive;
+    this.drive05 = drive * 0.5;
+  
+    this.wet_mix = balance;
+  
+    this.output_gain = output_gain * 2.0;
+  
+    this.bit_crusher = bit_crusher;
+    this.fold_back = fold_back;
+  );
+  
+  // f(x)
+  function DaTube_f(x)
+  (
+    (x > 1.0) ? (
+      (1.0 - this.drive05) * x + this.drive05;
+    ) :
+    (x > 0.0) ? (
+      ((1.0 - x) - pow(1.0 - x, this.P)) * this.drive05 + x;
+    ) :
+    (x > -1.0) ? (
+      (pow(1.0 + x, this.P) - (x + 1.0)) * this.drive + x;
+    ) : (
+       (1.0 - this.drive) * x - this.drive;
+    );
+  );
+  
+  
+  function DaTube_processSample(x) local(dry_x, y)
+  (
+    dry_x = x;
+    
+    x *= (this.drive + 0.5);
+  
+    (this.bit_crusher) ? (
+      // original plugin had lookup table of size 4096 without any interpolation between values
+      x *= 2048.0;
+      x = (x >= 0.0) ? floor(x) : ceil(x);
+      x /= 2048.0;
+    );
+  
+    (this.fold_back) ? (
+      // original plugin had fold-back clipping distortion
+      (abs(x) > 1.0) ? (
+        x = (x >= 0.0) ? (2.0 - x) : (-2.0 - x);
+      );
+    );
+  
+    y = this.DaTube_f(x);
+    
+    (!this.bit_crusher) ? (
+      // DC remover
+      y -= (this.dc_s += this.dc_k * (y - this.dc_s));
+    );
+    
+    // dry mix
+    y = y * this.wet_mix + dry_x * (1.0 - this.wet_mix);
+    
+    y * this.output_gain;
+  );
+  
+  
+  
+  
+  function Filter1_init(a0, a1, b1)
+  (
+    this.a0 = a0;
+    this.a1 = a1;
+    this.b1 = b1;
+  );
+   
+  function Filter1_ButLPFilter1(freq_k) local(w0, KK, a0, a1, b0, b1)
+  (
+    w0 = freq_k * 2.0 * $pi;
+  
+    // prepare for BLT
+    KK = 1.0 / tan(w0 / 2.0);
+  
+    // perform BLT
+    a0 = 1.0;
+    a1 = 1.0;
+    b0 = 1.0 + KK;
+    b1 = 1.0 - KK;
+  
+    // make b0 == 1, also change the sign for b1 and b2 in our calculations
+    this.a0 = a0 / b0;
+    this.a1 = a1 / b0;
+    this.b1 = -b1 / b0;
+  );
+  
+  function ButLPFilter1_step99(raise_99_sec)
+  (
+    this.Filter1_ButLPFilter1((0.732936 / raise_99_sec) / srate);
+  );
+  
+  function Filter1_reset(value)
+  (
+    this.x1 = value;
+    this.y1 = value;
+  );
+  
+  function Filter1_processSample(x) local(y)
+  (
+    y = this.a0 * x + this.a1 * this.x1 + this.b1 * this.y1;
+    
+    this.x1 = x;
+    this.y1 = y;
+    
+    y;
+  );
+  
+  function Filter1_passSample(x)
+  (
+    this.x1 = x;
+    this.y1 = x;
+    
+    x;
+  );
+  
+  function Filter1_back()
+  (
+    this.y1;
+  );
+  
+  /*
+   * DelayLine
+   */
+   
+  function DelayLine_init(delay_line_size)
+  (
+    this.size = delay_line_size;
+    this.line = allocate(delay_line_size);
+    this.head = 0;
+  ); 
+  
+  function DelayLine_pushSample(x) local(y)
+  (
+    y = this.line[this.head]; 
+    this.line[this.head] = x;
+    this.head = (this.head + 1) % this.size;
+    
+    y
+  );
+  
+  function DelayLine_reset(value)
+  (
+    this.head = 0;
+    
+    memset(this.line, value, this.size);
+  );
+  
+  function DelayLine_getLatency()
+  (
+    this.size;
+  );
+  
+  function DelayLine_getMin() local(min_value, i)
+  (
+    min_value = this.line[0];
+    i = 1;
+    loop(this.size - 1,
+      min_value = min(min_value, this.line[i]);
+      i += 1;
+    );
+    min_value;
+  );
+  
+  /*
+   * MovingAverageFilter
+   */
+   
+  function MovingAverageFilter_init(size)
+  (
+    this.delay_line_size = size;
+    this.delay_line = allocate(size);
+  );
+  
+  function MovingAverageFilter_reset(default_value)
+  (
+    memset(this.delay_line, default_value, this.delay_line_size);
+  
+    this.head = 0;
+    this.sum = default_value * this.delay_line_size;
+  );
+  
+  function MovingAverageFilter_pushSample(x)
+  (
+    this.sum -= this.delay_line[this.head];
+    
+    this.delay_line[this.head] = x;
+  
+    this.head += 1;
+    
+    (this.head >= this.delay_line_size) ? ( this.head = 0 );
+    
+    this.sum += x;
+  
+    // result:  
+    this.sum / this.delay_line_size
+  );
+  
+  
+  /*
+   * SlowGR
+   */
+  
+  function SlowGR_init()
+  (
+    this.attack_1.ButLPFilter1_step99(0.025);
+    this.attack_2.Filter1_init(this.attack_1.a0, this.attack_1.a1, this.attack_1.b1);
+  
+    this.release_1.ButLPFilter1_step99(0.200);
+    this.release_2.Filter1_init(this.release_1.a0, this.release_1.a1, this.release_1.b1);
+  
+    this.slow_attack.ButLPFilter1_step99(0.150);
+    this.slow_release.ButLPFilter1_step99(1.5);
+  );
+  
+  function SlowGR_reset()
+  (
+    this.attack_1.Filter1_reset(1.0);
+    this.attack_2.Filter1_reset(1.0);
+  
+    this.release_1.Filter1_reset(1.0);
+    this.release_2.Filter1_reset(1.0);
+  
+    this.slow_attack.Filter1_reset(1.0);
+    this.slow_release.Filter1_reset(1.0);
+  );
+  
+  function SlowGR_processSample(gr_x) local(gr_x2)
+  (
+    // S-shaped stage:
+  
+    gr_x2 = gr_x * gr_x;
+  
+    // attack
+    gr_x2 = this.attack_1.Filter1_processSample(gr_x2);
+    gr_x2 = this.attack_2.Filter1_processSample(gr_x2);
+  
+    // release
+    gr_x2 = (gr_x2 > this.release_1.Filter1_back()) ?
+      this.release_1.Filter1_processSample(gr_x2) :
+      this.release_1.Filter1_passSample(gr_x2);
+  
+    gr_x2 = (gr_x2 > this.release_2.Filter1_back()) ? 
+      this.release_2.Filter1_processSample(gr_x2) :
+      this.release_2.Filter1_passSample(gr_x2);
+  
+    // exp-shaped stage:
+  
+    // attack
+    gr_x = this.slow_attack.Filter1_processSample(gr_x);
+  
+    // release
+    gr_x = (gr_x > this.slow_release.Filter1_back()) ?
+      this.slow_release.Filter1_processSample(gr_x) :
+      this.slow_release.Filter1_passSample(gr_x);
+  
+    // combine both stages
+    min(gr_x, sqrt(max(gr_x2, 0.0)));
+  );
+  
+  /*
+   * ModernLimiter
+   */
+  
+  function ModernLimiter_init() local(lookahead_sec, lookahead_samples)
+  (
+    lookahead_sec = 0.00018;
+    lookahead_samples = floor(lookahead_sec * srate + 0.5);
+  
+    this.delay_x.DelayLine_init(lookahead_samples - 1);
+    this.delay_min.DelayLine_init(lookahead_samples);
+  
+    this.flt.MovingAverageFilter_init(lookahead_samples);
+  );
+  
+  function ModernLimiter_reset()
+  (
+    this.delay_x.DelayLine_reset();
+    this.delay_min.DelayLine_reset(1.0);
+  
+    this.flt.MovingAverageFilter_reset(1.0);
+  );
+  
+  function ModernLimiter_setThreshold(threshold_k)
+  (
+    this.threshold_k = threshold_k;
+  );
+  
+  function ModernLimiter_getLatency()
+  (
+    this.delay_x.DelayLine_getLatency();
+  );
+  
+  function ModernLimiter_getGR(x) local(level_x)
+  (
+    level_x = abs(x);
+  
+    (level_x <= this.threshold_k) ? 1.0 : (this.threshold_k / level_x);
+  );
+  
+  
+  function ModernLimiter_processGR(x, fast_gr, slow_gr) local(gr_x)
+  (
+    gr_x = min(fast_gr, slow_gr);
+  
+    // apply max hold
+    this.delay_min.DelayLine_pushSample(gr_x);
+  
+    gr_x = this.delay_min.DelayLine_getMin();
+  
+    gr_x = this.flt.MovingAverageFilter_pushSample(gr_x);
+  
+    this.gr = gr_x;
+  
+    // compensate latency
+    x = this.delay_x.DelayLine_pushSample(x);
+  
+    x * gr_x;
+  );
+  
+  
+
