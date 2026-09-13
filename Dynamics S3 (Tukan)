@@ -5474,16 +5474,7 @@ Modul5 == last_clicked_slot ? (
 
 Modul6 == last_clicked_slot ? (
 
-/*filename:6,S2GFX/VariBack.png
-filename:7,S2GFX/Tube.png
-filename:8,S2GFX/TubeLight.png
-filename:9,S2GFX/TubeGrill.png
-filename:43,S2GFX/FairThresh.png
-filename:44,S2GFX/FairSelect6.png
-filename:45,S2GFX/FairOutgain.png
-filename:46,S2GFX/FairHPF.png
-filename:47,S2GFX/FairKnee.png
-*/
+
 
 gfx_x = 150*zoom; gfx_y = 50*zoom;
 gfx_blit(6,zoom*0.5,0,0,0,2160,800);// HINTERGRUND
@@ -5509,7 +5500,7 @@ gr_meter_x = 185*zoom; GR_meter_y = 130*zoom;
 Meter_in_Modul = 6;
 meter_GR.mnGRmetergfx(zoom, gr_meter_x, gr_meter_y, gfx_meterback,slider62);
 Modul6.on && !general_bypass ? gfx_a = 0 : gfx_a = 0.3;
-black(); gfx_rect(gr_meter_x, gr_meter_y, 192*zoom*1.2, 92*zoom);
+black(); gfx_rect(gr_meter_x, gr_meter_y, 192*zoom, 92*zoom);
 gfx_a = 1;
 gfx_x = gr_meter_x-3*zoom; gfx_y = gr_meter_y-16*zoom; gfx_blit(5,0.6*zoom,0);
 
