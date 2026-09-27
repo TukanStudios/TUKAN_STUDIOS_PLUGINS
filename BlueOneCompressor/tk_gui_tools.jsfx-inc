@@ -1,0 +1,1243 @@
+(library and this document are written by me without AI)
+This library may be used, modified and shared for creating and using jsfx-plugins.
+This library is free as in free beer. Don’t forget to share your plugins for free too. If you’re making
+commercial plugins, please do the GUI stuﬀ yourself.
+Parts of the VU-Meter code are taken with friendly permission from ZenoMOD. (code from chris-s,
+ZenoMOD)
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+
+@init 
+
+function db2ratio(d) (10^(d/20); );
+function ratio2db(r) (log(abs(r))*(20/log(10)));
+
+function slider_update(slider_) (
+  sliderchange(2^ (slider_-1));
+  slider_automate(2^ (slider_-1));
+);
+
+function feed_meter(in_spl, fallback) 
+instance (U_Val dB_Val dB_Val_Max)
+(
+    this.U_Val=abs(in_spl);
+        ratio2db(this.U_Val) > this.dB_Val ? (
+        this.dB_Val = ratio2db(this.U_Val);
+    ):(
+        this.dB_Val += fallback/srate; // db pro sec
+    );
+    this.dB_Val_Max = max(this.dB_Val_Max,this.dB_Val);
+);
+
+
+function feed_gr_meter(in_spl, fallback) 
+instance (U_Val dB_Val dB_Val_Min)
+(
+    this.U_Val=abs(in_spl);
+        ratio2db(this.U_Val) < this.dB_Val ? (
+        this.dB_Val = ratio2db(this.U_Val);
+    ):(
+        this.dB_Val += fallback/srate; // db pro sec
+    );
+    this.dB_Val_Min = min(this.dB_Val_Min,this.dB_Val);
+);
+
+function reset_meter()
+instance (U_Val dB_Val dB_Val_Max)
+(
+  u_Val = 0;
+  db_val = -140;
+  db_val_max = -140;
+);
+
+function reset_gr_meter()
+instance (U_Val dB_Val dB_Val_Min)
+(
+  u_Val = 1;
+  db_val = 0;
+  db_val_min = 0;
+);
+
+function reset_meter_max()
+instance (U_Val dB_Val dB_Val_Max)
+(
+  db_val_max = -140;
+);
+
+function reset_gr_meter_min()
+instance (U_Val dB_Val dB_Val_Min)
+(
+  db_val_min = 0;
+);
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// fonsize(size)  -> use it in @gfx                                                       //
+// Sets the fontsize of font#16 and uses 'Arial' bold.                                    //
+// The size is scaled with the plugin.                                                    //
+////////////////////////////////////////////////////////////////////////////////////////////
+function fontsize(size_) (
+  gfx_setfont(16,"Arial",size_*TK_GUI_Scaling,'b');
+);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+// detect_mouse(sens) - don't call it from the code, it is called from the startgfx function        //
+// This function gives you useful variables about the mouse:                                        //
+// mouse_left, mouse_middle, mouse_right: 1 if the corresponding mouse button is pressed            //
+// mouse_ctrl, mouse_shift, mouse_alt, mouse_win: 1 if key is pressed while a mousebutton is used   //
+// mouse_click, mouse_click_right, mouse_click_middle: 1 if mouse button is pressed, 0 if just hold //
+// mouse_doubleclick: 1 if a doubleclick (left mouse button) is detected                            //
+// mouse_wheel_value: positive/negative depending on the direction, larger if scrolling is faster   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+function detect_mouse (sens_) local (doubleclickcount) (
+  mouse_sensitivitiy = sens_;
+  mouse_left = (1 & mouse_cap)>0;
+  mouse_right = (2 & mouse_cap)>0;
+  mouse_middle = (64 & mouse_cap)>0;
+  mouse_ctrl = (4 & mouse_cap)>0;
+  mouse_shift = (8 & mouse_cap)>0;
+  mouse_alt = (16 & mouse_cap)>0;
+  mouse_win = (32 & mouse_cap)>0;
+  
+  mouse_Click = mouse_left_last == 0 && mouse_left == 1;
+  mouse_left_last == 1 && mouse_left == 1 ? mouse_dragging = 1 : mouse_dragging = 0;
+  mouse_left_last = mouse_left;
+  
+  mouse_Click_Right = mouse_right_last == 0 && mouse_right == 1;
+  mouse_right_last = mouse_right;
+  
+  mouse_Click_Middle = mouse_Middle_last == 0 && mouse_middle == 1;
+  mouse_middle_last = mouse_middle;
+  
+  doubleclickcount = max(doubleclickcount-1,0); mouse_doubleclick = 0;
+  mouse_Click == 1 ? (doubleclickcount == 0 ? doubleclickcount = 8 : (mouse_doubleClick = 1));
+  
+  mouse_wheel_value = mouse_wheel;
+  mouse_wheel = 0;
+);
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+// start_gfx(width,height,mouse_sensitivity) - call it at the beginning of @gfx                     //
+//                                                                                                  //
+// This function provides the scaling factor for plugin resizing. Variable name 'TK_GUI_Scaling'    //
+// width & height need to be the defaults used in the @gfx line.                                    //
+//                                                                                                  //
+// This function also sets color to black and wipes the canvas with it.                             //
+//                                                                                                  //
+// mouse_sensitivity is a value in pixels that will be needed to turn a knob completely around.     //
+//                                                                                                  //
+// This function also gives you useful variables about the mouse:                                   //
+// mouse_left, mouse_middle, mouse_right: 1 if the corresponding mouse button is pressed            //
+// mouse_ctrl, mouse_shift, mouse_alt, mouse_win: 1 if key is pressed while a mousebutton is used   //
+// mouse_click, mouse_click_right, mouse_click_middle: 1 if mouse button is pressed, 0 if just hold //
+// mouse_doubleclick: 1 if a doubleclick (left mouse button) is detected                            //
+// mouse_wheel_value: positive/negative depending on the direction, larger if scrolling is faster   //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+function start_gfx(w_,h_,mouse_) local(zoom_X, zoom_Y) (
+  gfx_r=gfx_b=gfx_g = 0;
+  gfx_rect(0,0,gfx_w,gfx_h);
+  zoom_X = gfx_w / w_;
+  zoom_y = gfx_h / h_;
+  TK_GUI_Scaling = min(zoom_x, zoom_y);// * gfx_ext_retina;
+  mouse_ == 0 ? mouse_ = 300*gfx_ext_retina;
+  detect_mouse(mouse_);
+  fontsize(12);
+);
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+// position the current drawing cursor (gfx_x, gfx_y) to a scaled position:                         //
+//                                                                                                  //
+// set_xy(x, y)                                                                                     //
+// set_x(x)                                                                                         //
+// set_y(y)                                                                                         //
+// -> gfx_x and gfx_y to the given coordinates multiplied with the scaling factor 'TK_GUI_Scaling'  //
+// width & height need to be the defaults used in the @gfx line.                                    //
+//                                                                                                  //
+// add_x(d) and add_y(d) move the draw cursor d scaled pixels.                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+function set_xy (x_,y_) (
+  gfx_x = x_ * TK_GUI_Scaling;
+  gfx_y = y_ * TK_GUI_Scaling;
+);
+
+function set_x (x_) (
+  gfx_x = x_ * TK_GUI_Scaling;
+);
+
+function set_y (y_) (
+  gfx_y = y_ * TK_GUI_Scaling;
+);
+
+function add_x (d_) (
+  gfx_x += d_ * TK_GUI_Scaling;
+);
+
+function add_y (d_) (
+  gfx_y += d_ * TK_GUI_Scaling;
+);
+
+
+function draw_rect (x_,y_,w_,h_,border_) local (tmp_loop,tmp_loop2) (
+  border_ == 0 ? (
+    gfx_rect(x_*TK_GUI_Scaling, y_*TK_GUI_Scaling,w_*TK_GUI_Scaling,h_*TK_GUI_Scaling);
+  ):(
+    tmp_loop = 0;
+    loop(abs(border_)*20,
+      tmp_loop2 = floor(tmp_loop);
+      gfx_rect(
+        x_*TK_GUI_Scaling+tmp_loop2, 
+        y_*TK_GUI_Scaling+tmp_loop2,
+        w_*TK_GUI_Scaling-tmp_loop2,
+        h_*TK_GUI_Scaling-tmp_loop2,0
+      );
+      tmp_loop += TK_GUI_Scaling/20*sign(border_);
+    );
+  );
+);
+
+function rgb(r_,g_,b_) (
+  gfx_r = r_/255;
+  gfx_g = g_/255;
+  gfx_b = b_/255;
+);
+
+function black() (
+  rgb(0,0,0);
+);
+
+function grey(lum_) (
+  rgb(180*lum_,180*lum_,180*lum_);
+);
+
+function white(lum_) (
+  rgb(255*lum_,255*lum_,255*lum_);
+);
+
+function cyan(lum_) (
+  gfx_r = 0*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 1*lum_;
+);
+
+function magenta(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 0*lum_;
+  gfx_b = 1*lum_;
+);
+
+function yellow(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0*lum_;
+);
+
+function red(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 0*lum_;
+  gfx_b = 0*lum_;
+);
+
+function green(lum_) (
+  gfx_r = 0*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0*lum_;
+);
+
+function blue(lum_) (
+  gfx_r = 0*lum_;
+  gfx_g = 0*lum_;
+  gfx_b = 1*lum_;
+);
+
+function Aquamarine(lum_) (
+  gfx_r = 0.5*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0.83*lum_;
+);
+
+function Bisque(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 0.89*lum_;
+  gfx_b = 0.77*lum_;
+);
+
+function brown(lum_) (
+  gfx_r = 0.65*lum_;
+  gfx_g = 0.16*lum_;
+  gfx_b = 0.16*lum_;
+);
+
+function Chartreuse(lum_) (
+  gfx_r = 0.5*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0*lum_;
+);
+
+function Cornflower(lum_) (
+  gfx_r = 0.39*lum_;
+  gfx_g = 0.58*lum_;
+  gfx_b = 0.93*lum_;
+);
+
+function Crimson(lum_) (
+  gfx_r = 0.86*lum_;
+  gfx_g = 0.08*lum_;
+  gfx_b = 0.24*lum_;
+);
+
+function pink(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 0.08*lum_;
+  gfx_b = 0.58*lum_;
+);
+
+function GreenYellow(lum_) (
+  gfx_r = 0.68*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0.18*lum_;
+);
+
+function Ivory(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 1*lum_;
+  gfx_b = 0.94*lum_;
+);
+
+function Khaki(lum_) (
+  gfx_r = 0.94*lum_;
+  gfx_g = 0.9*lum_;
+  gfx_b = 0.55*lum_;
+);
+
+function orange(lum_) (
+  gfx_r = 1*lum_;
+  gfx_g = 0.65*lum_;
+  gfx_b = 0*lum_;
+);
+
+function Turquoise(lum_) (
+  gfx_r = 0.25*lum_;
+  gfx_g = 0.88*lum_;
+  gfx_b = 0.82*lum_;
+);
+
+function wheat(lum_) (
+  gfx_r = 0.96*lum_;
+  gfx_g = 0.87*lum_;
+  gfx_b = 0.7*lum_;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function knob_collision () (
+  mouse_x > this.x*TK_GUI_Scaling && mouse_y > this.y*TK_GUI_Scaling && mouse_x < this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling && mouse_y < this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling
+);
+
+function area_mouse_detect(x_,y_,w_,h_,mouse_) (
+  mouse_x > x_*TK_GUI_Scaling && mouse_x < x_*TK_GUI_Scaling+w_*TK_GUI_Scaling && mouse_y > y_*TK_GUI_Scaling && mouse_y < y_*TK_GUI_Scaling+h_*TK_GUI_Scaling ? (
+    mouse_ == 0 ? (
+      1
+    ):
+    mouse_ == 1 ? ( // LeftClick
+      mouse_Click == 1
+    ):
+    mouse_ == 2 ? ( // RightClick
+      mouse_Click_Right == 1
+    ):
+    mouse_ == 3 ? ( // MiddleClick
+      mouse_Click_Middle == 1
+    ):
+    mouse_ == 4 ? ( // DoubleClick
+      mouse_doubleclick == 1
+    ):
+    mouse_ == 5 ? ( // Wheel
+      mouse_wheel_value / 6
+    );
+  );
+);
+
+function knob_config(x_, y_, size_, slider_, min_, max_, default_) (
+  this.x = x_;
+  this.y = y_;
+  this.size = size_;
+  this.slider = slider_;
+  this.min = min_;
+  this.max = max_;
+  this.default = default_;
+  this.range = max_ - min_;
+);
+
+function knob_outline(r_,g_,b_) (
+  this.outline_r = r_/255;
+  this.outline_g = g_/255;
+  this.outline_b = b_/255;
+);
+
+function knob_infill(r_,g_,b_,a_) (
+  this.infill_r = r_/255;
+  this.infill_g = g_/255;
+  this.infill_b = b_/255;
+  this.infill_a = a_/255;
+);
+
+function knob_many_labels(number_) (
+  this.labels = number_;
+  this.label_degree = (280/(number_ - 1))*($pi/180);
+);
+
+
+
+function knob_label_dot(pos_, distance_, size_) local(offx, offy, degree) (
+    degree = $pi/180;    
+    pos_ -= 1;
+    gfx_x = this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + distance_*this.size*TK_GUI_Scaling*cos(-230*degree + this.label_degree*pos_)/2;
+    gfx_y = this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + distance_*this.size*TK_GUI_Scaling*sin(-230*degree + this.label_degree*pos_)/2;
+    gfx_circle(gfx_x,gfx_y,size_*TK_GUI_Scaling,1);
+);
+
+function knob_label_all_dots(distance_, size_) local (tmp_loop) (
+  tmp_loop = 1;
+  loop(this.labels,
+    this.knob_label_dot(tmp_loop, distance_,size_);
+    tmp_loop += 1;
+  );
+);
+
+function knob_label(pos_, distance_) local(offx, offy, degree) (
+    degree = $pi/180;    
+    gfx_measurestr(#TK_gfxlib_Label,offx,offy);
+    
+    pos_ > 0 ? (
+      pos_ -= 1;
+      gfx_x = this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + distance_*this.size*TK_GUI_Scaling*cos(-230*degree + this.label_degree*pos_)/2;
+      gfx_y = this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + distance_*this.size*TK_GUI_Scaling*sin(-230*degree + this.label_degree*pos_)/2;
+      pos_ += 1;
+      pos_ < (this.labels+1)/2 && floor(this.labels/2) != this.labels/2 ? gfx_x -= offx; 
+      pos_ == (this.labels+1)/2 && floor(this.labels/2) != this.labels/2 ? (gfx_x -= offx/2; gfx_y -= gfx_texth/10);
+      pos_ < (this.labels+1)/2 && floor(this.labels/2) == this.labels/2 ? gfx_x -= offx; 
+      pos_ == (this.labels+1)/2 && floor(this.labels/2) == this.labels/2 ? (gfx_x -= offx/2; gfx_y -= gfx_texth/10);
+      gfx_y -= gfx_texth/2;
+      gfx_drawstr(#TK_gfxlib_Label);
+    ) : pos_ == 0 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + distance_*this.size*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 261, gfx_x, gfx_y);
+    ) : pos_ == -1 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 - distance_*this.size*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 261, gfx_x, gfx_y);
+    );
+);
+
+
+function knob_all_labels(distance_, detail_) local (tmp_loop) (
+  tmp_loop = 0;
+  loop(this.labels,
+    detail_ == 0 ? #TK_gfxlib_Label = sprintf(#, "%.0f", this.min + tmp_loop * (this.max - this.min)/(this.labels-1)); 
+    detail_ == 1 ? #TK_gfxlib_Label = sprintf(#, "%.1f", this.min + tmp_loop * (this.max - this.min)/(this.labels-1)); 
+    detail_ == 2 ? #TK_gfxlib_Label = sprintf(#, "%.2f", this.min + tmp_loop * (this.max - this.min)/(this.labels-1)); 
+    this.knob_label(tmp_loop+1,distance_);
+    tmp_loop += 1;
+  );
+);
+
+function knob_value(pos_, distance_, detail_) (
+    detail_ == 0 ? #TK_gfxlib_Label = sprintf(#, "%.0f", slider(this.slider));
+    detail_ == 1 ? #TK_gfxlib_Label = sprintf(#, "%.1f", slider(this.slider));
+    detail_ == 2 ? #TK_gfxlib_Label = sprintf(#, "%.2f", slider(this.slider));
+  this.knob_label(-1*(pos_!=0),distance_);
+);
+
+
+
+function knob_mouse_action() (
+  !this.deactivated ? (
+    mouse_doubleclick && this.knob_collision() ? (
+      this.slider ? slider(this.slider) = this.default : this.value = this.default;
+      slider_update(this.slider);
+      this.dragging = 0;
+      flag_run_slidercode = 1;
+    ): mouse_click && this.knob_collision() ? (
+      this.Mouse_y_Old = mouse_y;
+      this.value_old = slider(this.slider);
+      this.step = (this.max - this.min)/(mouse_sensitivitiy);
+      mouse_shift ? this.step /= 10;
+      this.dragging = 1;
+    ): !mouse_dragging ? (
+      this.dragging = 0;
+    );
+    
+    
+    this.dragging ? (
+      this.slider ? (
+        slider(this.slider) = max(this.min, min(this.max, this.value_Old + (this.Mouse_y_Old - mouse_y) * this.step));
+        slider_update(this.slider);
+      ):(
+        this.value = max(this.min, min(this.max, this.value_Old + (this.Mouse_y_Old - mouse_y) * this.step));
+      );
+      flag_run_slidercode = 1;
+    );
+    
+  
+    mouse_wheel_value && this.knob_collision() ? (
+      this.step = (this.max - this.min)/200;
+      this.slider ? (
+        slider(this.slider) = max(this.min,min(this.max,slider(this.slider)+(mouse_wheel_value/36)*this.step));
+        slider_update(this.slider);
+      ):(
+        this.value = max(this.min,min(this.max,slider(this.slider)+(mouse_wheel_value/36)*this.step));
+      );
+      flag_run_slidercode = 1;
+    );
+  );
+);
+
+
+
+
+function knob() local (angle, degree, tmp_loop) (
+  this.slider ? this.value = slider(this.slider);
+  this.value = max(this.min,min(this.max,this.value));
+  degree = $pi/180;
+  ///// Draw infill
+  gfx_r = this.infill_r;
+  gfx_g = this.infill_g;
+  gfx_b = this.infill_b;
+  gfx_a = this.infill_a;
+  gfx_circle(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2,1);
+  /////
+  
+  ///// Draw outline & pointer
+  gfx_r = this.outline_r;
+  gfx_g = this.outline_g;
+  gfx_b = this.outline_b;
+  gfx_a = 1;
+  tmp_loop = 0;
+  loop(this.size*TK_GUI_Scaling / 8,
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    tmp_loop += 1;
+  );
+  angle = -230 + 280*((this.value-this.min)/this.range);
+  gfx_triangle(
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.9*this.size*TK_GUI_Scaling*cos((angle+3)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.9*this.size*TK_GUI_Scaling*sin((angle+3)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.9*this.size*TK_GUI_Scaling*cos((angle-3)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.9*this.size*TK_GUI_Scaling*sin((angle-3)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.2*this.size*TK_GUI_Scaling*cos((angle+15)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.2*this.size*TK_GUI_Scaling*sin((angle+15)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.2*this.size*TK_GUI_Scaling*cos((angle-15)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.2*this.size*TK_GUI_Scaling*sin((angle-15)*degree)/2
+  );
+  /////
+  this.knob_mouse_action();
+  
+  
+);
+
+
+
+function knob_png(file_, frames_, scaling_) local (frame_height_, draw_frame_, frame_w,frame_h, draw_factor_) (
+  this.slider ? this.value = slider(this.slider);
+  this.value = max(this.min,min(this.max,this.value));
+  gfx_getimgdim(file_, frame_w, frame_h);
+  frame_height_ = frame_h / frames_;
+  draw_frame_ = floor((this.value - this.min) * (frames_-1) / (this.max - this.min));
+  draw_factor_ = scaling_*this.size/frame_height_;
+  gfx_x = this.x*TK_GUI_Scaling - (draw_factor_ * frame_height_*TK_GUI_Scaling - this.size*TK_GUI_Scaling)/2 ; gfx_y = this.y*TK_GUI_Scaling - (draw_factor_ * frame_height_*TK_GUI_Scaling - this.size*TK_GUI_Scaling)/2 ;
+  gfx_blit(file_, draw_factor_*TK_GUI_Scaling, 0, 0, frame_height_*draw_frame_, frame_w, frame_height_);
+  this.knob_mouse_action();
+);
+
+
+
+
+function knob2(mode_) local (angle, degree, tmp_loop) (
+  this.slider ? this.value = slider(this.slider);
+  this.value = max(this.min,min(this.max,this.value));
+  degree = $pi/180;
+  ///// Draw infill
+  gfx_r = this.infill_r;
+  gfx_g = this.infill_g;
+  gfx_b = this.infill_b;
+  gfx_a = this.infill_a;
+  gfx_circle(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2,1);
+  /////
+  
+  angle = -230 + 280*((this.value-this.min)/this.range);
+  
+  gfx_a = 1; black();
+  tmp_loop = 0;
+  loop(this.size*TK_GUI_Scaling / 4,
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    //gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 0.5*$pi+(angle-3)*degree);
+    tmp_loop += 1;
+  );
+  
+  
+  gfx_r = this.outline_r;
+  gfx_g = this.outline_g;
+  gfx_b = this.outline_b;
+  gfx_a = 1;
+  tmp_loop = 0;
+  loop(this.size*TK_GUI_Scaling / 4,
+    //gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, mode_*-141*degree, 0.5*$pi+(angle- (mode_ ? (mode_*4) : -sign(angle_*4)))*degree);
+    tmp_loop += 1;
+  );
+  
+  black();
+  gfx_triangle(
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 1*this.size*TK_GUI_Scaling*cos((angle+6)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 1*this.size*TK_GUI_Scaling*sin((angle+6)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 1*this.size*TK_GUI_Scaling*cos((angle-6)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 1*this.size*TK_GUI_Scaling*sin((angle-6)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.1*this.size*TK_GUI_Scaling*cos((angle+80)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.1*this.size*TK_GUI_Scaling*sin((angle+80)*degree)/2,
+    this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.1*this.size*TK_GUI_Scaling*cos((angle-80)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.1*this.size*TK_GUI_Scaling*sin((angle-80)*degree)/2
+  );
+  /////
+  this.knob_mouse_action();
+  
+  
+);
+
+
+function knob3() local (angle, degree, tmp_loop) (
+  this.slider ? this.value = slider(this.slider);
+  this.value = max(this.min,min(this.max,this.value));
+  degree = $pi/180;
+  ///// Draw infill
+  gfx_r = this.infill_r;
+  gfx_g = this.infill_g;
+  gfx_b = this.infill_b;
+  gfx_a = this.infill_a;
+  gfx_circle(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2,1);
+  /////
+  
+  ///// Draw outline & pointer
+  gfx_r = this.outline_r;
+  gfx_g = this.outline_g;
+  gfx_b = this.outline_b;
+  gfx_a = 1;
+  tmp_loop = 0;
+  loop(this.size*TK_GUI_Scaling / 8,
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    tmp_loop += 1;
+  );
+  angle = -230 + 280*((this.value-this.min)/this.range);
+
+  gfx_circle(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.6*this.size*TK_GUI_Scaling*cos((angle)*degree)/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2 + 0.6*this.size*TK_GUI_Scaling*sin((angle)*degree)/2,0.07*this.size,1);
+
+  
+  this.knob_mouse_action();
+  
+);
+
+function knob4(mode_,wide_,dark_) local (angle, degree, tmp_loop) (
+  this.slider ? this.value = slider(this.slider);
+  this.value = max(this.min,min(this.max,this.value));
+  degree = $pi/180;
+  ///// Draw infill
+  gfx_r = this.infill_r;
+  gfx_g = this.infill_g;
+  gfx_b = this.infill_b;
+  gfx_a = this.infill_a;
+  gfx_circle(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2,1);
+  /////
+  
+  ///// Draw outline & pointer
+  gfx_r = this.outline_r*dark_;
+  gfx_g = this.outline_g*dark_;
+  gfx_b = this.outline_b*dark_;
+  gfx_a = 1;
+  //tmp_loop = 0;
+  //loop(this.size*TK_GUI_Scaling / 8,
+  //  gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+  //  tmp_loop += 1;
+  //);
+  
+  
+  tmp_loop = 0;
+  loop((4*wide_)*this.size*TK_GUI_Scaling / 4,
+    //gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -140*degree, 140*degree);
+    tmp_loop += 1;
+  );
+  
+  
+  gfx_r = this.outline_r;
+  gfx_g = this.outline_g;
+  gfx_b = this.outline_b;
+  gfx_a = 1;
+  angle = -230 + 280*((this.value-this.min)/this.range);
+
+  tmp_loop = 0;
+  loop((4*wide_)*this.size*TK_GUI_Scaling / 4,
+    //gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.size*TK_GUI_Scaling/2 - tmp_loop/2, -141*degree, 141*degree);
+    gfx_arc(this.x*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, this.y*TK_GUI_Scaling + this.size*TK_GUI_Scaling/2, 
+            this.size*TK_GUI_Scaling/2 - tmp_loop/2, 
+            mode_*-140*degree, 0.5*$pi+((angle+4*mode_)- (mode_ ? (mode_*4) : -sign(angle_*4)))*degree
+    );
+    tmp_loop += 1;
+  );
+  
+  /////
+  this.knob_mouse_action();
+  
+  
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function button_config(x_, y_, w_, h_, slider_, onvalue_, toggle_) (
+  this.x = x_;
+  this.y = y_;
+  this.w = w_;
+  this.h = h_;
+  this.slider = slider_;
+  this.onvalue = onvalue_;
+  this.toggle = toggle_;
+);
+
+function button_outline(line_, r_on_, g_on_, b_on_, r_off_, g_off_, b_off_) (
+  this.outline_r_on = r_on_/255;
+  this.outline_g_on = g_on_/255;
+  this.outline_b_on = b_on_/255;
+  this.outline_r_off = r_off_/255;
+  this.outline_g_off = g_off_/255;
+  this.outline_b_off = b_off_/255;
+  this.outline = line_;
+);
+
+function button_infill(r_on_, g_on_, b_on_, r_off_, g_off_, b_off_) (
+  this.infill_r_on = r_on_/255;
+  this.infill_g_on = g_on_/255;
+  this.infill_b_on = b_on_/255;
+  this.infill_r_off = r_off_/255;
+  this.infill_g_off = g_off_/255;
+  this.infill_b_off = b_off_/255;
+);
+
+function button_mouse_action() (
+  !this.deactivated ? (
+    mouse_Click && mouse_x > this.x*TK_GUI_Scaling && mouse_x < this.x*TK_GUI_Scaling+this.w*TK_GUI_Scaling && mouse_y > this.y*TK_GUI_Scaling && mouse_y < this.y*TK_GUI_Scaling+this.h*TK_GUI_Scaling ? (
+      this.toggle ? (
+        this.slider ? (
+          slider(this.slider) == this.onvalue ? slider(this.slider) = 0 : slider(this.slider) = this.onvalue;
+          slider_update(this.slider);
+        ):(
+          this.value == this.onvalue ? this.value = 0 : this.value = this.onvalue;
+        );
+      ):(
+        this.slider ? (
+          slider(this.slider) = this.onvalue;
+          slider_update(this.slider);
+        ):(
+          this.value = this.onvalue;
+        );
+      );
+      flag_run_slidercode = 1;
+    );
+  );
+);
+
+function button() local(in_distance) (
+  this.slider ? this.value = slider(this.slider);
+  this.value == this.onvalue ? (
+    gfx_r =  this.outline_r_on;
+    gfx_g =  this.outline_g_on;
+    gfx_b =  this.outline_b_on;
+  ):(
+    gfx_r =  this.outline_r_off;
+    gfx_g =  this.outline_g_off;
+    gfx_b =  this.outline_b_off;
+  );
+  gfx_rect(this.x*TK_GUI_Scaling, this.y*TK_GUI_Scaling, this.w*TK_GUI_Scaling,this.h*TK_GUI_Scaling);
+  
+  this.value == this.onvalue ? (
+    gfx_r =  this.infill_r_on;
+    gfx_g =  this.infill_g_on;
+    gfx_b =  this.infill_b_on;
+  ):(
+    gfx_r =  this.infill_r_off;
+    gfx_g =  this.infill_g_off;
+    gfx_b =  this.infill_b_off;
+  );
+  gfx_rect(this.x*TK_GUI_Scaling+this.outline*TK_GUI_Scaling, this.y*TK_GUI_Scaling+this.outline*TK_GUI_Scaling, this.w*TK_GUI_Scaling-2*this.outline*TK_GUI_Scaling,this.h*TK_GUI_Scaling-2*this.outline*TK_GUI_Scaling);
+  
+  this.button_mouse_action();
+);
+
+function button_png(file_,w_,h_,scaling_) (
+  this.slider ? this.value = slider(this.slider);
+  gfx_x = this.x*TK_GUI_Scaling;
+  gfx_y = this.y*TK_GUI_Scaling;
+  gfx_blit(file_,scaling_*TK_GUI_Scaling, 0, 0, h_*(this.value == this.onvalue), w_,h_);
+  this.button_mouse_action();
+);
+
+function button_label (pos_, distance_x_, distance_y_) local(offx, offy) (
+  gfx_measurestr(#TK_gfxlib_Label,offx,offy);
+  distance_x_ *= TK_GUI_Scaling;
+  distance_y_ *= TK_GUI_Scaling;
+  pos_ ? (
+    pos_ == 1 ? (
+      gfx_x = this.x*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);//, 261, gfx_x, gfx_y);
+    ):
+    pos_ == 2 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 257, gfx_x, gfx_y);
+    ):
+    pos_ == 3 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 4 ? (
+      gfx_x = this.x*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 260, gfx_x, gfx_y);
+    ):
+    pos_ == 5 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling + +this.h*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 261, gfx_x, gfx_y);
+    ):
+    pos_ == 6 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + +this.h*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 262, gfx_x, gfx_y);
+    ):
+    pos_ == 7 ? (
+      gfx_x = this.x*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);//, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 8 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 257, gfx_x, gfx_y);
+    );
+    pos_ == 9 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    );
+    pos_ == 10 ? (
+      gfx_x = this.x*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);//, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 11 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 257, gfx_x, gfx_y);
+    ):
+    pos_ == 12 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 13 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);//, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 14 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 260, gfx_x, gfx_y);
+    ):
+    pos_ == 15 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);
+    );
+    pos_ == 16 ? (
+      gfx_x = this.x*TK_GUI_Scaling + + this.w*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling +this.h*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 17 ? (
+      gfx_x = this.x*TK_GUI_Scaling + this.w*TK_GUI_Scaling/2;
+      gfx_y = this.y*TK_GUI_Scaling +this.h*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 257, gfx_x, gfx_y);
+    ):
+    pos_ == 18 ? (
+      gfx_x = this.x*TK_GUI_Scaling + distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling +this.h*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label);
+    ):
+    pos_ == 21 ? (
+      gfx_x = this.x*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    ):
+    pos_ == 20 ? (
+      gfx_x = this.x*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling/2;
+      gfx_drawstr(#TK_gfxlib_Label, 262, gfx_x, gfx_y);
+    ):
+    pos_ == 19 ? (
+      gfx_x = this.x*TK_GUI_Scaling - distance_x_;
+      gfx_y = this.y*TK_GUI_Scaling + this.h*TK_GUI_Scaling - gfx_texth - distance_y_;
+      gfx_drawstr(#TK_gfxlib_Label, 258, gfx_x, gfx_y);
+    );
+  );
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function draw_vertical_meter(x_,y_,w_,h_, min_, max_, showmeter_, showmax_) local(maxposition) (
+  gfx_x = x_*TK_GUI_Scaling;
+  gfx_y = y_*TK_GUI_Scaling+h_*TK_GUI_Scaling;
+  showmeter_ ? gfx_rectto(gfx_x+w_*TK_GUI_Scaling, gfx_y - ((max(min_, min(max_,this.db_val))-min_) / (max_-min_)) *h_*TK_GUI_Scaling );
+  showmax_ ? (
+    maxposition = y_*TK_GUI_Scaling+h_*TK_GUI_Scaling  -  ((max(min_, min(max_,this.db_val_max))-min_) / (max_-min_)) *h_*TK_GUI_Scaling;
+    maxposition + showmax_*TK_GUI_Scaling <= y_*TK_GUI_Scaling+h_*TK_GUI_Scaling &&  maxposition + showmax_*TK_GUI_Scaling >= y_*TK_GUI_Scaling ? (
+      gfx_rect(x_*TK_GUI_Scaling, maxposition, w_*TK_GUI_Scaling, showmax_*TK_GUI_Scaling);
+    );
+  );
+  area_mouse_detect(x_,y_,w_,h_,1) ? (
+    this.db_val_max = -400;
+  );
+);
+
+function draw_vertical_GR_meter(x_,y_,w_,h_, min_, max_, showmeter_, showmax_) local(maxposition) (
+  gfx_x = x_*TK_GUI_Scaling;
+  gfx_y = y_*TK_GUI_Scaling;//+h_*TK_GUI_Scaling;
+  showmeter_ ? gfx_rectto(gfx_x+w_*TK_GUI_Scaling, gfx_y+h_*TK_GUI_Scaling - ((max(min_, min(max_,this.db_val))-min_) / (max_-min_)) *h_*TK_GUI_Scaling );
+  showmax_ ? (
+    maxposition = y_*TK_GUI_Scaling+h_*TK_GUI_Scaling  -  ((max(min_, min(max_,this.db_val_min))-min_) / (max_-min_)) *h_*TK_GUI_Scaling - showmax_*TK_GUI_Scaling;
+    maxposition + showmax_*TK_GUI_Scaling <= y_*TK_GUI_Scaling+h_*TK_GUI_Scaling &&  maxposition >= y_*TK_GUI_Scaling ? (
+      gfx_rect(x_*TK_GUI_Scaling, maxposition, w_*TK_GUI_Scaling, showmax_*TK_GUI_Scaling);
+    );
+  );
+  area_mouse_detect(x_,y_,w_,h_,1) ? (
+    this.db_val_min = 0;
+  );
+);
+
+function draw_vertical_scale(x_,y_,w_,h_,min_,max_,step_) local (step_in_pixels, out_y, tmp_loop) (
+  step_in_pixels = h_*TK_GUI_Scaling / (abs(max_ - min_)/step_);
+  
+  tmp_loop = 0;
+  while(
+    out_y = y_*TK_GUI_Scaling + tmp_loop*step_in_pixels;
+    gfx_rect(x_*TK_GUI_Scaling, out_y, w_*TK_GUI_Scaling, 1*TK_GUI_Scaling);
+    tmp_loop += 1;
+  out_y + step_in_pixels < y_*TK_GUI_Scaling+h_*TK_GUI_Scaling
+  );
+);
+
+function draw_vertical_scale_labels(x_,y_,w_,h_,min_,max_,step_) local (step_in_pixels, out_y, tmp_loop) (
+  step_in_pixels = h_*TK_GUI_Scaling / (abs(max_ - min_)/step_);
+  
+  tmp_loop = 0;
+  while(
+    out_y = y_*TK_GUI_Scaling + tmp_loop*step_in_pixels;
+    gfx_x = x_*TK_GUI_Scaling + w_*TK_GUI_Scaling/2;
+    gfx_y = out_y + 2*TK_GUI_Scaling;
+    gfx_drawstr(sprintf(#, "%i", max_ - tmp_loop*step_), 257, gfx_x, gfx_y);
+    tmp_loop += 1;
+  out_y + 2*TK_GUI_Scaling + step_in_pixels < y_*TK_GUI_Scaling+h_*TK_GUI_Scaling-gfx_texth
+  );
+);
+
+function draw_horizontal_scale(x_,y_,w_,h_,min_,max_,step_) local (step_in_pixels, out_x, tmp_loop) (
+  step_in_pixels = w_*TK_GUI_Scaling / (abs(max_ - min_)/step_);
+  
+  tmp_loop = 0;
+  while(
+    out_x = x_*TK_GUI_Scaling+w_*TK_GUI_Scaling - tmp_loop*step_in_pixels - TK_GUI_Scaling;
+    gfx_rect(out_x, y_*TK_GUI_Scaling, 1*TK_GUI_Scaling, h_*TK_GUI_Scaling);
+    tmp_loop += 1;
+  out_x - step_in_pixels > x_*TK_GUI_Scaling
+  );
+);
+
+function draw_horizontal_scale_labels(x_,y_,w_,h_,min_,max_,step_) local (step_in_pixels, out_x, tmp_loop, str_w, str_h) (
+  step_in_pixels = w_*TK_GUI_Scaling / (abs(max_ - min_)/step_);
+  
+  tmp_loop = 0;
+  while(
+    gfx_measurestr(sprintf(#, "%i", max_ - tmp_loop*step_), str_w, str_h);
+    gfx_x = out_x = x_*TK_GUI_Scaling+w_*TK_GUI_Scaling - tmp_loop*step_in_pixels - str_w - 3*TK_GUI_Scaling;
+    gfx_y = y_*TK_GUI_Scaling + h_*TK_GUI_Scaling/2 - gfx_texth/2;
+    //gfx_rect(out_x, y_*TK_GUI_Scaling, 1*TK_GUI_Scaling, h_*TK_GUI_Scaling);
+    gfx_drawstr(sprintf(#, "%i", max_ - tmp_loop*step_));//, 261, gfx_x, gfx_y);
+    tmp_loop += 1;
+  out_x - step_in_pixels - 0*str_w - 2*TK_GUI_Scaling > x_*TK_GUI_Scaling
+  );
+);
+
+function draw_horizontal_meter(x_,y_,w_,h_, min_, max_, showmeter_, showmax_) local(maxposition) (
+  gfx_x = x_*TK_GUI_Scaling;
+  gfx_y = y_*TK_GUI_Scaling;
+  showmeter_ ? gfx_rectto(gfx_x+w_*TK_GUI_Scaling*((max(min_, min(max_,this.db_val))-min_) / (max_-min_)), gfx_y + h_*TK_GUI_Scaling );
+  showmax_ ? (
+    maxposition = x_*TK_GUI_Scaling+ ((max(min_, min(max_,this.db_val_max))-min_) / (max_-min_)) *w_*TK_GUI_Scaling;
+    maxposition <= x_*TK_GUI_Scaling+w_*TK_GUI_Scaling &&  maxposition - showmax_*TK_GUI_Scaling >= x_*TK_GUI_Scaling ? (
+      gfx_rect(maxposition-showmax_*TK_GUI_Scaling, y_*TK_GUI_Scaling, showmax_*TK_GUI_Scaling, h_*TK_GUI_Scaling);
+    );
+  );
+  area_mouse_detect(x_,y_,w_,h_,1) ? (
+    this.db_val_max = -400;
+  );
+);
+
+function draw_horizontal_gr_meter(x_,y_,w_,h_, min_, max_, showmeter_, showmax_) local(maxposition) (
+  gfx_x = x_*TK_GUI_Scaling+w_*TK_GUI_Scaling;
+  gfx_y = y_*TK_GUI_Scaling;
+  showmeter_ ? gfx_rectto(x_*TK_GUI_Scaling+w_*TK_GUI_Scaling*((max(min_, min(max_,this.db_val))-min_) / (max_-min_)), gfx_y + h_*TK_GUI_Scaling );
+  showmax_ ? (
+    maxposition = x_*TK_GUI_Scaling+ ((max(min_, min(max_,this.db_val_min))-min_) / (max_-min_)) *w_*TK_GUI_Scaling;
+    maxposition+showmax_*TK_GUI_Scaling <= x_*TK_GUI_Scaling+w_*TK_GUI_Scaling && maxposition >= x_*TK_GUI_Scaling ? (
+      gfx_rect(maxposition, y_*TK_GUI_Scaling, showmax_*TK_GUI_Scaling, h_*TK_GUI_Scaling);
+    );
+  );
+  area_mouse_detect(x_,y_,w_,h_,1) ? (
+    this.db_val_min = 0;
+  );
+);
+
+
+
+
+
+
+
+
+
+function vu_meter_init(zero_, acdc_) (
+  this.offset = 0.0074;
+  this.dt = 10 / srate;
+  //this.fact_up = 10 ^ ((-(zero_) - 10)/20)*0.53;// * 0.3785 ;
+  acdc_ ? zero_ -= 6;
+  this.fact_up = db2ratio(-zero_-16)*0.53;//0.3785 ;
+  this.mom = 0.00010 + 0.00032 * 50^3 / 125000;
+  this.damp = 1 - 0.0053 * (48000 / srate);
+  this.dt_div_mom = this.dt / this.mom;
+  this.acdc = acdc_;
+);
+
+
+function draw_vu_meter(x_,y_,size_,frame_r,frame_g,frame_b,image_)
+local (memr,memg,memb,x,y,size,cx,cy,m,level,alpha,px1,py1,px2,py2,r,tmp_loop)
+(
+    memr = gfx_r; memg = gfx_g; memb = gfx_b;
+    gfx_r = frame_r/255;
+    gfx_g = frame_g/255;
+    gfx_b = frame_b/255;
+    
+    gfx_setimgdim(120, gfx_w,gfx_h);
+    gfx_dest = 120;
+    //black(); rgb(200,200,200);
+    //gfx_rect(0,0,gfx_w,gfx_h);
+    size = size_*TK_GUI_Scaling; //scale size
+    x = x_*TK_GUI_Scaling; // scale x
+    y = y_*TK_GUI_Scaling; // scale y
+    set_xy(x_-1,y_); // set position for background png
+    image_ > -1 ? gfx_blit(image_,(size/492)/1.1,0,0,0,543,245); // draw background png
+    
+    level = this.nd_posL; // get needle position from meter feeder
+    r = size*.56; // radius
+    cx = x+size/2.05; // center x of needle
+    cy = y+size*0.65; // center y of needle
+    
+    //level <= 1 ? alpha = 0.628 + 0.167 * (level^1.37); // calculate angle
+    level <= 1 ? alpha = 0.628 + 0.167 * (level^1.3); // calculate angle
+    //level > 1 ? alpha = 0.628 + 0.165 * (level^1.13); // calculate angle
+    level > 1 ? alpha = 0.628 + 0.165 * (level^1.17); // calculate angle
+    ax = cos(alpha*2*$pi);// calculate angle
+    ay = sin(alpha*2*$pi);// calculate angle
+    
+    px1 = cx+0*r*ax; // 4 coordinate for the needle
+    py1 = cy+0*r*ay;
+    px2 = cx+r*ax;
+    py2 = cy+r*ay;
+    
+  
+    
+    
+    gfx_r = VR_needle_color_r;
+    gfx_g = VR_needle_color_g;
+    gfx_b = VR_needle_color_b;
+    tmp_loop = 0;
+    loop(4*TK_GUI_Scaling,
+      gfx_line(px1+tmp_loop, py1,  px2+tmp_loop,py2);
+      tmp_loop += 0.25;
+    );
+    
+    gfx_r = frame_r/255;
+    gfx_g = frame_g/255;
+    gfx_b = frame_b/255;
+    draw_rect(x/TK_GUI_Scaling-18,y/TK_GUI_Scaling-18,36+size/TK_GUI_Scaling,36+size*0.454/TK_GUI_Scaling,20);
+    
+    
+gfx_dest = -1;
+
+gfx_x = x; gfx_y = y;
+gfx_blit(120,1,0,x,y,size,size*0.454);
+
+    gfx_r = memr; gfx_g=memg; gfx_b = memb;
+);
+
+function feed_vu_meter(spl_) (
+  !this.acdc ? this.smpl += abs(spl_) : this.smpl += abs(spl_)*(2/$pi);//spl_*0.637;
+  this.cnt_1s += 1;
+  this.cnt_1s >= 10 ? (
+    this.force = (this.smpL/this.cnt_1s) * this.fact_up  -  (this.nd_posL * .1 + this.offset);
+    this.nd_speedL += this.force * this.dt_div_mom;
+    this.nd_speedL = this.nd_speedL * this.damp;
+    this.nd_posL += this.nd_speedL * this.dt;
+    this.nd_posL < 0 || this.nd_posL > 1.41 ? this.nd_speedL = 0;
+    this.nd_posL = min(max(this.nd_posL,0),1.41);
+    this.cnt_1s = this.smpl = 0;
+  );
+);
+
+function draw_solid_vu_background(x_,y_,size_) local(size, x, y) (
+    gfx_setimgdim(120, gfx_w,gfx_h);
+    gfx_dest = 120;
+    size = size_*TK_GUI_Scaling; //scale size
+    x = x_*TK_GUI_Scaling; // scale x
+    y = y_*TK_GUI_Scaling; // scale y
+    gfx_rect(x,y,size,size);
+    gfx_dest = -1;
+);
+
+
+function draw_vu_background(x_,y_,size_,image_) local(size, x, y) (
+    gfx_setimgdim(120, gfx_w,gfx_h);
+    gfx_dest = 120;
+    size = size_*TK_GUI_Scaling; //scale size
+    x = x_*TK_GUI_Scaling; // scale x
+    y = y_*TK_GUI_Scaling; // scale y
+    set_xy(x_-1,y_); // set position for background png
+    gfx_blit(image_,(size/492)/1.1,0,0,0,543,245); // draw background png
+    gfx_dest = -1;
+);
+
+function Set_VR_needle_color(r_,g_,b_) (
+VR_needle_color_r = r_/255;
+VR_needle_color_g = g_/255;
+VR_needle_color_b = b_/255;
+);
+
+
+
+
+function vu_no_png(x_,y_,size_,sc_r_,sc_g_,sc_b_) local (x,y,size,scale) (
+  size = size_*TK_GUI_Scaling; //scale size
+  scale = 1.97*(size/492);
+  aaa = scale;
+  
+  x = x_*TK_GUI_Scaling; // scale x
+  y = y_*TK_GUI_Scaling; // scale y
+  gfx_setimgdim(120, gfx_w,gfx_h);
+  //rgb(bb_r_,bg_g_,bg_b_);
+  //draw_solid_vu_background(x_,y_,size_);
+  
+  gfx_dest = 120; 
+  r = size*.56; // radius
+  cx = x+size/2.05; // center x of needle
+  cy = y+size*0.65; // center y of needle
+  
+
+    
+  rgb(sc_r_,sc_g_,sc_b_);
+  draw_rect(x_+size_*0.1,y_+53*scale,size_*0.8,2,0);
+  fontsize(17*scale);
+  
+  set_xy(x_+30*scale,y_+35*scale); gfx_drawnumber(-10,0);
+  set_xy(x_+55*scale,y_+35*scale); gfx_drawnumber(-7,0);
+  set_xy(x_+75*scale,y_+35*scale); gfx_drawnumber(-5,0);
+  set_xy(x_+96*scale,y_+35*scale); gfx_drawnumber(-3,0);
+  set_xy(x_+112*scale,y_+35*scale); gfx_drawnumber(-2,0);
+  set_xy(x_+130*scale,y_+35*scale); gfx_drawnumber(-1,0);
+  set_xy(x_+153*scale,y_+35*scale); gfx_drawnumber(0,0);
+  set_xy(x_+173*scale,y_+35*scale); gfx_drawnumber(1,0);
+  set_xy(x_+197*scale,y_+35*scale); gfx_drawnumber(2,0);
+  set_xy(x_+223*scale,y_+35*scale); gfx_drawnumber(3,0);
+  
+  gfx_dest = -1;
+);
+

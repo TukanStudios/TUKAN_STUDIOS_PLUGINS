@@ -1,0 +1,1841 @@
+desc:       BL-1C
+BL-1C = Blue, one Compressor
+
+//////////////////////////////////////////////////////////////////////////////////
+//  This plugin is an example for the use of the tk_gui_tools.jsfx-inc library  //
+//////////////////////////////////////////////////////////////////////////////////
+
+version:    1.1.0
+author:     JClones / TUKAN GUI VERSION
+tags:       tube compressor
+link:       https://github.com/JClones/JSFXClones
+screenshot: https://github.com/JClones/JSFXClones/blob/master/assets/screenshots/JClones_CL1B.png
+about:
+    # JClones_CL1B
+    JClones_CL1B plugin is a clone of older version of digital emulation of the renowned optical compressor, which is widely used in professional audio production. The modelled hardware compressor is highly regarded for its smooth, warm, and musical compression characteristics, making it a popular choice for vocals, bass, drums, and other instruments.
+
+    ## Main Parameters
+
+    **Ratio:** The ratio control determines the amount of gain reduction applied once the signal exceeds the threshold.
+
+    **Threshold:** This control sets the level at which compression begins. When the input signal exceeds the threshold level, compression is applied. JClones specific: the parameter sets exact dB value unlike the cloned plugin, which models the hardware knob behavior.
+
+    **Attack:** The attack parameter controls how quickly the compressor responds to signals that exceed the threshold. Note: the parameter is ignored in "Fixed" mode.
+
+    **Release:** The release control determines how quickly the compressor stops compressing after the signal falls below the threshold. Note: the parameter is ignored in "Fixed" mode.
+
+    **A/R Select:** The parameter has three settings:
+
+    **Fixed:** In Fixed mode, both the attack and release times are set to predefined values that are not adjustable. This mode is designed to provide a classic, vintage-style compression behavior that is consistent and easy to use.
+
+    **Manual:** In Manual mode, users have full control over the attack and release times, allowing for precise adjustments to tailor the compressor's response to the specific audio material.
+
+    **Fixed/Manual:** The Fixed/Manual mode combines elements of both Fixed and Manual modes. In this setting, the attack time is fixed at a predefined value, while the release time can be adjusted manually.
+
+    **Output Gain:** This parameter allows you to increase or decrease the output level of the signal after compression has been applied. JClones specific: the parameter sets exact dB value unlike the cloned plugin, which models the hardware knob behavior.
+    
+MIT License
+
+Copyright (c) 2026 JClones
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+slider1:6.0<2,10,0.1>-Ratio, : 1
+slider2:0<-40,10,0.1>-Threshold, dB
+slider3:5.0<0,10.0,0.1>-Attack
+slider4:5.0<0,10.0,0.1>-Release
+slider5:2<0,2,1{Fixed,Fixed/Manual,Manual}>-A/R Select
+slider6:0<-24,24,0.1>-Output Gain, dB
+slider7:1<0,2,1{INput,Compression,Output}>-VU METER ////ADDED
+slider8:1<0,1,1{OFF,ON}>-Plugin
+
+slider200:0<0,10,1{Classic (uses PNGs), GUI 1 Blue, GUI 1 Sand, GUI 1 White, GUI 1 Black, GUI 1 Bisque, Circles, Logical, Live!, Generic, You turn!}>Gui mode
+///////////////////// ADDED
+filename:0,HexKnob.png
+filename:1,ChickenheadKnob.png
+filename:2,Transtparent_Black_VU.png
+filename:3,PlasticSwitch.png
+filename:4,VU_Shadow.png
+filename:5,Transtparent_White_VU.png
+filename:6,Glow_VU.png
+
+
+import tk_gui_tools.jsfx-inc
+
+options: no_meter
+///////////////////// ADDED
+
+@init
+
+ext_gr_meter = 0.0;
+
+
+///////////////////// ADDED
+gfx_ext_retina=1;
+///////////////////////////
+
+
+function DB_TO_K(x)
+(
+  10 ^ (x / 20)
+);
+
+function K_TO_DB(x)
+(
+  20 * log10(x)
+);
+
+// for allocator
+__memory_Index__ = 0;
+
+function allocate(size) local(result)
+(
+  result = __memory_Index__;
+   __memory_Index__ += size;
+  result;
+);
+
+// interpolation helpers
+
+M_LN2 = log(2);
+
+function frexp(x) local(sign, a1)
+(
+  sign = 0;
+  
+  (x < 0.0) ? (
+    x = -x;
+    sign = 1;
+  );
+  
+  frexp_exp = ceil(log(x) / M_LN2);
+  
+  a1 = x / pow(2.0, frexp_exp);
+  
+  (a1 == 1.0) ? (
+    a1 = 0.5;
+    frexp_exp += 1;
+  );
+  
+  sign ? ( a1 = -a1; );
+  
+  a1;
+);
+
+function ldexp(a, b)
+(
+  a * pow(2.0, b);
+);
+
+function clamp(x)
+(
+  min(max(x, -0.99999988), 0.99999988);
+);
+
+function interpolate_lin(x, table_lin, table_size) local(index_int, index_frac)
+(
+  x = clamp(x);
+
+  (x < 0.0) ?
+    x = 0.0;
+
+  x *= table_size - 1;
+
+  index_int = floor(x);
+
+  (index_int == table_size - 1) ? (
+  
+    table_lin[table_size - 1];
+    
+  ) : (
+
+    index_frac = x - index_int;
+  
+    table_lin[index_int] * (1.0 - index_frac) + table_lin[index_int + 1] * index_frac;
+    
+  );
+);
+
+function interpolate_exp(x, table_exp, is_neg) local(exp, mant, index, frac)
+(
+  (is_neg) ? (
+    // table_exp size is [48], with center index 23
+    table_exp += 23;
+  );
+
+  x = clamp(x);
+
+  (x * 1000000 == 0.0) ? (    // ??? WTF with JSFX here ??? (x == 0.0 doesn't work)
+  
+    table_exp[23];
+    
+  ) : (
+
+    mant = frexp(x);
+    exp = frexp_exp;
+  
+    index = 1 - exp;
+  
+    (index < 0) ?
+      exp = 0;
+  
+    (index > 22) ? (
+      frac = ldexp(mant, 22 + exp);
+      index = 23;
+    ) : (
+      (mant <= 0.0) ? (
+        frac = (mant + 0.5) * 2.0;
+      ) : (
+        frac = (mant - 0.5) * 2.0;
+      );
+    );
+  
+    (x < 0.0 && is_neg) ? (
+      index = -index;   // negative index
+  
+      frac = frac + 1.0;  // negative frac
+    );
+  
+    frac * (table_exp[index] - table_exp[index + 1]) + table_exp[index + 1];
+  );
+);
+
+/*
+ * CLCompressor
+ */
+
+AR_FIXED = 0;
+AR_FIXED_MANUAL = 1;
+AR_MANUAL = 2;
+
+function CLCompressor_setSampleRate() local(lpf1_attack_sec, lpf1_release_sec, lpf2_attack_sec, lpf2_release_sec, release_sec)
+(
+  lpf1_attack_sec = 1.324200 * 0.001;
+  lpf1_release_sec = 1.782562 * 0.001;
+
+  lpf2_attack_sec = 28.011420 * 0.001;
+  lpf2_release_sec = 26.260180 * 0.001;
+
+  release_sec = 5.898;
+
+  this.lpf1_attack = exp(-1.0 / (srate * lpf1_attack_sec));
+  this.lpf1_release = exp(-1.0 / (srate * lpf1_release_sec));
+  this.lpf2_attack = exp(-1.0 / (srate * lpf2_attack_sec));
+  this.lpf2_release = exp(-1.0 / (srate * lpf2_release_sec));
+
+  this.release_k = exp(-1.0 / (srate * release_sec));
+
+  this.post_eq_k = 1.0 - exp(-2.0 * $pi * (20000.0 / srate));
+);
+
+function CLCompressor_reset()
+(
+  this.lpf1_state = 0.0;
+  this.lpf2_state = 0.0;
+
+  this.level_state = 0.0;
+
+  this.post_eq_s1 = 0.0;
+  this.post_eq_s2 = 0.0;
+);
+
+function CLCompressor_setParameters(ratio, threshold_dB, attack_release_mode, attack, release, output_gain_dB)
+(
+  this.T3 = interpolate_exp(ratio, table3_exp, 0);
+  this.T10 = interpolate_exp(ratio, table10_exp, 0);
+  this.T8 = interpolate_lin(attack, table8_lin, 46) * (44100.0 / srate);   // rescale table
+  this.T9 = interpolate_lin(release, table9_lin, 24) * (44100.0 / srate);   // rescale table
+
+  this.T4 = interpolate_lin(this.T3, table4_lin, 24);
+
+  this.attack_release_mode = attack_release_mode;
+
+  this.T7 = DB_TO_K(-40.0 - threshold_dB);    // interpolation table T7 not used
+  this.T11 = DB_TO_K(-30.0 + output_gain_dB); // interpolation table T11 not used
+);
+
+function CLCompressor_processSampleStereo(x1, x2) 
+  local(
+    inv_gr, gain_reduction, T5, T6, A1, B1, A2, B2, m1, m2,
+    mult, T2_on, input1, input2, T12_1, T12_2, level_1, combined_level,
+    T13, lpf1_k, lpf2_k, y1, y2
+  )
+(
+  // feedback signal path
+  inv_gr = this.lpf1_state * 0.2998201 + this.lpf2_state * 0.079904087;
+  
+  gain_reduction = 0.0029900903 / clamp(inv_gr + 0.0029900903);
+
+  // feedback sidechain path
+
+  T5 = interpolate_exp(inv_gr, table5_exp, 0);
+  T6 = interpolate_lin(T5, table6_lin, 24);
+
+  A1 = 0.01193628;
+  B1 = 0.9323384;
+  A2 = 0.4595526;
+  B2 = 1.0;
+
+  m1 = (A1 * T6 + B1 * (1.0 - T6));
+  m2 = (A2 * T6 + B2 * (1.0 - T6));
+
+  mult = m1 * (1.0 - this.T4) + m2 * this.T4;
+
+  T2_on = 0.08098298;
+
+  // detector path
+  input1 = (x1 * T2_on) * mult * this.T7;
+  input2 = (x2 * T2_on) * mult * this.T7;
+
+  T12_1 = interpolate_exp(input1, table12_exp_neg, 1);
+  T12_2 = interpolate_exp(input2, table12_exp_neg, 1);
+  
+  level_1 = max(abs(T12_1), abs(T12_2));    // stereo-link
+
+  (this.attack_release_mode != AR_FIXED) ? (
+    // attack/release
+    (level_1 >= this.level_state) ? (
+      // attack
+      //this.level_state = min(this.level_state + this.T8, level_1);
+      this.attack_release_mode == AR_MANUAL ? this.level_state = min(this.level_state + this.T8, level_1);
+      this.attack_release_mode == AR_FIXED_MANUAL ? this.level_state = level_1;
+    ) : (
+      // release
+      this.level_state = max(this.level_state * this.release_k - this.T9, level_1);
+    );
+  );
+
+  (this.attack_release_mode == AR_FIXED) ? (
+    combined_level = level_1;
+  ) : (
+    (this.attack_release_mode == AR_MANUAL) ? (
+      combined_level = this.level_state;
+    ) : (
+      combined_level = max(level_1, this.level_state);
+    );
+  );
+
+  T13 = interpolate_lin(combined_level, table13_lin, 252);
+
+  // lpf1
+  lpf1_k = (T13 > this.lpf1_state) ? this.lpf1_attack : this.lpf1_release;
+
+  this.lpf1_state = T13 + (this.lpf1_state - T13) * lpf1_k;
+
+  // lpf2
+  lpf2_k = (T13 > this.lpf2_state) ? this.lpf2_attack : this.lpf2_release;
+
+  this.lpf2_state = T13 + (this.lpf2_state - T13) * lpf2_k;
+
+  // output
+  y1 = x1 * this.T10 * this.T11 * gain_reduction * 33.768673;
+  y2 = x2 * this.T10 * this.T11 * gain_reduction * 33.768673;
+  
+  this.gr = gain_reduction;
+
+  // post_eq
+  this.post_eq_s1 += (y1 - this.post_eq_s1) * this.post_eq_k;
+  this.post_eq_s2 += (y2 - this.post_eq_s2) * this.post_eq_k;
+
+  this.y1 = this.post_eq_s1;
+  this.y2 = this.post_eq_s2;
+);
+
+//=========== table of measured values ============
+
+function init_tables() local(i)
+(
+  // T3
+  table3_exp = allocate(25);
+  table3_exp[0] = 0.999999;
+  table3_exp[1] = 0.99;
+  table3_exp[2] = 0.5626293;
+  table3_exp[3] = 0.2993541;
+  table3_exp[4] = 0.1536661;
+  table3_exp[5] = 0.07558671;
+  table3_exp[6] = 0.036547;
+  table3_exp[7] = 0.01702715;
+
+  i = 8;
+  loop(25 - 8,
+    table3_exp[i] = 0.01;
+    i += 1;
+  );
+
+  // T4
+  table4_lin = allocate(24);
+  table4_lin[0] = 0;
+  table4_lin[1] = 0.03416149;
+  table4_lin[2] = 0.07852706;
+  table4_lin[3] = 0.1228926;
+  table4_lin[4] = 0.1672582;
+  table4_lin[5] = 0.2116238;
+  table4_lin[6] = 0.2559893;
+  table4_lin[7] = 0.3003549;
+  table4_lin[8] = 0.3447205;
+  table4_lin[9] = 0.3890861;
+  table4_lin[10] = 0.4334517;
+  table4_lin[11] = 0.4778172;
+  table4_lin[12] = 0.5221828;
+  table4_lin[13] = 0.5665483;
+  table4_lin[14] = 0.6109139;
+  table4_lin[15] = 0.6552795;
+  table4_lin[16] = 0.6996451;
+  table4_lin[17] = 0.7440106;
+  table4_lin[18] = 0.7883762;
+  table4_lin[19] = 0.8327418;
+  table4_lin[20] = 0.8771074;
+  table4_lin[21] = 0.921473;
+  table4_lin[22] = 0.9658385;
+  table4_lin[23] = 0.999999;
+
+  // T5
+  table5_exp = allocate(25);
+  table5_exp[0] = 0.01;
+  table5_exp[1] = 1;
+  table5_exp[2] = 0.9947661;
+  table5_exp[3] = 0.9844928;
+  table5_exp[4] = 0.9651101;
+  table5_exp[5] = 0.9302186;
+  table5_exp[6] = 0.8630559;
+  table5_exp[7] = 0.755419;
+  table5_exp[8] = 0.6082814;
+  table5_exp[9] = 0.4397123;
+  table5_exp[10] = 0.2796561;
+  table5_exp[11] = 0.162245;
+  table5_exp[12] = 0.08780019;
+  table5_exp[13] = 0.04508;
+  table5_exp[14] = 0.02209106;
+  table5_exp[15] = 0.01019185;
+  table5_exp[16] = 0.004130001;
+  table5_exp[17] = 0.001069335;
+  table5_exp[18] = 0.00001000000;
+  table5_exp[19] = 0.00001000000;
+  table5_exp[20] = 0.00001000000;
+  table5_exp[21] = 0.00001000000;
+  table5_exp[22] = 0.00001000000;
+  table5_exp[23] = 0.00001000000;
+  table5_exp[24] = 0.00001000000;
+
+  // T6
+  table6_lin = allocate(24);
+  table6_lin[0] = 0;
+  table6_lin[1] = 0.0434687;
+  table6_lin[2] = 0.08694739;
+  table6_lin[3] = 0.1304261;
+  table6_lin[4] = 0.1739048;
+  table6_lin[5] = 0.2173835;
+  table6_lin[6] = 0.2608622;
+  table6_lin[7] = 0.3043409;
+  table6_lin[8] = 0.3478196;
+  table6_lin[9] = 0.3912983;
+  table6_lin[10] = 0.434777;
+  table6_lin[11] = 0.4782557;
+  table6_lin[12] = 0.5217344;
+  table6_lin[13] = 0.565213;
+  table6_lin[14] = 0.6086918;
+  table6_lin[15] = 0.6521704;
+  table6_lin[16] = 0.6956491;
+  table6_lin[17] = 0.7391278;
+  table6_lin[18] = 0.7826065;
+  table6_lin[19] = 0.8260852;
+  table6_lin[20] = 0.8695639;
+  table6_lin[21] = 0.9130426;
+  table6_lin[22] = 0.9565213;
+  table6_lin[23] = 0.999999;
+
+  // T7: not used (threshold)
+
+  // T8
+  table8_lin = allocate(46);
+
+  i = 0;
+  loop(11,
+    table8_lin[i] = 0.002257127;
+    i += 1;
+  );
+
+  table8_lin[11] = 0.000807641;
+  table8_lin[12] = 0.0002590034;
+  table8_lin[13] = 0.0001466583;
+  table8_lin[14] = 0.000105361;
+  table8_lin[15] = 0.00008688696;
+  table8_lin[16] = 0.00007712693;
+  table8_lin[17] = 0.00007082194;
+  table8_lin[18] = 0.00006535164;
+  table8_lin[19] = 0.00005942077;
+  table8_lin[20] = 0.00005248035;
+  table8_lin[21] = 0.00004474115;
+  table8_lin[22] = 0.00003699339;
+  table8_lin[23] = 0.00002985739;
+  table8_lin[24] = 0.00002377450;
+  table8_lin[25] = 0.00001915936;
+  table8_lin[26] = 0.00001565825;
+  table8_lin[27] = 0.00001302099;
+  table8_lin[28] = 0.00001102717;
+  table8_lin[29] = 0.000009554097;
+  table8_lin[30] = 0.000008418394;
+  table8_lin[31] = 0.000007519858;
+  table8_lin[32] = 0.000006788958;
+  table8_lin[33] = 0.000006188009;
+  table8_lin[34] = 0.000005677829;
+  table8_lin[35] = 0.000005232528;
+  table8_lin[36] = 0.000004838532;
+  table8_lin[37] = 0.000004491788;
+  table8_lin[38] = 0.000004193505;
+  table8_lin[39] = 0.000003938723;
+  table8_lin[40] = 0.000003725471;
+  table8_lin[41] = 0.000003552736;
+  table8_lin[42] = 0.000003421820;
+  table8_lin[43] = 0.000003326748;
+  table8_lin[44] = 0.000003267550;
+  table8_lin[45] = 0.000003245660;
+
+  // T9
+  table9_lin = allocate(24);
+  table9_lin[0] = 0.00004848326;
+  table9_lin[1] = 0.00004848326;
+  table9_lin[2] = 0.00004848326;
+  table9_lin[3] = 0.00004188835;
+  table9_lin[4] = 0.00002785662;
+  table9_lin[5] = 0.00001560057;
+  table9_lin[6] = 0.00001201397;
+  table9_lin[7] = 0.000008427365;
+  table9_lin[8] = 0.000005328864;
+  table9_lin[9] = 0.000004453937;
+  table9_lin[10] = 0.000003579009;
+  table9_lin[11] = 0.000002704082;
+  table9_lin[12] = 0.000002101815;
+  table9_lin[13] = 0.000001772209;
+  table9_lin[14] = 0.000001442603;
+  table9_lin[15] = 0.000001112997;
+  table9_lin[16] = 8.481028*10^-7;
+  table9_lin[17] = 6.281776*10^-7;
+  table9_lin[18] = 4.082524*10^-7;
+  table9_lin[19] = 2.060375*10^-7;
+  table9_lin[20] = 1.126142*10^-7;
+  table9_lin[21] = 1.919095*10^-8;
+  table9_lin[22] = 3.280834*10^-10;
+  table9_lin[23] = -4.332800*10^-9;
+
+  // T10
+  table10_exp = allocate(25);
+  table10_exp[0] = 0.8766871;
+  table10_exp[1] = 0.8766871;
+  table10_exp[2] = 0.9343757;
+  table10_exp[3] = 0.966794;
+  table10_exp[4] = 0.9838194;
+  table10_exp[5] = 0.9926132;
+  table10_exp[6] = 0.9970101;
+  table10_exp[7] = 0.9992085;
+
+  i = 8;
+  loop(25 - 8,
+    table10_exp[i] = 1;
+    i += 1;
+  );
+
+  // T11: not used (output gain)
+
+  // T12
+  table12_exp_neg = allocate(48);
+  table12_exp_neg[0] = 0.000002987261;
+  table12_exp_neg[1] = 0.000005974523;
+  table12_exp_neg[2] = 0.00001194905;
+  table12_exp_neg[3] = 0.00002389809;
+  table12_exp_neg[4] = 0.00004779618;
+  table12_exp_neg[5] = 0.00009559237;
+  table12_exp_neg[6] = 0.0001911847;
+  table12_exp_neg[7] = 0.0003823695;
+  table12_exp_neg[8] = 0.0007647389;
+  table12_exp_neg[9] = 0.001529478;
+  table12_exp_neg[10] = 0.003058956;
+  table12_exp_neg[11] = 0.006117912;
+  table12_exp_neg[12] = 0.01223582;
+  table12_exp_neg[13] = 0.02447165;
+  table12_exp_neg[14] = 0.04894329;
+  table12_exp_neg[15] = 0.09788658;
+  table12_exp_neg[16] = 0.1957732;
+  table12_exp_neg[17] = 0.3915463;
+  table12_exp_neg[18] = 0.7830927;
+  table12_exp_neg[19] = 1;
+  table12_exp_neg[20] = 1;
+  table12_exp_neg[21] = 1;
+  table12_exp_neg[22] = 1;
+  table12_exp_neg[23] = 1;
+  table12_exp_neg[24] = 1;
+  table12_exp_neg[25] = 1;
+  table12_exp_neg[26] = 1;
+  table12_exp_neg[27] = 1;
+  table12_exp_neg[28] = 1;
+  table12_exp_neg[29] = 0.7810927;
+  table12_exp_neg[30] = 0.3895463;
+  table12_exp_neg[31] = 0.1937732;
+  table12_exp_neg[32] = 0.09588659;
+  table12_exp_neg[33] = 0.04694329;
+  table12_exp_neg[34] = 0.02247165;
+  table12_exp_neg[35] = 0.01023582;
+  table12_exp_neg[36] = 0.004117912;
+  table12_exp_neg[37] = 0.001058956;
+  table12_exp_neg[38] = 0;
+  table12_exp_neg[39] = 0;
+  table12_exp_neg[40] = 0;
+  table12_exp_neg[41] = 0;
+  table12_exp_neg[42] = 0;
+  table12_exp_neg[43] = 0;
+  table12_exp_neg[44] = 0;
+  table12_exp_neg[45] = 0;
+  table12_exp_neg[46] = 0;
+  table12_exp_neg[47] = 0;
+
+  // T13
+  table13_lin = allocate(252);
+  table13_lin[0] = 0;
+  table13_lin[1] = 0.002895139;
+  table13_lin[2] = 0.01001967;
+  table13_lin[3] = 0.01859283;
+  table13_lin[4] = 0.0278201;
+  table13_lin[5] = 0.03739988;
+  table13_lin[6] = 0.04719125;
+  table13_lin[7] = 0.05711957;
+  table13_lin[8] = 0.06714159;
+  table13_lin[9] = 0.07723056;
+  table13_lin[10] = 0.087369;
+  table13_lin[11] = 0.09754504;
+  table13_lin[12] = 0.1077503;
+  table13_lin[13] = 0.1179788;
+  table13_lin[14] = 0.1282261;
+  table13_lin[15] = 0.1384886;
+  table13_lin[16] = 0.1487638;
+  table13_lin[17] = 0.1590496;
+  table13_lin[18] = 0.1693444;
+  table13_lin[19] = 0.1796468;
+  table13_lin[20] = 0.1899559;
+  table13_lin[21] = 0.2002707;
+  table13_lin[22] = 0.2105905;
+  table13_lin[23] = 0.2209146;
+  table13_lin[24] = 0.2312426;
+  table13_lin[25] = 0.2415741;
+  table13_lin[26] = 0.2519086;
+  table13_lin[27] = 0.2622458;
+  table13_lin[28] = 0.2725855;
+  table13_lin[29] = 0.2829274;
+  table13_lin[30] = 0.2932713;
+  table13_lin[31] = 0.303617;
+  table13_lin[32] = 0.3139643;
+  table13_lin[33] = 0.3243132;
+  table13_lin[34] = 0.3346635;
+  table13_lin[35] = 0.345015;
+  table13_lin[36] = 0.3553677;
+  table13_lin[37] = 0.3657215;
+  table13_lin[38] = 0.3760763;
+  table13_lin[39] = 0.3864319;
+  table13_lin[40] = 0.3967885;
+  table13_lin[41] = 0.4071458;
+  table13_lin[42] = 0.4175039;
+  table13_lin[43] = 0.4278626;
+  table13_lin[44] = 0.4382221;
+  table13_lin[45] = 0.4485821;
+  table13_lin[46] = 0.4589426;
+  table13_lin[47] = 0.4693037;
+  table13_lin[48] = 0.4796653;
+  table13_lin[49] = 0.4900274;
+  table13_lin[50] = 0.5003899;
+  table13_lin[51] = 0.5107529;
+  table13_lin[52] = 0.5211161;
+  table13_lin[53] = 0.5314798;
+  table13_lin[54] = 0.5418439;
+  table13_lin[55] = 0.5522082;
+  table13_lin[56] = 0.562573;
+  table13_lin[57] = 0.5729379;
+  table13_lin[58] = 0.5833032;
+  table13_lin[59] = 0.5936688;
+  table13_lin[60] = 0.6040345;
+  table13_lin[61] = 0.6144006;
+  table13_lin[62] = 0.6247668;
+  table13_lin[63] = 0.6351333;
+  table13_lin[64] = 0.6455;
+  table13_lin[65] = 0.6558669;
+  table13_lin[66] = 0.666234;
+  table13_lin[67] = 0.6766013;
+  table13_lin[68] = 0.6869688;
+  table13_lin[69] = 0.6973364;
+  table13_lin[70] = 0.7077042;
+  table13_lin[71] = 0.7180721;
+  table13_lin[72] = 0.7284402;
+  table13_lin[73] = 0.7388085;
+  table13_lin[74] = 0.7491769;
+  table13_lin[75] = 0.7595453;
+  table13_lin[76] = 0.769914;
+  table13_lin[77] = 0.7802827;
+  table13_lin[78] = 0.7906516;
+  table13_lin[79] = 0.8010206;
+  table13_lin[80] = 0.8113897;
+  table13_lin[81] = 0.8217589;
+  table13_lin[82] = 0.8321282;
+  table13_lin[83] = 0.8424976;
+  table13_lin[84] = 0.8528671;
+  table13_lin[85] = 0.8632367;
+  table13_lin[86] = 0.8736063;
+  table13_lin[87] = 0.883976;
+  table13_lin[88] = 0.8943459;
+  table13_lin[89] = 0.9047158;
+  table13_lin[90] = 0.9150858;
+  table13_lin[91] = 0.9254559;
+  table13_lin[92] = 0.935826;
+  table13_lin[93] = 0.9461962;
+  table13_lin[94] = 0.9565665;
+  table13_lin[95] = 0.9669368;
+  table13_lin[96] = 0.9773072;
+  table13_lin[97] = 0.9876777;
+  table13_lin[98] = 0.9980482;
+
+  i = 99;
+  loop(252 - 99,
+    table13_lin[i] = 1;
+    i += 1;
+  );
+
+);
+
+// continue @init:
+
+init_tables();
+
+(sample_rate != srate) ? (
+
+  effect.CLCompressor_setSampleRate();
+  
+  sample_rate = srate;
+);
+
+// reset state
+effect.CLCompressor_reset();
+
+hold_max_gr = 1.0;
+
+
+
+
+///////////////////// ADDED
+function init_meters() (
+  InMeter.vu_meter_init(-18,0);
+  OutMeter.vu_meter_init(-18,0);
+  GRMeter.vu_meter_init(-0,1);
+  GRMeter.nd_posL = 1;
+  Left_In.reset_meter();
+  Right_In.reset_meter();
+  Left_Out.reset_meter();
+  Right_Out.reset_meter();
+  Reduct.reset_gr_meter();
+);
+init_meters();
+///////////////////// ADDED
+
+
+function slidercode() (
+  slider7 = Meter_select = floor(slider7+0.5);
+  slider5 = AR_select = ARSelect.value = floor(slider5+0.5);
+  effect.CLCompressor_setParameters(//ratio, threshold_dB, attack_release_mode, attack, release, output_gain_dB
+    (slider1 - 2.0) / 8.0,  // 2..10 -> 0..1
+    slider2,
+    slider5,
+    slider3 * 0.1,  // 0..10 -> 0..1
+    slider4 * 0.1,  // 0..10 -> 0..1
+    slider6
+  );
+  
+  plugin_on = slider8;
+
+);
+
+
+@slider
+
+flag_run_slidercode = 1;
+
+@block
+
+ext_gr_meter = K_TO_DB(hold_max_gr);
+
+hold_max_gr = 1.0;
+
+
+///////////////////// ADDED
+flag_run_slidercode ? (
+   flag_run_slidercode = 0;
+   slidercode();
+);
+
+!plugin_on ? ext_gr_meter = 0;
+///////////////////// ADDED
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@sample
+
+plugin_on ? (
+  effect.CLCompressor_processSampleStereo(spl0, spl1);
+  hold_max_gr = min(hold_max_gr, effect.gr);
+  InL = spl0; InR = spl1;
+  spl0 = effect.y1;
+  spl1 = effect.y2;
+  GUI_MODE == 0 || GUI_MODE == 8 ? (
+    InMeter.feed_vu_meter(InL+InR);///////////////////// ADDED
+    OutMeter.feed_vu_meter(spl0+spl1);///////////////////// ADDED
+    GRMeter.feed_vu_meter(effect.gr);///////////////////// ADDED
+  );
+  GUI_MODE > 0 && GUI_MODE <= 7 ? (
+    Left_In.feed_meter(InL, -40);
+    Right_In.feed_meter(InR, -40);
+    reduct.feed_gr_meter(effect.gr,20);
+    Left_Out.feed_meter(spl0, -60);
+    Right_Out.feed_meter(spl1, -60);
+  );
+):(
+  GUI_MODE == 0 || GUI_MODE ==  8 ? (
+    InMeter.feed_vu_meter(spl0+spl1);///////////////////// ADDED
+    OutMeter.feed_vu_meter(spl0+spl1);///////////////////// ADDED
+    GRMeter.feed_vu_meter(1);///////////////////// ADDED
+  );
+  GUI_MODE > 0 && GUI_MODE <= 7 ? (
+    Left_In.feed_meter(spl0, -40);
+    Right_In.feed_meter(spl1, -40);
+    reduct.feed_gr_meter(1,20);
+    Left_Out.feed_meter(spl0, -60);
+    Right_Out.feed_meter(spl1, -60);
+  );
+);
+
+
+reset_cnt += 1;
+reset_cnt >= srate/3 ? (
+  reduct.reset_gr_meter_min();
+  Left_in.reset_meter_max();
+  Right_in.reset_meter_max();
+  Left_out.reset_meter_max();
+  Right_out.reset_meter_max();
+  reset_cnt = 0;
+);
+
+
+
+
+
+
+
+
+
+
+@gfx 934 323
+
+start_gfx(934,323,300);
+GUI_MODE=slider200;
+
+
+
+
+
+
+GUI_MODE == 0 ? (
+
+rgb(30,70,175);
+gfx_rect(0,0,gfx_w,gfx_h);
+
+Threshold.knob_config(180,60,80,2,-40,10,0);
+Threshold.knob_many_labels(11);
+
+Ratio.knob_config(350,60,80,1,2,10,6);
+Ratio.knob_many_labels(11);
+
+Meter.knob_config(510,60,80,7,0,2,1);
+Meter.knob_many_labels(11);
+
+
+Attack.knob_config(180,190,80,3,0,10,5);
+Attack.knob_many_labels(11);
+
+Release.knob_config(350,190,80,4,0,10,5);
+Release.knob_many_labels(11);
+
+ARSelect.knob_config(510,190,80,5,0,2,2);
+ARSelect.knob_many_labels(11);
+
+OutGain.knob_config(725,190,80,6,-24,24,0);
+OutGain.knob_many_labels(9);
+
+bisque(1);
+knobdistance = 1.3;
+
+fontsize(14);
+Threshold.knob_png(0,201,1.2);
+#TK_gfxlib_Label = "THRESHOLD"; Threshold.knob_label(0,1.5);
+
+fontsize(15);
+#TK_gfxlib_Label = "-40"; Threshold.knob_label(1,knobdistance);
+#TK_gfxlib_Label = ""; Threshold.knob_label(2,knobdistance);
+#TK_gfxlib_Label = "-30"; Threshold.knob_label(3,knobdistance);
+#TK_gfxlib_Label = ""; Threshold.knob_label(4,knobdistance);
+#TK_gfxlib_Label = "-20"; Threshold.knob_label(5,knobdistance);
+#TK_gfxlib_Label = ""; Threshold.knob_label(6,knobdistance);
+#TK_gfxlib_Label = "-10"; Threshold.knob_label(7,knobdistance);
+#TK_gfxlib_Label = ""; Threshold.knob_label(8,knobdistance);
+#TK_gfxlib_Label = "±0"; Threshold.knob_label(9,knobdistance);
+#TK_gfxlib_Label = ""; Threshold.knob_label(10,knobdistance);
+fontsize(14);
+#TK_gfxlib_Label = "OFF"; Threshold.knob_label(11,knobdistance);
+
+fontsize(14);
+Ratio.knob_png(0,201,1.2);
+#TK_gfxlib_Label = "RATIO"; Ratio.knob_label(0,1.5);
+fontsize(15);
+#TK_gfxlib_Label = "2:1"; Ratio.knob_label(1,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(2,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(3,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(4,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(5,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(6,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(7,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(8,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(9,knobdistance);
+#TK_gfxlib_Label = ""; Ratio.knob_label(10,knobdistance);
+#TK_gfxlib_Label = "10:1"; Ratio.knob_label(11,knobdistance);
+
+fontsize(14);
+gfx_a = 0;
+Meter.knob_png(1,201,1);
+gfx_a = 1;
+gfx_blit(1,TK_GUI_Scaling*0.4,0, 0, 200*(75+Meter_select*25),200,200);
+#TK_gfxlib_Label = "IN"; Meter.knob_label(5,knobdistance);
+#TK_gfxlib_Label = "GR"; Meter.knob_label(6,knobdistance);
+#TK_gfxlib_Label = "OUT"; Meter.knob_label(7,knobdistance);
+
+
+Attack.knob_png(0,201,1.2);
+#TK_gfxlib_Label = "ATTACK"; Attack.knob_label(0,1.5);
+fontsize(14);
+#TK_gfxlib_Label = "FAST"; Attack.knob_label(1,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(2,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(3,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(4,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(5,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(6,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(7,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(8,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(9,knobdistance);
+#TK_gfxlib_Label = ""; Attack.knob_label(10,knobdistance);
+#TK_gfxlib_Label = "SLOW"; Attack.knob_label(11,knobdistance);
+
+
+Release.knob_png(0,201,1.2);
+#TK_gfxlib_Label = "RELEASE"; Release.knob_label(0,1.5);
+fontsize(14);
+#TK_gfxlib_Label = "FAST"; Release.knob_label(1,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(2,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(3,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(4,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(5,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(6,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(7,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(8,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(9,knobdistance);
+#TK_gfxlib_Label = ""; Release.knob_label(10,knobdistance);
+#TK_gfxlib_Label = "SLOW"; Release.knob_label(11,knobdistance);
+
+fontsize(14);
+gfx_a = 0;
+ARSelect.knob_png(1,201,1);
+gfx_a = 1;
+gfx_blit(1,TK_GUI_Scaling*0.4,0, 0, 200*(75+AR_Select*25),200,200);
+#TK_gfxlib_Label = "fix"; ARSelect.knob_label(5,knobdistance);
+#TK_gfxlib_Label = "f / m"; ARSelect.knob_label(6,knobdistance);
+#TK_gfxlib_Label = "man"; ARSelect.knob_label(7,knobdistance);
+
+
+OutGain.knob_png(0,201,1.2);
+#TK_gfxlib_Label = "OUTPUT"; OutGain.knob_label(0,1.5);
+fontsize(15);
+#TK_gfxlib_Label = "-24"; OutGain.knob_label(1,knobdistance);
+#TK_gfxlib_Label = "-18"; OutGain.knob_label(2,knobdistance);
+#TK_gfxlib_Label = "-12"; OutGain.knob_label(3,knobdistance);
+#TK_gfxlib_Label = "-6"; OutGain.knob_label(4,knobdistance);
+#TK_gfxlib_Label = "±0"; OutGain.knob_label(5,knobdistance);
+#TK_gfxlib_Label = "6"; OutGain.knob_label(6,knobdistance);
+#TK_gfxlib_Label = "12"; OutGain.knob_label(7,knobdistance);
+#TK_gfxlib_Label = "18"; OutGain.knob_label(8,knobdistance);
+#TK_gfxlib_Label = "24"; OutGain.knob_label(9,knobdistance);
+
+
+Set_VR_needle_color(20,20,20);
+gfx_dest = 120;
+bisque(1);
+//draw_solid_vu_background(650,50,250);
+//vu_no_png(650,50,250, 0,0,0);
+draw_vu_background(650,50,250, 6); // 6 = glow
+draw_vu_background(650,50,250, 4); // 4 = shadow
+//draw_vu_background(650,50,250, 7); // logo
+
+Meter_select == 0 ? InMeter.draw_vu_meter(650,50,250, 20, 20, 20, 2) :
+Meter_select == 1 ? GRMeter.draw_vu_meter(650,50,250, 20, 20, 20, 2) :
+Meter_select == 2 ? OutMeter.draw_vu_meter(650,50,250, 20, 20, 20, 2) ;
+
+rgb(40,40,40);
+fontsize(16);
+set_xy(717,125);
+gfx_drawstr("TUKAN STUDIOS");
+
+fontsize(19);
+set_xy(860,130);
+gfx_drawstr("VU");
+
+on.button_config(50,205,60,60,8,1,1);
+on.button_outline(2,100,250,100,80,80,80);
+on.button_infill(0,100,0,30,30,30);
+gfx_a = 0;
+on.button();
+gfx_a = 1;
+set_xy(on.x-8,on.y-8);
+gfx_blit(3,1.25*60/200*TK_GUI_Scaling,0,0,200*!plugin_on,200,200);
+gfx_r=gfx_g=gfx_b=0.9;
+#TK_gfxlib_Label = "ON";
+on.button_label(11,0,-5);
+#TK_gfxlib_Label = "OFF";
+on.button_label(17,0,-5);
+
+fontsize(16);
+set_xy(20,50);
+gfx_drawstr("TUKAN STUDIOS");
+set_xy(50,80);
+gfx_drawstr("BL - 1C");
+set_xy(25,110);
+gfx_drawstr("COMPRESSOR");
+
+draw_rect(5,5,924,313,1);
+
+); // ENDE GUI MODE 0
+
+
+
+
+GUI_MODE > 0 && GUI_MODE <= 5? (
+skin = GUI_MODE - 1;
+
+skin == 0 ? ( // Minimal Blue
+  or = 0; og = 0; ob = 0;
+  ir = 0; ig = 150; ib = 220;
+  lr = 0; lg = 0; lb = 0; ia = 0;
+  br = 220; bg = 220; bb = 220;
+  bgr=0; bgg=170; bgb=200;
+  but_line = 0;
+  but_line_on_r = 0;
+  but_line_on_g = 0;
+  but_line_on_b = 0;
+  but_line_off_r = 0;
+  but_line_off_g = 0;
+  but_line_off_b = 0;
+  but_fill_on_r = 0;
+  but_fill_on_g = 130;
+  but_fill_on_b = 150;
+  but_fill_off_r = 0;
+  but_fill_off_g = 0;
+  but_fill_off_b = 0;
+  vu_r = 0; vu_g = 100; vu_b = 220;
+  Peak_r = 240; peak_g = 250; peak_b = 250; peak_line = 3;
+);
+skin == 1 ? ( // Sahara
+  or = 0; og = 0; ob = 0;
+  ir = 200; ig = 150; ib = 20; ia = 255; 
+  lr = 0; lg = 0; lb = 0;
+  br = 0; bg = 0; bb = 0;
+  bgr=180; bgg=120; bgb=20;
+  but_line = 2;
+  but_line_on_r = 250;
+  but_line_on_g = 250;
+  but_line_on_b = 50;
+  but_line_off_r = 0;
+  but_line_off_g = 0;
+  but_line_off_b = 0;
+  but_fill_on_r = 230;
+  but_fill_on_g = 200;
+  but_fill_on_b = 30;
+  but_fill_off_r = 165;
+  but_fill_off_g = 100;
+  but_fill_off_b = 40;
+  vu_r = 220; vu_g = 190; vu_b = 20;
+  Peak_r = 240; peak_g = 250; peak_b = 0; peak_line = 3;
+);
+skin == 2 ? ( // Greys
+  or = 0; og = 0; ob = 0;
+  ir = 250; ig = 250; ib = 250; ia = 255; 
+  lr = 0; lg = 0; lb = 0;
+  br = 0; bg = 0; bb = 0;
+  bgr=220; bgg=220; bgb=220;
+  but_line = 3;
+  but_line_on_r = 0;
+  but_line_on_g = 0;
+  but_line_on_b = 0;
+  but_line_off_r = 170;
+  but_line_off_g = 170;
+  but_line_off_b = 170;
+  but_fill_on_r = 250;
+  but_fill_on_g = 250;
+  but_fill_on_b = 250;
+  but_fill_off_r = 190;
+  but_fill_off_g = 190;
+  but_fill_off_b = 190;
+  vu_r = 150; vu_g = 150; vu_b = 150;
+  Peak_r = 0; peak_g = 0; peak_b = 0; peak_line = 10;
+);
+skin == 3 ? ( // Black
+  or = 200; og = 200; ob = 200;
+  ir = 0; ig = 0; ib = 0; ia = 0; 
+  lr = 0; lg = 0; lb = 0;
+  br = 0; bg = 0; bb = 0;
+  bgr=0; bgg=0; bgb=0;
+  but_line = 2;
+  but_line_on_r = 255;
+  but_line_on_g = 255;
+  but_line_on_b = 255;
+  but_line_off_r = 170;
+  but_line_off_g = 170;
+  but_line_off_b = 170;
+  but_fill_on_r = 250;
+  but_fill_on_g = 250;
+  but_fill_on_b = 250;
+  but_fill_off_r = 150;
+  but_fill_off_g = 150;
+  but_fill_off_b = 150;
+  vu_r = 170; vu_g = 170; vu_b = 170;
+  Peak_r = 250; peak_g = 250; peak_b = 250; peak_line = 3;
+);
+skin == 4 ? ( // Pastell
+  or = 247; og = 217; ob = 188;
+  ir = 247*0.55; ig = 217*0.55; ib = 188*0.55; ia = 255; 
+  lr = 0; lg = 0; lb = 0;
+  br = 0; bg = 0; bb = 0;
+  bgr=11; bgg=11; bgb=85;
+  but_line = 3;
+  but_line_on_r = 255;
+  but_line_on_g = 225;
+  but_line_on_b = 227;
+  but_line_off_r = 247;
+  but_line_off_g = 227;
+  but_line_off_b = 188;
+  but_fill_on_r = 234;
+  but_fill_on_g = 224;
+  but_fill_on_b = 200;
+  but_fill_off_r = 170;
+  but_fill_off_g = 160;
+  but_fill_off_b = 130;
+  vu_r = 120; vu_g = 108; vu_b = 150;
+  Peak_r = 247; peak_g = 227; peak_b = 188; peak_line = 8;
+);
+
+
+rgb(bgr,bgg,bgb);
+gfx_rect(0,0,gfx_w,gfx_h);
+
+//Threshold.knob_config(180,60,60,2,-40,10,0);
+Threshold.knob_config(180,60,60,2,-40,10,0);
+Ratio.knob_config(310,60,60,1,2,10,6);
+Attack.knob_config(180,210,60,3,0,10,5);
+Release.knob_config(310,210,60,4,0,10,5);
+Gain.knob_config(440,60,60,6,-24,24,0);
+
+Threshold.knob_many_labels(6);
+Ratio.knob_many_labels(6);
+Attack.knob_many_labels(6);
+Release.knob_many_labels(6);
+Gain.knob_many_labels(6);
+
+Threshold.knob_outline(or,og,ob);
+Ratio.knob_outline(or,og,ob);
+Attack.knob_outline(or,og,ob);
+Release.knob_outline(or,og,ob);
+Gain.knob_outline(or,og,ob);
+
+Threshold.knob_infill(ir,ig,ib,ia);
+Ratio.knob_infill(ir,ig,ib,ia);
+Attack.knob_infill(ir,ig,ib,ia);
+Release.knob_infill(ir,ig,ib,ia);
+Gain.knob_infill(ir,ig,ib,ia);
+
+
+
+
+fontsize(13);
+
+fix.button_config(435,170,69,35,5,0,0);
+fix.button_outline(but_line,but_line_on_r,but_line_on_g,but_line_on_b,  but_line_off_r,but_line_off_g,but_line_off_b);
+fix.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fix.button();
+
+fixman.button_config(435,215,69,35,5,1,0);
+fixman.button_outline(but_line,but_line_on_r,but_line_on_g,but_line_on_b,  but_line_off_r,but_line_off_g,but_line_off_b);
+fixman.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fixman.button();
+
+man.button_config(435,260,69,35,5,2,0);
+man.button_outline(but_line,but_line_on_r,but_line_on_g,but_line_on_b,  but_line_off_r,but_line_off_g,but_line_off_b);
+man.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+man.button();
+
+on.button_config(835,153,69,35,8,1,1);
+on.button_outline(but_line,but_line_on_r,but_line_on_g,but_line_on_b,  but_line_off_r,but_line_off_g,but_line_off_b);
+on.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+on.button();
+
+
+rgb(br,bg,bb);
+
+#TK_gfxlib_Label = "FIX";
+fix.button_label(5,0,0);
+#TK_gfxlib_Label = "FIX/MAN";
+fixman.button_label(5,0,0);
+#TK_gfxlib_Label = "MAN";
+man.button_label(5,0,0);
+plugin_on ? #TK_gfxlib_Label = "ON" : #TK_gfxlib_Label = "OFF";
+on.button_label(5,0,0);
+
+rgb(lr,lg,lb);
+
+Threshold.knob();
+fontsize(12);
+threshold.knob_label_all_dots(1.3,1.3);
+threshold.knob_all_labels(1.5,0);
+fontsize(15);
+threshold.knob_value(0,1.7,1);
+#TK_gfxlib_Label = "THRESHOLD";
+threshold.knob_label(-1,2.1);
+
+Ratio.knob();
+fontsize(12);
+Ratio.knob_label_all_dots(1.3,1.3);
+Ratio.knob_all_labels(1.5,0);
+fontsize(15);
+Ratio.knob_value(0,1.7,1);
+#TK_gfxlib_Label = "RATIO";
+Ratio.knob_label(-1,2.1);
+
+Attack.knob();
+fontsize(12);
+Attack.knob_label_all_dots(1.3,1.3);
+Attack.knob_all_labels(1.5,0);
+fontsize(15);
+Attack.knob_value(0,1.7,1);
+#TK_gfxlib_Label = "ATTACK";
+Attack.knob_label(-1,2.1);
+
+Release.knob();
+fontsize(12);
+Release.knob_label_all_dots(1.3,1.3);
+Release.knob_all_labels(1.5,0);
+fontsize(15);
+Release.knob_value(0,1.7,1);
+#TK_gfxlib_Label = "RELEASE";
+Release.knob_label(-1,2.1);
+
+Gain.knob();
+fontsize(12);
+Gain.knob_label_all_dots(1.3,1.3);
+Gain.knob_all_labels(1.5,0);
+fontsize(15);
+Gain.knob_value(0,1.7,1);
+#TK_gfxlib_Label = "OUTPUT";
+Gain.knob_label(-1,2.1);
+
+add_y(-7);
+add_x(45);
+gfx_drawstr("INPUT");
+add_x(38);
+gfx_drawstr("REDUCT");
+add_x(30);
+gfx_drawstr("OUTPUT");
+
+fontsize(16);
+set_xy(20,50);
+gfx_drawstr("TUKAN STUDIOS");
+set_xy(50,80);
+gfx_drawstr("BL - 1C");
+set_xy(25,110);
+gfx_drawstr("COMPRESSOR");
+
+
+mmx = 560; mmy = 50; mmh = 250; mmw=25;
+mmin = -60; mmax = 6; mstep = 6;
+fontsize(12);
+rgb(or,og,ob);
+draw_vertical_scale(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+draw_vertical_scale(mmx+4.25*mmw,mmy,mmw,mmh,-20,0,2);
+draw_vertical_scale(mmx+7*mmw,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+gfx_a = 0.8;
+rgb(vu_r,vu_g,vu_b);
+Left_In.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,1,0);
+Right_In.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,1,0);
+reduct.draw_vertical_gr_meter(mmx+4.25*mmw,mmy,mmw,mmh,-20,0,1,0);
+Left_Out.draw_vertical_meter(mmx+7*mmw,mmy,mmw,mmh,mmin,mmax,1,0);
+Right_Out.draw_vertical_meter(mmx+8.5*mmw,mmy,mmw,mmh,mmin,mmax,1,0);
+
+rgb(peak_r,peak_g,peak_b);
+Left_In.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,0,peak_line);
+Right_In.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,0,peak_line);
+reduct.draw_vertical_gr_meter(mmx+4.25*mmw,mmy,mmw,mmh,-20,0,0,peak_line);
+Left_Out.draw_vertical_meter(mmx+7*mmw,mmy,mmw,mmh,mmin,mmax,0,peak_line);
+Right_Out.draw_vertical_meter(mmx+8.5*mmw,mmy,mmw,mmh,mmin,mmax,0,peak_line);
+
+
+rgb(or,og,ob);
+gfx_a = 1;
+draw_vertical_scale_labels(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+draw_vertical_scale_labels(mmx+4.25*mmw,mmy,mmw,mmh,-20,0,2);
+draw_vertical_scale_labels(mmx+7*mmw,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+
+); /// ENDE GUI MODE 1
+
+
+
+
+
+
+
+
+
+
+GUI_MODE == 6 ? (
+
+
+rgb(30,30,35);
+gfx_rect(0,0,gfx_w,gfx_h);
+
+Threshold.knob_config(200,30,140,2,-40,10,0);
+Threshold.knob_many_labels(11);
+
+Ratio.knob_config(400,30,140,1,2,10,6);
+Ratio.knob_many_labels(11);
+
+OutGain.knob_config(600,30,140,6,-24,24,0);
+OutGain.knob_many_labels(9);
+
+Attack.knob_config(295,205,90,3,0,10,5);
+Attack.knob_many_labels(11);
+
+Release.knob_config(555,205,90,4,0,10,5);
+Release.knob_many_labels(11);
+
+ARSelect.knob_config(425,205,90,5,0,2,2);
+ARSelect.knob_many_labels(11);
+
+
+Threshold.knob_outline(200,40,230);
+Ratio.knob_outline(0,230,230);
+OutGain.knob_outline(240,240,0);
+ARSelect.knob_outline(120,0,250);
+Attack.knob_outline(255,165,0);
+Release.knob_outline(30,90,230);
+
+Threshold.knob_infill(0,0,0,0);
+Ratio.knob_infill(0,0,0,0);
+OutGain.knob_infill(0,0,0,0);
+ARSelect.knob_infill(0,0,0,0);
+Attack.knob_infill(0,0,0,0);
+Release.knob_infill(0,0,0,0);
+
+fontsize(22);
+
+InL.knob_config(threshold.x-10,threshold.y-10,threshold.size+20,0,-40,10,0);
+InR.knob_config(threshold.x-5,threshold.y-5,threshold.size+10,0,-40,10,0);
+inL.knob_outline(70,250,70);
+inR.knob_outline(70,250,70);
+inL.deactivated = 1;
+inR.deactivated = 1;
+inL.value = Left_In.dB_Val;
+inR.value = Right_In.dB_Val;
+InL.knob4(1,0.2,0);
+InR.knob4(1,0.2,0);
+
+Threshold.knob4(1,0.3,0.5); //mode,wide,dark
+bisque(1);
+Threshold.knob_value(0,0,2);
+#TK_gfxlib_Label = "THRESHOLD";
+Threshold.knob_label(0,1.2);
+
+
+GainReduction.knob_config(Ratio.x-10,Ratio.y-10,Ratio.size+20,0,-20,0,0);
+GainReduction.knob_outline(240,30,30);
+GainReduction.deactivated = 1;
+GainReduction.value = Reduct.dB_Val;
+GainReduction.knob4(-1,0.2,0);
+
+Ratio.knob4(1,0.3,0.5); //mode,wide,dark
+bisque(1);
+Ratio.knob_value(0,0,2);
+#TK_gfxlib_Label = "RATIO";
+Ratio.knob_label(0,1.2);
+
+
+OutL.knob_config(OutGain.x-10,OutGain.y-10,OutGain.size+20,0,-40,10,0);
+OutR.knob_config(OutGain.x-5,OutGain.y-5,OutGain.size+10,0,-40,10,0);
+OutL.knob_outline(70,250,70);
+OutR.knob_outline(70,250,70);
+OutL.deactivated = 1;
+OutR.deactivated = 1;
+OutL.value = Left_out.dB_Val;
+OutR.value = Right_out.dB_Val;
+OutL.knob4(1,0.2,0);
+OutR.knob4(1,0.2,0);
+
+OutGain.knob4(1,0.3,0.5); //mode,wide,dark
+bisque(1);
+OutGain.knob_value(0,0,2);
+#TK_gfxlib_Label = "OutGain";
+OutGain.knob_label(0,1.2);
+
+
+
+fontsize(17);
+
+Attack.knob4(1,0.3,0.5); //mode,wide,dark
+bisque(1);
+Attack.knob_value(0,0,2);
+#TK_gfxlib_Label = "ATTACK";
+Attack.knob_label(0,1.2);
+
+ARSelect.knob4(0,0.3,0.5); //mode,wide,dark
+bisque(1);
+ARSelect.value == 0 ? #TK_gfxlib_Label = "fix" :
+ARSelect.value == 1 ? #TK_gfxlib_Label = "fix/man" :
+ARSelect.value == 2 ? #TK_gfxlib_Label = "man" ;
+ARSelect.knob_label(0,0);
+#TK_gfxlib_Label = "MODE";
+ARSelect.knob_label(0,1.2);
+
+Release.knob4(1,0.3,0.5); //mode,wide,dark
+bisque(1);
+Release.knob_value(0,0,2);
+#TK_gfxlib_Label = "RELEASE";
+Release.knob_label(0,1.2);
+
+
+
+fontsize(16);
+set_xy(40,50);
+gfx_drawstr("TUKAN STUDIOS");
+set_xy(70,80);
+gfx_drawstr("BL - 1C");
+set_xy(45,110);
+gfx_drawstr("COMPRESSOR");
+
+
+on.button_config(50,205,90,60,8,1,1);
+on.button_outline(2,100,250,100,80,80,80);
+on.button_infill(0,100,0,30,30,30);
+on.button();
+bisque(1);
+plugin_on ? #TK_gfxlib_Label = "ON" : #TK_gfxlib_Label = "OFF";
+on.button_label(5,0,0);
+
+);
+
+
+
+
+
+
+GUI_MODE == 7 ? (
+
+
+rgb(60,60,70);
+gfx_rect(0,0,gfx_w,gfx_h);
+
+Threshold.knob_config(160,120,60,2,-40,10,0);
+Threshold2.knob_config(160-3,120-3,66,2,-40,10,0);
+
+Ratio.knob_config(270,120,60,1,2,10,6);
+Ratio2.knob_config(270-3,120-3,66,1,2,10,6);
+
+Attack.knob_config(380,120,60,3,0,10,5);
+Attack2.knob_config(380-3,120-3,66,3,0,10,5);
+
+Release.knob_config(490,120,60,4,0,10,5);
+Release2.knob_config(490-3,120-3,66,4,0,10,5);
+
+OutGain.knob_config(600,120,60,6,-24,24,0);
+OutGain2.knob_config(600-3,120-3,66,6,-24,24,0);
+
+Threshold.knob_outline(0,0,0);
+Ratio.knob_outline(0,0,0);
+Attack.knob_outline(0,0,0);
+Release.knob_outline(0,0,0);
+OutGain.knob_outline(0,0,0);
+
+Threshold.knob_infill(170,170,170,255);
+Ratio.knob_infill(170,170,170,255);
+Attack.knob_infill(170,170,170,255);
+Release.knob_infill(170,170,170,255);
+OutGain.knob_infill(170,170,170,255);
+
+Threshold2.knob_outline(0,250,0);
+Ratio2.knob_outline(0,250,0);
+Attack2.knob_outline(0,250,0);
+Release2.knob_outline(0,250,0);
+OutGain2.knob_outline(0,250,0);
+
+fontsize(16); 
+
+threshold2.deactivated = 1;
+threshold2.knob4(1,1,0);
+threshold.knob3();
+rgb(190,190,190); 
+threshold.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "THRESHOLD"; threshold.knob_label(-1,1.7);
+
+Ratio2.deactivated = 1;
+Ratio2.knob4(1,1,0);
+Ratio.knob3();
+rgb(190,190,190); 
+Ratio.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "RATIO"; Ratio.knob_label(-1,1.7);
+
+Attack2.deactivated = 1;
+Attack2.knob4(1,1,0);
+Attack.knob3();
+rgb(190,190,190); 
+Attack.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "Attack"; Attack.knob_label(-1,1.7);
+
+Release2.deactivated = 1;
+Release2.knob4(1,1,0);
+Release.knob3();
+rgb(190,190,190); 
+Release.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "Release"; Release.knob_label(-1,1.7);
+
+Outgain2.deactivated = 1;
+Outgain2.knob4(1,1,0);
+Outgain.knob3();
+rgb(190,190,190); 
+Outgain.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "Outgain"; Outgain.knob_label(-1,1.7);
+
+
+
+fontsize(13);
+but_fill_on_r = 170;
+but_fill_on_g = 170;
+but_fill_on_b = 170;
+but_fill_off_r = 170;
+but_fill_off_g = 170;
+but_fill_off_b = 170; 
+
+fix.button_config(292.5,210,75,30,5,0,0);
+fix.button_outline(2,250,250,250,200,200,200);
+fix.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fix.button();
+black();
+#TK_gfxlib_Label = "FIX";
+fix.button_label(5,0,0);
+
+fixman.button_config(372.5,210,75,30,5,1,0);
+fixman.button_outline(2,250,250,250,200,200,200);
+fixman.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fixman.button();
+black();
+#TK_gfxlib_Label = "FIX / MAN";
+fixman.button_label(5,0,0);
+
+man.button_config(452.5,210,75,30,5,2,0);
+man.button_outline(2,250,250,250,200,200,200);
+man.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+man.button();
+black();
+#TK_gfxlib_Label = "MAN";
+man.button_label(5,0,0);
+
+on.button_config(592.5,210,75,30,8,1,1);
+on.button_outline(2,250,250,250,200,200,200);
+on.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+on.button();
+black();
+plugin_on ? #TK_gfxlib_Label = "ON" : #TK_gfxlib_Label = "OFF";
+on.button_label(5,0,0);
+
+
+
+mmin = -60; mmax = 0; mstep = 10;
+fontsize(12);
+
+
+mmx = 70; mmy = 62; mmh = 180; mmw=15;
+
+black();
+draw_rect(mmx-1,mmy-1,mmw*2.5+2,mmh+2,0);
+
+rgb(170,170,170);
+draw_vertical_scale(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+gfx_a = 0.8;
+rgb(0,250,0);
+Left_In.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,1,0);
+Right_In.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,1,0);
+
+rgb(0,250,0);
+Left_In.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,0,2);
+Right_In.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,0,2);
+
+rgb(170,170,170);
+gfx_a = 1;
+draw_vertical_scale_labels(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+
+mmx = 715.5;
+
+black();
+draw_rect(mmx-1,mmy-1,mmw*2.5+2,mmh+2,0);
+rgb(170,170,170);
+draw_vertical_scale(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+gfx_a = 0.8;
+rgb(0,250,0);
+Left_Out.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,1,0);
+Right_Out.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,1,0);
+
+rgb(0,250,0);
+Left_Out.draw_vertical_meter(mmx,mmy,mmw,mmh,mmin,mmax,0,2);
+Right_Out.draw_vertical_meter(mmx+1.5*mmw,mmy,mmw,mmh,mmin,mmax,0,2);
+
+rgb(170,170,170);
+gfx_a = 1;
+draw_vertical_scale_labels(mmx,mmy,mmw*2.5,mmh,mmin,mmax,mstep);
+
+
+black();
+draw_rect(116.5,mmy-1,588+2,15+2,0);
+rgb(210,0,0);gfx_a = 0.8;
+reduct.draw_horizontal_gr_meter(117.5, mmy, 588, 15, -20, 0, 1, 0);
+reduct.draw_horizontal_gr_meter(117.5, mmy, 588, 15, -20, 0, 0, 2);
+rgb(170,170,170);gfx_a = 1;
+draw_horizontal_scale(117.5, mmy, 588, 15, -20, 0, 2);
+draw_horizontal_scale_labels(117.5, mmy, 588, 15, -20, 0, 2);
+
+fontsize(25);
+set_xy(134,15);
+gfx_drawstr("TUKAN STUDIOS - BLUE ONE COMPRESSOR BL-1C");
+draw_rect(60,52,703,200,1);
+);
+
+
+
+
+
+GUI_MODE == 8 ? (
+
+
+rgb(100,100,100);
+gfx_rect(0,0,gfx_w,gfx_h);
+
+Threshold.knob_config(300,170,60,2,-40,10,0);
+Threshold.knob_many_labels(11);
+
+Ratio.knob_config(170,250,40,1,2,10,6);
+Ratio.knob_many_labels(7);
+
+OutGain.knob_config(400,170,60,6,-24,24,0);
+OutGain.knob_many_labels(9);
+
+Attack.knob_config(170,60,40,3,0,10,5);
+Attack.knob_many_labels(7);
+
+Release.knob_config(170,155,40,4,0,10,5);
+Release.knob_many_labels(7);
+
+Threshold.knob_outline(0,200,220);
+Ratio.knob_outline(0,200,220);
+OutGain.knob_outline(0,200,220);
+ARSelect.knob_outline(0,200,220);
+Attack.knob_outline(0,200,220);
+Release.knob_outline(0,200,220);
+
+Threshold.knob_infill(0,0,0,0);
+Ratio.knob_infill(0,0,0,0);
+OutGain.knob_infill(0,0,0,0);
+ARSelect.knob_infill(0,0,0,0);
+Attack.knob_infill(0,0,0,0);
+Release.knob_infill(0,0,0,0);
+
+fontsize(18);
+
+threshold.knob2(1);
+threshold.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "Threshold";
+threshold.knob_label(-1,1.5);
+
+OutGain.knob2(1);
+OutGain.knob_value(0,1.5,1);
+#TK_gfxlib_Label = "Makeup";
+OutGain.knob_label(-1,1.5);
+
+
+Attack.knob2(1);
+fontsize(14);
+Attack.knob_label_all_dots(1.3,1.3);
+Attack.knob_all_labels(1.5,0);
+fontsize(18);
+#TK_gfxlib_Label = "Attack";
+Attack.knob_label(-1,2.4);
+
+Release.knob2(1);
+fontsize(14);
+Release.knob_label_all_dots(1.3,1.3);
+Release.knob_all_labels(1.5,0);
+fontsize(18);
+#TK_gfxlib_Label = "Release";
+Release.knob_label(-1,2.4);
+
+Ratio.knob2(1);
+fontsize(14);
+Ratio.knob_label_all_dots(1.3,1.3);
+Ratio.knob_all_labels(1.5,0);
+fontsize(18);
+#TK_gfxlib_Label = "Ratio";
+Ratio.knob_label(-1,2.4);
+
+
+
+fontsize(16);
+set_xy(10,40);
+gfx_drawstr("TUKAN STUDIOS");
+set_xy(40,70);
+gfx_drawstr("BL - 1C");
+set_xy(15,100);
+gfx_drawstr("COMPRESSOR");
+
+draw_rect(140,15,100,300,1);
+draw_rect(239,15,290,300,1);
+
+
+fontsize(13);
+but_fill_on_r = 255;
+but_fill_on_g = 180;
+but_fill_on_b =50;
+but_fill_off_r = 170;
+but_fill_off_g = 170;
+but_fill_off_b = 170; 
+
+fix.button_config(35,140,69,20,5,0,0);
+fix.button_outline(1,0,0,0,0,0,0);
+fix.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fix.button();
+black();
+#TK_gfxlib_Label = "FIX";
+fix.button_label(5,0,0);
+
+fixman.button_config(35,170,69,20,5,1,0);
+fixman.button_outline(1,0,0,0,0,0,0);
+fixman.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+fixman.button();
+black();
+#TK_gfxlib_Label = "FIX / MAN";
+fixman.button_label(5,0,0);
+
+man.button_config(35,200,69,20,5,2,0);
+man.button_outline(1,0,0,0,0,0,0);
+man.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+man.button();
+black();
+#TK_gfxlib_Label = "MAN";
+man.button_label(5,0,0);
+
+on.button_config(345,273,69,20,8,1,1);
+on.button_outline(1,0,0,0,0,0,0);
+on.button_infill(but_fill_on_r,but_fill_on_g,but_fill_on_b, but_fill_off_r,but_fill_off_g,but_fill_off_b);
+on.button();
+black();
+plugin_on ? #TK_gfxlib_Label = "ON" : #TK_gfxlib_Label = "OFF";
+on.button_label(5,0,0);
+
+vux = 272; vuy = 30; vus = 222;
+Set_VR_needle_color(0,200,220);
+rgb(40,40,40);
+draw_solid_vu_background(vux,vuy,vus);
+vu_no_png(vux,vuy,vus, 170,170,170);
+GRMeter.draw_vu_meter(vux,vuy,vus, 40, 40, 40, -2);
+
+
+);
+
+
+
+GUI_MODE == 9 ? (
+slider_show(slider1,1);
+slider_show(slider2,1);
+slider_show(slider3,1);
+slider_show(slider4,1);
+slider_show(slider5,1);
+slider_show(slider6,1);
+slider_show(slider7,1);
+slider_show(slider8,1);
+slider_show(slider200,1);
+):(
+slider_show(slider1,0);
+slider_show(slider2,0);
+slider_show(slider3,0);
+slider_show(slider4,0);
+slider_show(slider5,0);
+slider_show(slider6,0);
+slider_show(slider7,0);
+slider_show(slider8,0);
+slider_show(slider200,0);
+);
+
+
+GUI_MODE != 9 ? (
+  GUI_MODE == 10 ? (
+    white(1);
+    set_xy(20,40);
+    fontsize(25);
+    gfx_drawstr("It's your turn now ;)");
+  );
+
+  draw_rect(20,20,10,10,1);
+  set_xy(35,19);
+  fontsize(15);
+  gfx_drawstr("GUI SELECT");
+  set_xy(35,19);
+  area_mouse_detect(18,18,90,15,1) ? (
+    my_menu = gfx_showmenu("Classic (uses PNGs)|>GUI 1|Blue|Sand|White|Black|<Bisque|Circles|Logical|Live!|Generic|You turn!");
+  );
+  my_menu ? (
+    slider200 = my_menu - 1;
+    my_menu = 0;
+    flag_run_slidercode = 1;
+  );
+);
