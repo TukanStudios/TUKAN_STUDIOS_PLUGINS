@@ -117,6 +117,7 @@ number_input_min=0;
 number_input_max=0;
 number_input_invalid = 0;
 number_input_sign=1;
+tempo_rate_init = 0;
 
 freedraw = 2000000;
 step8 = freedraw + 70;
@@ -790,7 +791,7 @@ gmem_step64 = gmem_step16 + 16;
    mod_type = slider10;
    
    slider6_old != slider6 ? sync_on = 1;
-   tempo_hz != slider8 ? (sync_on = 0; slider6 = 9);
+   tempo_rate_init ? tempo_hz != slider8 ? (sync_on = 0; slider6 = 9);
    slider6_old = slider6;
    
    
@@ -946,6 +947,7 @@ gmem_step64 = gmem_step16 + 16;
 @sample
    
 S2_sample_on = 1;
+tempo_rate_init = 1;
 gmem[16*64 + 10 + link_group] != 1 ? link_group = 0;
 group_check_smpl_mod();
 caller == 1 ? (
