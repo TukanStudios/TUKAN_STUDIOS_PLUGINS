@@ -1,0 +1,2546 @@
+desc:Echo and Reverb S3 (Tukan)
+
+
+slider1:1<0,1,0.01>- INput Level Delays
+slider2:1<0,1,0.01>- INput Level Reverb
+
+slider3:10<0,1000,1>-Pre Delay
+slider4:50<0,100,1>-High Damp
+slider5:40<0,40,0.1>-Rev High Cut
+slider6:0<0,60,0.1>-Rev Low Cut
+slider7:100<10,500,1>-Low RT Freq
+slider8:0<-100,100,1>-Low RT
+slider9:0<0,1,0.01>-Reverb from Echos
+slider10:100<0,100,1>-Input Spread
+slider11:100<0,200,1>-Wide
+slider12:50<0,100,0.01>-Ambience Size
+slider13:50<0,100,0.01>-Sustain
+slider14:50<0,100,0.01>-Room Size
+slider15:50<0,100,0.01>-Sustain
+slider16:50<0,100,0.01>-Hall Size
+slider17:50<0,100,0.01>-Sustain
+slider18:0<0,4,1{OFF, AMB, ROOM, HALL}>-TYPE
+
+
+slider20:250<0,2000,1>-Delay L Time
+slider21:-6<-36,12,.1>-Delay L Feedback
+slider22:2<0,4,1{1/1,1/2,1/4,1/8,1/16}>-Delay L Tempo
+slider23:1<0,2,1{Triplet,Straight,Dotted}>-Delay L Option
+slider24:0<0,1,1{ms,Tempo}>-Delay L Select
+slider25:500<10,1000,1>-Delay L Slide
+slider26:250<0,2000,1>-Delay R Time
+slider27:-6<-36,12,.1>-Delay R Feedback
+slider28:2<0,4,1{1/1,1/2,1/4,1/8,1/16}>-Delay R Tempo
+slider29:1<0,2,1{Triplet,Straight,Dotted}>-Delay R Option
+slider30:0<0,1,1{ms,Tempo}>-Delay R Select
+slider31:500<10,1000,1>-Delay R Slide
+
+slider32:0<0,2,1{Synced,Stereo,PingPong}>-Delay Mode
+
+slider33:0<0,1,1{Digital, Tape}>-Tape Mode
+slider34:40<0,100,1>-Wow Amount
+slider35:50<0,100,1>-Wow speed
+slider36:10<0,100,1>-Flutter Amount
+slider37:50<0,100,1>-Flutter Speed
+slider38:3.5<1,10,.1>-Drive
+slider39:0<0,1,1{OFF, On}>-Delay On
+slider40:0<0,2,1{normal,medium,bright}>-Tape Sound
+
+slider41:0<0,60,0.1>-Delay Low Cut
+slider42:40<0,40,0.1>-Delay High Cut
+
+slider43:-100<-100,100,1>-DLL 1 Pan
+slider44:100<-100,100,1>-DLL 2 Pan
+slider45:0<-36,12,.1>-DLL 1 Out
+slider46:0<-36,12,.1>-DLL 2 Out
+
+slider47:1<0,1>-Early Reflections
+slider48:0.66<0,1>-Reverb Tail
+
+slider49:1<0,1>-Dry Output
+slider50:1<0,1>-Delay Output
+slider51:0.33<0,1>-Reverb Output
+
+slider52:0<0,1,1{ON,Bypass}>-General Bypass
+
+slider53:1<0,4,1{I,II,III,IV,V}>-Early Reflextions Sound
+
+slider54:0<0,100,1>-Overtones
+
+
+filename:0,S3GFX/VLY.png
+filename:1,S3GFX/VLB.png
+filename:2,S3GFX/VLR.png
+filename:3,S3GFX/S3Buttong.png
+filename:4,S3GFX/S3LEDs.png
+filename:5,S3GFX/90s_Lex.png
+filename:6,S3GFX/JupSlider.png
+filename:7,S3GFX/S2_logo.png
+
+import S3GFX/tk_lib 256_S3.jsfx-inc
+import S3GFX/cookdsp.jsfx-inc
+import S3GFX/Luftfenster.jsfx-inc
+import S3GFX/Klones.jsfx-inc
+
+options:gmem=TukanReverbDelayS3
+options:no_meter
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+
+@init
+ext_noinit=1;
+ext_gr_meter = 0.0;
+ext_nodenorm = 1;
+gfx_ext_retina = 1;
+gfx_clear=0;
+gfx_clear=0;
+lastCap=1;
+mouse_wheel=1;
+is_recording = 0; is_playing = 0; is_stopped = 1;
+while_playing = 1; while_recording = 1; while_stopped = 1;
+Number_input = 0;
+number_input_raw = 0;
+number_input_use = 0;
+komma = 0;
+in_key = 0;
+number_input_x = 0;
+number_input_y=0;
+number_input_slider = 0;
+number_input_min=0;
+number_input_max=0;
+number_input_invalid = 0;
+number_input_sign=1;
+
+
+
+s2_numbers_of_sliders = 54;
+s2_numbers_of_generics = 0;
+group_generics =10; // memory point fuer group_generics[bis zu 200]
+sliders_old = group_generics + 200;
+generics_old = sliders_old + 256;
+
+new_memory_inx = generics_old + 210;
+Version = 1;
+tt_time = -1;
+
+
+
+
+
+function deline_init (startbuf_ ms_length_) (
+this.buf = startbuf_;
+this.sams = 192000*ms_length_/1000;
+memset(this.buf,0,this.sams);
+this.count = 0;
+
+this.buf + this.sams
+);
+
+function deline_clear () (
+memset(this.buf,0,this.sams);
+);
+
+function deline_sliders (startslider_) (
+this.ms = slider(startslider_);
+this.feedback = db2ratio(slider(startslider_ + 1));
+this.tempo = slider(startslider_ + 2);
+this.option = slider(startslider_ + 3);
+this.select = slider(startslider_ + 4);
+this.slide = slider(startslider_ + 5);
+);
+
+function deline_feed (input_) (
+  this.buf[this.count] = input_ + this.out * this.feedback;
+);
+
+
+function deline_read() (
+      /// Ermittle Samples
+  this.select == 0 ? this.delay_sams = srate*this.ms/1000 :
+  this.select == 1 ? (
+  this.delay_sams=( (      (1/(2^this.tempo)) * 240)/this.bpm)*srate;
+    this.option == 0 ? this.delay_sams *= (2/3) :
+    this.option == 2 ? this.delay_sams *= 1.5;
+  );
+  pingpong ? this.delay_sams *= 2;
+  this.delay_sams = min(this.delay_sams,this.sams);
+  
+      /// Drift zu Zielsamples
+  this.delay_sams_live != this.delay_sams ? (
+    this.delay_sams_live == 0 || this.delay_sams_force ? (
+      this.delay_sams_live = this.delay_sams;
+      this.delay_sams_force = 0;
+    ):(
+      this.delay_sams_step = (1/(this.slide/1000)) * (this.delay_sams  - this.delay_sams_live) / srate;
+      this.delay_sams_live += this.delay_sams_step;
+      abs(this.delay_sams_live - this.delay_sams) < 1 ? this.delay_sams_live = this.delay_sams;
+    );
+  );
+
+  this.readpos = floor(this.count - this.delay_sams_live); this.readpos < 0 ? this.readpos += this.sams;
+
+  this.count += 1; this.count > this.sams ? this.count = 0;
+
+  this.out = this.buf[this.readpos];
+  this.out
+);
+
+function deline_ITG_read() (
+      /// Ermittle Samples
+  this.select == 0 ? this.delay_sams = srate*this.ms/1000 :
+  this.select == 1 ? (
+  this.delay_sams=( (      (1/(2^this.tempo)) * 240)/this.bpm)*srate;
+    this.option == 0 ? this.delay_sams *= (2/3) :
+    this.option == 2 ? this.delay_sams *= 1.5;
+  );
+  //pingpong ? this.delay_sams *= 2;
+  this.delay_sams = min(this.delay_sams,this.sams);
+  
+      /// Drift zu Zielsamples
+  this.delay_sams_live != this.delay_sams ? (
+    this.delay_sams_live == 0 || this.delay_sams_force ? (
+      this.delay_sams_live = this.delay_sams;
+      this.delay_sams_force = 0;
+    ):(
+      this.delay_sams_step = (1/(this.slide/1000)) * (this.delay_sams  - this.delay_sams_live) / srate;
+      this.delay_sams_live += this.delay_sams_step;
+      abs(this.delay_sams_live - this.delay_sams) < 1 ? this.delay_sams_live = this.delay_sams;
+    );
+  );
+
+  this.readpos = floor(this.count - this.delay_sams_live); this.readpos < 0 ? this.readpos += this.sams;
+
+  this.count += 1; this.count > this.sams ? this.count = 0;
+
+  this.out = this.buf[this.readpos];
+  this.out
+);
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+    MAX_FREQ = 44100 / 2.0;
+    MIN_FREQ = 20;
+    FREQ_LOG_MAX = log(MAX_FREQ / MIN_FREQ);
+
+/*
+ * Convert slider % to frequency
+ */
+function per_to_freq(x, range) (
+  MIN_FREQ * exp(FREQ_LOG_MAX * x / range);
+);
+
+/*
+ * Convert frequency to slider %
+ */
+function freq_to_per(freq, range) (
+  range * log(freq / MIN_FREQ) / FREQ_LOG_MAX;
+);
+
+
+
+  
+  
+  
+function initialize_everthing () (
+
+memfactor = 4;
+
+
+freemem = Reverb.initialize_reverb(new_memory_inx);
+
+StereobufL = freemem; freemem += 1100*memfactor;
+StereobufR = freemem; freemem += 1100*memfactor;
+
+PreDelayBufL = freemem; freemem += 44100*memfactor;
+PreDelayBufR = freemem; freemem += 44100*memfactor;
+
+
+
+    __memory_next = freemem;
+    // Left ch. allpass filters     Right ch. allpass filters
+    a1L.allpass(0.0204, 0.35);      a1R.allpass(0.02011, 0.35);
+    a2L.allpass(0.06653, 0.41);     a2R.allpass(0.06641, 0.41);
+    a3L.allpass(0.035007, 0.5);     a3R.allpass(0.03504, 0.5);
+    a4L.allpass(0.023021, 0.65);    a4R.allpass(0.022987, 0.65);
+    lp1L.lop(5000);                 lp1R.lop(5000);
+    lp2L.lop(3000);                 lp2R.lop(3000);
+    lp3L.lop(1500);                 lp3R.lop(1500);
+    lp4L.lop(500);                  lp4R.lop(500);
+    
+    freemem = __memory_next;
+    
+rev_buf_length = freemem - rev_buf_start;
+    
+    freemem = delay_L.deline_init (freemem, 5000);
+    freemem = delay_R.deline_init (freemem, 5000);
+    freemem = delay_ITGL.deline_init (freemem, 5000);
+    freemem = delay_ITGR.deline_init (freemem, 5000);
+
+freemem = Wow.wowflut_init(freemem);
+freemem = Flutter.wowflut_init(freemem);
+freemem = ITG_Wow.wowflut_init(freemem);
+freemem = ITG_Flutter.wowflut_init(freemem);
+  Cas_left.TapeHead_reset();
+  Cas_right.TapeHead_reset();
+  ITG_Cas_left.TapeHead_reset();
+  ITG_Cas_right.TapeHead_reset();
+  
+D_HP_L.buthp(per_to_freq(slider41,100));
+D_HP_R.buthp(per_to_freq(slider41,100));
+D_LP_L.butlp(per_to_freq(60+slider42,100));
+D_LP_R.butlp(per_to_freq(60+slider42,100));
+
+R_HP_L.buthp(per_to_freq(slider5,100));
+R_HP_R.buthp(per_to_freq(slider5,100));
+R_LP_L.butlp(per_to_freq(60+slider6,100));
+R_LP_R.butlp(per_to_freq(60+slider6,100));
+
+freemem = ERS.air_room_init(freemem);
+
+w_a1L.biquad(1130,0.7,4);
+w_a1R.biquad(137,0.7,4);
+w_a2L.biquad(580,0.7,4);
+w_a2R.biquad(1540,0.7,4);
+w_a3L.biquad(1680,0.7,4);
+w_a3R.biquad(750,0.7,4);
+w_a4L.biquad(4130,0.7,4);
+w_a4R.biquad(5650,0.7,4);
+
+);
+initialize_everthing();
+
+
+function all_boundaries () (
+  Delay_Input.parameter_config     (1,       1,        0,    1,    del_x+8,   del_y,  160, 201,    0.95,  2);
+  Delay_HPF.parameter_config       (41,      0,        0,   60,    del_x-18,   del_y+120,  160, 201,    0.7,  0);
+  Delay_LPF.parameter_config       (42,     40,        0,   40,    del_x+50,   del_y+120,  160, 201,    0.7,  0);
+  DL_Time.parameter_config     (20,       250,        0,    2000,    DL_X,   DL_Y,  160, 201,    0.95,  1);
+  DL_BPM.parameter_config      (22,       2,          0,    4,      DL_X+145,DL_Y,  160, 201,    0.95,  1);
+  DL_Feedback.parameter_config (21,       -6,       -36,    12,     DL_X + 360,   DL_y,  160, 201,    0.95,  0);
+  DL_Slide.parameter_config    (25,       500,       10,    1000,    DL_X+460,   DL_Y+15,  160, 201,    0.7,  1);
+  DL_Pan.parameter_config      (43,      -100,     -100,     100,    DL_X+540,   DL_Y+15,  160, 201,    0.7,  2);
+  DL_Vol.parameter_config      (45,         0,      -36,      12,    DL_X+620,   DL_Y,  160, 201,    0.95,  2);
+  DR_Time.parameter_config     (26,       250,        0,    2000,    DR_X,   DR_Y,  160, 201,    0.95,  1);
+  DR_BPM.parameter_config      (28,       2,          0,    4,      DR_X+145,DR_Y,  160, 201,    0.95,  1);
+  DR_Feedback.parameter_config (27,       -6,       -36,    12,     DR_X + 360,   DR_y,  160, 201,    0.95,  0);
+  DR_Slide.parameter_config    (31,       500,       10,    1000,    DR_X+460,   DR_Y+15,  160, 201,    0.7,  1);
+  DR_Pan.parameter_config      (44,      -100,     -100,     100,    DR_X+540,   DR_Y+15,  160, 201,    0.7,  2);
+  DR_Vol.parameter_config      (46,         0,      -36,      12,    DR_X+620,   DR_Y,  160, 201,    0.95,  2);
+  Delay_Drive.parameter_config     (38,      3.5,        0,    10,    del_x-18,   del_y+10,  160, 201,    0.7,  2);
+  Delay_Tape.parameter_config      (40,        1,        0,     2,    del_x+50,   del_y+10,  160, 201,    0.7,  0);
+  Delay_WowA.parameter_config       (34,     40,        0,   100,    del_x-18,   del_y+110,  160, 201,    0.7,  1);
+  Delay_WowF.parameter_config       (35,     50,        0,   100,    del_x+50,   del_y+110,  160, 201,    0.7,  1);
+  Delay_FlutA.parameter_config      (36,     10,        0,   100,    del_x-18,   del_y+210,  160, 201,    0.7,  1);
+  Delay_FlutF.parameter_config      (37,     50,        0,   100,    del_x+50,   del_y+210,  160, 201,    0.7,  1);
+  Rev_Input.parameter_config     (2,      1,        0,    1,    rev_x,   rev_y+30,  160, 201,    0.95,  5);
+  Rev_InSpread.parameter_config (10,    100,        0,   100,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+  Rev_OutSpread.parameter_config(11,    100,        0,   200,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+  Rev_from_Delay.parameter_config (9,      0,        0,     1,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+  Rev_PreDelay.parameter_config  (3,     10,        0,  1000,    rev_x+330,   rev_y+30,  160, 201,    0.95,  5);
+  Rev_AmbSustain.parameter_config  (13,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_AmbSize.parameter_config     (12,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_RoomSustain.parameter_config  (15,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_RoomSize.parameter_config     (14,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_HallSustain.parameter_config  (17,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_HallSize.parameter_config     (16,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+  Rev_LowCut.parameter_config     (6,      0,       0,     60,    rev_x+5,   rev_y2-20,  160, 201,    0.95,  5);
+  Rev_HighCut.parameter_config    (5,      40,      0,     40,    rev_x+105,   rev_y2-20,  160, 201,    0.95,  5);
+ Rev_BMPY.parameter_config       (8,      0,        -100,    100,    rev_x+240,   rev_y2-20,  160, 201,    0.95,  5);
+ Rev_BMPYf.parameter_config      (7,    100,        10,    500,    rev_x+325,   rev_y2-20,  160, 201,    0.95,  5);
+ Rev_Wander.parameter_config     (4,     50,         0,    100,    rev_x+410,   rev_y2-20,  160, 201,    0.95,  5);
+ 
+ Rev_OverTones.parameter_config  (54,     0,         0,    100,    rev_x+504,   rev_y2-20,  160, 201,    0.95,  5);
+ 
+ Rev_ER.parameter_config         (47,     1,           0,    1,    rev_x+600,   rev_y2-20,  160, 201,    0.95,  5);
+ Rev_TAIL.parameter_config       (48,    0.66,         0,    1,    rev_x+685,   rev_y2-20,  160, 201,    0.95,  5);
+ 
+  Mix_Delay.parameter_config      (50,    1,            0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+  Mix_Reverb.parameter_config     (51,    0.33,         0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+  Mix_Dry.parameter_config        (49,    1,            0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+  
+Delay_Input.parameter_boundaries(); 
+Delay_HPF.parameter_boundaries();  
+Delay_LPF.parameter_boundaries(); 
+DL_Time.parameter_boundaries();  
+DL_BPM.parameter_boundaries();  
+DL_Feedback.parameter_boundaries();  
+DL_Slide.parameter_boundaries();  
+DL_Pan.parameter_boundaries(); 
+DL_Vol.parameter_boundaries();  
+DR_Time.parameter_boundaries(); 
+DR_BPM.parameter_boundaries();  
+DR_Feedback.parameter_boundaries();  
+DR_Slide.parameter_boundaries();  
+DR_Pan.parameter_boundaries();
+DR_Vol.parameter_boundaries(); 
+Delay_Drive.parameter_boundaries(); 
+Delay_Tape.parameter_boundaries(); 
+Delay_WowA.parameter_boundaries();
+Delay_WowF.parameter_boundaries();  
+Delay_FlutA.parameter_boundaries(); 
+Delay_FlutF.parameter_boundaries(); 
+Rev_Input.parameter_boundaries();
+Rev_InSpread.parameter_boundaries(); 
+Rev_OutSpread.parameter_boundaries();
+Rev_from_Delay.parameter_boundaries(); 
+Rev_PreDelay.parameter_boundaries(); 
+Rev_AmbSustain.parameter_boundaries();
+Rev_AmbSize.parameter_boundaries();
+Rev_RoomSustain.parameter_boundaries(); 
+Rev_RoomSize.parameter_boundaries();
+Rev_HallSustain.parameter_boundaries();
+Rev_HallSize.parameter_boundaries(); 
+Rev_LowCut.parameter_boundaries(); 
+Rev_HighCut.parameter_boundaries(); 
+Rev_BMPY.parameter_boundaries(); 
+Rev_BMPYf.parameter_boundaries(); 
+Rev_Wander.parameter_boundaries();  
+Rev_ER.parameter_boundaries(); 
+Rev_TAIL.parameter_boundaries();  
+Mix_Delay.parameter_boundaries();
+Mix_Reverb.parameter_boundaries(); 
+Mix_Dry.parameter_boundaries();
+Mix_Overtones.parameter_boundaries();
+
+);
+
+parameters_update_on = 0;
+function parameters_update () (
+parameters_update_on = 1;
+//Settings_slider = 153;
+
+       // KInDrive.Parameter_Boundaries();    
+all_boundaries();
+
+    group_parameters();
+
+
+general_bypass = slider52;
+
+//C = 0.5;//slider3;
+//D = 1;//slider4;
+PreDelay_Sams = slider3*srate/1000;
+//wander = slider4/100;
+//low = 1-slider5/100;
+//high = slider6/100;
+
+rev_type = slider18;
+AMB_startslider = 12;
+Room_startslider = 14;
+Hall_startslider = 16;
+
+rev_type == 1 ? (
+  //A = 0.1 + slider(Amb_Startslider)*0.002;
+  Schroeder_Stretch = 0.5 + slider(Amb_Startslider)*0.009;
+  //B = slider(Amb_Startslider+1)*0.005;
+  use_a = slider(Amb_Startslider)*0.3;
+  use_b = slider(Amb_Startslider+1)/3 ;
+  ERS.air_room_slider(slider53,slider(Amb_Startslider)/100,1,1,1);
+);
+
+rev_type == 2 ? (
+  //A = 0.2 + slider(Room_Startslider)*0.002;
+  Schroeder_Stretch = 0.3 + slider(Room_Startslider)*0.006;
+  //B = slider(Room_Startslider+1)*0.004;
+  use_a = slider(Room_Startslider)*0.5;
+  use_b = slider(Room_Startslider+1)*0.7;
+  ERS.air_room_slider(slider53,slider(Room_Startslider)/100, 1,1,1);
+);
+
+rev_type == 3 ? (
+  //A = 0.4 + slider(Hall_Startslider)*0.0035;
+  Schroeder_Stretch = 0.8 + slider(Hall_Startslider)*0.02;
+  //B = slider(Hall_Startslider+1)*0.007;
+  use_a = slider(Hall_Startslider);
+  use_b = slider(Hall_Startslider+1);
+  ERS.air_room_slider(slider53,slider(Hall_Startslider)/100,0.2+slider5/200,1,1);
+);
+
+reverb.reverB_parameters_update(use_a, use_b, 0.07+slider4*0,1,1, slider54); // size, sustain, wander, low, high ... low und high sind in der lib deaktiviert, manuell neu im code hier
+
+
+R_HP_L.buthp_set_freq(per_to_freq(slider6,100));
+R_HP_R.buthp_set_freq(per_to_freq(slider6,100));
+R_LP_L.butlp_set_freq(per_to_freq(60+slider5,100));
+R_LP_R.butlp_set_freq(per_to_freq(60+slider5,100));
+R_HP_On = slider6 > 0;
+R_LP_on = slider5 < 40;
+
+a1L.allpass_set_delay(0.0204  *Schroeder_Stretch);
+a2L.allpass_set_delay(0.06653 *Schroeder_Stretch);
+a3L.allpass_set_delay(0.035007*Schroeder_Stretch);
+a4L.allpass_set_delay(0.023021*Schroeder_Stretch);
+a1R.allpass_set_delay(0.02011 *Schroeder_Stretch);
+a2R.allpass_set_delay(0.06641 *Schroeder_Stretch);
+a3R.allpass_set_delay(0.03504 *Schroeder_Stretch);
+a4R.allpass_set_delay(0.022987*Schroeder_Stretch);
+
+
+LowSH.Mpy = (3*(slider8/100)) * (1-(0.05+((B*0.9)^(1/2))));
+          //F , Q, G, Type
+    LowSh_f0.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f1.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f2.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f3.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f4.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f5.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f6.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f7.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f8.eq(slider7, 0.7, LowSH.Mpy, 1);
+    LowSh_f9.eq(slider7, 0.7, LowSH.Mpy, 1);
+
+    //hdampL.eq(1600,0.41,-1,2);
+    //hdampR.eq(1600,0.41,-1,2);
+
+
+HighSH.Mpy = -slider4*0.05;
+Hdmp_f = 2800;
+    HighSh_f0.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f1.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f2.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f3.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f4.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f5.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f6.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f7.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f8.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+    HighSh_f9.eq(Hdmp_f, 0.41, HighSH.Mpy, 2);
+   
+    input_spread = 0.5-(slider10/200);
+    output_spread = slider11/200;
+ 
+  
+  delay.mode = slider32;
+  
+  delay.mode != 1 ? (
+      slider20_old != slider20 ? (slider26 = slider26_old = slider20);
+      slider21_old != slider21 ? (slider27 = slider27_old = slider21);
+      slider22_old != slider22 ? (slider28 = slider28_old = slider22);
+      slider23_old != slider23 ? (slider29 = slider29_old = slider23);
+      slider24_old != slider24 ? (slider30 = slider30_old = slider24);
+      slider25_old != slider25 ? (slider31 = slider31_old = slider25);
+      slider26_old != slider26 ? (slider20 = slider20_old = slider26);
+      slider27_old != slider27 ? (slider21 = slider21_old = slider27);
+      slider28_old != slider28 ? (slider22 = slider22_old = slider28);
+      slider29_old != slider29 ? (slider23 = slider23_old = slider29);
+      slider30_old != slider30 ? (slider24 = slider24_old = slider30);
+      slider31_old != slider31 ? (slider25 = slider25_old = slider31);
+      //slider43_old != slider43 ? (slider44 = slider44_old = slider43);
+      //slider44_old != slider44 ? (slider43 = slider43_old = slider44);
+      //slider45_old != slider45 ? (slider46 = slider46_old = slider45);
+      //slider46_old != slider46 ? (slider45 = slider45_old = slider46);
+      slider20_old = slider20;
+      slider21_old = slider21;
+      slider22_old = slider22;
+      slider23_old = slider23;
+      slider24_old = slider24;
+      slider25_old = slider25;
+      slider26_old = slider26;
+      slider27_old = slider27;
+      slider28_old = slider28;
+      slider29_old = slider29;
+      slider30_old = slider30;
+      slider31_old = slider31;
+      //slider43_old = slider43;
+      //slider44_old = slider44;
+      //slider45_old = slider45;
+      //slider46_old = slider46;
+  );
+  
+  delay_L.deline_sliders(20);
+  
+  delay.mode != delay.mode_old ? (
+    delay_L.deline_clear(); delay_R.deline_clear(); delay_ITGL.deline_clear(); delay_ITGR.deline_clear();
+    delay_ITGL.delay_sams_force = 1;
+    delay_ITGR.delay_sams_force = 1;
+    delay_L.delay_sams_force = 1;
+    delay_R.delay_sams_force = 1;
+  );
+  delay.mode_old = delay.mode;
+  delay.mode == 1 ? delay_R.deline_sliders(26) : delay_R.deline_sliders(20);
+  delay.mode == 2 ? (
+    pingpong = 1; 
+    delay_L.input_gain = db2ratio(ratio2db(delay_L.feedback)/2);
+    //delay_L.ms *= 2; 
+    //delay_L.tempo += 1; 
+    //delay_L.feedback = 0; 
+    //delay_R.ms *= 2; 
+    //delay_R.tempo += 1;
+    //delay_R.feedback = 0;
+  ) : (
+    pingpong = 0;
+  );
+  delay_on = slider39;
+  delay_ITGL.deline_sliders(20);
+  delay_ITGL.feedback = 0;
+  delay_ITGR.deline_sliders(20);
+  delay_ITGR.feedback = 0; 
+  //delay_ITG.ms /= 2; //delay_ITG.tempo += 1;
+Tape_mode = slider33;
+Wow.wowflut_parameters(slider34/100, 0.05 + 0.2*(slider35/100)); //amount speed
+Flutter.wowflut_parameters(slider36/100, 0.37 + 0.3*(slider37/100));
+Cas_left.TapeHead_setDrive(2+(slider38*0.8));
+Cas_right.TapeHead_setDrive(2+(slider38*0.8));
+Cas_left.TapeHead_setColor(slider40);
+Cas_right.TapeHead_setColor(slider40);
+Cas_left.TapeHead_setHardClip(1);
+Cas_right.TapeHead_setHardClip(1);
+trim = slider38 * -2;
+slider40 == 0 ? trim+=0 : slider40 == 1 ? trim -= 2 : trim -= 3;
+Cas_left.TapeHead_setTrim(trim); 
+Cas_right.TapeHead_setTrim(trim);
+
+
+ITG_Wow.wowflut_parameters(slider34/100, 0.05 + 0.2*(slider35/100)); //amount speed
+ITG_Flutter.wowflut_parameters(slider36/100, 0.37 + 0.3*(slider37/100));
+ITG_Cas_left.TapeHead_setDrive(2+(slider38*0.8));
+ITG_Cas_right.TapeHead_setDrive(2+(slider38*0.8));
+ITG_Cas_left.TapeHead_setColor(slider40);
+ITG_Cas_right.TapeHead_setColor(slider40);
+ITG_Cas_left.TapeHead_setHardClip(1);
+ITG_Cas_right.TapeHead_setHardClip(1);
+ITG_Cas_left.TapeHead_setTrim(trim); 
+ITG_Cas_right.TapeHead_setTrim(trim);
+
+
+
+D_HP_L.buthp_set_freq(per_to_freq(slider41,100));
+D_HP_R.buthp_set_freq(per_to_freq(slider41,100));
+D_LP_L.butlp_set_freq(per_to_freq(60+slider42,100));
+D_LP_R.butlp_set_freq(per_to_freq(60+slider42,100));
+D_HP_On = slider41 > 0;
+D_LP_on = slider42 < 40;
+
+D_Pan_L = slider43;  
+D_Pan_L_spl = (100+slider43)/200;  
+D_Pan_R = slider44;
+D_Pan_R_spl = (100+slider44)/200;  
+D_Vol_L = db2ratio(slider45); slider45 == -36 ? D_Vol_L = 0;
+D_Vol_R = db2ratio(slider46); slider46 == -36 ? D_Vol_R = 0;
+
+delay_input = slider1;
+reverb_input = slider2;
+
+Delay_to_Rev = slider9;
+
+ER_Output = slider47;
+RVB_Output = slider48;
+rev_output = slider51;
+del_output = slider50;
+dry_output = slider49;
+
+general_bypass = slider52;
+
+/*
+    w_a1L.allpass(0.0204*output_spread, 0.35*output_spread1);      w_a1R.allpass(0.02011*output_spread, 0.35*output_spread1);
+    w_a2L.allpass(0.06653*output_spread, 0.41*output_spread1);     w_a2R.allpass(0.06641*output_spread, 0.41*output_spread1);
+    w_a3L.allpass(0.035007*output_spread, 0.5*output_spread1);     w_a3R.allpass(0.03504*output_spread, 0.5*output_spread1);
+    w_a4L.allpass(0.023021*output_spread, 0.65*output_spread1);    w_a4R.allpass(0.022987*output_spread, 0.65*output_spread1);
+*/
+
+
+caller = 0;
+parameters_update_on = 0;
+);
+
+
+
+
+
+
+
+
+
+
+
+
+@slider
+
+  parameters_update_on == 0 ? (
+    parameters_update();
+  ):(
+    caller = 1;
+  );
+
+
+
+
+@serialize
+serialize_s3();
+
+
+
+
+
+
+
+  
+@block
+
+
+//Maximum allowed srate: 176.400
+srate > 176400 ? srate_too_high = 1 : srate_too_high = 0;
+
+srate_old != srate ? initialize_everthing();
+srate_old = srate;
+
+
+
+delay_L.bpm = delay_R.bpm = delay_ITG.bpm = delay_ITGL.bpm = delay_ITGR.bpm = tempo;
+
+
+reverb.block_reverb();
+ERS.air_room_Block();
+
+spread_count_max = 0.01*srate;//0.024*srate;
+
+
+Wow.wowflut_block();
+Flutter.wowflut_block();
+
+ITG_Wow.wowflut_block();
+ITG_Flutter.wowflut_block();
+
+
+S2_sample_on = 1;
+gmem[16*256 + 10 + link_group] != 1 ? link_group = 0;
+group_check_smpl();
+caller == 1 ? (
+  parameters_update_on == 0 ? (
+    parameters_update();
+  );
+);
+
+
+@sample
+
+
+
+
+!general_bypass ? (
+
+drySampleL = spl0;
+drySampleR = spl1;
+
+delay_on ? (
+
+delay.mode < 2 ? (delay_L.in = spl0*delay_input; delay_R.in = spl1*delay_input) : (delay_L.in = delay_R.in = 0.5*(spl0+spl1)*delay_input);
+
+
+    Tape_mode == 1 && pingpong ? (
+    ITG_Wow.wowflut_do(delay_L.in, delay_R.in);
+    delay_L.in = ITG_Wow.outL;
+    //delay_R.in = Wow.outR;
+    ITG_Flutter.wowflut_do(delay_L.in, delay_R.in);
+    delay_L.in = ITG_Flutter.outL;
+    //delay_R.in = Flutter.outR;
+    delay_L.in = ITG_cas_left.TapeHead_processSample(delay_L.in);
+    //delay_R.in = cas_right.TapeHead_processSample(delay_R.in);
+    );
+
+
+!Pingpong ? (
+delay_L.deline_feed(delay_L.in);
+delay_R.deline_feed(delay_R.in);
+
+delay_L.deline_read();
+delay_R.deline_read();
+
+
+    Tape_mode == 1 ? (
+    Wow.wowflut_do(delay_L.out, delay_R.out);
+    delay_L.out = Wow.outL;
+    delay_R.out = Wow.outR;
+    Flutter.wowflut_do(delay_L.out, delay_R.out);
+    delay_L.out = Flutter.outL;
+    delay_R.out = Flutter.outR;
+    delay_L.out = cas_left.TapeHead_processSample(delay_L.out);
+    delay_R.out = cas_right.TapeHead_processSample(delay_R.out);
+    );
+
+  tape_mode ? (
+    delay_L_output = delay_L.out;
+    delay_R_output = delay_R.out;
+  ):(
+    delay_L_output = min(1,max(-1,delay_L.out));
+    delay_R_output = min(1,max(-1,delay_R.out));
+  );
+):(
+delay_ITGL.deline_feed(delay_L.in);
+delay_ITGL.deline_ITG_read();
+delay_ITGR.deline_feed(delay_L.in)*delay_R.feedback;
+delay_ITGR.deline_ITG_read();
+
+
+    delay_L_output = delay_L.in*delay_L.input_gain;
+    delay_R_output = delay_itgR.out*delay_R.feedback;
+
+    Tape_mode == 1 ? (
+    Wow.wowflut_do(delay_L_output, delay_R_output);
+    delay_L_output = Wow.outL;
+    delay_R_output = Wow.outR;
+    Flutter.wowflut_do(delay_L_output, delay_R_output);
+    delay_L_output = Flutter.outL;
+    delay_R_output = Flutter.outR;
+    delay_L_output = cas_left.TapeHead_processSample(delay_L_output);
+    delay_R_output = cas_right.TapeHead_processSample(delay_R_output);
+    );
+
+delay_L.deline_feed(delay_L_output);
+delay_R.deline_feed(delay_R_output);
+
+delay_L.deline_read();
+delay_R.deline_read();
+  tape_mode ? (
+    delay_L_output = (delay_L.out);
+    delay_R_output = (delay_R.out + delay_ITGR.out);
+  ):(
+    delay_L_output = min(1,max(-1,(delay_L.out)));
+    delay_R_output = min(1,max(-1,(delay_R.out + delay_ITGR.out))); 
+  );
+);
+
+D_HP_on ? (
+delay_L_output = D_HP_L.buthp_do(delay_L_output);
+delay_R_output = D_HP_R.buthp_do(delay_R_output);
+);
+D_LP_on ? (
+delay_L_output = D_LP_L.butlp_do(delay_L_output);
+delay_R_output = D_LP_R.butlp_do(delay_R_output);
+);
+
+delay_L_output_tmp = delay_L_output*D_Vol_L;
+delay_R_output_tmp = delay_R_output*D_Vol_R;
+
+delay_L_output = delay_L_output_tmp * (1-D_Pan_L_spl) + delay_R_output_tmp * (1-D_Pan_R_spl);
+delay_R_output = delay_L_output_tmp * (D_Pan_L_spl) + delay_R_output_tmp * (D_Pan_R_spl);
+ //delay_L_output = delay_R_output = 0;
+ delay_L_output != delay_R_output ? katze += 1;
+):(
+  delay_L_output = 0;
+  delay_R_output = 0;
+);
+
+
+
+
+
+
+
+rev_type ? (
+
+inputSampleL = Delay_to_Rev*delay_L_output + (1-input_spread) * drySampleL*reverb_input + input_spread * drySampleR*reverb_input;
+inputSampleR = Delay_to_Rev*Delay_R_output + (1-input_spread) * drySampleR*reverb_input + input_spread * drySampleL*reverb_input;
+
+R_HP_on ? (
+inputSampleL = R_HP_L.buthp_do(inputSampleL);
+inputSampleR = R_HP_R.buthp_do(inputSampleR);
+);
+
+/*
+spread_count_L > spread_count_max ? spread_count_L = 0;
+spread_count_R > spread_count_max ? spread_count_R = 0;
+
+StereobufL[spread_count_L] = (inputSampleL+inputSampleR)/2;
+StereobufR[spread_count_R] = (inputSampleL+inputSampleR)/2;
+
+spread_count_L += 1; 
+spread_count_R += 1;
+
+SpreadL = StereobufL[spread_count_L];
+SpreadR = StereobufR[spread_count_R];
+
+inputSampleL = ((1-output_spread)*inputSampleL + output_spread*SpreadL);
+inputSampleR = ((1-output_spread)*inputSampleR + output_spread*SpreadR * -1);
+
+*/
+
+ /* OLD ERS
+    // Left channel                 Right channel                 
+    sig1L = a1L.allpass_do(inputSampleL);   sig1R = a1R.allpass_do(inputSampleR);
+    sig2L = a2L.allpass_do(sig1L);  sig2R = a2R.allpass_do(sig1R);
+    sig3L = a3L.allpass_do(sig2L);  sig3R = a3R.allpass_do(sig2R);
+    sig4L = a4L.allpass_do(sig3L);  sig4R = a4R.allpass_do(sig3R);
+    
+    lop1L = lp1L.lop_do(sig1L);     lop1R = lp1R.lop_do(sig1R);
+    lop2L = lp2L.lop_do(sig2L);     lop2R = lp2R.lop_do(sig2R);
+    lop3L = lp3L.lop_do(sig3L);     lop3R = lp3R.lop_do(sig3R);
+    lop4L = lp4L.lop_do(sig4L);     lop4R = lp4R.lop_do(sig4R);
+    sigL = (lop1L + lop2L + lop3L + lop4L) * 0.5;
+    sigR = (lop1R + lop2R + lop3R + lop4R) * 0.5;
+    sigL -= inputSampleL;
+    sigR -= inputSampleR;
+  */
+
+
+PreDelayBufL[PreDelay_Counter] = inputSampleL;
+PreDelayBufR[PreDelay_Counter] = inputSampleR;
+PreDelay_counter += 1; Predelay_counter > PreDelay_Sams ? Predelay_Counter = 0;
+inputSampleL =PreDelayBufL[PreDelay_Counter];
+inputSampleR =PreDelayBufR[PreDelay_Counter];
+  
+  
+  
+  reverb.reverb_do_part1(inputSampleL,inputSampleR);
+  ERS.air_room_do(inputSampleL, inputSampleR);
+  
+  LowSH.Mpy ? (
+  reverb.feedbackAR = LowSh_f0.eq_do(reverb.feedbackAR);
+  reverb.feedbackBL = LowSh_f1.eq_do(reverb.feedbackBL);
+  reverb.feedbackCR = LowSh_f2.eq_do(reverb.feedbackCR);
+  reverb.feedbackDL = LowSh_f3.eq_do(reverb.feedbackDL);
+  reverb.feedbackER = LowSh_f4.eq_do(reverb.feedbackER);
+  
+  reverb.feedbackAL = LowSh_f5.eq_do(reverb.feedbackAL);
+  reverb.feedbackBR = LowSh_f6.eq_do(reverb.feedbackBR);
+  reverb.feedbackCL = LowSh_f7.eq_do(reverb.feedbackCL);
+  reverb.feedbackDR = LowSh_f8.eq_do(reverb.feedbackDR);
+  reverb.feedbackEL = LowSh_f9.eq_do(reverb.feedbackEL);
+  );
+  
+  HighSH.Mpy ? (
+  reverb.feedbackAR = HighSh_f0.eq_do(reverb.feedbackAR);
+  reverb.feedbackBL = HighSh_f1.eq_do(reverb.feedbackBL);
+  reverb.feedbackCR = HighSh_f2.eq_do(reverb.feedbackCR);
+  reverb.feedbackDL = HighSh_f3.eq_do(reverb.feedbackDL);
+  reverb.feedbackER = HighSh_f4.eq_do(reverb.feedbackER);
+  
+  reverb.feedbackAL = HighSh_f5.eq_do(reverb.feedbackAL);
+  reverb.feedbackBR = HighSh_f6.eq_do(reverb.feedbackBR);
+  reverb.feedbackCL = HighSh_f7.eq_do(reverb.feedbackCL);
+  reverb.feedbackDR = HighSh_f8.eq_do(reverb.feedbackDR);
+  reverb.feedbackEL = HighSh_f9.eq_do(reverb.feedbackEL);
+  );
+  
+    output_spread1 = 1;
+    /*
+    reverb.feedbackBL = (1-output_spread1)*reverb.feedbackBL + (output_spread1)*w_a1L.allpass_do(reverb.feedbackBL);
+    reverb.feedbackBR = (1-output_spread1)*reverb.feedbackBR + (output_spread1)*w_a1R.allpass_do(reverb.feedbackBR);
+    reverb.feedbackCL = (1-output_spread1)*reverb.feedbackCL + (output_spread1)*w_a2L.allpass_do(reverb.feedbackCL);
+    reverb.feedbackCR = (1-output_spread1)*reverb.feedbackCR + (output_spread1)*w_a2R.allpass_do(reverb.feedbackCR);
+    reverb.feedbackDL = (1-output_spread1)*reverb.feedbackDL + (output_spread1)*w_a3L.allpass_do(reverb.feedbackDL);
+    reverb.feedbackDR = (1-output_spread1)*reverb.feedbackDR + (output_spread1)*w_a3R.allpass_do(reverb.feedbackDR);
+    reverb.feedbackEL = (1-output_spread1)*reverb.feedbackEL + (output_spread1)*w_a4L.allpass_do(reverb.feedbackEL);
+    reverb.feedbackER = (1-output_spread1)*reverb.feedbackER + (output_spread1)*w_a4R.allpass_do(reverb.feedbackER);
+    */
+
+    
+    reverb.feedbackBL = (1-output_spread1)*reverb.feedbackBL + (output_spread1)*w_a1L.biquad_do(reverb.feedbackBL);
+    reverb.feedbackBR = (1-output_spread1)*reverb.feedbackBR + (output_spread1)*w_a1R.biquad_do(reverb.feedbackBR);
+    reverb.feedbackCL = (1-output_spread1)*reverb.feedbackCL + (output_spread1)*w_a2L.biquad_do(reverb.feedbackCL);
+    reverb.feedbackCR = (1-output_spread1)*reverb.feedbackCR + (output_spread1)*w_a2R.biquad_do(reverb.feedbackCR);
+    reverb.feedbackDL = (1-output_spread1)*reverb.feedbackDL + (output_spread1)*w_a3L.biquad_do(reverb.feedbackDL);
+    reverb.feedbackDR = (1-output_spread1)*reverb.feedbackDR + (output_spread1)*w_a3R.biquad_do(reverb.feedbackDR);
+    reverb.feedbackEL = (1-output_spread1)*reverb.feedbackEL + (output_spread1)*w_a4L.biquad_do(reverb.feedbackEL);
+    reverb.feedbackER = (1-output_spread1)*reverb.feedbackER + (output_spread1)*w_a4R.biquad_do(reverb.feedbackER);
+    
+    
+reverb.reverb_do_part2();
+
+ERS_M = (ERS.spl_outL+ERS.spl_outR)*0.5;
+ERS_S = ERS.spl_outL-ERS.spl_outR;
+ERS_outL = ERS_M + output_spread*ERS_S*0.5;
+ERS_outR = ERS_M - output_spread*ERS_S*0.5;
+
+RV_M = (reverb.outputSampleL+reverb.outputSampleR)*0.5;
+RV_S = reverb.outputSampleL-reverb.outputSampleR;
+reverb.outputSampleL = RV_M + output_spread*RV_S*0.7;
+reverb.outputSampleR = RV_M - output_spread*RV_S*0.7;
+
+inputSampleL = 0.5*reverb.outputSampleL*RVB_Output + ERS_outL*ER_Output;
+inputSampleR = 0.5*reverb.outputSampleR*RVB_Output + ERS_outR*ER_Output;
+
+
+):(
+inputSampleL = inputSampleR = sigL = sigR = 0;
+reverb.outputSampleL = 0;
+reverb.outputSampleR = 0;
+); //Rev Type
+
+R_LP_on ? (
+inputSampleL = R_LP_L.butlp_do(inputSampleL);
+inputSampleR = R_LP_R.butlp_do(inputSampleR);
+);
+
+
+
+spl0 = dry_output*drySampleL + inputSampleL*rev_output + delay_L_output * del_output;
+spl1 = dry_output*drySampleR + inputSampleR*rev_output + delay_R_output * del_output;
+
+); //general _ bypass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@gfx 1104 839
+s2_zoom_X = gfx_w / 1104;
+s2_zoom_y = gfx_h / 839;
+zoom = min(s2_zoom_x, s2_zoom_y);// * gfx_ext_retina;
+zoom_off == 1 ? zoom = gfx_ext_retina;
+
+
+mouse_state();
+
+
+
+
+
+
+
+      function dot (position, _distance) local (_mitteX, _mitteY, _radius,_klw, _klh, _offsX, _offsY) (
+
+      gfx_measurestr(#S3Label, _klw, _klh);
+      _mitteX = this.xIn*zoom + this.size*zoom*0.25*this.scaling;
+      _mitteY = this.yIn*zoom + this.size*zoom*0.25*this.scaling;
+      _radius = this.size*zoom*0.25*this.scaling*_distance;
+ 
+      _offsX = cos(2*$pi*((position-90)/360)) * _radius;
+      _offsY = sin(2*$pi*((position-90)/360)) * _radius;
+
+      gfx_x = _mitteX+_offsX; gfx_y = _mitteY+_offsY;
+      );
+      
+
+function lightgrey2() (
+lightgrey();
+gfx_r += 0.2;
+gfx_g += 0.2;
+gfx_b += 0.2;
+);
+   
+   
+function juppi (jx, jy) local (range) (
+lightgrey();
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom, 65*zoom, max(1,2*zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+juppi_h/2, 65*zoom, max(1,2*zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+Juppi_h, 65*zoom, max(1,2*zoom));
+
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+1*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+2*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+3*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+4*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+6*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+7*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+8*(Juppi_h/10), 65*zoom, max(1,zoom));
+gfx_rect(jx*zoom-10*zoom, jy*zoom+14*zoom+9*(Juppi_h/10), 65*zoom, max(1,zoom));
+black(); 
+gfx_rect(jx*zoom+20*zoom, jy*zoom+14*zoom, 5*zoom, juppi_h+2*zoom);
+range = this.maxVal - this.minVal;
+gfx_x = jx*zoom-2*zoom; gfx_y = jy*zoom + juppi_h - (slider(this.slider)/range)*juppi_h;
+gfx_blit(6,0.5*zoom,0); // 35* 17
+//g_collision(gfx_x, gfx_y, 45*zoom, 30*zoom) && mouseClick ? (
+mouseClick == 1 && g_collision(gfx_x, gfx_y, 45*zoom, 30*zoom) && !this.number_input ? (this.v_dragstart_S3(); caller = 1);
+this.check_double_click();
+this.v_dragging ? (this.v_potdrag_S3(juppi_h); caller = 1);
+MouseClick == - 1 ? (this.dragstop_S3(); caller = 1);
+this.hv_rightclick (gfx_x/zoom,gfx_y/zoom, gfx_x, gfx_y, 45*zoom, 30*zoom); //(x_ y_ col_x col_y col_w col_h) 
+
+this.gen_tt(gfx_x, gfx_y, 45*zoom, 30*zoom,2);
+);
+
+function juppi_label (jx, jy, y_pos_) local (offset) (
+y_pos_ == 0 ? offset = -30*zoom;
+y_pos_ == 1 ? offset = -12*zoom;
+y_pos_ == 2 ? offset = juppi_h+34*zoom;
+y_pos_ == 3 ? offset = Juppi_h+52*zoom;
+lightgrey();gfx_setfont(3,"Arial",15*zoom,'b');
+gfx_x = jx*zoom-10*zoom;
+gfx_y = jy*zoom + offset;  //gfx_rect(gfx_x, gfx_y, 65*zoom, 25*zoom,0);
+gfx_drawstr(#S3Label, 0x01, gfx_x + 65*zoom, gfx_y + 25*zoom);
+);
+
+
+gfx_ext_flags == 0 ? (
+  gfx_setfont(1,"Arial",15*zoom,'b');
+  gfx_setfont(2,"Arial",12*zoom,'b');
+  gfx_setfont(3,"Arial",14*zoom,'b');
+
+gfx_r=gfx_g=gfx_b=0.12;
+gfx_rect(0,0,gfx_w,gfx_h);
+
+
+gfx_r=1; gfx_g=gfx_b=0;
+
+gfx_x = gfx_w; gfx_y = 0;
+
+
+Box_x = 50*zoom; box_y = 50*zoom;
+
+
+Del_X = 47; Del_Y = 100;
+
+lightgrey();
+gfx_rect(Del_X*zoom-33*zoom, DL_y*zoom - 60*zoom, 154*zoom, 352*zoom);
+gfx_r=gfx_g=gfx_b=0.12;
+gfx_rect(Del_X*zoom-31*zoom, DL_y*zoom - 57*zoom, 150*zoom, 348*zoom);
+
+
+Delay_Input.parameter_config     (1,       1,        0,    1,    del_x+8,   del_y,  160, 201,    0.95,  2);
+Delay_HPF.parameter_config       (41,      0,        0,   60,    del_x-18,   del_y+120,  160, 201,    0.7,  0);
+Delay_LPF.parameter_config       (42,     40,        0,   40,    del_x+50,   del_y+120,  160, 201,    0.7,  0);
+
+
+//Delay_Input.pot(1,-1); // active (2 = int) .. nachkomme
+Delay_Input.pot(1,-1); // active (2 = int) .. nachkomme
+Delay_Input.pot_is_dB();
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "INPUT";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_Input.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(delay_input)); #S3label += " dB";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_Input.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_Input.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Delay_HPF.pot(1,-1); // active (2 = int) .. nachkomme
+Delay_HPF.pot_is_forq(20,1338);
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "HPF";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_HPF.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", D_HP_L.freq); #S3label += " Hz";//#, "%.2f", scaled_slider);//"ATTACK";
+      D_HP_L.freq == 20 ? #S3Label = "OFF";
+      Delay_HPF.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_HPF.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+Delay_LPF.pot(1,-1); // active (2 = int) .. nachkomme
+Delay_LPF.pot_is_forq(1338,22050);
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "LPF";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_LPF.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", D_LP_L.freq); #S3label += " Hz";//#, "%.2f", scaled_slider);//"ATTACK";
+      slider(delay_LPF.slider) == 40 ? #S3Label = "OFF";
+      Delay_LPF.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_LPF.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );   
+      
+S3Button(32, 0, 0, Del_x-8, Del_Y + 195, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "LINKED-ST"; S3Button_Label(Del_x-8, Del_Y + 193,2); // xx, y, position 
+#S3_TT1 = "Stereo Delay with the";
+#S3_TT2 = "same setting for left and right";
+BLinked.button_tt(Del_x-8, Del_Y + 195, 2);
+
+S3Button(32, 1, 0, Del_x-8, Del_Y + 225, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "2 DELAYS"; S3Button_Label(Del_x-8, Del_Y + 223,2); // xx, y, position  
+#S3_TT1 = "2 individual delays with the inputs:";
+#S3_TT2 = "Left: Delay Line 1 - Right Delay Line 2";
+B2Delay.button_tt(Del_x-8, Del_Y + 225, 2);
+
+S3Button(32, 2, 0, Del_x-8, Del_Y + 255, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "PING-PONG"; S3Button_Label(Del_x-8, Del_Y + 253,2); // xx, y, position  
+#S3_TT1 = "L+R are summed and produce an";
+#S3_TT2 = "alternating delay in the delay lines";
+BPingpong.button_tt(Del_x-8, Del_Y + 253, 2);
+
+S3Button(39, 1, 1, Del_x-8, Del_Y - 63, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "ECHO ON"; S3Button_Label(Del_x-8, Del_Y - 63,2); // xx, y, position 
+#S3_TT1 = "Turns on/off the echo unit";
+BEchoOn.button_tt(Del_x-8, Del_Y + -63, 1);
+
+DL_X = 200; DL_Y = 100;
+
+gfx_setfont(3,"Arial",15*zoom,'b');
+gfx_x = DL_X*zoom-12*zoom; gfx_y = DL_Y*zoom-59*zoom;
+gfx_drawstr("DELAY LINE 1 (LEFT)");
+
+lightgrey();
+gfx_rect(DL_X*zoom-20*zoom, DL_y*zoom - 35*zoom, 740*zoom, 142*zoom);
+gfx_r=gfx_g=gfx_b=0.12;
+gfx_rect(DL_X*zoom-18*zoom, DL_y*zoom - 32*zoom, 736*zoom, 138*zoom);
+
+DL_Time.parameter_config     (20,       250,        0,    2000,    DL_X,   DL_Y,  160, 201,    0.95,  1);
+DL_BPM.parameter_config      (22,       2,          0,    4,      DL_X+145,DL_Y,  160, 201,    0.95,  1);
+DL_Feedback.parameter_config (21,       -6,       -36,    12,     DL_X + 360,   DL_y,  160, 201,    0.95,  0);
+DL_Slide.parameter_config    (25,       500,       10,    1000,    DL_X+460,   DL_Y+15,  160, 201,    0.7,  1);
+DL_Pan.parameter_config      (43,      -100,     -100,     100,    DL_X+540,   DL_Y+15,  160, 201,    0.7,  2);
+DL_Vol.parameter_config      (45,         0,      -36,      12,    DL_X+620,   DL_Y,  160, 201,    0.95,  2);
+
+DL_Time.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "TIME";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Time.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", delay_L.ms); #S3label += " ms";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Time.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_Time.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+
+S3Button(24, 0, 0, DL_x + 95, DL_Y + 10, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "ABS"; S3Button_Label(DL_x + 95, DL_Y + 7,1); // xx, y, position 
+S3Button(24, 1, 0, DL_x + 95, DL_Y + 40, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "TEMPO"; S3Button_Label(DL_x + 95, DL_Y + 44,3); // xx, y, position       
+
+
+gfx_rect(dl_x*zoom + 60*zoom, dl_y*zoom - 16*zoom, 55*zoom, 2*zoom); 
+gfx_rect(dl_x*zoom + 113*zoom, dl_y*zoom - 16*zoom, 2*zoom, 12*zoom); 
+//gfx_rect(dl_x*zoom + 133*zoom, dl_y*zoom + 96*zoom, 2*zoom, 12*zoom); 
+gfx_rect(dl_x*zoom + 143*zoom, dl_y*zoom + 83*zoom, 22*zoom, 2*zoom); 
+gfx_rect(dl_x*zoom + 210*zoom, dl_y*zoom - 16*zoom, 52*zoom, 2*zoom); 
+gfx_rect(dl_x*zoom + 262*zoom, dl_y*zoom - 16*zoom, 2*zoom, 12*zoom);
+      
+DL_BPM.pot(2,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "BPM";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_BPM.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      Delay_L.tempo == 0 ? #S3label = "1 / 1":
+      Delay_L.tempo == 1 ? #S3label = "1 / 2":
+      Delay_L.tempo == 2 ? #S3label = "1 / 4":
+      Delay_L.tempo == 3 ? #S3label = "1 / 8":
+      Delay_L.tempo == 4 ? #S3label = "1 / 16";
+      DL_BPM.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(5,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_BPM.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 70;
+      );
+
+S3Button(23, 0, 0, DL_x + 245, DL_Y, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "TRIPLETS"; S3Button_Label(DL_x + 245, DL_Y - 3,2); // xx, y, position 
+S3Button(23, 1, 0, DL_x + 245, DL_Y + 30, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "STRGHT."; S3Button_Label(DL_x + 245, DL_Y +27,2); // xx, y, position 
+S3Button(23, 2, 0, DL_x + 245, DL_Y + 60, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "DOTTED"; S3Button_Label(DL_x + 245, DL_Y + 57,2); // xx, y, position 
+
+
+#S3_TT1 = "Repeats time from 'TIME' knob.";
+BDLabs.button_tt(Dl_x+95, Dl_Y + 10, 1);
+#S3_TT1 = "Syncs the repeats to project-tempo.";
+#S3_TT2 = "Repeats time from 'BPM' knob.";
+BDLBPM.button_tt(Dl_x+95, Dl_Y + 40, 2);
+#S3_TT1 = "Use triplets of the seleted value.";
+BDLtri.button_tt(Dl_x+245, Dl_Y, 1);
+#S3_TT1 = "Use the seleted value as is.";
+BDLstrgt.button_tt(Dl_x+245, Dl_Y+30, 1);
+#S3_TT1 = "Use the seleted value x 1.5. (dotted notes)";
+BDLdot.button_tt(Dl_x+245, Dl_Y+60, 1);
+
+DL_Feedback.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "FEEDBACK";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Feedback.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(delay_L.feedback)); #S3label += " dB";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Feedback.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_Feedback.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+DL_SLIDE.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "SLIDE";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_SLIDE.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", delay_L.slide); #S3label += " ms";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_SLIDE.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_SLIDE.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+DL_PAN.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "PAN";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_PAN.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      D_Pan_L < 0.5 ? (#S3label = "L "; #S3Label += sprintf(#, "%.0f", D_Pan_L));
+      D_Pan_L > 0.5 ? (#S3label = "R ";#S3Label += sprintf(#, "%.0f", D_Pan_L));
+      D_Pan_L == 0.5 ? #S3label = "<C>";
+      DL_PAN.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_PAN.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+DL_Vol.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "OUTPUT";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Vol.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(D_Vol_L)); #S3label += " dB";//#, "%.2f", scaled_slider);//"ATTACK";
+      DL_Vol.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DL_Vol.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+  
+      
+      
+      
+      
+
+DR_X = 200; DR_Y = 285;
+
+gfx_setfont(3,"Arial",15*zoom,'b');
+gfx_x = DR_X*zoom-12*zoom; gfx_y = DR_Y*zoom-59*zoom;
+gfx_drawstr("DELAY LINE 2 (RIGHT)");
+
+lightgrey();
+gfx_rect(DR_X*zoom-20*zoom, DR_y*zoom - 35*zoom, 740*zoom, 142*zoom);
+gfx_r=gfx_g=gfx_b=0.12;
+gfx_rect(DR_X*zoom-18*zoom, DR_y*zoom - 32*zoom, 736*zoom, 138*zoom);
+
+DR_Time.parameter_config     (26,       250,        0,    2000,    DR_X,   DR_Y,  160, 201,    0.95,  1);
+DR_BPM.parameter_config      (28,       2,          0,    4,      DR_X+145,DR_Y,  160, 201,    0.95,  1);
+DR_Feedback.parameter_config (27,       -6,       -36,    12,     DR_X + 360,   DR_y,  160, 201,    0.95,  0);
+DR_Slide.parameter_config    (31,       500,       10,    1000,    DR_X+460,   DR_Y+15,  160, 201,    0.7,  1);
+DR_Pan.parameter_config      (44,      -100,     -100,     100,    DR_X+540,   DR_Y+15,  160, 201,    0.7,  2);
+DR_Vol.parameter_config      (46,         0,      -36,      12,    DR_X+620,   DR_Y,  160, 201,    0.95,  2);
+
+DR_Time.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "TIME";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Time.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", Delay_R.ms); #S3label += " ms";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Time.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_Time.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+
+S3Button(30, 0, 0, DR_x + 95, DR_Y + 10, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "ABS"; S3Button_Label(DR_x + 95, DR_Y + 7,1); // xx, y, position 
+S3Button(30, 1, 0, DR_x + 95, DR_Y + 40, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "TEMPO"; S3Button_Label(DR_x + 95, DR_Y + 44,3); // xx, y, position       
+
+gfx_rect(DR_x*zoom + 60*zoom, DR_y*zoom - 16*zoom, 55*zoom, 2*zoom); 
+gfx_rect(DR_x*zoom + 113*zoom, DR_y*zoom - 16*zoom, 2*zoom, 12*zoom); 
+//gfx_rect(DR_x*zoom + 133*zoom, DR_y*zoom + 96*zoom, 2*zoom, 12*zoom); 
+gfx_rect(DR_x*zoom + 143*zoom, DR_y*zoom + 83*zoom, 22*zoom, 2*zoom); 
+gfx_rect(DR_x*zoom + 210*zoom, DR_y*zoom - 16*zoom, 52*zoom, 2*zoom); 
+gfx_rect(DR_x*zoom + 262*zoom, DR_y*zoom - 16*zoom, 2*zoom, 12*zoom);
+      
+DR_BPM.pot(2,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "BPM";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_BPM.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      Delay_R.tempo == 0 ? #S3label = "1 / 1":
+      Delay_R.tempo == 1 ? #S3label = "1 / 2":
+      Delay_R.tempo == 2 ? #S3label = "1 / 4":
+      Delay_R.tempo == 3 ? #S3label = "1 / 8":
+      Delay_R.tempo == 4 ? #S3label = "1 / 16";
+      DR_BPM.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(5,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_BPM.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 70;
+      );
+
+S3Button(29, 0, 0, DR_x + 245, DR_Y, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "TRIPLETS"; S3Button_Label(DR_x + 245, DR_Y - 3,2); // xx, y, position 
+S3Button(29, 1, 0, DR_x + 245, DR_Y + 30, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "STRGHT."; S3Button_Label(DR_x + 245, DR_Y +27,2); // xx, y, position 
+S3Button(29, 2, 0, DR_x + 245, DR_Y + 60, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "DOTTED"; S3Button_Label(DR_x + 245, DR_Y + 57,2); // xx, y, position 
+
+#S3_TT1 = "Repeats time from 'TIME' knob.";
+BDRabs.button_tt(DR_x+95, DR_Y + 10, 1);
+#S3_TT1 = "Syncs the repeats to project-tempo.";
+#S3_TT2 = "Repeats time from 'BPM' knob.";
+BDRBPM.button_tt(DR_x+95, DR_Y + 40, 2);
+#S3_TT1 = "Use triplets of the seleted value.";
+BDRtri.button_tt(DR_x+245, DR_Y, 1);
+#S3_TT1 = "Use the seleted value as is.";
+BDRstrgt.button_tt(DR_x+245, DR_Y+30, 1);
+#S3_TT1 = "Use the seleted value x 1.5. (dotted notes)";
+BDRdot.button_tt(DR_x+245, DR_Y+60, 1);
+
+
+DR_Feedback.pot(1,-1); // active (2 = int) .. nachkomme
+//DR_Feedback.pot_is_dB();
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "FEEDBACK";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Feedback.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(Delay_R.feedback)); #S3label += " dB";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Feedback.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_Feedback.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+DR_SLIDE.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "SLIDE";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_SLIDE.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", Delay_R.slide); #S3label += " ms";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_SLIDE.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_SLIDE.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+DR_PAN.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "PAN";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_PAN.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      D_Pan_R < 0.5 ? (#S3label = "L "; #S3Label += sprintf(#, "%.0f", D_Pan_R));
+      D_Pan_R > 0.5 ? (#S3label = "R ";#S3Label += sprintf(#, "%.0f", D_Pan_R));
+      D_Pan_R == 0.5 ? #S3label = "<C>";
+      DR_PAN.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_PAN.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+DR_Vol.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "OUTPUT";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Vol.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(D_Vol_R)); #S3label += " dB";//#, "%.2f", scaled_slider);//"ATTACK";
+      DR_Vol.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      DR_Vol.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+  
+      
+      
+      
+      
+
+Del_X = 967; Del_Y = 100;
+
+lightgrey();
+gfx_rect(Del_X*zoom-33*zoom, DL_y*zoom - 60*zoom, 154*zoom, 352*zoom);
+gfx_r=gfx_g=gfx_b=0.12;
+gfx_rect(Del_X*zoom-31*zoom, DL_y*zoom - 57*zoom, 150*zoom, 348*zoom);
+
+
+Delay_Drive.parameter_config     (38,      3.5,        0,    10,    del_x-18,   del_y+10,  160, 201,    0.7,  2);
+Delay_Tape.parameter_config      (40,        1,        0,     2,    del_x+50,   del_y+10,  160, 201,    0.7,  0);
+
+Delay_WowA.parameter_config       (34,     40,        0,   100,    del_x-18,   del_y+110,  160, 201,    0.7,  1);
+Delay_WowF.parameter_config       (35,     50,        0,   100,    del_x+50,   del_y+110,  160, 201,    0.7,  1);
+Delay_FlutA.parameter_config      (36,     10,        0,   100,    del_x-18,   del_y+210,  160, 201,    0.7,  1);
+Delay_FlutF.parameter_config      (37,     50,        0,   100,    del_x+50,   del_y+210,  160, 201,    0.7,  1);
+
+
+Delay_Drive.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "DRVE";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_Drive.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(delay_Drive.slider));
+      Delay_Drive.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_Drive.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Delay_Tape.pot(2,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SOUND";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_Tape.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      //#S3Label = sprintf(#, "%.1f", slider(delay_Tape.slider));
+      slider(delay_Tape.slider) == 0 ? #S3Label = "DARK":
+      slider(delay_Tape.slider) == 1 ? #S3Label = "MEDIUM":
+      slider(delay_Tape.slider) == 2 ? #S3Label = "BRIGHT";
+      Delay_Tape.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(3,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_Tape.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 140;
+      );
+      
+      
+Delay_WowA.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "WOW";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_WowA.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(delay_WowA.slider));
+      Delay_WowA.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_WowA.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+Delay_WowF.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "SPEED";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_WowF.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(delay_WowF.slider));
+      Delay_WowF.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_WowF.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );   
+
+Delay_FlutA.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "FLUTTER";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_FlutA.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(delay_FlutA.slider));
+      Delay_FlutA.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_FlutA.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+Delay_FlutF.pot(1,-1); // active (2 = int) .. nachkomme
+lightgrey();
+      //gfx_setfont(3,"Arial",18*zoom,'b');
+      #S3Label = "SPEED";//#, "%.2f", scaled_slider);//"ATTACK";
+      Delay_FlutF.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(delay_FlutF.slider));
+      Delay_FlutF.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Delay_FlutF.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );   
+      
+      
+
+S3Button(33, 1, 1, Del_x-8, Del_Y - 63, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "TAPE MODE"; S3Button_Label(Del_x-8, Del_Y - 63,2); // xx, y, position 
+  
+#S3_TT1 = "Turns on/off the sound";
+#S3_TT2 = "coloration of a tape delay.";
+BTape.button_tt(Del_x-8, Del_Y - 63, 2); 
+   
+   
+
+Rev_X = 45; Rev_Y = 465;
+Rev_y2 = rev_y + 280;
+//lightgrey();
+//gfx_rect(Del_X*zoom-33*zoom, DL_y*zoom - 60*zoom, 154*zoom, 352*zoom);
+lightgrey();
+gfx_rect(rev_X*zoom-31*zoom, rev_y*zoom - 57*zoom, 249*zoom, 270*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+228*zoom, rev_y*zoom - 57*zoom, 549*zoom, 270*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+787*zoom, rev_y*zoom - 57*zoom, 256*zoom, 270*zoom);//200*zoom);
+
+gfx_rect(rev_X*zoom-31*zoom, rev_y2*zoom - 57*zoom, 249*zoom, 140*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+228*zoom, rev_y2*zoom - 57*zoom, 549*zoom, 140*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+787*zoom, rev_y2*zoom - 57*zoom, 256*zoom, 140*zoom);//200*zoom)
+
+rgb(40,40,140);
+gfx_rect(rev_X*zoom-29*zoom, rev_y*zoom - 55*zoom, 245*zoom, 266*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+230*zoom, rev_y*zoom - 55*zoom, 545*zoom, 266*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+789*zoom, rev_y*zoom - 55*zoom, 252*zoom, 266*zoom);//200*zoom);
+
+gfx_rect(rev_X*zoom-29*zoom, rev_y2*zoom - 55*zoom, 245*zoom, 136*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+230*zoom, rev_y2*zoom - 55*zoom, 545*zoom, 136*zoom);//200*zoom);
+gfx_rect(rev_X*zoom+789*zoom, rev_y2*zoom - 55*zoom, 252*zoom, 136*zoom);//200*zoom)
+
+
+/*
+lightgrey2();
+gfx_rect(rev_X*zoom-27*zoom, rev_y*zoom - 53*zoom, 1066*zoom, 192*zoom);
+rgb(40,40,140);
+gfx_rect(rev_X*zoom-25*zoom, rev_y*zoom - 51*zoom, 1062*zoom, 188*zoom);
+*/
+
+lightgrey2();
+
+Rev_Input.parameter_config     (2,      1,        0,    1,    rev_x,   rev_y+30,  160, 201,    0.95,  5);
+Rev_InSpread.parameter_config (10,    100,        0,   100,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+Rev_OutSpread.parameter_config(11,    100,        0,   200,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+Rev_from_Delay.parameter_config (9,      0,        0,     1,    rev_x+100,   rev_y+30,  160, 201,    0.95,  5);
+Rev_PreDelay.parameter_config  (3,     10,        0,  1000,    rev_x+330,   rev_y+30,  160, 201,    0.95,  5);
+
+Rev_AmbSustain.parameter_config  (13,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+Rev_AmbSize.parameter_config     (12,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+Rev_RoomSustain.parameter_config  (15,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+Rev_RoomSize.parameter_config     (14,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+Rev_HallSustain.parameter_config  (17,     50,        0,  100,    rev_x+430,   rev_y+13,  160, 201,    1.36,  5);
+Rev_HallSize.parameter_config     (16,     50,        0,  100,    rev_x+555,   rev_y+13,  160, 201,    1.36,  5);
+
+/*
+Rev_Input.pot(1,-1); // active (2 = int) .. nachkomme
+Rev_Input.pot_is_dB();
+      //gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "INPUT";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_Input.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", ratio2db(slider(Rev_Input.slider))); #S3Label += " dB";
+      Rev_Input.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_Input.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+Rev_InSpread.pot(1,-1); // active (2 = int) .. nachkomme
+      #S3Label = "SPREAD";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_InSpread.knoblabel(0, 1.1); // position in deg, space  
+      #S3Label = sprintf(#, "%.0f", slider(Rev_InSpread.slider)); #S3Label += "%";
+      Rev_InSpread.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_InSpread.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+*/
+
+
+S3Button(18, 0, 0, Rev_x + 245, Rev_Y+3, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "OFF"; S3Button_Label(rev_x + 245, rev_Y +2,2); // xx, y, position 
+S3Button(18, 1, 0, Rev_x + 245, Rev_Y+33, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "AMB."; S3Button_Label(rev_x + 245, rev_Y + 32,2); // xx, y, position 
+S3Button(18, 2, 0, Rev_x + 245, Rev_Y + 63, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "ROOM"; S3Button_Label(rev_x + 245, rev_Y +62,2); // xx, y, position 
+S3Button(18, 3, 0, Rev_x + 245, REv_Y + 93, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "HALL"; S3Button_Label(rev_x + 245, rev_Y + 92,2); // xx, y, position 
+
+#S3_TT1 = "Turns the reverb unit off";
+BROff.button_tt(Rev_x + 245, Rev_Y+3, 1);
+#S3_TT1 = "Reverb for room ambience";
+BRAmb.button_tt(Rev_x + 245, Rev_Y+33, 1);
+#S3_TT1 = "Reverb for small and big rooms";
+BRRoom.button_tt(Rev_x + 245, Rev_Y+63, 1);
+#S3_TT1 = "Reverb for large reverb spaces";
+BRHall.button_tt(Rev_x + 245, Rev_Y+93, 1);
+
+tmp_offset = 5;
+S3Button(53, 0, 0, Rev_x + 445-tmp_offset, Rev_Y+156, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+S3Button(53, 1, 0, Rev_x + 490-tmp_offset, Rev_Y+156, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+S3Button(53, 2, 0, Rev_x + 535-tmp_offset, Rev_Y+156, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+S3Button(53, 3, 0, Rev_x + 580-tmp_offset, Rev_Y+156, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+S3Button(53, 4, 0, Rev_x + 625-tmp_offset, Rev_Y+156, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "small"; S3Button_Label(Rev_x + 445-tmp_offset, Rev_Y+160,3); // xx, y, position
+gfx_rect(gfx_x+10*zoom, gfx_y +7*zoom,130*zoom,2*zoom);
+gfx_triangle(gfx_x+142*zoom, gfx_y+7*zoom, gfx_x+133*zoom, gfx_y+4*zoom, gfx_x+133*zoom, gfx_y+11*zoom);
+#S3Label = "large"; S3Button_Label(Rev_x + 625-tmp_offset, Rev_Y+160,3); // xx, y, position 
+#S3Label = "EARLY REFLECTIONS"; S3Button_Label(Rev_x + 535-tmp_offset, Rev_Y+156,1); // xx, y, position 
+
+#S3_TT1 = "Room refelections";
+#S3_TT2 = "(room size matters)";
+ER1.button_tt(Rev_x + 440, Rev_Y+156, 2);
+ER2.button_tt(Rev_x + 485, Rev_Y+156, 2);
+ER3.button_tt(Rev_x + 530, Rev_Y+156, 2);
+ER4.button_tt(Rev_x + 575, Rev_Y+156, 2);
+ER5.button_tt(Rev_x + 620, Rev_Y+156, 2);
+/*
+Rev_PreDelay.pot(1,-1); // active (2 = int) .. nachkomme
+      #S3Label = "PreDelay";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_PreDelay.knoblabel(0, 1.1); // position in deg, space  
+      #S3Label = sprintf(#, "%.0f", slider(Rev_PreDelay.slider)); #S3Label += "ms";
+      Rev_PreDelay.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_PreDelay.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+*/
+
+
+
+
+
+rev_type == 0 ? (
+gfx_x = Rev_AmbSustain.xIn*zoom;
+gfx_y = Rev_AmbSustain.yIn*zoom;
+gfx_blit(Rev_AmbSustain.file, 0.5*zoom*Rev_AmbSustain.scaling,0,0,0,160,160);
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SUSTAIN";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_AmbSustain.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_AmbSustain.slider)); #S3Label += "%";
+      Rev_AmbSustain.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_AmbSustain.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+gfx_x = Rev_AmbSize.xIn*zoom;
+gfx_y = Rev_AmbSize.yIn*zoom;
+gfx_blit(Rev_AmbSize.file, 0.5*zoom*Rev_AmbSize.scaling,0,0,0,160,160);
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SIZE";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_AmbSize.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_AmbSize.slider)); #S3Label += "%";
+      Rev_AmbSize.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_AmbSize.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+rgb(34,34,34);
+gfx_x = (Rev_AmbSustain.xIn + Rev_AmbSustain.scaling*Rev_AmbSustain.Size/4)*zoom; gfx_y = (Rev_AmbSustain.yIn+Rev_AmbSustain.scaling*Rev_AmbSustain.Size/4)*zoom;
+gfx_circle(gfx_x,gfx_y,31*zoom,1);
+gfx_x = (Rev_AmbSize.xIn + Rev_AmbSize.scaling*Rev_AmbSize.Size/4)*zoom; gfx_y = (Rev_AmbSize.yIn+Rev_AmbSize.scaling*Rev_AmbSize.Size/4)*zoom;
+gfx_circle(gfx_x,gfx_y,31*zoom,1);
+);
+
+
+rev_type == 1 ? (
+Rev_AmbSustain.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "REVERB TIME";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_AmbSustain.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_AmbSustain.slider)); #S3Label += "%";
+      Rev_AmbSustain.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_AmbSustain.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Rev_AmbSize.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SIZE";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_AmbSize.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_AmbSize.slider)); #S3Label += "%";
+      Rev_AmbSize.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_AmbSize.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+):
+rev_type == 2 ? (
+Rev_RoomSustain.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "REVERB TIME";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_RoomSustain.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_RoomSustain.slider)); #S3Label += "%";
+      Rev_RoomSustain.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_RoomSustain.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Rev_RoomSize.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SIZE";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_RoomSize.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_RoomSize.slider)); #S3Label += "%";
+      Rev_RoomSize.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_RoomSize.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+):
+rev_type == 3 ? (
+Rev_HallSustain.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "REVERB TIME";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_HallSustain.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_HallSustain.slider)); #S3Label += "%";
+      Rev_HallSustain.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_HallSustain.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Rev_HallSize.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "SIZE";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_HallSize.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.1f", slider(Rev_HallSize.slider)); #S3Label += "%";
+      Rev_HallSize.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_HallSize.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+);
+
+
+juppi_H = 150*zoom;
+
+
+
+lightgrey2();
+gfx_setfont(3,"Arial",19*zoom,'b');
+
+gfx_y = rev_y*zoom - 47*zoom;
+gfx_x = 68*zoom; 
+gfx_drawstr("REVERB INPUT");
+gfx_x = 460*zoom; 
+gfx_drawstr("REVERB MACHINE");
+gfx_x = 928*zoom; 
+gfx_drawstr("MIXER");
+
+gfx_y = rev_y2*zoom - 35*zoom;
+gfx_x = 940*zoom; 
+gfx_drawstr("TUKAN");
+gfx_y = rev_y2*zoom - 10*zoom;
+gfx_x = 940*zoom; 
+gfx_drawstr("STUDIOS");
+gfx_y = rev_y2*zoom + 15*zoom;
+gfx_x = 940*zoom; 
+gfx_drawstr("ECHO");
+gfx_y = rev_y2*zoom + 40*zoom;
+gfx_x = 940*zoom; 
+gfx_drawstr("& REVERB");
+gfx_y = rev_y2*zoom - 33*zoom;
+gfx_x = 835*zoom; 
+gfx_blit(7,0.8*zoom,0);
+
+
+Rev_Row1 = rev_y -25*zoom;
+#S3Label = sprintf(#, "%.1f", ratio2db(slider(Rev_Input.slider))); #S3Label += " dB";
+Rev_Input.juppi_label(50, rev_row1,2);
+#S3Label = "VOL"; Rev_Input.juppi_label(50, rev_row1,3);
+#S3_TT1 = "Input level of the dry signal to the reverb.";
+#S3_TT2 = "(Without the way through the echo unit)";
+Rev_Input.juppi(50, rev_row1);
+#S3Label = sprintf(#, "%.0f", slider(Rev_InSpread.slider)); #S3Label += "%";
+Rev_InSpread.juppi_label(50+65, rev_row1,2);
+#S3Label = "SPREAD"; Rev_InSpread.juppi_label(50+65, rev_row1,3);
+#S3_TT1 = "Input width of the dry stereo channels.";
+#S3_TT2 = "(mono to full stereo)";
+Rev_InSpread.juppi(50+65, rev_row1);
+#S3Label = sprintf(#, "%.1f", ratio2db(slider(Rev_from_delay.slider))); #S3Label += " dB";
+Rev_From_delay.juppi_label(50+2*65, rev_row1,2);
+#S3Label = "ECHO"; Rev_From_delay.juppi_label(50+2*65, rev_row1,3);
+#S3_TT1 = "Input level of the echos to the reverb.";
+#S3_TT2 = "(Just the echos, no dry signal)";
+Rev_From_delay.juppi(50+2*65, rev_row1);
+
+
+#S3Label = sprintf(#, "%.0f", slider(Rev_PreDelay.slider)); #S3Label += " ms";
+Rev_Predelay.juppi_label(400, rev_row1,2);
+#S3Label = "PREDLY"; Rev_PreDelay.juppi_label(400, rev_row1,3);
+#S3_TT1 = "Delay for the reverb signal.";
+#S3_TT2 = "(Tip: You can use the delay unit instead)";
+Rev_PreDelay.juppi(400, rev_row1);
+
+#S3Label = sprintf(#, "%.0f", slider(Rev_OutSpread.slider)); #S3Label += "%";
+Rev_OutSpread.juppi_label(740, rev_row1,2);
+#S3Label = "WIDE"; Rev_OutSpread.juppi_label(740, rev_row1,3);
+#S3_TT1 = "Stereo width of the reverb.";
+#S3_TT2 = "(Over 100% not mono compatible)";
+Rev_OutSpread.juppi(740, rev_row1);
+
+
+
+
+
+
+
+
+
+
+
+
+
+Rev_LowCut.parameter_config     (6,      0,        0,    60,    rev_x+5,   rev_y2-20,  160, 201,    0.95,  5);
+Rev_HighCut.parameter_config    (5,     40,        0,    40,    rev_x+105,   rev_y2-20,  160, 201,    0.95,  5);
+
+Rev_BMPY.parameter_config       (8,      0,        -100,    100,    rev_x+240,   rev_y2-20,  160, 201,    0.95,  5);
+Rev_BMPYf.parameter_config      (7,    100,        10,    500,    rev_x+325,   rev_y2-20,  160, 201,    0.95,  5);
+Rev_Wander.parameter_config     (4,     50,         0,    100,    rev_x+410,   rev_y2-20,  160, 201,    0.95,  5);
+
+Rev_OverTones.parameter_config  (54,     0,         0,    100,    rev_x+504,   rev_y2-20,  160, 201,    0.95,  5);
+
+Rev_ER.parameter_config         (47,     1,           0,    1,    rev_x+600,   rev_y2-20,  160, 201,    0.95,  5);
+Rev_TAIL.parameter_config       (48,    0.66,         0,    1,    rev_x+685,   rev_y2-20,  160, 201,    0.95,  5);
+
+
+Mix_Delay.parameter_config      (50,    1,            0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+Mix_Reverb.parameter_config     (51,    0.33,         0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+Mix_Dry.parameter_config        (49,    1,            0,    1,    rev_x+680,   rev_y2-20,  160, 201,    0.95,  5);
+
+Rev_HighCut.pot_is_forq(1338,22050);
+Rev_LowCut.pot_is_forq(20,1338);
+
+outmixer_x = 872;
+Mix_Delay.pot_is_db();
+Mix_Reverb.pot_is_db();
+Mix_Dry.pot_is_db();
+#S3_TT1 = "Output level of the echos.";
+#S3_TT2 = "(not connected to the reverb-echo-input)";
+Mix_Delay.juppi(outmixer_x, rev_row1);
+#S3_TT1 = "Output Level of the reverb.";
+#S3_TT2 = "(mix of early reflections and reverb)";
+Mix_Reverb.juppi(outmixer_x+65, rev_row1);
+#S3_TT1 = "Output Level of the dry signal.";
+#S3_TT2 = "(plugin input signal)";
+Mix_Dry.juppi(outmixer_x+2*65, rev_row1);
+
+#S3Label = sprintf(#, "%.1f", ratio2db(slider(Mix_Delay.slider))); #S3Label += " dB";
+Mix_Delay.juppi_label(outmixer_x, rev_row1,2);
+#S3Label = "ECHO"; Mix_Delay.juppi_label(outmixer_x, rev_row1,3);
+
+#S3Label = sprintf(#, "%.1f", ratio2db(slider(Mix_Reverb.slider))); #S3Label += " dB";
+Mix_Delay.juppi_label(outmixer_x+65, rev_row1,2);
+#S3Label = "REVERB"; Mix_Delay.juppi_label(outmixer_x+65, rev_row1,3);
+
+#S3Label = sprintf(#, "%.1f", ratio2db(slider(Mix_Dry.slider))); #S3Label += " dB";
+Mix_Delay.juppi_label(outmixer_x+2*65, rev_row1,2);
+#S3Label = "DRY"; Mix_Delay.juppi_label(outmixer_x+2*65, rev_row1,3);
+
+
+
+Rev_LowCut.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "HIGH PASS";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_LowCut.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", r_HP_L.freq); #S3Label += " Hz";
+      Rev_LowCut.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_LowCut.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+Rev_HighCut.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "LOW PASS";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_HighCut.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.2f", R_LP_L.freq/1000); #S3Label += " kHz";
+      Rev_HighCut.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_HighCut.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+
+
+
+
+Rev_BMPY.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "LOW RT";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_BMPY.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(Rev_BMPY.slider)); #S3Label += "%";
+      Rev_BMPY.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_BMPY.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );
+      
+Rev_BMPYf.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "LOW FREQ";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_BMPYf.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(Rev_BMPYf.slider)); #S3Label += "Hz";
+      Rev_BMPYf.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_BMPYf.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );     
+
+Rev_Wander.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "HIGH DAMP";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_Wander.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(Rev_Wander.slider)); #S3Label += "%";
+      Rev_Wander.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_Wander.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );  
+      
+
+Rev_Overtones.pot(1,-1); // active (2 = int) .. nachkomme
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "RICH";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_Overtones.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", slider(Rev_Overtones.slider)); #S3Label += "%";
+      Rev_Overtones.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_Overtones.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      ); 
+      
+     
+Rev_ER.pot(1,-1); // active (2 = int) .. nachkomme
+rev_ER.pot_is_dB();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "EARLY REF";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_ER.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", ratio2db(slider(Rev_ER.slider))); #S3Label += " dB";
+      Rev_ER.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_ER.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );  
+      
+Rev_TAIL.pot(1,-1); // active (2 = int) .. nachkomme
+rev_TAIL.pot_is_dB();
+      gfx_setfont(3,"Arial",15*zoom,'b');
+      #S3Label = "REVERB";//#, "%.2f", scaled_slider);//"ATTACK";
+      Rev_TAIL.knoblabel(0, 1.1); // position in deg, space  
+      gfx_setfont(2);
+      #S3Label = sprintf(#, "%.0f", ratio2db(slider(Rev_TAIL.slider))); #S3Label += " dB";
+      Rev_TAIL.knoblabel(180, 1); // position in deg, space    
+      #S3Label = ".";//#, "%.2f", scaled_slider);//"ATTACK";
+      tmp_loop = 220;
+      loop(9,
+      tmp_loop > 360 ? tmp_loop -= 360;
+      Rev_TAIL.dot(tmp_loop, 0.9);
+      gfx_circle(gfx_x,gfx_y,2*zoom,1);
+      tmp_loop += 35;
+      );      
+
+      
+
+S3Button(52, 1, 1, 1050, 0, 3); //slider, onvalue, toggle to 0, posx, posy, png 
+#S3Label = "BYPASS ALL "; S3Button_Label(1050, 0, 5); // xx, y, position 
+  
+#S3_TT1 = "Bypasses the audio path of the plugin";
+BBypass.button_tt(1050,0, 1);
+
+   //////////////////////////////////////////  MENU MENU ////////////////////////////////////////////////
+   last_clicked_item = -1;
+   Helpshow ? mouse_cap ? (helpshow = 0;last_clicked_item = -1);
+   menu_x = 5; menu_y =5;
+  gfx_setfont(1,"Arial",12*zoom,'i');
+  gfx_x = menu_x * zoom; gfx_y = menu * zoom; gfx_a=1;
+  //gfx_blit(menu,zoom/2,0);
+  
+  //rgb(40,40,40);
+  //gfx_rect(0,0,gfx_w,48*zoom);
+
+  lightgrey(); //red();
+  gfx_roundrect(menu_x * zoom, (menu_y + 5) * zoom, 20*zoom, 20*zoom, 0, 1);
+  gfx_line((menu_x+3)*zoom, (menu_y + 11)*zoom, (menu_x+17)*zoom, (menu_y + 11)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 15)*zoom, (menu_x+17)*zoom, (menu_y + 15)*zoom);
+  gfx_line((menu_x+3)*zoom, (menu_y + 19)*zoom, (menu_x+17)*zoom, (menu_y + 19)*zoom);
+  
+  gfx_setfont(1,"Arial",14*zoom,'b');
+  
+
+  lightgrey(); gfx_x = menu_x * zoom + 30*zoom;gfx_y += 12*zoom;
+  gfx_drawstr("TUKAN STUDIOS  -  ECHO & REVERB "); 
+  lakeblue(); gfx_drawstr(" SERIES 3   ");
+  
+  srate_too_high ? (
+    rgb(250,70,70); gfx_x_old = gfx_x;
+    gfx_drawstr("Sample rate should be max. 176.4 kHz (4 x 44.1)");
+    gfx_x = gfx_x_old; gfx_y += 20*zoom;
+    gfx_drawstr("Plugin might sound different now");
+  );
+  
+  
+  //gfx_setfont(1,"Arial",12*zoom,'b');
+   
+  link_group ? (
+    rgb_palette(Link_group);// gfx_a = 0.7;
+    gfx_drawstr("JOINS GROUP "); gfx_drawstr(sprintf(#,"%i", link_group));
+  );
+  gfx_a = 1;
+
+
+   mouseClick ? (
+    g_collision(menu_x*zoom, (menu_y+5) * zoom, 20*zoom, 20*zoom) ? (
+     gfx_x = menu_x*zoom;
+     gfx_y = (menu_y+20)*zoom;
+      
+       #item2 =">Processing|";#allitems = #item2;
+      while_playing == 1 ? (#item2 = "!On Playback|"):(#item2 = "On Playback|");#allitems += #item2;
+      while_recording == 1 ? (#item2 = "!On Recording|"):(#item2 = "On Recording|");#allitems += #item2;
+      while_stopped == 1 ? (#item2 = "<!On Stop|>Groups|"):(#item2 = "<On Stop|>Groups|");#allitems += #item2;
+  
+      mnu_grp_loop = 1;
+      loop(16,
+  
+        mnu_grp_loop == 16 ? #item2 += "<";
+        gmem[16*256 + 10 + mnu_grp_loop] == 1 ? ( //Gruppe schon an ?
+          mnu_grp_loop == Link_Group ? ( //ist selbst in der gruppe
+                  #item2 = "!Joins Group ";
+          ):(
+              #item2 = "Add to Group ";
+          );
+        ):(
+          #item2 = "Start Group ";
+        );
+      mnu_grp_loop == 1 ? #item2 += "01";
+      mnu_grp_loop == 2 ? #item2 += "02";
+      mnu_grp_loop == 3 ? #item2 += "03";
+      mnu_grp_loop == 4 ? #item2 += "04";
+      mnu_grp_loop == 5 ? #item2 += "05";
+      mnu_grp_loop == 6 ? #item2 += "06";
+      mnu_grp_loop == 7 ? #item2 += "07";
+      mnu_grp_loop == 8 ? #item2 += "08";
+      mnu_grp_loop == 9 ? #item2 += "09";
+      mnu_grp_loop == 10 ? #item2 += "10";
+      mnu_grp_loop == 11 ? #item2 += "11";
+      mnu_grp_loop == 12 ? #item2 += "12";
+      mnu_grp_loop == 13 ? #item2 += "13";
+      mnu_grp_loop == 14 ? #item2 += "14";
+      mnu_grp_loop == 15 ? #item2 += "15";
+      mnu_grp_loop == 16 ? #item2 += "16";
+      
+      #item2 += "|";
+      #allitems += #item2; //sprintf(#temp, '%f',3); 
+      mnu_grp_loop += 1;
+      );
+      
+      link_group ? (#allitems += "|<Delete Group ";#allitems += sprintf(#, "%d", link_group);#allitems += "|"):#allitems += "|<#Delete Group|";
+  
+      //#allitems += "<#MENU|";
+     #allitems += ">Scaling|";
+     zoom_off == 0 ? (#item2 = "!Automatic Scaling|"):(#item2 = "Automatic scaling|");#allitems += #item2;
+     zoom_off == 1 ? (#item2 = "<!No scaling|"):(#item2 = "<No scaling|");#allitems += #item2;
+     
+     #allitems += ">Tooltips|";
+     tt_time == -1 ? #allitems += "!Off|" : #allitems += "Off|";
+     tt_time == 20 ? #allitems += "!Regular|" : #allitems += "Regular|";
+     tt_time == 60 ? #allitems += "!Slow|<" : #allitems += "Slow|<";
+     #allitems += "||Show Info/Help";
+     last_clicked_item = gfx_showmenu(#allitems);
+   );
+   );
+  
+   
+   last_clicked_item == 1 ? (while_playing == 0 ? (while_playing = 1):(while_playing = 0);caller=1;processing_update());
+   last_clicked_item == 2 ? (while_recording == 0 ? (while_recording = 1):(while_recording = 0);caller=1;processing_update());
+   last_clicked_item == 3 ? (while_stopped == 0 ? (while_stopped = 1):(while_stopped = 0);caller=1;processing_update());
+  
+    cgroup = last_clicked_item - 3;
+   last_clicked_item > 3 && last_clicked_item < 20 ? (
+      Link_Group != cgroup ? ( //eigene Linkgruppe NICHT angeklickt
+          gmem[16*256 + 10 + cgroup] == 0 ? ( // Gruppe noch frei
+              //gmem[16*64 + 10 + cgroup] = 1; Link_Group = cgroup; gmem[16*64 +27 + cgruop] = 1; //Gruppe Starten!
+              gmem[16*256 + 10 + cgroup] = 1;Link_Group = cgroup;group_update_S3();
+          ):(
+              Link_Group = cgroup;// Gruppe teilnehmen
+          );
+      ):( //Eigene Gruppe angeklickt
+            Link_Group = 0;
+      );
+   
+   );
+   
+    cgroup = last_clicked_item - 3 - 16;
+   last_clicked_item == 20 ? (
+     gmem[16*256 + 10 + Link_Group] = 0;Link_Group = 0;
+   );
+   
+   
+   
+   last_clicked_item == 21 ? zoom_off = 0;
+   last_clicked_item == 22 ? zoom_off = 1;
+
+   last_clicked_item == 23 ? tt_time = -1;
+   last_clicked_item == 24 ? tt_time = 20;
+   last_clicked_item == 25 ? tt_time = 60;
+   
+   last_clicked_item == 26 ? helpshow = 1;
+   
+   helpshow == 1 ? (
+   gfx_r=0;gfx_g=0;gfx_b=0;gfx_a=0.7;
+   gfx_rect(menu_x,menu_y+0,310*zoom,110*zoom);
+   menu_x +=3;
+   gfx_r=0.9;gfx_g=0.9;gfx_b=0.9;gfx_a=1;
+   gfx_x = menu_x+3*zoom; gfx_y = menu_y+3*zoom;
+   gfx_drawstr("TUKAN STUDIOS ECHO & REVERB (Series 3)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Version: "); gfx_drawnumber(VERSION,2);
+   gfx_x = menu_x+3*zoom; gfx_y += 20*zoom;
+   gfx_drawstr("Mouse modifier options:");
+   gfx_x = menu_x+3*zoom; gfx_y += 15*zoom;
+   gfx_drawstr("Fine tune knobs: [shift]");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Reset knobs: Doubleclick or [ctrl] ([cmd] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Link knobs on visible instances: [win] ([ctrl] on mac)");
+   gfx_x = menu_x+3*zoom; gfx_y += 13*zoom;
+   gfx_drawstr("Activate number typing: Right click");
+   );
+   
+   
+   ////////////////////////////////////////// ENDE MENU MENU MENU ////////////////////////////////////////////////
+
+#S3_TT1 = ""; #S3_TT2 = ""; #S3_TT3 = "";
+#S3_TT1 = "Input level for both delay lines";
+Delay_Input.pot_tt(1);
+#S3_TT1 = "Remove bass from the echo";
+Delay_HPF.pot_tt(1);
+#S3_TT1 = "Remove treble from the echo";
+Delay_LPF.pot_tt(1);
+#S3_TT1 = "Time for each repeat";
+#S3_TT2 = "(only in 'ABS' mode)";
+DL_Time.pot_tt(2);
+#S3_TT1 = "Tempo synced repeats";
+#S3_TT2 = "(only in 'TEMPO' mode)";
+DL_BPM.pot_tt(2);
+#S3_TT1 = "Decay rate per repeat";
+#S3_TT2 = "(positive values for swells,";
+#S3_TT3 = "but you need to automate then)";
+DL_Feedback.pot_tt(3);
+#S3_TT1 = "Pitch / Speed drift";
+#S3_TT2 = "when changing delay times";
+DL_Slide.pot_tt(2); 
+#S3_TT1 = "Output panorama for this delay line";
+DL_Pan.pot_tt(1);
+#S3_TT1 = "Output volume for this delay line";
+DL_Vol.pot_tt(1); 
+#S3_TT1 = "Time for each repeat";
+#S3_TT2 = "(only in 'ABS' mode)";
+DR_Time.pot_tt(2);
+#S3_TT1 = "Tempo synced repeats";
+#S3_TT2 = "(only in 'TEMPO' mode)";
+DR_BPM.pot_tt(2);
+#S3_TT1 = "Decay rate per repeat";
+#S3_TT2 = "(positive values for swells,";
+#S3_TT3 = "but you need to automate then)";
+DR_Feedback.pot_tt(3);
+#S3_TT1 = "Pitch / Speed drift";
+#S3_TT2 = "when changing delay times";
+DR_Slide.pot_tt(2); 
+#S3_TT1 = "Output panorama for this delay line";
+DR_Pan.pot_tt(1);
+#S3_TT1 = "Output volume for this delay line";
+DR_Vol.pot_tt(1); 
+#S3_TT1 = "Tape Saturation";
+Delay_Drive.pot_tt(1);
+#S3_TT1 = "General tone color";
+#S3_TT2 = "(changes with different 'drive' settings)";
+Delay_Tape.pot_tt(2);
+#S3_TT1 = "Slow tape speed variation";
+#S3_TT2 = "amount";
+#S3_TT3 = "(also stereo inconsitencies)";
+Delay_WowA.pot_tt(3);
+#S3_TT2 = "speed";
+Delay_WowF.pot_tt(3); 
+#S3_TT1 = "Fast tape speed variation";
+#S3_TT2 = "amount";
+Delay_FlutA.pot_tt(3);
+#S3_TT2 = "speed";
+Delay_FlutF.pot_tt(3);
+
+#S3_TT1 = "Reverb tail length";
+#S3_TT2 = "(also depending on the size)";
+Rev_AmbSustain.pot_tt(2);
+#S3_TT1 = "Size of the virtual room.";
+#S3_TT2 = "(Moving this knob resets the";
+#S3_TT3 = "reverb buffer, automation tricky)";
+Rev_AmbSize.pot_tt(3);
+#S3_TT1 = "Remove lows from the reverb";
+Rev_LowCut.pot_tt(1);
+#S3_TT1 = "Remove treble from the reverb";
+Rev_HighCut.pot_tt(1);
+#S3_TT1 = "Reverb time scaling for the lows";
+Rev_BMPY.pot_tt(1);
+#S3_TT1 = "Frequency selection for";
+#S3_TT2 = "low's reverb time scaling";
+Rev_BMPYf.pot_tt(2);
+#S3_TT1 = "How much faster highs decay";
+Rev_Wander.pot_tt(1); 
+#S3_TT1 = "Level of the early reflections";
+Rev_ER.pot_tt(1);
+#S3_TT1 = "Level of the reveb tail";
+Rev_TAIL.pot_tt(1); 
+#S3_TT1 = "Saturation / overtones.";
+#S3_TT2 = "(real rooms don't produce overtones";
+#S3_TT3 = "but reverb units might do)";
+Rev_Overtones.pot_tt(3);
+
+show_tt();
+quicklink_code();
+show_numberfield();
+ 
+ mouse_wheel = 0;
+ S2_sample_on == 0 ? (
+ gmem[16*256 + 10 + link_group] != 1 ? link_group = 0;
+ group_check_gfx();
+ caller == 1 ? (
+   parameters_update_on == 0 ? (
+     parameters_update();
+   );
+ );
+ );
+ S2_sample_on = 0;
+ 
+ 
+ ):( //ext flags
+ 
+ gfx_r=gfx_g=gfx_b=0.12;
+ gfx_rect(0,0,gfx_w,gfx_h);
+ 
+ zoom = gfx_w / 55;
+ gfx_setfont(2,"Arial",10*zoom,'b');
+ 
+ 
+ !general_bypass ? rgb(200,255,100) : rgb(30,160,30);
+ gfx_x = 15*zoom; gfx_y = 2*zoom;
+ gfx_drawstr("E & R");
+ 
+ !general_bypass ? (
+  delay_on ? rgb(25,250,0) : rgb(130,130,130);
+  Tape_mode ? (
+    gfx_x = 6*zoom; gfx_y = 17*zoom;
+    gfx_drawstr("TP-ECHO");
+  ):(
+    gfx_x = 14*zoom; gfx_y = 17*zoom;
+    gfx_drawstr("ECHO");
+  );
+  
+  rev_type ? rgb(25,250,0) : rgb(130,130,130);
+  
+  rev_type == 1 ? (
+    gfx_x = 17*zoom; gfx_y = 32*zoom;
+    gfx_drawstr("AMB.");
+  ):
+  rev_type == 2 ? (
+    gfx_x = 13*zoom; gfx_y = 32*zoom;
+    gfx_drawstr("ROOM");
+  ):
+  rev_type == 3 ? (
+    gfx_x = 15*zoom; gfx_y = 32*zoom;
+    gfx_drawstr("HALL");
+  ):
+  rev_type == 0 ? (
+    gfx_x = 10*zoom; gfx_y = 32*zoom;
+    gfx_drawstr("NO RVB");
+  );
+  
+  #mini_group = sprintf(#, "%i", Link_Group);
+  gfx_measurestr(#mini_group, mini_w, mini_h);
+  gfx_x = gfx_w - mini_w - gfx_w/20; gfx_y = 2*zoom;
+  Link_Group ? (
+    rgb_palette(Link_group);
+    gfx_drawstr(#mini_group);
+  );
+  
+  
+ ):(
+ gfx_x = 8*zoom; gfx_y = 13*zoom;
+ rgb(250,25,0);
+ gfx_drawstr("BYPASS");
+ );
+ mouseClick == 1 && shift ? (slider52 == 0 ? slider52 = 1 : slider52 = 0; caller = 1);
+ );
+ 
+ 
